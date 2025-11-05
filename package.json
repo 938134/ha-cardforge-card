@@ -1,13 +1,13 @@
 {
   "name": "ha-cardforge-card",
   "version": "1.0.0",
+  "private": true,
   "type": "module",
   "scripts": {
-    "build": "rollup -c",
-    "dev": "rollup -c -w"
+    "build": "rollup -c"
   },
   "devDependencies": {
-    "rollup": "^3.0.0",
+    "rollup": "^4.0.0",
     "@rollup/plugin-node-resolve": "^15.0.0"
   }
 }
