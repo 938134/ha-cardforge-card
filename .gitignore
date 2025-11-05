@@ -1,4 +1,5 @@
 node_modules/
-dist/cardforge.js
 .DS_Store
 *.log
+ha-flyzero-card.js
+dist
