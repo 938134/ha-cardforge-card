@@ -1,4 +1,4 @@
-name: Build CardForge
+name: Build HA-CardForge
 
 on:
   push:
@@ -28,5 +28,5 @@ jobs:
     - name: Upload build artifact
       uses: actions/upload-artifact@v3
       with:
-        name: cardforge
-        path: dist/cardforge.js
+        name: ha-cardforge
+        path: dist/ha-cardforge.js
