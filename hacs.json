@@ -1,5 +1,5 @@
 {
-  "name": "CardForge",
+  "name": "HA-CardForge",
   "render_readme": true,
-  "filename": "dist/cardforge.js"
+  "filename": "dist/ha-cardforge.js"
 }
