@@ -1,23 +1,13 @@
 {
-  "name": "ha-cardforge",
+  "name": "ha-cardforge-card",
   "version": "1.0.0",
-  "description": "A powerful customizable card for Home Assistant",
   "type": "module",
   "scripts": {
     "build": "rollup -c",
-    "dev": "rollup -c -w",
-    "prepare": "npm run build"
+    "dev": "rollup -c -w"
   },
-  "dependencies": {
-    "rollup": "^3.29.4",
-    "@rollup/plugin-node-resolve": "^15.2.3"
-  },
-  "devDependencies": {},
-  "keywords": [
-    "home-assistant",
-    "lovelace",
-    "custom-card"
-  ],
-  "author": "HA-CardForge Team",
-  "license": "MIT"
+  "devDependencies": {
+    "rollup": "^3.0.0",
+    "@rollup/plugin-node-resolve": "^15.0.0"
+  }
 }
