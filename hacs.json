@@ -1,7 +1,8 @@
 {
-  "name": "ha-cardforge-cards",
-  "content_in_root": false,
+  "name": "卡片工坊",
+  "render_readme": true,
   "filename": "ha-cardforge-card.js",
-  "homeassistant": "2024.1.0",
-  "render_readme": true
+  "zip_release": true,
+  "content_in_root": false,
+  "homeassistant": "2023.8.0"
 }
