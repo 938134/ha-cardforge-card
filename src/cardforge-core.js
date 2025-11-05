@@ -3,6 +3,7 @@ export class HACardForge extends HTMLElement {
     super();
     this._config = {};
     this._entities = {};
+    this._hass = null;
     this._shadow = this.attachShadow({ mode: 'open' });
   }
 
@@ -13,6 +14,19 @@ export class HACardForge extends HTMLElement {
     // 应用主题
     if (window.ThemeManager) {
       window.ThemeManager.applyTheme(this, this._config.theme || 'default');
+    }
+  }
+
+  set hass(hass) {
+    this._hass = hass;
+    this._updateEntityStates();
+    
+    // 更新时间戳
+    if (this._config.layout.footer.show_timestamp) {
+      const timestampElement = this._shadow.querySelector('.timestamp');
+      if (timestampElement) {
+        timestampElement.textContent = new Date().toLocaleTimeString();
+      }
     }
   }
 
@@ -140,16 +154,25 @@ export class HACardForge extends HTMLElement {
   }
 
   _getEntityData(entityIds) {
-    if (!window.hass) return [];
+    if (!this._hass || !this._hass.states) {
+      console.warn('Home Assistant states not available');
+      return entityIds.map(entityId => ({
+        id: entityId,
+        name: entityId,
+        domain: 'unknown',
+        state: '未知',
+        unit: ''
+      }));
+    }
     
     return entityIds.map(entityId => {
-      const entity = window.hass.states[entityId];
+      const entity = this._hass.states[entityId];
       if (!entity) {
         return {
           id: entityId,
           name: entityId,
           domain: 'unknown',
-          state: '未知',
+          state: '不可用',
           unit: ''
         };
       }
@@ -161,6 +184,22 @@ export class HACardForge extends HTMLElement {
         state: entity.state,
         unit: entity.attributes.unit_of_measurement || ''
       };
+    });
+  }
+
+  _updateEntityStates() {
+    if (!this._hass || !this._hass.states) return;
+    
+    const entityItems = this._shadow.querySelectorAll('.entity-item');
+    entityItems.forEach(item => {
+      const entityId = item.dataset.entity;
+      const entity = this._hass.states[entityId];
+      if (entity) {
+        const stateElement = item.querySelector('.state-value');
+        if (stateElement) {
+          stateElement.textContent = entity.state;
+        }
+      }
     });
   }
 
@@ -355,36 +394,6 @@ export class HACardForge extends HTMLElement {
   _openMarketplace() {
     if (window.CardMarketplace) {
       window.CardMarketplace.openMarketplace();
-    }
-  }
-
-  _updateEntityStates() {
-    if (!window.hass) return;
-    
-    const entityItems = this._shadow.querySelectorAll('.entity-item');
-    entityItems.forEach(item => {
-      const entityId = item.dataset.entity;
-      const entity = window.hass.states[entityId];
-      if (entity) {
-        const stateElement = item.querySelector('.state-value');
-        if (stateElement) {
-          stateElement.textContent = entity.state;
-        }
-      }
-    });
-  }
-
-  // Home Assistant 状态更新
-  set hass(hass) {
-    this._hass = hass;
-    this._updateEntityStates();
-    
-    // 更新时间戳
-    if (this._config.layout.footer.show_timestamp) {
-      const timestampElement = this._shadow.querySelector('.timestamp');
-      if (timestampElement) {
-        timestampElement.textContent = new Date().toLocaleTimeString();
-      }
     }
   }
 
