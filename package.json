@@ -7,16 +7,5 @@
     "build": "rollup -c && cp dist/ha-cardforge.js .",
     "dev": "rollup -c -w",
     "prepare": "npm run build"
-  },
-  "devDependencies": {
-    "rollup": "^3.0.0",
-    "@rollup/plugin-node-resolve": "^15.0.0"
-  },
-  "keywords": [
-    "home-assistant",
-    "lovelace",
-    "custom-card"
-  ],
-  "author": "HA-CardForge Team",
-  "license": "MIT"
+  }
 }
