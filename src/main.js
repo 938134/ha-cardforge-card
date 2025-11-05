@@ -1,15 +1,22 @@
-import { CardForge } from './cardforge-core.js';
-import { CardForgeEditor } from './visual-editor.js';
+import { HACardForge } from './cardforge-core.js';
+import { HACardForgeEditor } from './visual-editor.js';
 import { EntityPicker } from './entity-picker.js';
+import { CardMarketplace } from './marketplace.js';
+import { ThemeManager } from './themes.js';
 
 // 注册自定义元素
-if (!customElements.get('cardforge')) {
-  customElements.define('cardforge', CardForge);
+if (!customElements.get('ha-cardforge')) {
+  customElements.define('ha-cardforge', HACardForge);
 }
 
 // 暴露全局API
-window.CardForge = CardForge;
-window.CardForgeEditor = CardForgeEditor;
+window.HACardForge = HACardForge;
+window.HACardForgeEditor = HACardForgeEditor;
 window.EntityPicker = EntityPicker;
+window.CardMarketplace = CardMarketplace;
+window.ThemeManager = ThemeManager;
 
-console.log('CardForge loaded successfully!');
+// 初始化主题管理器
+window.ThemeManager.init();
+
+console.log('HA-CardForge loaded successfully!');
