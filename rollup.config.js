@@ -6,5 +6,14 @@ export default {
     file: 'ha-cardforge.js',
     format: 'es'
   },
-  plugins: [nodeResolve()]
+  external: [
+    /^lit/,
+    /^@lit/,
+    'lit-element',
+    'lit-html',
+    'lit-html/is-server',
+  ],
+  plugins: [
+    nodeResolve({ preferBuiltins: false }),
+  ],
 };
