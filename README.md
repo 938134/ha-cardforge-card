@@ -1,4 +1,4 @@
-# ha-cardforge - Home Assistant 自定义卡片
+# HA-CardForge - Home Assistant 自定义卡片
 
 > Forge Your Perfect Dashboard
 
@@ -14,14 +14,14 @@
 ## 安装
 
 ### 通过 HACS（推荐）
-1. 在 HACS 中添加自定义仓库
-2. 搜索 CardForge 并安装
+1. 在 HACS 中添加自定义仓库：`https://github.com/你的用户名/ha-cardforge`
+2. 搜索 HA-CardForge 并安装
 3. 在 Lovelace 中添加卡片
 
 ### 手动安装
-1. 下载 `dist/cardforge.js` 到你的 `www` 目录
+1. 下载 `dist/ha-cardforge.js` 到你的 `www` 目录
 2. 在 Lovelace 资源中添加：
 ```yaml
 resources:
-  - url: /local/cardforge.js
+  - url: /local/ha-cardforge.js
     type: module
