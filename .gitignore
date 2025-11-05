@@ -1,0 +1,4 @@
+node_modules/
+dist/cardforge.js
+.DS_Store
+*.log
