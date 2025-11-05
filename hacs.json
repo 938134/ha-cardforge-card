@@ -1,5 +1,7 @@
 {
   "name": "HA-CardForge",
   "render_readme": true,
-  "filename": "dist/ha-cardforge.js"
+  "filename": "ha-cardforge.js",
+  "content_in_root": false,
+  "zip_release": false
 }
