@@ -4,22 +4,16 @@ import { EntityPicker } from './entity-picker.js';
 import { CardMarketplace } from './marketplace.js';
 import { ThemeManager } from './themes.js';
 
-// 确保自定义元素正确注册
-console.log('HA-CardForge: Starting registration...');
-
+// 正确的自定义元素注册
 class HaCardForgeElement extends HACardForge {
   constructor() {
     super();
-    console.log('HA-CardForge: Element created');
   }
 }
 
-// 注册自定义元素
+// 注册自定义元素 - 使用正确的命名约定
 if (!customElements.get('ha-cardforge')) {
   customElements.define('ha-cardforge', HaCardForgeElement);
-  console.log('HA-CardForge: Custom element registered successfully');
-} else {
-  console.log('HA-CardForge: Custom element already registered');
 }
 
 // 暴露全局API
@@ -30,14 +24,6 @@ window.CardMarketplace = CardMarketplace;
 window.ThemeManager = ThemeManager;
 
 // 初始化主题管理器
-if (window.ThemeManager) {
-  window.ThemeManager.init();
-}
+window.ThemeManager.init();
 
-console.log('HA-CardForge: Loaded successfully!');
-
-// 添加调试信息
-window.addEventListener('load', () => {
-  console.log('HA-CardForge: Window loaded, checking registration...');
-  console.log('Custom elements defined:', customElements.get('ha-cardforge') ? 'YES' : 'NO');
-});
+console.log('HA-CardForge 卡片工坊已加载！');
