@@ -1,9 +1,8 @@
 name: Build HA-CardForge
 
 on:
-  #push:
-    #branches: [ main ]
-  pull_request:
+  workflow_dispatch:
+  push:
     branches: [ main ]
 
 jobs:
