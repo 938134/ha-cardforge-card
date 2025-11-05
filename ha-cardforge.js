@@ -1933,9 +1933,22 @@ class ThemeManager {
   }
 }
 
+// 确保自定义元素正确注册
+console.log('HA-CardForge: Starting registration...');
+
+class HaCardForgeElement extends HACardForge {
+  constructor() {
+    super();
+    console.log('HA-CardForge: Element created');
+  }
+}
+
 // 注册自定义元素
 if (!customElements.get('ha-cardforge')) {
-  customElements.define('ha-cardforge', HACardForge);
+  customElements.define('ha-cardforge', HaCardForgeElement);
+  console.log('HA-CardForge: Custom element registered successfully');
+} else {
+  console.log('HA-CardForge: Custom element already registered');
 }
 
 // 暴露全局API
@@ -1946,6 +1959,14 @@ window.CardMarketplace = CardMarketplace;
 window.ThemeManager = ThemeManager;
 
 // 初始化主题管理器
-window.ThemeManager.init();
+if (window.ThemeManager) {
+  window.ThemeManager.init();
+}
 
-console.log('HA-CardForge loaded successfully!');
+console.log('HA-CardForge: Loaded successfully!');
+
+// 添加调试信息
+window.addEventListener('load', () => {
+  console.log('HA-CardForge: Window loaded, checking registration...');
+  console.log('Custom elements defined:', customElements.get('ha-cardforge') ? 'YES' : 'NO');
+});
