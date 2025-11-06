@@ -1,2 +1,4 @@
-/ha-cardforge-card.js
+node_modules/
 dist/
+.DS_Store
+*.log
