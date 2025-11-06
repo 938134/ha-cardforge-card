@@ -3,6 +3,8 @@
 > Forge Your Perfect Dashboard
 
 一个强大的 Home Assistant 自定义卡片，支持可视化编辑和实体数据绑定。
+<img src="https://user-images.githubusercontent.com/xxx/1.png" width="400">
+<img src="https://user-images.githubusercontent.com/xxx/2.png" width="400">
 
 ## 特性
 
