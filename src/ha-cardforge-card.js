@@ -1,4 +1,5 @@
 import { LitElement, html, css } from 'https://unpkg.com/lit@2.8.0/index.js?module';
+import './ha-cardforge-editor.js';
 
 class HaCardForgeCard extends LitElement {
   static properties = {
@@ -309,17 +310,14 @@ class HaCardForgeCard extends LitElement {
   }
 
   _openEditor() {
-    if (window.HACardForgeEditor) {
-      window.HACardForgeEditor.open(this._config, (newConfig) => {
-        this.setConfig(newConfig);
-      });
-    }
+    // 由于现在使用 Home Assistant 内置的可视化编辑器，
+    // 这个功能可以移除或者保留作为备用
+    console.log('编辑功能已集成到 Home Assistant 可视化编辑器中');
   }
 
-  // Home Assistant 标准接口
-  getCardSize() {
-    const entityCount = this._config?.layout?.content?.entities?.length || 0;
-    return Math.max(2, 2 + Math.ceil(entityCount / 2));
+  // Home Assistant 标准接口 - 可视化编辑器支持
+  static getConfigElement() {
+    return document.createElement('ha-cardforge-editor');
   }
 
   static getStubConfig() {
@@ -328,18 +326,38 @@ class HaCardForgeCard extends LitElement {
         header: {
           title: "卡片工坊",
           icon: "mdi:widgets",
-          visible: true
+          visible: true,
+          show_edit_button: true
         },
         content: {
           entities: []
         },
         footer: {
           visible: true,
-          show_timestamp: true
+          show_timestamp: true,
+          show_entity_count: true
         }
       }
     };
   }
+
+  getCardSize() {
+    const entityCount = this._config?.layout?.content?.entities?.length || 0;
+    return Math.max(2, 2 + Math.ceil(entityCount / 2));
+  }
 }
 
+// 注册自定义元素
 customElements.define('ha-cardforge-card', HaCardForgeCard);
+
+// 注册到 Home Assistant 自定义卡片列表
+if (window.customCards) {
+  window.customCards = window.customCards || [];
+  window.customCards.push({
+    type: 'ha-cardforge-card',
+    name: '卡片工坊',
+    description: '一个强大的自定义卡片，支持可视化编辑和实体数据绑定',
+    preview: true,
+    documentationURL: 'https://github.com/你的用户名/ha-cardforge'
+  });
+}

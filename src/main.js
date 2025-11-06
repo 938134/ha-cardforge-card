@@ -1,5 +1,5 @@
 import './ha-cardforge-card.js';
-import { HACardForgeEditor } from './visual-editor.js';
+import './ha-cardforge-editor.js';
 import { EntityPicker } from './entity-picker.js';
 import { CardMarketplace } from './marketplace.js';
 import { ThemeManager } from './themes.js';
@@ -13,4 +13,4 @@ window.ThemeManager = ThemeManager;
 // 初始化主题管理器
 window.ThemeManager.init();
 
-console.log('ha-cardforge-card卡片工坊已加载！');
+console.log('ha-cardforge-card 卡片工坊已加载！');
