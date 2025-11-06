@@ -1,4 +1,7 @@
 import { LitElement, html, css } from 'https://unpkg.com/lit@2.8.0/index.js?module';
+import { EntityPicker } from './components/entity-picker.js';
+import { Marketplace } from './components/marketplace.js';
+import { ThemeSelector } from './components/theme-selector.js';
 
 class HaCardForgeEditor extends LitElement {
   static properties = {
@@ -73,20 +76,40 @@ class HaCardForgeEditor extends LitElement {
     
     .entities-preview {
       margin-top: 8px;
-      padding: 8px;
+      padding: 12px;
       background: var(--secondary-background-color);
       border-radius: 4px;
       font-size: 0.9em;
+      border: 1px solid var(--divider-color);
+    }
+    
+    .theme-preview {
+      margin-top: 8px;
+      padding: 12px;
+      background: var(--secondary-background-color);
+      border-radius: 4px;
+      border: 1px solid var(--divider-color);
     }
     
     .entity-tag {
       display: inline-block;
       background: var(--primary-color);
       color: white;
-      padding: 2px 8px;
+      padding: 4px 8px;
       margin: 2px;
       border-radius: 12px;
       font-size: 0.8em;
+    }
+    
+    .theme-tag {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: var(--primary-color);
+      color: white;
+      padding: 6px 12px;
+      border-radius: 6px;
+      font-size: 0.9em;
     }
     
     .button {
@@ -97,6 +120,11 @@ class HaCardForgeEditor extends LitElement {
       border-radius: 4px;
       cursor: pointer;
       font-size: 0.9em;
+      transition: opacity 0.2s;
+    }
+    
+    .button:hover {
+      opacity: 0.9;
     }
     
     .button.secondary {
@@ -106,6 +134,49 @@ class HaCardForgeEditor extends LitElement {
     
     .button.full-width {
       width: 100%;
+    }
+    
+    .empty-state {
+      color: var(--disabled-text-color);
+      text-align: center;
+      padding: 20px;
+      font-style: italic;
+    }
+    
+    .action-buttons {
+      display: flex;
+      gap: 8px;
+      margin-top: 8px;
+    }
+    
+    .theme-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+      gap: 8px;
+      margin-top: 8px;
+    }
+    
+    .theme-option {
+      padding: 12px;
+      border: 2px solid var(--divider-color);
+      border-radius: 6px;
+      cursor: pointer;
+      text-align: center;
+      transition: all 0.2s;
+    }
+    
+    .theme-option:hover {
+      border-color: var(--primary-color);
+    }
+    
+    .theme-option.selected {
+      border-color: var(--primary-color);
+      background: rgba(var(--primary-color-rgb), 0.1);
+    }
+    
+    .theme-preview-icon {
+      font-size: 1.5em;
+      margin-bottom: 4px;
     }
   `;
 
@@ -130,7 +201,8 @@ class HaCardForgeEditor extends LitElement {
           show_timestamp: true,
           show_entity_count: true
         }
-      }
+      },
+      theme: 'default'
     };
   }
 
@@ -173,16 +245,25 @@ class HaCardForgeEditor extends LitElement {
   }
 
   _pickEntities() {
-    if (window.EntityPicker) {
-      const currentEntities = this.config.layout?.content?.entities || [];
-      window.EntityPicker.open(currentEntities, (selectedEntities) => {
-        this.config.layout.content.entities = selectedEntities;
-        this._fireConfigChanged();
-        this.requestUpdate();
-      });
-    } else {
-      alert('实体选择器未加载，请刷新页面重试');
-    }
+    const currentEntities = this.config.layout?.content?.entities || [];
+    EntityPicker.open(this.hass, currentEntities, (selectedEntities) => {
+      this.config.layout.content.entities = selectedEntities;
+      this._fireConfigChanged();
+      this.requestUpdate();
+    });
+  }
+
+  _openMarketplace() {
+    Marketplace.open();
+  }
+
+  _openThemeSelector() {
+    const currentTheme = this.config.theme || 'default';
+    ThemeSelector.open(currentTheme, (selectedTheme) => {
+      this.config.theme = selectedTheme;
+      this._fireConfigChanged();
+      this.requestUpdate();
+    });
   }
 
   render() {
@@ -191,6 +272,8 @@ class HaCardForgeEditor extends LitElement {
     const header = this.config.layout?.header || {};
     const content = this.config.layout?.content || {};
     const footer = this.config.layout?.footer || {};
+    const currentTheme = this.config.theme || 'default';
+    const currentThemeInfo = ThemeSelector.getTheme(currentTheme);
 
     return html`
       <div class="editor-container">
@@ -259,6 +342,34 @@ class HaCardForgeEditor extends LitElement {
               ${this._renderEntitiesPreview(content.entities)}
             </div>
           </div>
+
+          <div class="action-buttons">
+            <button class="button secondary" @click=${this._openMarketplace}>
+              🛒 插件市场
+            </button>
+          </div>
+        </div>
+
+        <!-- 主题设置 -->
+        <div class="form-section">
+          <h3 class="section-title">🎨 主题设置</h3>
+          
+          <div class="form-group">
+            <label>当前主题</label>
+            <div class="theme-preview">
+              <div class="theme-tag">
+                <span>${currentThemeInfo.preview}</span>
+                <span>${currentThemeInfo.name}</span>
+              </div>
+              <div style="margin-top: 8px; font-size: 0.9em; color: var(--secondary-text-color);">
+                ${currentThemeInfo.description}
+              </div>
+            </div>
+          </div>
+          
+          <button class="button full-width secondary" @click=${this._openThemeSelector}>
+            选择主题
+          </button>
         </div>
 
         <!-- 页脚设置 -->
@@ -324,16 +435,16 @@ class HaCardForgeEditor extends LitElement {
 
   _renderEntitiesPreview(entities) {
     if (!entities || entities.length === 0) {
-      return html`<div style="color: var(--disabled-text-color);">未选择实体</div>`;
+      return html`<div class="empty-state">未选择实体</div>`;
     }
 
     return html`
-      <div>已选择 ${entities.length} 个实体：</div>
-      <div style="margin-top: 4px;">
-        ${entities.slice(0, 3).map(entity => 
+      <div style="margin-bottom: 8px;">已选择 ${entities.length} 个实体：</div>
+      <div>
+        ${entities.slice(0, 5).map(entity => 
           html`<span class="entity-tag">${this._getEntityName(entity)}</span>`
         )}
-        ${entities.length > 3 ? html`<span class="entity-tag">+${entities.length - 3}更多</span>` : ''}
+        ${entities.length > 5 ? html`<span class="entity-tag">+${entities.length - 5}更多</span>` : ''}
       </div>
     `;
   }

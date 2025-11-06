@@ -144,6 +144,10 @@ class HaCardForgeCard extends LitElement {
 
   setConfig(config) {
     this._config = this._validateConfig(config);
+      // 应用主题
+    if (this._config.theme && window.ThemeSelector) {
+      window.ThemeSelector.applyTheme(this, this._config.theme);
+    }
   }
 
   _validateConfig(config) {
