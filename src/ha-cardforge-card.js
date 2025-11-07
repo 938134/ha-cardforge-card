@@ -1,6 +1,6 @@
 // src/ha-cardforge-card.js
 import { LitElement, html } from 'https://unpkg.com/lit@2.8.0/index.js?module';
-import './cards/card-renderer.js';
+import './components/card-renderer.js';
 
 class HaCardForgeCard extends LitElement {
   static properties = {
