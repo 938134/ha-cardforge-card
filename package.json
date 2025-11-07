@@ -4,7 +4,7 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "build": "rollup -c"
+    "build": "node --loader=ts-node/esm --no-warnings=ExperimentalWarning rollup.config.js"
   },
   "devDependencies": {
     "rollup": "^4.0.0",
