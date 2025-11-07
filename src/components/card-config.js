@@ -49,12 +49,7 @@ export class CardConfig {
     }
   };
   
-  // 自动注册新卡片配置
-  static registerCard(type, config) {
-    this.cardConfigs[type] = config;
-  }
-  
-  // 获取卡片配置
+  // 获取卡片配置（同步版本）
   static getCardConfig(cardType) {
     return this.cardConfigs[cardType] || {
       name: cardType,
@@ -65,7 +60,7 @@ export class CardConfig {
     };
   }
   
-  // 获取所有卡片配置
+  // 获取所有卡片配置（同步版本）
   static getAllCardConfigs() {
     return Object.entries(this.cardConfigs).map(([type, config]) => ({
       type,
@@ -73,9 +68,9 @@ export class CardConfig {
     }));
   }
   
-  // 根据类别筛选卡片
-  static getCardsByCategory(category) {
-    return this.getAllCardConfigs().filter(card => card.category === category);
+  // 检查卡片类型是否存在
+  static hasCardType(cardType) {
+    return !!this.cardConfigs[cardType];
   }
 }
 

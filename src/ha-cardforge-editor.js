@@ -7,7 +7,8 @@ class HaCardForgeEditor extends LitElement {
   static properties = {
     hass: { type: Object },
     config: { type: Object },
-    _availableCards: { state: true }
+    _availableCards: { state: true },
+    _initialized: { state: true }
   };
 
   static styles = css`
@@ -25,28 +26,33 @@ class HaCardForgeEditor extends LitElement {
 
   constructor() {
     super();
-    this.config = { type: 'standard' };
-    this._availableCards = [];
+    this.config = { type: 'time-week' };
+    this._availableCards = window.CardConfig.getAllCardConfigs(); // 同步获取
+    this._initialized = false;
   }
 
   async firstUpdated() {
-    await this._loadAvailableCards();
-  }
-
-  async _loadAvailableCards() {
-    try {
-      this._availableCards = await window.DynamicLoader.getAvailableCards();
-    } catch (error) {
-      console.error('加载可用卡片失败:', error);
-      this._availableCards = [];
-    }
+    // 异步初始化卡片系统
+    await window.DynamicLoader.initialize();
+    this._availableCards = await window.DynamicLoader.getAvailableCards();
+    this._initialized = true;
+    this.requestUpdate();
   }
 
   setConfig(config) {
-    this.config = { ...this.config, ...config };
+    // 确保配置类型有效
+    const validType = window.CardConfig.hasCardType(config.type) ? config.type : 'time-week';
+    this.config = { 
+      type: validType,
+      ...config 
+    };
   }
 
   render() {
+    if (!this._initialized) {
+      return html`<div class="editor">加载中...</div>`;
+    }
+
     return html`
       <div class="editor">
         <!-- 动态卡片类型选择 -->
@@ -134,7 +140,7 @@ class HaCardForgeEditor extends LitElement {
           <div class="form-group">
             <ha-formfield label=${field.label}>
               <ha-switch
-                .checked=${currentValue !== false}
+                .checked=${!!currentValue}
                 @change=${e => this._updateConfig(field.key, e.target.checked)}
               ></ha-switch>
             </ha-formfield>
@@ -150,6 +156,22 @@ class HaCardForgeEditor extends LitElement {
               @value-changed=${e => this._updateConfig(field.key, e.detail.value)}
               style="width: 100%;"
             ></ha-icon-picker>
+          </div>
+        `;
+        
+      case 'select':
+        return html`
+          <div class="form-group">
+            <ha-select
+              label=${field.label}
+              .value=${currentValue || field.default}
+              @selected=${e => this._updateConfig(field.key, e.target.value)}
+              style="width: 100%;"
+            >
+              ${field.options.map(option => html`
+                <mwc-list-item value=${option.value}>${option.label}</mwc-list-item>
+              `)}
+            </ha-select>
           </div>
         `;
         

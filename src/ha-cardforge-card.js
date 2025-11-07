@@ -8,33 +8,36 @@ class HaCardForgeCard extends LitElement {
     hass: { type: Object },
     config: { type: Object },
     _cardElement: { state: true },
-    _error: { state: true },
-    _availableCards: { state: true }
+    _error: { state: true }
   };
 
   constructor() {
     super();
     this._cardElement = null;
     this._error = null;
-    this._availableCards = [];
   }
 
   async setConfig(config) {
+    // 确保卡片系统已初始化
+    await window.DynamicLoader.initialize();
+    
     this.config = this._validateConfig(config);
-    await this._loadAvailableCards();
     await this._loadCard();
   }
 
   _validateConfig(config) {
-    // 如果没有配置类型，默认使用第一个可用卡片
-    if (!config.type && this._availableCards.length > 0) {
-      config.type = this._availableCards[0].type;
+    const cardType = config.type || 'time-week';
+    
+    // 验证卡片类型是否存在
+    if (!window.CardConfig.hasCardType(cardType)) {
+      console.warn(`卡片类型 ${cardType} 不存在，使用默认卡片`);
+      config.type = 'time-week';
     }
     
     const cardConfig = window.CardConfig.getCardConfig(config.type);
     
     const defaults = {
-      type: 'time-week', // 默认使用时间星期卡片
+      type: config.type,
       theme: 'default'
     };
     
@@ -70,15 +73,6 @@ class HaCardForgeCard extends LitElement {
       }
     }
     return result;
-  }
-
-  async _loadAvailableCards() {
-    try {
-      this._availableCards = await window.DynamicLoader.getAvailableCards();
-    } catch (error) {
-      console.error('加载可用卡片失败:', error);
-      this._availableCards = [];
-    }
   }
 
   async _loadCard() {
@@ -155,14 +149,28 @@ class HaCardForgeCard extends LitElement {
   }
 
   static getStubConfig() {
-    return {
-      type: 'time-week',
-      entities: {
-        time: 'sensor.time',
-        date: 'sensor.date', 
-        week: 'sensor.xing_qi'
-      }
+    // 使用同步方式获取默认配置
+    const defaultCard = window.CardConfig.getAllCardConfigs()[0];
+    const stubConfig = {
+      type: defaultCard?.type || 'time-week'
     };
+    
+    // 添加字段默认值
+    if (defaultCard?.fields) {
+      defaultCard.fields.forEach(field => {
+        if (field.default !== undefined) {
+          const keys = field.key.split('.');
+          const lastKey = keys.pop();
+          const target = keys.reduce((obj, key) => {
+            if (!obj[key]) obj[key] = {};
+            return obj[key];
+          }, stubConfig);
+          target[lastKey] = field.default;
+        }
+      });
+    }
+    
+    return stubConfig;
   }
 
   getCardSize() {

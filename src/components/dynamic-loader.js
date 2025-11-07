@@ -1,6 +1,20 @@
 // src/components/dynamic-loader.js
 export class DynamicLoader {
   static cardCache = new Map();
+  static _initialized = false;
+  static _availableCards = [];
+  
+  // 初始化卡片系统
+  static async initialize() {
+    if (this._initialized) return;
+    
+    try {
+      this._availableCards = await this.discoverCards();
+      this._initialized = true;
+    } catch (error) {
+      console.error('初始化卡片系统失败:', error);
+    }
+  }
   
   // 自动发现卡片目录下的所有文件
   static async discoverCards() {
@@ -38,24 +52,25 @@ export class DynamicLoader {
         }
       }
       
-      return cards;
+      return Object.values(cards).map(card => ({
+        type: card.type,
+        name: card.name,
+        icon: card.icon,
+        description: card.description
+      }));
     } catch (error) {
       console.error('自动发现卡片失败:', error);
-      return {};
+      return [];
     }
   }
   
   // 动态加载卡片
   static async loadCard(cardType) {
+    await this.initialize();
+    
     // 先从缓存获取
     if (this.cardCache.has(cardType)) {
       return this.cardCache.get(cardType);
-    }
-    
-    // 自动发现并加载
-    const cards = await this.discoverCards();
-    if (cards[cardType]) {
-      return cards[cardType].module[cards[cardType].className];
     }
     
     throw new Error(`不支持的卡片类型: ${cardType}`);
@@ -74,13 +89,13 @@ export class DynamicLoader {
   
   // 获取所有可用卡片类型
   static async getAvailableCards() {
-    const cards = await this.discoverCards();
-    return Object.values(cards).map(card => ({
-      type: card.type,
-      name: card.name,
-      icon: card.icon,
-      description: card.description
-    }));
+    await this.initialize();
+    return this._availableCards;
+  }
+  
+  // 同步获取可用卡片（用于编辑器初始化）
+  static getAvailableCardsSync() {
+    return this._availableCards;
   }
 }
 
