@@ -1,6 +1,6 @@
-// src/ha-cardforge-card.js
 import { LitElement, html } from 'https://unpkg.com/lit@2.8.0/index.js?module';
-import './components/card-renderer.js';
+import './components/card-registry.js';
+import './components/base-card.js';
 
 class HaCardForgeCard extends LitElement {
   static properties = {
@@ -16,27 +16,44 @@ class HaCardForgeCard extends LitElement {
     this._error = null;
   }
 
-  setConfig(config) {
-    this.config = this._validateConfig(config);
-    this._loadCard();
+  async setConfig(config) {
+    try {
+      await window.CardRegistry.initialize();
+      this.config = this._validateConfig(config);
+      this._loadCard();
+    } catch (error) {
+      this._showError(`配置错误: ${error.message}`);
+    }
   }
 
   _validateConfig(config) {
+    if (!config.type) {
+      const defaultCard = window.CardRegistry.getDefaultCard();
+      config.type = defaultCard.type;
+    }
+
+    if (!window.CardRegistry.hasCardType(config.type)) {
+      throw new Error(`不支持的卡片类型: ${config.type}`);
+    }
+
+    const cardConfig = window.CardRegistry.getCardConfig(config.type);
     const defaults = {
-      type: 'time-week',
-      entities: {
-        time: 'sensor.time',
-        date: 'sensor.date',
-        week: 'sensor.xing_qi',
-        lunar: 'sensor.nong_li'
-      },
-      show_seconds: true,
-      tap_action: {
-        action: 'more-info',
-        entity: 'sensor.nong_li'
-      }
+      type: config.type,
+      theme: 'default',
+      entities: {},
+      style: {},
+      advanced: {}
     };
-    
+
+    // 设置实体默认值
+    if (cardConfig.entityInterfaces) {
+      cardConfig.entityInterfaces.required?.forEach(entity => {
+        if (entity.default) {
+          defaults.entities[entity.key] = entity.default;
+        }
+      });
+    }
+
     return this._deepMerge(defaults, config);
   }
 
@@ -58,14 +75,12 @@ class HaCardForgeCard extends LitElement {
     try {
       this._error = null;
       
-      // 移除旧卡片
       if (this._cardElement) {
         this.shadowRoot.removeChild(this._cardElement);
         this._cardElement = null;
       }
 
-      // 创建统一的卡片渲染器
-      const cardElement = document.createElement('card-renderer');
+      const cardElement = document.createElement('base-card');
       cardElement.setConfig(this.config);
       
       if (this.hass) {
@@ -74,7 +89,6 @@ class HaCardForgeCard extends LitElement {
       
       this._cardElement = cardElement;
       
-      // 确保 shadowRoot 存在
       if (!this.shadowRoot) {
         this.attachShadow({ mode: 'open' });
       }
@@ -117,7 +131,6 @@ class HaCardForgeCard extends LitElement {
     return html`<div id="card-container"></div>`;
   }
 
-  // Home Assistant 标准接口
   static getConfigElement() {
     return document.createElement('ha-cardforge-editor');
   }
@@ -139,16 +152,3 @@ class HaCardForgeCard extends LitElement {
 }
 
 customElements.define('ha-cardforge-card', HaCardForgeCard);
-customElements.define('card-renderer', CardRenderer);
-
-// 注册到自定义卡片列表
-if (window.customCards) {
-  window.customCards = window.customCards || [];
-  window.customCards.push({
-    type: 'ha-cardforge-card',
-    name: '时间卡片工坊',
-    description: '专为时间显示设计的卡片集合',
-    preview: true,
-    documentationURL: 'https://github.com/your-repo/ha-cardforge'
-  });
-}
