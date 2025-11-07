@@ -1,76 +1,45 @@
+// src/ha-cardforge-editor.js
 import { LitElement, html, css } from 'https://unpkg.com/lit@2.8.0/index.js?module';
-import './components/entity.js';
-import './components/template.js';
-import './components/theme.js';
+import './components/dynamic-loader.js';
+import './components/card-config.js';
 
 class HaCardForgeEditor extends LitElement {
   static properties = {
     hass: { type: Object },
-    config: { type: Object }
+    config: { type: Object },
+    _availableCards: { state: true }
   };
 
   static styles = css`
-    .editor {
-      padding: 16px;
-      max-width: 600px;
-    }
-    .section {
-      margin-bottom: 24px;
-      padding: 16px;
-      background: var(--card-background-color);
-      border-radius: 8px;
-      border: 1px solid var(--divider-color);
-    }
-    .section-title {
-      margin: 0 0 16px 0;
-      font-size: 1.1em;
-      color: var(--primary-color);
-      display: flex;
-      align-items: center;
-      gap: 8px;
-    }
-    .form-group {
-      margin-bottom: 16px;
-    }
-    .action-buttons {
-      display: flex;
-      gap: 8px;
-      margin-top: 16px;
-      flex-wrap: wrap;
-    }
-    .card-type-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
-      gap: 12px;
-      margin-bottom: 16px;
-    }
-    .card-type-option {
-      padding: 16px;
-      border: 2px solid var(--divider-color);
-      border-radius: 8px;
-      cursor: pointer;
-      text-align: center;
-      transition: all 0.2s;
-    }
-    .card-type-option:hover {
-      border-color: var(--primary-color);
-    }
-    .card-type-option.selected {
-      border-color: var(--primary-color);
-      background: rgba(var(--primary-color-rgb), 0.1);
-    }
-    .card-type-icon {
-      font-size: 2em;
-      margin-bottom: 8px;
-    }
+    .editor { padding: 16px; max-width: 600px; }
+    .section { margin-bottom: 24px; padding: 16px; background: var(--card-background-color); border-radius: 8px; border: 1px solid var(--divider-color); }
+    .section-title { margin: 0 0 16px 0; font-size: 1.1em; color: var(--primary-color); display: flex; align-items: center; gap: 8px; }
+    .form-group { margin-bottom: 16px; }
+    .action-buttons { display: flex; gap: 8px; margin-top: 16px; flex-wrap: wrap; }
+    .card-type-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 12px; margin-bottom: 16px; }
+    .card-type-option { padding: 16px; border: 2px solid var(--divider-color); border-radius: 8px; cursor: pointer; text-align: center; transition: all 0.2s; }
+    .card-type-option:hover { border-color: var(--primary-color); }
+    .card-type-option.selected { border-color: var(--primary-color); background: rgba(var(--primary-color-rgb), 0.1); }
+    .card-type-icon { font-size: 2em; margin-bottom: 8px; }
   `;
 
   constructor() {
     super();
-    this.config = { 
-      type: 'standard', 
-      layout: { header: {}, content: {}, footer: {} } 
-    };
+    this.config = { type: 'standard' };
+    this._availableCards = [];
+  }
+
+  async firstUpdated() {
+    await this._loadAvailableCards();
+  }
+
+  async _loadAvailableCards() {
+    try {
+      this._availableCards = await window.DynamicLoader.getAvailableCards();
+    } catch (error) {
+      console.error('加载可用卡片失败:', error);
+      this._availableCards = [];
+    }
   }
 
   setConfig(config) {
@@ -80,7 +49,7 @@ class HaCardForgeEditor extends LitElement {
   render() {
     return html`
       <div class="editor">
-        <!-- 卡片类型选择 -->
+        <!-- 动态卡片类型选择 -->
         <div class="section">
           <h3 class="section-title">🎨 选择卡片类型</h3>
           <div class="card-type-grid">
@@ -89,31 +58,19 @@ class HaCardForgeEditor extends LitElement {
         </div>
 
         <!-- 动态卡片配置 -->
-        ${this._renderCardConfig()}
+        ${this._renderDynamicCardConfig()}
 
         <!-- 操作按钮 -->
         <div class="action-buttons" style="justify-content: flex-end;">
-          <mwc-button 
-            @click=${this._cancel}
-            label="取消"
-          ></mwc-button>
-          <mwc-button 
-            @click=${this._save}
-            unelevated
-            label="保存"
-          ></mwc-button>
+          <mwc-button @click=${this._cancel} label="取消"></mwc-button>
+          <mwc-button @click=${this._save} unelevated label="保存"></mwc-button>
         </div>
       </div>
     `;
   }
 
   _renderCardTypeOptions() {
-    const cardTypes = [
-      { type: 'standard', name: '标准卡片', icon: '📄', description: '三栏布局的基础卡片' },
-      { type: 'button', name: '按钮卡片', icon: '🔘', description: '基于 button-card 的卡片' }
-    ];
-
-    return cardTypes.map(card => html`
+    return this._availableCards.map(card => html`
       <div 
         class="card-type-option ${this.config.type === card.type ? 'selected' : ''}"
         @click=${() => this._changeCardType(card.type)}
@@ -127,196 +84,117 @@ class HaCardForgeEditor extends LitElement {
     `);
   }
 
-  _renderCardConfig() {
-    switch (this.config.type) {
-      case 'standard':
-        return this._renderStandardConfig();
-      case 'button':
-        return this._renderButtonConfig();
+  _renderDynamicCardConfig() {
+    const cardConfig = window.CardConfig.getCardConfig(this.config.type);
+    
+    if (!cardConfig.fields || cardConfig.fields.length === 0) {
+      return html`<div class="section">该卡片类型暂无配置选项</div>`;
+    }
+
+    return html`
+      <div class="section">
+        <h3 class="section-title">⚙️ ${cardConfig.name} 配置</h3>
+        ${cardConfig.fields.map(field => this._renderField(field))}
+      </div>
+    `;
+  }
+
+  _renderField(field) {
+    const currentValue = this._getNestedValue(this.config, field.key) ?? field.default;
+    
+    switch (field.type) {
+      case 'text':
+        return html`
+          <div class="form-group">
+            <ha-textfield
+              label=${field.label}
+              .value=${currentValue || ''}
+              @input=${e => this._updateConfig(field.key, e.target.value)}
+              style="width: 100%;"
+            ></ha-textfield>
+          </div>
+        `;
+        
+      case 'entity':
+        return html`
+          <div class="form-group">
+            <ha-entity-picker
+              label=${field.label}
+              .hass=${this.hass}
+              .value=${currentValue || ''}
+              @value-changed=${e => this._updateConfig(field.key, e.detail.value)}
+              style="width: 100%;"
+              ?multiple=${field.multiple || false}
+            ></ha-entity-picker>
+          </div>
+        `;
+        
+      case 'boolean':
+        return html`
+          <div class="form-group">
+            <ha-formfield label=${field.label}>
+              <ha-switch
+                .checked=${currentValue !== false}
+                @change=${e => this._updateConfig(field.key, e.target.checked)}
+              ></ha-switch>
+            </ha-formfield>
+          </div>
+        `;
+        
+      case 'icon':
+        return html`
+          <div class="form-group">
+            <ha-icon-picker
+              label=${field.label}
+              .value=${currentValue || ''}
+              @value-changed=${e => this._updateConfig(field.key, e.detail.value)}
+              style="width: 100%;"
+            ></ha-icon-picker>
+          </div>
+        `;
+        
       default:
-        return html`<div class="section">未知卡片类型: ${this.config.type}</div>`;
+        return html`<div>未知字段类型: ${field.type}</div>`;
     }
   }
 
-  _renderStandardConfig() {
-    return html`
-      <!-- 基础设置 -->
-      <div class="section">
-        <h3 class="section-title">🏷️ 基础设置</h3>
-        
-        <div class="form-group">
-          <ha-textfield
-            label="卡片标题"
-            .value=${this.config.layout?.header?.title || ''}
-            @input=${e => this._updateConfig('layout.header.title', e.target.value)}
-            style="width: 100%;"
-          ></ha-textfield>
-        </div>
-
-        <div class="form-group">
-          <ha-icon-picker
-            label="图标"
-            .value=${this.config.layout?.header?.icon || ''}
-            @value-changed=${e => this._updateConfig('layout.header.icon', e.detail.value)}
-            style="width: 100%;"
-          ></ha-icon-picker>
-        </div>
-
-        <div class="form-group">
-          <ha-formfield label="显示标题栏">
-            <ha-switch
-              .checked=${this.config.layout?.header?.visible !== false}
-              @change=${e => this._updateConfig('layout.header.visible', e.target.checked)}
-            ></ha-switch>
-          </ha-formfield>
-        </div>
-      </div>
-
-      <!-- 内容设置 -->
-      <div class="section">
-        <h3 class="section-title">📊 内容设置</h3>
-        
-        <div class="form-group">
-          <ha-entity-picker
-            label="选择实体"
-            .hass=${this.hass}
-            .value=${this.config.layout?.content?.entities || []}
-            @value-changed=${e => this._updateConfig('layout.content.entities', e.detail.value)}
-            style="width: 100%;"
-            multiple
-          ></ha-entity-picker>
-        </div>
-
-        <div class="action-buttons">
-          <mwc-button 
-            @click=${this._openTemplateLibrary}
-            label="📚 选择模板"
-          ></mwc-button>
-        </div>
-      </div>
-
-      <!-- 页脚设置 -->
-      <div class="section">
-        <h3 class="section-title">📄 页脚设置</h3>
-        
-        <div class="form-group">
-          <ha-formfield label="显示页脚">
-            <ha-switch
-              .checked=${this.config.layout?.footer?.visible !== false}
-              @change=${e => this._updateConfig('layout.footer.visible', e.target.checked)}
-            ></ha-switch>
-          </ha-formfield>
-        </div>
-
-        <div class="form-group">
-          <ha-formfield label="显示时间戳">
-            <ha-switch
-              .checked=${this.config.layout?.footer?.show_timestamp || false}
-              @change=${e => this._updateConfig('layout.footer.show_timestamp', e.target.checked)}
-            ></ha-switch>
-          </ha-formfield>
-        </div>
-
-        <div class="form-group">
-          <ha-formfield label="显示实体数量">
-            <ha-switch
-              .checked=${this.config.layout?.footer?.show_entity_count !== false}
-              @change=${e => this._updateConfig('layout.footer.show_entity_count', e.target.checked)}
-            ></ha-switch>
-          </ha-formfield>
-        </div>
-      </div>
-
-      <!-- 主题设置 -->
-      <div class="section">
-        <h3 class="section-title">🎨 主题设置</h3>
-        
-        <div class="form-group">
-          <ha-select
-            label="选择主题"
-            .value=${this.config.theme || 'default'}
-            @selected=${e => this._updateConfig('theme', e.target.value)}
-            style="width: 100%;"
-          >
-            ${window.ThemeManager?.getAllThemes().map(theme => html`
-              <mwc-list-item value=${theme.id}>${theme.name}</mwc-list-item>
-            `)}
-          </ha-select>
-        </div>
-      </div>
-    `;
-  }
-
-  _renderButtonConfig() {
-    return html`
-      <div class="section">
-        <h3 class="section-title">🔘 按钮卡片设置</h3>
-        
-        <div class="form-group">
-          <ha-entity-picker
-            label="选择实体"
-            .hass=${this.hass}
-            .value=${this.config.entity || ''}
-            @value-changed=${e => this._updateConfig('entity', e.detail.value)}
-            style="width: 100%;"
-          ></ha-entity-picker>
-        </div>
-
-        <div class="action-buttons">
-          <mwc-button 
-            @click=${this._openTemplateLibrary}
-            label="📚 选择按钮模板"
-          ></mwc-button>
-        </div>
-      </div>
-    `;
+  _getNestedValue(obj, path) {
+    return path.split('.').reduce((current, key) => current?.[key], obj);
   }
 
   _changeCardType(cardType) {
-    this._updateConfig('type', cardType);
+    const cardConfig = window.CardConfig.getCardConfig(cardType);
     
-    // 重置配置
-    const defaultConfigs = {
-      standard: { 
-        layout: { 
-          header: { title: '标准卡片', icon: 'mdi:card', visible: true },
-          content: { entities: [] },
-          footer: { visible: true }
-        } 
-      },
-      button: { 
-        entity: '', 
-        button_config: {
-          show_name: true,
-          show_icon: true,
-          tap_action: { action: 'more-info' }
+    // 创建新卡片的默认配置
+    const newConfig = { type: cardType };
+    
+    // 设置字段默认值
+    if (cardConfig.fields) {
+      cardConfig.fields.forEach(field => {
+        if (field.default !== undefined) {
+          this._setNestedValue(newConfig, field.key, field.default);
         }
-      }
-    };
+      });
+    }
     
-    this.config = { ...this.config, ...defaultConfigs[cardType] };
+    this.config = newConfig;
     this._fireConfigChanged();
   }
 
-  _updateConfig(path, value) {
+  _setNestedValue(obj, path, value) {
     const keys = path.split('.');
     const lastKey = keys.pop();
     const target = keys.reduce((obj, key) => {
       if (!obj[key]) obj[key] = {};
       return obj[key];
-    }, this.config);
-    
+    }, obj);
     target[lastKey] = value;
-    this.requestUpdate();
   }
 
-  _openTemplateLibrary() {
-    if (window.TemplateLibrary) {
-      window.TemplateLibrary.open(this.config, (newConfig) => {
-        this.config = newConfig;
-        this._fireConfigChanged();
-      });
-    }
+  _updateConfig(path, value) {
+    this._setNestedValue(this.config, path, value);
+    this.requestUpdate();
+    this._fireConfigChanged();
   }
 
   _cancel() {

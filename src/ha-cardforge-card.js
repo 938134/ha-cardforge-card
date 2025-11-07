@@ -1,38 +1,63 @@
 // src/ha-cardforge-card.js
 import { LitElement, html } from 'https://unpkg.com/lit@2.8.0/index.js?module';
-import './components/registry.js';
+import './components/dynamic-loader.js';
+import './components/card-config.js';
 
 class HaCardForgeCard extends LitElement {
   static properties = {
     hass: { type: Object },
     config: { type: Object },
     _cardElement: { state: true },
-    _error: { state: true }
+    _error: { state: true },
+    _availableCards: { state: true }
   };
 
   constructor() {
     super();
     this._cardElement = null;
     this._error = null;
+    this._availableCards = [];
   }
 
   async setConfig(config) {
     this.config = this._validateConfig(config);
+    await this._loadAvailableCards();
     await this._loadCard();
   }
 
   _validateConfig(config) {
+    // 如果没有配置类型，默认使用第一个可用卡片
+    if (!config.type && this._availableCards.length > 0) {
+      config.type = this._availableCards[0].type;
+    }
+    
+    const cardConfig = window.CardConfig.getCardConfig(config.type);
+    
     const defaults = {
-      type: 'standard',
-      layout: {
-        header: { title: '卡片工坊', icon: 'mdi:widgets', visible: true },
-        content: { entities: [] },
-        footer: { visible: true, show_timestamp: false, show_entity_count: true }
-      },
+      type: 'time-week', // 默认使用时间星期卡片
       theme: 'default'
     };
     
+    // 为卡片类型设置特定默认值
+    if (cardConfig.fields) {
+      cardConfig.fields.forEach(field => {
+        if (field.default !== undefined) {
+          this._setNestedValue(defaults, field.key, field.default);
+        }
+      });
+    }
+    
     return this._deepMerge(defaults, config);
+  }
+
+  _setNestedValue(obj, path, value) {
+    const keys = path.split('.');
+    const lastKey = keys.pop();
+    const target = keys.reduce((obj, key) => {
+      if (!obj[key]) obj[key] = {};
+      return obj[key];
+    }, obj);
+    target[lastKey] = value;
   }
 
   _deepMerge(target, source) {
@@ -47,6 +72,15 @@ class HaCardForgeCard extends LitElement {
     return result;
   }
 
+  async _loadAvailableCards() {
+    try {
+      this._availableCards = await window.DynamicLoader.getAvailableCards();
+    } catch (error) {
+      console.error('加载可用卡片失败:', error);
+      this._availableCards = [];
+    }
+  }
+
   async _loadCard() {
     if (!this.config?.type) return;
 
@@ -59,10 +93,11 @@ class HaCardForgeCard extends LitElement {
         this._cardElement = null;
       }
 
-      // 动态加载卡片
-      const CardClass = await window.CardRegistry.loadCard(this.config.type);
+      // 动态加载卡片组件
+      const CardClass = await window.DynamicLoader.loadCard(this.config.type);
+      const tagName = window.DynamicLoader.getTagName(this.config.type);
       
-      const cardElement = document.createElement(this._getTagName(this.config.type));
+      const cardElement = document.createElement(tagName);
       cardElement.setConfig(this.config);
       
       if (this.hass) {
@@ -82,14 +117,6 @@ class HaCardForgeCard extends LitElement {
       console.error('加载卡片失败:', error);
       this._showError(`卡片加载失败: ${error.message}`);
     }
-  }
-
-  _getTagName(cardType) {
-    const tagMap = {
-      'standard': 'standard-card',
-      'button': 'button-card'
-    };
-    return tagMap[cardType] || 'standard-card';
   }
 
   _showError(message) {
@@ -129,11 +156,11 @@ class HaCardForgeCard extends LitElement {
 
   static getStubConfig() {
     return {
-      type: 'standard',
-      layout: {
-        header: { title: '卡片工坊', icon: 'mdi:widgets', visible: true },
-        content: { entities: [] },
-        footer: { visible: true }
+      type: 'time-week',
+      entities: {
+        time: 'sensor.time',
+        date: 'sensor.date', 
+        week: 'sensor.xing_qi'
       }
     };
   }
@@ -150,8 +177,8 @@ if (window.customCards) {
   window.customCards = window.customCards || [];
   window.customCards.push({
     type: 'ha-cardforge-card',
-    name: '卡片工坊',
-    description: '基于 LitElement 的可视化卡片编辑器',
+    name: '时间卡片工坊',
+    description: '专为时间显示设计的卡片集合',
     preview: true,
     documentationURL: 'https://github.com/your-repo/ha-cardforge'
   });

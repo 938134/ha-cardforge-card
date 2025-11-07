@@ -1,7 +1,7 @@
-// src/cards/time-week-card.js
+// src/cards/time-card.js
 import { LitElement, html, css } from 'https://unpkg.com/lit@2.8.0/index.js?module';
 
-export class TimeWeekCard extends LitElement {
+export class TimeCard extends LitElement {
   static properties = {
     hass: { type: Object },
     config: { type: Object },
@@ -11,56 +11,58 @@ export class TimeWeekCard extends LitElement {
   };
 
   static styles = css`
-    .time-week-card {
+    .time-card {
       padding: 16px;
       background: var(--card-background-color);
       border-radius: var(--ha-card-border-radius, 12px);
       display: grid;
-      grid-template-areas: "a" "b" "c";
-      grid-template-columns: 100%;
-      grid-template-rows: 1fr 1fr 1fr;
-      height: 200px;
+      grid-template-areas: "a b c";
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 10px;
+      height: 120px;
       align-items: center;
     }
     
-    .time-hour {
+    .hour-section {
       grid-area: a;
-      font-size: 3.2em;
-      font-weight: bold;
-      letter-spacing: 1px;
+      justify-self: end;
+      margin-right: 5px;
       text-align: center;
     }
     
-    .time-minute {
+    .date-section {
       grid-area: b;
-      font-size: 3.2em;
-      font-weight: bold;
-      letter-spacing: 1px;
       text-align: center;
     }
     
-    .date-week {
+    .minute-section {
       grid-area: c;
-      font-size: 1em;
-      letter-spacing: 2px;
+      justify-self: start;
+      margin-left: 5px;
       text-align: center;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      gap: 4px;
     }
     
-    .date {
-      color: red;
+    .label {
+      font-size: 0.7em;
+      margin-bottom: 4px;
     }
     
-    .week {
-      font-size: 0.8rem;
-      background-color: red;
-      color: white;
-      border-radius: 10px;
-      padding: 4px 12px;
-      width: 60%;
+    .value {
+      font-size: 2em;
+      font-weight: bold;
+      margin-bottom: 4px;
+    }
+    
+    .hour-value, .minute-value {
+      color: rgba(var(--rgb-primary-text-color), 0.7);
+    }
+    
+    .date-value {
+      font-size: 2.8em;
+    }
+    
+    .unit {
+      font-size: 0.7em;
     }
   `;
 
@@ -104,9 +106,14 @@ export class TimeWeekCard extends LitElement {
     }
   }
 
-  _getDateParts() {
+  _getMonthDay() {
     const parts = this._date.split('-');
-    return parts.length === 3 ? `${parts[1]}/${parts[2]}日` : '01/01';
+    return parts.length === 3 ? `${parts[1]}月` : '01月';
+  }
+
+  _getDay() {
+    const parts = this._date.split('-');
+    return parts.length === 3 ? parts[2] : '01';
   }
 
   render() {
@@ -116,12 +123,23 @@ export class TimeWeekCard extends LitElement {
 
     return html`
       <ha-card>
-        <div class="time-week-card">
-          <div class="time-hour">${hour}</div>
-          <div class="time-minute">${minute}</div>
-          <div class="date-week">
-            <div class="date">${this._getDateParts()}</div>
-            <div class="week">${this._week}</div>
+        <div class="time-card">
+          <div class="hour-section">
+            <div class="label">TIME</div>
+            <div class="value hour-value">${hour}</div>
+            <div class="unit">时</div>
+          </div>
+          
+          <div class="date-section">
+            <div class="label">${this._getMonthDay()}</div>
+            <div class="value date-value">${this._getDay()}</div>
+            <div class="unit">${this._week}</div>
+          </div>
+          
+          <div class="minute-section">
+            <div class="label">TIME</div>
+            <div class="value minute-value">${minute}</div>
+            <div class="unit">分</div>
           </div>
         </div>
       </ha-card>
@@ -129,8 +147,8 @@ export class TimeWeekCard extends LitElement {
   }
 
   getCardSize() {
-    return 3;
+    return 2;
   }
 }
 
-customElements.define('time-week-card', TimeWeekCard);
+customElements.define('time-card', TimeCard);
