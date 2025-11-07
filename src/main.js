@@ -1,8 +1,8 @@
 import './ha-cardforge-card.js';
 import './ha-cardforge-editor.js';
-import { EntityPicker } from './src/editors/entity-picker.js';
-import { Marketplace } from './src/editors/marketplace.js';
-import { ThemeSelector } from './src/editors/theme-selector.js';
+import { EntityPicker } from './components/entity-picker.js';
+import { Marketplace } from './components/marketplace.js';
+import { ThemeSelector } from './components/theme-selector.js';
 
 // 暴露全局API
 window.EntityPicker = EntityPicker;
