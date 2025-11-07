@@ -80,12 +80,3 @@ jobs:
           bodyFile: ./release-notes.md
           makeLatest: true
           skipIfReleaseExists: true
-
-      # ---------- 回写 dist ----------
-      - name: 提交并推送产物
-        run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add -f ha-cardforge-card.js
-          git diff --staged --quiet || git commit -m "bot: 发布 ${{ steps.version.outputs.version }}"
-          git push
