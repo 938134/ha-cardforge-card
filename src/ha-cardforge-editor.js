@@ -1,7 +1,7 @@
 import { LitElement, html, css } from 'https://unpkg.com/lit@2.8.0/index.js?module';
-import { EntityPicker } from './components/entity-picker.js';
-import { Marketplace } from './components/marketplace.js';
-import { ThemeSelector } from './components/theme-selector.js';
+import './components/entity.js';
+import './components/template.js';
+import './components/theme.js';
 
 class HaCardForgeEditor extends LitElement {
   static properties = {
@@ -10,19 +10,17 @@ class HaCardForgeEditor extends LitElement {
   };
 
   static styles = css`
-    .editor-container {
+    .editor {
       padding: 16px;
       max-width: 600px;
     }
-    
-    .form-section {
+    .section {
       margin-bottom: 24px;
       padding: 16px;
       background: var(--card-background-color);
       border-radius: 8px;
       border: 1px solid var(--divider-color);
     }
-    
     .section-title {
       margin: 0 0 16px 0;
       font-size: 1.1em;
@@ -31,428 +29,311 @@ class HaCardForgeEditor extends LitElement {
       align-items: center;
       gap: 8px;
     }
-    
     .form-group {
       margin-bottom: 16px;
     }
-    
-    label {
-      display: block;
-      margin-bottom: 6px;
-      font-weight: 500;
-      color: var(--primary-text-color);
-    }
-    
-    input[type="text"], input[type="number"], select {
-      width: 100%;
-      padding: 8px 12px;
-      border: 1px solid var(--divider-color);
-      border-radius: 4px;
-      background: var(--card-background-color);
-      color: var(--primary-text-color);
-      box-sizing: border-box;
-    }
-    
-    .checkbox-group {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      margin-bottom: 8px;
-    }
-    
-    .checkbox-group label {
-      margin: 0;
-      font-weight: normal;
-    }
-    
-    .form-row {
-      display: flex;
-      gap: 12px;
-    }
-    
-    .form-row .form-group {
-      flex: 1;
-    }
-    
-    .entities-preview {
-      margin-top: 8px;
-      padding: 12px;
-      background: var(--secondary-background-color);
-      border-radius: 4px;
-      font-size: 0.9em;
-      border: 1px solid var(--divider-color);
-    }
-    
-    .theme-preview {
-      margin-top: 8px;
-      padding: 12px;
-      background: var(--secondary-background-color);
-      border-radius: 4px;
-      border: 1px solid var(--divider-color);
-    }
-    
-    .entity-tag {
-      display: inline-block;
-      background: var(--primary-color);
-      color: white;
-      padding: 4px 8px;
-      margin: 2px;
-      border-radius: 12px;
-      font-size: 0.8em;
-    }
-    
-    .theme-tag {
-      display: inline-flex;
-      align-items: center;
-      gap: 6px;
-      background: var(--primary-color);
-      color: white;
-      padding: 6px 12px;
-      border-radius: 6px;
-      font-size: 0.9em;
-    }
-    
-    .button {
-      padding: 8px 16px;
-      background: var(--primary-color);
-      color: white;
-      border: none;
-      border-radius: 4px;
-      cursor: pointer;
-      font-size: 0.9em;
-      transition: opacity 0.2s;
-    }
-    
-    .button:hover {
-      opacity: 0.9;
-    }
-    
-    .button.secondary {
-      background: var(--secondary-background-color);
-      color: var(--secondary-text-color);
-    }
-    
-    .button.full-width {
-      width: 100%;
-    }
-    
-    .empty-state {
-      color: var(--disabled-text-color);
-      text-align: center;
-      padding: 20px;
-      font-style: italic;
-    }
-    
     .action-buttons {
       display: flex;
       gap: 8px;
-      margin-top: 8px;
+      margin-top: 16px;
+      flex-wrap: wrap;
     }
-    
-    .theme-grid {
+    .card-type-grid {
       display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
-      gap: 8px;
-      margin-top: 8px;
+      grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+      gap: 12px;
+      margin-bottom: 16px;
     }
-    
-    .theme-option {
-      padding: 12px;
+    .card-type-option {
+      padding: 16px;
       border: 2px solid var(--divider-color);
-      border-radius: 6px;
+      border-radius: 8px;
       cursor: pointer;
       text-align: center;
       transition: all 0.2s;
     }
-    
-    .theme-option:hover {
+    .card-type-option:hover {
       border-color: var(--primary-color);
     }
-    
-    .theme-option.selected {
+    .card-type-option.selected {
       border-color: var(--primary-color);
       background: rgba(var(--primary-color-rgb), 0.1);
     }
-    
-    .theme-preview-icon {
-      font-size: 1.5em;
-      margin-bottom: 4px;
+    .card-type-icon {
+      font-size: 2em;
+      margin-bottom: 8px;
     }
   `;
 
-  setConfig(config) {
-    this.config = config || this._getDefaultConfig();
-  }
-
-  _getDefaultConfig() {
-    return {
-      layout: {
-        header: {
-          title: '卡片工坊',
-          icon: 'mdi:widgets',
-          visible: true,
-          show_edit_button: true
-        },
-        content: {
-          entities: []
-        },
-        footer: {
-          visible: true,
-          show_timestamp: true,
-          show_entity_count: true
-        }
-      },
-      theme: 'default'
+  constructor() {
+    super();
+    this.config = { 
+      type: 'standard', 
+      layout: { header: {}, content: {}, footer: {} } 
     };
   }
 
-  _valueChanged(ev) {
-    if (!this.config || !this.hass) return;
-
-    const path = ev.target.dataset.path;
-    const target = ev.target;
-    let value;
-
-    if (target.type === 'checkbox') {
-      value = target.checked;
-    } else if (target.type === 'number') {
-      value = parseFloat(target.value) || 0;
-    } else {
-      value = target.value;
-    }
-
-    this._setNestedProperty(this.config, path, value);
-    this._fireConfigChanged();
-  }
-
-  _setNestedProperty(obj, path, value) {
-    const keys = path.split('.');
-    const lastKey = keys.pop();
-    const target = keys.reduce((o, k) => {
-      if (!o[k]) o[k] = {};
-      return o[k];
-    }, obj);
-    target[lastKey] = value;
-  }
-
-  _fireConfigChanged() {
-    const event = new CustomEvent('config-changed', {
-      detail: { config: this.config },
-      bubbles: true,
-      composed: true
-    });
-    this.dispatchEvent(event);
-  }
-
-  _pickEntities() {
-    const currentEntities = this.config.layout?.content?.entities || [];
-    EntityPicker.open(this.hass, currentEntities, (selectedEntities) => {
-      this.config.layout.content.entities = selectedEntities;
-      this._fireConfigChanged();
-      this.requestUpdate();
-    });
-  }
-
-  _openMarketplace() {
-    Marketplace.open();
-  }
-
-  _openThemeSelector() {
-    const currentTheme = this.config.theme || 'default';
-    ThemeSelector.open(currentTheme, (selectedTheme) => {
-      this.config.theme = selectedTheme;
-      this._fireConfigChanged();
-      this.requestUpdate();
-    });
+  setConfig(config) {
+    this.config = { ...this.config, ...config };
   }
 
   render() {
-    if (!this.config) return html`<div>Loading...</div>`;
-
-    const header = this.config.layout?.header || {};
-    const content = this.config.layout?.content || {};
-    const footer = this.config.layout?.footer || {};
-    const currentTheme = this.config.theme || 'default';
-    const currentThemeInfo = ThemeSelector.getTheme(currentTheme);
-
     return html`
-      <div class="editor-container">
-        <!-- 标题设置 -->
-        <div class="form-section">
-          <h3 class="section-title">🏷️ 标题设置</h3>
-          
-          <div class="form-group">
-            <label>标题文本</label>
-            <input 
-              type="text" 
-              .value=${header.title || ''}
-              data-path="layout.header.title"
-              @input=${this._valueChanged}
-              placeholder="输入卡片标题"
-            >
-          </div>
-          
-          <div class="form-group">
-            <label>图标</label>
-            <input 
-              type="text" 
-              .value=${header.icon || ''}
-              data-path="layout.header.icon"
-              @input=${this._valueChanged}
-              placeholder="mdi:home"
-            >
-          </div>
-          
-          <div class="form-row">
-            <div class="form-group">
-              <div class="checkbox-group">
-                <input 
-                  type="checkbox" 
-                  .checked=${header.visible !== false}
-                  data-path="layout.header.visible"
-                  @change=${this._valueChanged}
-                >
-                <label>显示标题栏</label>
-              </div>
-            </div>
-            <div class="form-group">
-              <div class="checkbox-group">
-                <input 
-                  type="checkbox" 
-                  .checked=${header.show_edit_button !== false}
-                  data-path="layout.header.show_edit_button"
-                  @change=${this._valueChanged}
-                >
-                <label>显示编辑按钮</label>
-              </div>
-            </div>
+      <div class="editor">
+        <!-- 卡片类型选择 -->
+        <div class="section">
+          <h3 class="section-title">🎨 选择卡片类型</h3>
+          <div class="card-type-grid">
+            ${this._renderCardTypeOptions()}
           </div>
         </div>
 
-        <!-- 内容设置 -->
-        <div class="form-section">
-          <h3 class="section-title">📊 内容设置</h3>
-          
-          <div class="form-group">
-            <label>实体列表</label>
-            <button class="button full-width secondary" @click=${this._pickEntities}>
-              📋 选择实体
-            </button>
-            <div class="entities-preview">
-              ${this._renderEntitiesPreview(content.entities)}
-            </div>
-          </div>
+        <!-- 动态卡片配置 -->
+        ${this._renderCardConfig()}
 
-          <div class="action-buttons">
-            <button class="button secondary" @click=${this._openMarketplace}>
-              🛒 插件市场
-            </button>
-          </div>
-        </div>
-
-        <!-- 主题设置 -->
-        <div class="form-section">
-          <h3 class="section-title">🎨 主题设置</h3>
-          
-          <div class="form-group">
-            <label>当前主题</label>
-            <div class="theme-preview">
-              <div class="theme-tag">
-                <span>${currentThemeInfo.preview}</span>
-                <span>${currentThemeInfo.name}</span>
-              </div>
-              <div style="margin-top: 8px; font-size: 0.9em; color: var(--secondary-text-color);">
-                ${currentThemeInfo.description}
-              </div>
-            </div>
-          </div>
-          
-          <button class="button full-width secondary" @click=${this._openThemeSelector}>
-            选择主题
-          </button>
-        </div>
-
-        <!-- 页脚设置 -->
-        <div class="form-section">
-          <h3 class="section-title">📄 页脚设置</h3>
-          
-          <div class="form-row">
-            <div class="form-group">
-              <div class="checkbox-group">
-                <input 
-                  type="checkbox" 
-                  .checked=${footer.visible !== false}
-                  data-path="layout.footer.visible"
-                  @change=${this._valueChanged}
-                >
-                <label>显示页脚</label>
-              </div>
-            </div>
-            <div class="form-group">
-              <div class="checkbox-group">
-                <input 
-                  type="checkbox" 
-                  .checked=${footer.show_timestamp || false}
-                  data-path="layout.footer.show_timestamp"
-                  @change=${this._valueChanged}
-                >
-                <label>显示时间戳</label>
-              </div>
-            </div>
-            <div class="form-group">
-              <div class="checkbox-group">
-                <input 
-                  type="checkbox" 
-                  .checked=${footer.show_entity_count !== false}
-                  data-path="layout.footer.show_entity_count"
-                  @change=${this._valueChanged}
-                >
-                <label>显示实体数量</label>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <!-- 高级设置 -->
-        <div class="form-section">
-          <h3 class="section-title">⚡ 高级设置</h3>
-          
-          <div class="form-group">
-            <label>刷新间隔 (秒)</label>
-            <input 
-              type="number" 
-              .value=${this.config.refresh_interval || 30}
-              data-path="refresh_interval"
-              @input=${this._valueChanged}
-              min="5"
-              max="3600"
-            >
-          </div>
+        <!-- 操作按钮 -->
+        <div class="action-buttons" style="justify-content: flex-end;">
+          <mwc-button 
+            @click=${this._cancel}
+            label="取消"
+          ></mwc-button>
+          <mwc-button 
+            @click=${this._save}
+            unelevated
+            label="保存"
+          ></mwc-button>
         </div>
       </div>
     `;
   }
 
-  _renderEntitiesPreview(entities) {
-    if (!entities || entities.length === 0) {
-      return html`<div class="empty-state">未选择实体</div>`;
+  _renderCardTypeOptions() {
+    const cardTypes = [
+      { type: 'standard', name: '标准卡片', icon: '📄', description: '三栏布局的基础卡片' },
+      { type: 'button', name: '按钮卡片', icon: '🔘', description: '基于 button-card 的卡片' }
+    ];
+
+    return cardTypes.map(card => html`
+      <div 
+        class="card-type-option ${this.config.type === card.type ? 'selected' : ''}"
+        @click=${() => this._changeCardType(card.type)}
+      >
+        <div class="card-type-icon">${card.icon}</div>
+        <div style="font-weight: 500;">${card.name}</div>
+        <div style="font-size: 0.8em; color: var(--secondary-text-color); margin-top: 4px;">
+          ${card.description}
+        </div>
+      </div>
+    `);
+  }
+
+  _renderCardConfig() {
+    switch (this.config.type) {
+      case 'standard':
+        return this._renderStandardConfig();
+      case 'button':
+        return this._renderButtonConfig();
+      default:
+        return html`<div class="section">未知卡片类型: ${this.config.type}</div>`;
     }
+  }
 
+  _renderStandardConfig() {
     return html`
-      <div style="margin-bottom: 8px;">已选择 ${entities.length} 个实体：</div>
-      <div>
-        ${entities.slice(0, 5).map(entity => 
-          html`<span class="entity-tag">${this._getEntityName(entity)}</span>`
-        )}
-        ${entities.length > 5 ? html`<span class="entity-tag">+${entities.length - 5}更多</span>` : ''}
+      <!-- 基础设置 -->
+      <div class="section">
+        <h3 class="section-title">🏷️ 基础设置</h3>
+        
+        <div class="form-group">
+          <ha-textfield
+            label="卡片标题"
+            .value=${this.config.layout?.header?.title || ''}
+            @input=${e => this._updateConfig('layout.header.title', e.target.value)}
+            style="width: 100%;"
+          ></ha-textfield>
+        </div>
+
+        <div class="form-group">
+          <ha-icon-picker
+            label="图标"
+            .value=${this.config.layout?.header?.icon || ''}
+            @value-changed=${e => this._updateConfig('layout.header.icon', e.detail.value)}
+            style="width: 100%;"
+          ></ha-icon-picker>
+        </div>
+
+        <div class="form-group">
+          <ha-formfield label="显示标题栏">
+            <ha-switch
+              .checked=${this.config.layout?.header?.visible !== false}
+              @change=${e => this._updateConfig('layout.header.visible', e.target.checked)}
+            ></ha-switch>
+          </ha-formfield>
+        </div>
+      </div>
+
+      <!-- 内容设置 -->
+      <div class="section">
+        <h3 class="section-title">📊 内容设置</h3>
+        
+        <div class="form-group">
+          <ha-entity-picker
+            label="选择实体"
+            .hass=${this.hass}
+            .value=${this.config.layout?.content?.entities || []}
+            @value-changed=${e => this._updateConfig('layout.content.entities', e.detail.value)}
+            style="width: 100%;"
+            multiple
+          ></ha-entity-picker>
+        </div>
+
+        <div class="action-buttons">
+          <mwc-button 
+            @click=${this._openTemplateLibrary}
+            label="📚 选择模板"
+          ></mwc-button>
+        </div>
+      </div>
+
+      <!-- 页脚设置 -->
+      <div class="section">
+        <h3 class="section-title">📄 页脚设置</h3>
+        
+        <div class="form-group">
+          <ha-formfield label="显示页脚">
+            <ha-switch
+              .checked=${this.config.layout?.footer?.visible !== false}
+              @change=${e => this._updateConfig('layout.footer.visible', e.target.checked)}
+            ></ha-switch>
+          </ha-formfield>
+        </div>
+
+        <div class="form-group">
+          <ha-formfield label="显示时间戳">
+            <ha-switch
+              .checked=${this.config.layout?.footer?.show_timestamp || false}
+              @change=${e => this._updateConfig('layout.footer.show_timestamp', e.target.checked)}
+            ></ha-switch>
+          </ha-formfield>
+        </div>
+
+        <div class="form-group">
+          <ha-formfield label="显示实体数量">
+            <ha-switch
+              .checked=${this.config.layout?.footer?.show_entity_count !== false}
+              @change=${e => this._updateConfig('layout.footer.show_entity_count', e.target.checked)}
+            ></ha-switch>
+          </ha-formfield>
+        </div>
+      </div>
+
+      <!-- 主题设置 -->
+      <div class="section">
+        <h3 class="section-title">🎨 主题设置</h3>
+        
+        <div class="form-group">
+          <ha-select
+            label="选择主题"
+            .value=${this.config.theme || 'default'}
+            @selected=${e => this._updateConfig('theme', e.target.value)}
+            style="width: 100%;"
+          >
+            ${window.ThemeManager?.getAllThemes().map(theme => html`
+              <mwc-list-item value=${theme.id}>${theme.name}</mwc-list-item>
+            `)}
+          </ha-select>
+        </div>
       </div>
     `;
   }
 
-  _getEntityName(entityId) {
-    if (!this.hass) return entityId;
-    const entity = this.hass.states[entityId];
-    return entity?.attributes?.friendly_name || entityId;
+  _renderButtonConfig() {
+    return html`
+      <div class="section">
+        <h3 class="section-title">🔘 按钮卡片设置</h3>
+        
+        <div class="form-group">
+          <ha-entity-picker
+            label="选择实体"
+            .hass=${this.hass}
+            .value=${this.config.entity || ''}
+            @value-changed=${e => this._updateConfig('entity', e.detail.value)}
+            style="width: 100%;"
+          ></ha-entity-picker>
+        </div>
+
+        <div class="action-buttons">
+          <mwc-button 
+            @click=${this._openTemplateLibrary}
+            label="📚 选择按钮模板"
+          ></mwc-button>
+        </div>
+      </div>
+    `;
+  }
+
+  _changeCardType(cardType) {
+    this._updateConfig('type', cardType);
+    
+    // 重置配置
+    const defaultConfigs = {
+      standard: { 
+        layout: { 
+          header: { title: '标准卡片', icon: 'mdi:card', visible: true },
+          content: { entities: [] },
+          footer: { visible: true }
+        } 
+      },
+      button: { 
+        entity: '', 
+        button_config: {
+          show_name: true,
+          show_icon: true,
+          tap_action: { action: 'more-info' }
+        }
+      }
+    };
+    
+    this.config = { ...this.config, ...defaultConfigs[cardType] };
+    this._fireConfigChanged();
+  }
+
+  _updateConfig(path, value) {
+    const keys = path.split('.');
+    const lastKey = keys.pop();
+    const target = keys.reduce((obj, key) => {
+      if (!obj[key]) obj[key] = {};
+      return obj[key];
+    }, this.config);
+    
+    target[lastKey] = value;
+    this.requestUpdate();
+  }
+
+  _openTemplateLibrary() {
+    if (window.TemplateLibrary) {
+      window.TemplateLibrary.open(this.config, (newConfig) => {
+        this.config = newConfig;
+        this._fireConfigChanged();
+      });
+    }
+  }
+
+  _cancel() {
+    this.dispatchEvent(new CustomEvent('config-cancel', { bubbles: true, composed: true }));
+  }
+
+  _save() {
+    this._fireConfigChanged();
+    this.dispatchEvent(new CustomEvent('config-save', { bubbles: true, composed: true }));
+  }
+
+  _fireConfigChanged() {
+    this.dispatchEvent(new CustomEvent('config-changed', {
+      detail: { config: this.config },
+      bubbles: true,
+      composed: true
+    }));
   }
 }
 
