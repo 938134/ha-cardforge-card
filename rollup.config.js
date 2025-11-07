@@ -1,136 +1,19 @@
-// src/cards/time-week-card.js
-import { LitElement, html, css } from 'https://unpkg.com/lit@2.8.0/index.js?module';
+import { nodeResolve } from '@rollup/plugin-node-resolve';
 
-export class TimeWeekCard extends LitElement {
-  static properties = {
-    hass: { type: Object },
-    config: { type: Object },
-    _time: { state: true },
-    _date: { state: true },
-    _week: { state: true }
-  };
-
-  static styles = css`
-    .time-week-card {
-      padding: 16px;
-      background: var(--card-background-color);
-      border-radius: var(--ha-card-border-radius, 12px);
-      display: grid;
-      grid-template-areas: "a" "b" "c";
-      grid-template-columns: 100%;
-      grid-template-rows: 1fr 1fr 1fr;
-      height: 200px;
-      align-items: center;
-    }
-    
-    .time-hour {
-      grid-area: a;
-      font-size: 3.2em;
-      font-weight: bold;
-      letter-spacing: 1px;
-      text-align: center;
-    }
-    
-    .time-minute {
-      grid-area: b;
-      font-size: 3.2em;
-      font-weight: bold;
-      letter-spacing: 1px;
-      text-align: center;
-    }
-    
-    .date-week {
-      grid-area: c;
-      font-size: 1em;
-      letter-spacing: 2px;
-      text-align: center;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      gap: 4px;
-    }
-    
-    .date {
-      color: red;
-    }
-    
-    .week {
-      font-size: 0.8rem;
-      background-color: red;
-      color: white;
-      border-radius: 10px;
-      padding: 4px 12px;
-      width: 60%;
-    }
-  `;
-
-  constructor() {
-    super();
-    this._time = '00:00';
-    this._date = '2000-01-01';
-    this._week = '星期一';
-  }
-
-  setConfig(config) {
-    const defaults = {
-      entities: {
-        time: 'sensor.time',
-        date: 'sensor.date',
-        week: 'sensor.xing_qi'
-      }
-    };
-    this.config = { ...defaults, ...config };
-  }
-
-  updated(changedProperties) {
-    if (changedProperties.has('hass') && this.config.entities) {
-      this._updateStates();
-    }
-  }
-
-  _updateStates() {
-    const { time, date, week } = this.config.entities;
-    
-    if (this.hass.states[time]) {
-      this._time = this.hass.states[time].state;
-    }
-    
-    if (this.hass.states[date]) {
-      this._date = this.hass.states[date].state;
-    }
-    
-    if (this.hass.states[week]) {
-      this._week = this.hass.states[week].state;
-    }
-  }
-
-  _getDateParts() {
-    const parts = this._date.split('-');
-    return parts.length === 3 ? `${parts[1]}/${parts[2]}日` : '01/01';
-  }
-
-  render() {
-    const timeParts = this._time.split(':');
-    const hour = timeParts[0] || '00';
-    const minute = timeParts[1] || '00';
-
-    return html`
-      <ha-card>
-        <div class="time-week-card">
-          <div class="time-hour">${hour}</div>
-          <div class="time-minute">${minute}</div>
-          <div class="date-week">
-            <div class="date">${this._getDateParts()}</div>
-            <div class="week">${this._week}</div>
-          </div>
-        </div>
-      </ha-card>
-    `;
-  }
-
-  getCardSize() {
-    return 3;
-  }
-}
-
-customElements.define('time-week-card', TimeWeekCard);
+export default {
+  input: 'src/ha-cardforge-card.js',  
+  output: {
+    file: 'ha-cardforge-card.js',
+    format: 'es',
+  },
+  external: [
+    /^lit/,
+    /^@lit/,
+    'lit-element',
+    'lit-html', 
+    'lit-html/is-server',
+  ],
+  plugins: [
+    nodeResolve({ preferBuiltins: false }),
+  ],
+};

@@ -2,57 +2,47 @@
 export class DynamicLoader {
   static cardCache = new Map();
   
-  // 预加载所有卡片
-  static async preloadCards() {
+  // 自动发现卡片目录下的所有文件
+  static async discoverCards() {
     try {
-      // 静态导入所有卡片
-      const timeWeekModule = await import('../cards/time-week-card.js');
-      const timeModule = await import('../cards/time-card.js');
-      const clockLunarModule = await import('../cards/clock-lunar-card.js');
-      
-      const cards = {
-        'time-week': {
-          type: 'time-week',
-          name: '时间星期',
-          icon: '⏰',
-          description: '垂直布局的时间星期卡片',
-          className: 'TimeWeekCard',
-          module: timeWeekModule
-        },
-        'time': {
-          type: 'time',
-          name: '时间卡片',
-          icon: '🕒',
-          description: '水平布局的时间日期卡片',
-          className: 'TimeCard',
-          module: timeModule
-        },
-        'clock-lunar': {
-          type: 'clock-lunar',
-          name: '时钟农历',
-          icon: '🌙',
-          description: '模拟时钟和农历信息',
-          className: 'ClockLunarCard',
-          module: clockLunarModule
-        }
+      // 只保留三个时间卡片
+      const cardMap = {
+        'time-week-card': { type: 'time-week', name: '时间星期', icon: '⏰', description: '垂直布局的时间星期卡片' },
+        'time-card': { type: 'time', name: '时间卡片', icon: '🕒', description: '水平布局的时间日期卡片' },
+        'clock-lunar-card': { type: 'clock-lunar', name: '时钟农历', icon: '🌙', description: '模拟时钟和农历信息' }
       };
       
-      // 缓存所有卡片
-      Object.entries(cards).forEach(([type, card]) => {
-        this.cardCache.set(type, card.module[card.className]);
-      });
+      const cards = {};
+      
+      // 尝试动态加载每个卡片
+      for (const [fileName, cardInfo] of Object.entries(cardMap)) {
+        try {
+          const module = await import(`../cards/${fileName}.js`);
+          const className = Object.keys(module).find(key => 
+            key.toLowerCase().includes('card') && key !== 'default'
+          ) || Object.keys(module)[0];
+          
+          if (className) {
+            cards[cardInfo.type] = {
+              ...cardInfo,
+              className,
+              fileName: `${fileName}.js`,
+              module
+            };
+            
+            // 缓存组件类
+            this.cardCache.set(cardInfo.type, module[className]);
+          }
+        } catch (error) {
+          console.warn(`卡片 ${cardInfo.type} 加载失败:`, error);
+        }
+      }
       
       return cards;
     } catch (error) {
-      console.error('预加载卡片失败:', error);
+      console.error('自动发现卡片失败:', error);
       return {};
     }
-  }
-  
-  // 自动发现卡片
-  static async discoverCards() {
-    const cards = await this.preloadCards();
-    return cards;
   }
   
   // 动态加载卡片
@@ -60,6 +50,12 @@ export class DynamicLoader {
     // 先从缓存获取
     if (this.cardCache.has(cardType)) {
       return this.cardCache.get(cardType);
+    }
+    
+    // 自动发现并加载
+    const cards = await this.discoverCards();
+    if (cards[cardType]) {
+      return cards[cardType].module[cards[cardType].className];
     }
     
     throw new Error(`不支持的卡片类型: ${cardType}`);
