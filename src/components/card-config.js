@@ -1,6 +1,5 @@
 // src/components/card-config.js
 export class CardConfig {
-  // 卡片配置元数据 - 只保留三个时间卡片
   static cardConfigs = {
     'time-week': {
       name: '时间星期卡片',
@@ -33,44 +32,20 @@ export class CardConfig {
         { type: 'entity', key: 'entities.time', label: '时间实体', default: 'sensor.time' },
         { type: 'entity', key: 'entities.date', label: '日期实体', default: 'sensor.date' },
         { type: 'entity', key: 'entities.lunar', label: '农历实体', default: 'sensor.nong_li' },
-        { type: 'boolean', key: 'show_seconds', label: '显示秒针', default: true },
-        { 
-          type: 'select', 
-          key: 'tap_action.action', 
-          label: '点击动作', 
-          default: 'more-info',
-          options: [
-            { value: 'none', label: '无动作' },
-            { value: 'more-info', label: '显示详情' },
-            { value: 'navigate', label: '导航' }
-          ]
-        }
+        { type: 'boolean', key: 'show_seconds', label: '显示秒针', default: true }
       ]
     }
   };
-  
-  // 获取卡片配置（同步版本）
+
   static getCardConfig(cardType) {
-    return this.cardConfigs[cardType] || {
-      name: cardType,
-      icon: '❓',
-      description: '未知卡片类型',
-      category: 'other',
-      fields: []
-    };
+    return this.cardConfigs[cardType] || this.cardConfigs['time-week'];
   }
-  
-  // 获取所有卡片配置（同步版本）
+
   static getAllCardConfigs() {
     return Object.entries(this.cardConfigs).map(([type, config]) => ({
       type,
       ...config
     }));
-  }
-  
-  // 检查卡片类型是否存在
-  static hasCardType(cardType) {
-    return !!this.cardConfigs[cardType];
   }
 }
 

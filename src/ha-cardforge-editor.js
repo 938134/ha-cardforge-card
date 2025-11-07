@@ -1,14 +1,11 @@
 // src/ha-cardforge-editor.js
 import { LitElement, html, css } from 'https://unpkg.com/lit@2.8.0/index.js?module';
-import './components/dynamic-loader.js';
 import './components/card-config.js';
 
 class HaCardForgeEditor extends LitElement {
   static properties = {
     hass: { type: Object },
-    config: { type: Object },
-    _availableCards: { state: true },
-    _initialized: { state: true }
+    config: { type: Object }
   };
 
   static styles = css`
@@ -27,44 +24,41 @@ class HaCardForgeEditor extends LitElement {
   constructor() {
     super();
     this.config = { type: 'time-week' };
-    this._availableCards = window.CardConfig.getAllCardConfigs(); // 同步获取
-    this._initialized = false;
-  }
-
-  async firstUpdated() {
-    // 异步初始化卡片系统
-    await window.DynamicLoader.initialize();
-    this._availableCards = await window.DynamicLoader.getAvailableCards();
-    this._initialized = true;
-    this.requestUpdate();
   }
 
   setConfig(config) {
-    // 确保配置类型有效
-    const validType = window.CardConfig.hasCardType(config.type) ? config.type : 'time-week';
     this.config = { 
-      type: validType,
+      type: config.type || 'time-week',
       ...config 
     };
   }
 
   render() {
-    if (!this._initialized) {
-      return html`<div class="editor">加载中...</div>`;
-    }
+    const availableCards = window.CardConfig.getAllCardConfigs();
 
     return html`
       <div class="editor">
-        <!-- 动态卡片类型选择 -->
+        <!-- 卡片类型选择 -->
         <div class="section">
           <h3 class="section-title">🎨 选择卡片类型</h3>
           <div class="card-type-grid">
-            ${this._renderCardTypeOptions()}
+            ${availableCards.map(card => html`
+              <div 
+                class="card-type-option ${this.config.type === card.type ? 'selected' : ''}"
+                @click=${() => this._changeCardType(card.type)}
+              >
+                <div class="card-type-icon">${card.icon}</div>
+                <div style="font-weight: 500;">${card.name}</div>
+                <div style="font-size: 0.8em; color: var(--secondary-text-color); margin-top: 4px;">
+                  ${card.description}
+                </div>
+              </div>
+            `)}
           </div>
         </div>
 
         <!-- 动态卡片配置 -->
-        ${this._renderDynamicCardConfig()}
+        ${this._renderCardConfig()}
 
         <!-- 操作按钮 -->
         <div class="action-buttons" style="justify-content: flex-end;">
@@ -75,22 +69,7 @@ class HaCardForgeEditor extends LitElement {
     `;
   }
 
-  _renderCardTypeOptions() {
-    return this._availableCards.map(card => html`
-      <div 
-        class="card-type-option ${this.config.type === card.type ? 'selected' : ''}"
-        @click=${() => this._changeCardType(card.type)}
-      >
-        <div class="card-type-icon">${card.icon}</div>
-        <div style="font-weight: 500;">${card.name}</div>
-        <div style="font-size: 0.8em; color: var(--secondary-text-color); margin-top: 4px;">
-          ${card.description}
-        </div>
-      </div>
-    `);
-  }
-
-  _renderDynamicCardConfig() {
+  _renderCardConfig() {
     const cardConfig = window.CardConfig.getCardConfig(this.config.type);
     
     if (!cardConfig.fields || cardConfig.fields.length === 0) {
@@ -109,18 +88,6 @@ class HaCardForgeEditor extends LitElement {
     const currentValue = this._getNestedValue(this.config, field.key) ?? field.default;
     
     switch (field.type) {
-      case 'text':
-        return html`
-          <div class="form-group">
-            <ha-textfield
-              label=${field.label}
-              .value=${currentValue || ''}
-              @input=${e => this._updateConfig(field.key, e.target.value)}
-              style="width: 100%;"
-            ></ha-textfield>
-          </div>
-        `;
-        
       case 'entity':
         return html`
           <div class="form-group">
@@ -130,7 +97,6 @@ class HaCardForgeEditor extends LitElement {
               .value=${currentValue || ''}
               @value-changed=${e => this._updateConfig(field.key, e.detail.value)}
               style="width: 100%;"
-              ?multiple=${field.multiple || false}
             ></ha-entity-picker>
           </div>
         `;
@@ -144,34 +110,6 @@ class HaCardForgeEditor extends LitElement {
                 @change=${e => this._updateConfig(field.key, e.target.checked)}
               ></ha-switch>
             </ha-formfield>
-          </div>
-        `;
-        
-      case 'icon':
-        return html`
-          <div class="form-group">
-            <ha-icon-picker
-              label=${field.label}
-              .value=${currentValue || ''}
-              @value-changed=${e => this._updateConfig(field.key, e.detail.value)}
-              style="width: 100%;"
-            ></ha-icon-picker>
-          </div>
-        `;
-        
-      case 'select':
-        return html`
-          <div class="form-group">
-            <ha-select
-              label=${field.label}
-              .value=${currentValue || field.default}
-              @selected=${e => this._updateConfig(field.key, e.target.value)}
-              style="width: 100%;"
-            >
-              ${field.options.map(option => html`
-                <mwc-list-item value=${option.value}>${option.label}</mwc-list-item>
-              `)}
-            </ha-select>
           </div>
         `;
         

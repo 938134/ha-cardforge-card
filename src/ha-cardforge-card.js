@@ -1,7 +1,6 @@
 // src/ha-cardforge-card.js
 import { LitElement, html } from 'https://unpkg.com/lit@2.8.0/index.js?module';
-import './components/dynamic-loader.js';
-import './components/card-config.js';
+import './cards/card-renderer.js';
 
 class HaCardForgeCard extends LitElement {
   static properties = {
@@ -17,50 +16,28 @@ class HaCardForgeCard extends LitElement {
     this._error = null;
   }
 
-  async setConfig(config) {
-    // 确保卡片系统已初始化
-    await window.DynamicLoader.initialize();
-    
+  setConfig(config) {
     this.config = this._validateConfig(config);
-    await this._loadCard();
+    this._loadCard();
   }
 
   _validateConfig(config) {
-    const cardType = config.type || 'time-week';
-    
-    // 验证卡片类型是否存在
-    if (!window.CardConfig.hasCardType(cardType)) {
-      console.warn(`卡片类型 ${cardType} 不存在，使用默认卡片`);
-      config.type = 'time-week';
-    }
-    
-    const cardConfig = window.CardConfig.getCardConfig(config.type);
-    
     const defaults = {
-      type: config.type,
-      theme: 'default'
+      type: 'time-week',
+      entities: {
+        time: 'sensor.time',
+        date: 'sensor.date',
+        week: 'sensor.xing_qi',
+        lunar: 'sensor.nong_li'
+      },
+      show_seconds: true,
+      tap_action: {
+        action: 'more-info',
+        entity: 'sensor.nong_li'
+      }
     };
     
-    // 为卡片类型设置特定默认值
-    if (cardConfig.fields) {
-      cardConfig.fields.forEach(field => {
-        if (field.default !== undefined) {
-          this._setNestedValue(defaults, field.key, field.default);
-        }
-      });
-    }
-    
     return this._deepMerge(defaults, config);
-  }
-
-  _setNestedValue(obj, path, value) {
-    const keys = path.split('.');
-    const lastKey = keys.pop();
-    const target = keys.reduce((obj, key) => {
-      if (!obj[key]) obj[key] = {};
-      return obj[key];
-    }, obj);
-    target[lastKey] = value;
   }
 
   _deepMerge(target, source) {
@@ -75,7 +52,7 @@ class HaCardForgeCard extends LitElement {
     return result;
   }
 
-  async _loadCard() {
+  _loadCard() {
     if (!this.config?.type) return;
 
     try {
@@ -87,11 +64,8 @@ class HaCardForgeCard extends LitElement {
         this._cardElement = null;
       }
 
-      // 动态加载卡片组件
-      const CardClass = await window.DynamicLoader.loadCard(this.config.type);
-      const tagName = window.DynamicLoader.getTagName(this.config.type);
-      
-      const cardElement = document.createElement(tagName);
+      // 创建统一的卡片渲染器
+      const cardElement = document.createElement('card-renderer');
       cardElement.setConfig(this.config);
       
       if (this.hass) {
@@ -102,7 +76,7 @@ class HaCardForgeCard extends LitElement {
       
       // 确保 shadowRoot 存在
       if (!this.shadowRoot) {
-        await this.updateComplete;
+        this.attachShadow({ mode: 'open' });
       }
       
       this.shadowRoot.appendChild(this._cardElement);
@@ -149,28 +123,14 @@ class HaCardForgeCard extends LitElement {
   }
 
   static getStubConfig() {
-    // 使用同步方式获取默认配置
-    const defaultCard = window.CardConfig.getAllCardConfigs()[0];
-    const stubConfig = {
-      type: defaultCard?.type || 'time-week'
+    return {
+      type: 'time-week',
+      entities: {
+        time: 'sensor.time',
+        date: 'sensor.date',
+        week: 'sensor.xing_qi'
+      }
     };
-    
-    // 添加字段默认值
-    if (defaultCard?.fields) {
-      defaultCard.fields.forEach(field => {
-        if (field.default !== undefined) {
-          const keys = field.key.split('.');
-          const lastKey = keys.pop();
-          const target = keys.reduce((obj, key) => {
-            if (!obj[key]) obj[key] = {};
-            return obj[key];
-          }, stubConfig);
-          target[lastKey] = field.default;
-        }
-      });
-    }
-    
-    return stubConfig;
   }
 
   getCardSize() {
@@ -179,6 +139,7 @@ class HaCardForgeCard extends LitElement {
 }
 
 customElements.define('ha-cardforge-card', HaCardForgeCard);
+customElements.define('card-renderer', CardRenderer);
 
 // 注册到自定义卡片列表
 if (window.customCards) {
