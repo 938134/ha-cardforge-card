@@ -1,6 +1,5 @@
 import { LitElement, html, css } from 'https://unpkg.com/lit@2.8.0/index.js?module';
 import './cards/standard-card.js';
-import './cards/button-card.js';
 
 class HaCardForgeCard extends LitElement {
   static properties = {
