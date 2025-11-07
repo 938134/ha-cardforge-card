@@ -1,7 +1,7 @@
 import { nodeResolve } from '@rollup/plugin-node-resolve';
 
 export default {
-  input: 'src/main.js',  
+  input: 'src/ha-cardforge-card.js',  
   output: {
     file: 'ha-cardforge-card.js',
     format: 'es',
