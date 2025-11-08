@@ -3,7 +3,8 @@ import './components/registry.js';
 import './components/theme.js';
 import './components/entity.js';
 
-class HaCardForgeEditor extends LitElement {
+// 导出编辑器类
+export class HaCardForgeEditor extends LitElement {
   static properties = {
     hass: { type: Object },
     config: { type: Object },
@@ -187,22 +188,13 @@ class HaCardForgeEditor extends LitElement {
     await window.Registry.initialize();
     this._availableStyles = window.Registry.getAllStyles();
     this._categories = this._getCategories();
+    console.log('✅ 编辑器初始化完成');
   }
 
   setConfig(config) {
+    console.log('📝 设置编辑器配置:', config);
     this.config = { ...this._getDefaultConfig(), ...config };
-      // 确保必要的属性存在
-    if (!this.config.entities) {
-      this.config.entities = {};
-    }
-    if (!this.config.custom) {
-      this.config.custom = {};
-    }
-    if (!this.config.tap_action) {
-      this.config.tap_action = { action: 'more-info' };
-    }
-    
-    console.log('编辑器配置已设置:', this.config);
+    console.log('✅ 最终编辑器配置:', this.config);
   }
 
   _getDefaultConfig() {
@@ -678,5 +670,3 @@ class HaCardForgeEditor extends LitElement {
     }));
   }
 }
-
-customElements.define('ha-cardforge-editor', HaCardForgeEditor);

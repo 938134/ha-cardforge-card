@@ -2,7 +2,8 @@ import { LitElement, html, css } from 'https://unpkg.com/lit@2.8.0/index.js?modu
 import './components/registry.js';
 import './components/theme.js';
 
-class HaCardForgeCard extends LitElement {
+// 导出卡片类
+export class HaCardForgeCard extends LitElement {
   static properties = {
     hass: { type: Object },
     config: { type: Object },
@@ -39,6 +40,7 @@ class HaCardForgeCard extends LitElement {
     try {
       await window.Registry.initialize();
       this.config = this._validateConfig(config);
+      console.log('✅ 卡片配置已设置:', this.config);
     } catch (error) {
       this._showError(`配置错误: ${error.message}`);
     }
@@ -204,18 +206,13 @@ class HaCardForgeCard extends LitElement {
   }
 
   static getConfigElement() {
-    // 确保编辑器元素已注册
-    if (!customElements.get('ha-cardforge-editor')) {
-      console.warn('编辑器元素未注册，使用默认配置');
-      return null;
-    }
-    
+    console.log('📝 获取配置编辑器元素');
     const editor = document.createElement('ha-cardforge-editor');
-    console.log('创建编辑器实例:', editor);
+    console.log('✅ 编辑器实例创建成功:', editor);
     return editor;
   }
-  
-  static getStubConfig(hass, entities) {
+
+  static getStubConfig() {
     return {
       style: 'time-week',
       theme: 'default',
@@ -230,16 +227,4 @@ class HaCardForgeCard extends LitElement {
       }
     };
   }
-}
-
-customElements.define('ha-cardforge-card', HaCardForgeCard);
-
-if (window.customCards) {
-  window.customCards.push({
-    type: 'ha-cardforge-card',
-    name: '卡片工坊',
-    description: '基于 button-card 的多种外观样式',
-    preview: true,
-    documentationURL: 'https://github.com/your-repo/ha-cardforge'
-  });
 }
