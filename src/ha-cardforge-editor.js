@@ -1,14 +1,14 @@
 import { LitElement, html, css } from 'https://unpkg.com/lit@2.8.0/index.js?module';
-import './components/card-registry.js';
-import './components/entity.js';
+import './components/registry.js';
 import './components/theme.js';
+import './components/entity.js';
 
 class HaCardForgeEditor extends LitElement {
   static properties = {
     hass: { type: Object },
     config: { type: Object },
     _activeTab: { state: true },
-    _availableCards: { state: true },
+    _availableStyles: { state: true },
     _categories: { state: true },
     _searchQuery: { state: true },
     _selectedCategory: { state: true }
@@ -58,8 +58,8 @@ class HaCardForgeEditor extends LitElement {
       justify-content: flex-end;
     }
     
-    /* 卡片选择样式 */
-    .card-selection-header {
+    /* 样式选择 */
+    .style-selection-header {
       display: flex;
       gap: 12px;
       margin-bottom: 16px;
@@ -74,14 +74,14 @@ class HaCardForgeEditor extends LitElement {
       min-width: 120px;
     }
     
-    .card-grid {
+    .style-grid {
       display: grid;
       grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
       gap: 12px;
       margin-bottom: 16px;
     }
     
-    .card-option {
+    .style-option {
       padding: 16px;
       border: 2px solid var(--divider-color);
       border-radius: 8px;
@@ -91,22 +91,22 @@ class HaCardForgeEditor extends LitElement {
       background: var(--card-background-color);
     }
     
-    .card-option:hover {
+    .style-option:hover {
       border-color: var(--primary-color);
       transform: translateY(-2px);
     }
     
-    .card-option.selected {
+    .style-option.selected {
       border-color: var(--primary-color);
       background: rgba(var(--primary-color-rgb), 0.1);
     }
     
-    .card-icon {
+    .style-icon {
       font-size: 2em;
       margin-bottom: 8px;
     }
     
-    .card-preview {
+    .style-preview {
       height: 80px;
       display: flex;
       align-items: center;
@@ -117,12 +117,7 @@ class HaCardForgeEditor extends LitElement {
       overflow: hidden;
     }
     
-    .preview-content {
-      font-size: 0.8em;
-      color: var(--secondary-text-color);
-    }
-    
-    /* 实体配置样式 */
+    /* 实体配置 */
     .entity-grid {
       display: grid;
       grid-template-columns: 1fr auto;
@@ -136,7 +131,7 @@ class HaCardForgeEditor extends LitElement {
       margin-top: 4px;
     }
     
-    /* 主题设置样式 */
+    /* 主题设置 */
     .theme-grid {
       display: grid;
       grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
@@ -161,7 +156,7 @@ class HaCardForgeEditor extends LitElement {
       gap: 12px;
     }
     
-    /* 实时预览样式 */
+    /* 实时预览 */
     .preview-container {
       padding: 20px;
       background: var(--secondary-background-color);
@@ -171,31 +166,52 @@ class HaCardForgeEditor extends LitElement {
       align-items: center;
       justify-content: center;
     }
+    
+    .preview-content {
+      max-width: 300px;
+      width: 100%;
+    }
   `;
 
   constructor() {
     super();
-    this.config = {};
+    this.config = this._getDefaultConfig();
     this._activeTab = 0;
-    this._availableCards = [];
+    this._availableStyles = [];
     this._categories = [];
     this._searchQuery = '';
     this._selectedCategory = 'all';
   }
 
   async firstUpdated() {
-    await window.CardRegistry.initialize();
-    this._availableCards = window.CardRegistry.getAllCards();
-    this._categories = window.CardRegistry.getCategories();
-    
-    // 设置默认配置
-    if (!this.config.type && this._availableCards.length > 0) {
-      this.config.type = this._availableCards[0].type;
-    }
+    await window.Registry.initialize();
+    this._availableStyles = window.Registry.getAllStyles();
+    this._categories = this._getCategories();
   }
 
   setConfig(config) {
-    this.config = { ...this.config, ...config };
+    this.config = { ...this._getDefaultConfig(), ...config };
+  }
+
+  _getDefaultConfig() {
+    return {
+      style: 'time-week',
+      theme: 'default',
+      entities: {},
+      tap_action: {
+        action: 'more-info'
+      }
+    };
+  }
+
+  _getCategories() {
+    const categories = new Set();
+    this._availableStyles.forEach(style => {
+      if (style.category) {
+        categories.add(style.category);
+      }
+    });
+    return ['all', ...Array.from(categories)];
   }
 
   render() {
@@ -207,9 +223,9 @@ class HaCardForgeEditor extends LitElement {
             @selected=${e => this._activeTab = e.detail.index}
             scrollable
           >
-            <ha-tab>基础属性</ha-tab>
+            <ha-tab>基础设置</ha-tab>
+            <ha-tab>外观样式</ha-tab>
             <ha-tab>主题设置</ha-tab>
-            <ha-tab>卡片样式</ha-tab>
             <ha-tab>高级设置</ha-tab>
           </ha-tabs>
         </div>
@@ -229,67 +245,42 @@ class HaCardForgeEditor extends LitElement {
   _renderTabContent() {
     switch (this._activeTab) {
       case 0: return this._renderBasicTab();
-      case 1: return this._renderThemeTab();
-      case 2: return this._renderStyleTab();
+      case 1: return this._renderStyleTab();
+      case 2: return this._renderThemeTab();
       case 3: return this._renderAdvancedTab();
       default: return html`<div>未知选项卡</div>`;
     }
   }
 
   _renderBasicTab() {
-    const filteredCards = this._getFilteredCards();
-    const cardConfig = this.config.type ? window.CardRegistry.getCardConfig(this.config.type) : null;
-
+    const currentStyle = window.Registry.getStyle(this.config.style);
+    
     return html`
-      <!-- 卡片类型选择 -->
+      <!-- 当前样式信息 -->
       <div class="section">
-        <h3 class="section-title">🎨 选择卡片类型</h3>
-        
-        <div class="card-selection-header">
-          <ha-textfield
-            class="search-box"
-            label="搜索卡片..."
-            .value=${this._searchQuery}
-            @input=${e => this._searchQuery = e.target.value}
-            icon="mdi:magnify"
-          ></ha-textfield>
-          
-          <ha-select
-            class="category-filter"
-            label="分类"
-            .value=${this._selectedCategory}
-            @selected=${e => this._selectedCategory = e.target.value}
-          >
-            <mwc-list-item value="all">全部</mwc-list-item>
-            ${this._categories.map(category => html`
-              <mwc-list-item value=${category.name}>${category.name}</mwc-list-item>
-            `)}
-          </ha-select>
-        </div>
-
-        <div class="card-grid">
-          ${filteredCards.map(card => html`
-            <div 
-              class="card-option ${this.config.type === card.type ? 'selected' : ''}"
-              @click=${() => this._selectCardType(card.type)}
-            >
-              <div class="card-preview">
-                <div class="preview-content">
-                  ${card.icon} ${card.name}
-                </div>
-              </div>
-              <div class="card-icon">${card.icon}</div>
-              <div style="font-weight: 500; margin-bottom: 4px;">${card.name}</div>
-              <div style="font-size: 0.8em; color: var(--secondary-text-color);">
-                ${card.description}
+        <h3 class="section-title">🎯 当前样式</h3>
+        ${currentStyle ? html`
+          <div style="display: flex; align-items: center; gap: 12px;">
+            <div style="font-size: 2em;">${currentStyle.icon}</div>
+            <div>
+              <div style="font-weight: bold; font-size: 1.1em;">${currentStyle.displayName}</div>
+              <div style="color: var(--secondary-text-color); font-size: 0.9em;">
+                ${currentStyle.description}
               </div>
             </div>
-          `)}
-        </div>
+          </div>
+        ` : html`<div>未选择样式</div>`}
       </div>
 
       <!-- 实体配置 -->
-      ${cardConfig?.entityInterfaces ? this._renderEntityConfig(cardConfig) : ''}
+      ${currentStyle?.requiresEntities ? this._renderEntityConfig(currentStyle) : html`
+        <div class="section">
+          <h3 class="section-title">🔧 实体配置</h3>
+          <div style="color: var(--secondary-text-color); text-align: center; padding: 20px;">
+            当前样式无需配置实体
+          </div>
+        </div>
+      `}
 
       <!-- 交互动作 -->
       <div class="section">
@@ -305,31 +296,41 @@ class HaCardForgeEditor extends LitElement {
             <mwc-list-item value="more-info">显示详情</mwc-list-item>
             <mwc-list-item value="navigate">导航</mwc-list-item>
             <mwc-list-item value="call-service">调用服务</mwc-list-item>
-            <mwc-list-item value="url">打开链接</mwc-list-item>
           </ha-select>
         </div>
 
-        ${this.config.tap_action?.action === 'more-info' ? html`
+        ${this.config.tap_action?.action === 'more-info' && currentStyle?.requiresEntities ? html`
           <div class="form-group">
-            <ha-entity-picker
+            <ha-select
               label="目标实体"
-              .hass=${this.hass}
               .value=${this.config.tap_action?.entity || ''}
-              @value-changed=${e => this._updateConfig('tap_action.entity', e.detail.value)}
+              @selected=${e => this._updateConfig('tap_action.entity', e.target.value)}
               style="width: 100%;"
-            ></ha-entity-picker>
+            >
+              <mwc-list-item value="">无</mwc-list-item>
+              ${currentStyle.entityInterfaces.required?.map(entity => html`
+                <mwc-list-item value=${this.config.entities?.[entity.key] || ''}>
+                  ${entity.description}
+                </mwc-list-item>
+              `)}
+              ${currentStyle.entityInterfaces.optional?.map(entity => html`
+                <mwc-list-item value=${this.config.entities?.[entity.key] || ''}>
+                  ${entity.description}
+                </mwc-list-item>
+              `)}
+            </ha-select>
           </div>
         ` : ''}
       </div>
     `;
   }
 
-  _renderEntityConfig(cardConfig) {
+  _renderEntityConfig(styleConfig) {
     return html`
       <div class="section">
         <h3 class="section-title">🔧 实体配置</h3>
         
-        ${cardConfig.entityInterfaces.required?.map(entity => html`
+        ${styleConfig.entityInterfaces.required?.map(entity => html`
           <div class="form-group">
             <div class="entity-grid">
               <ha-entity-picker
@@ -344,7 +345,7 @@ class HaCardForgeEditor extends LitElement {
           </div>
         `)}
         
-        ${cardConfig.entityInterfaces.optional?.map(entity => html`
+        ${styleConfig.entityInterfaces.optional?.map(entity => html`
           <div class="form-group">
             <div class="entity-grid">
               <ha-entity-picker
@@ -370,12 +371,134 @@ class HaCardForgeEditor extends LitElement {
     return html`
       <div class="entity-status">
         状态: ${entity.state}
+        ${entity.attributes.unit_of_measurement ? ` ${entity.attributes.unit_of_measurement}` : ''}
       </div>
     `;
   }
 
+  _renderStyleTab() {
+    const filteredStyles = this._getFilteredStyles();
+
+    return html`
+      <!-- 样式选择 -->
+      <div class="section">
+        <h3 class="section-title">🎨 选择外观样式</h3>
+        
+        <div class="style-selection-header">
+          <ha-textfield
+            class="search-box"
+            label="搜索样式..."
+            .value=${this._searchQuery}
+            @input=${e => this._searchQuery = e.target.value}
+            icon="mdi:magnify"
+          ></ha-textfield>
+          
+          <ha-select
+            class="category-filter"
+            label="分类"
+            .value=${this._selectedCategory}
+            @selected=${e => this._selectedCategory = e.target.value}
+          >
+            ${this._categories.map(category => html`
+              <mwc-list-item value=${category}>
+                ${category === 'all' ? '全部' : category}
+              </mwc-list-item>
+            `)}
+          </ha-select>
+        </div>
+
+        <div class="style-grid">
+          ${filteredStyles.map(style => html`
+            <div 
+              class="style-option ${this.config.style === style.name ? 'selected' : ''}"
+              @click=${() => this._selectStyle(style.name)}
+            >
+              <div class="style-preview">
+                ${this._renderStylePreview(style)}
+              </div>
+              <div class="style-icon">${style.icon}</div>
+              <div style="font-weight: 500; margin-bottom: 4px;">${style.displayName}</div>
+              <div style="font-size: 0.8em; color: var(--secondary-text-color);">
+                ${style.description}
+              </div>
+            </div>
+          `)}
+        </div>
+
+        ${filteredStyles.length === 0 ? html`
+          <div style="text-align: center; padding: 40px; color: var(--secondary-text-color);">
+            没有找到匹配的样式
+          </div>
+        ` : ''}
+      </div>
+
+      <!-- 实时预览 -->
+      <div class="section">
+        <h3 class="section-title">🎭 实时预览</h3>
+        <div class="preview-container">
+          <div class="preview-content">
+            ${this._renderLivePreview()}
+          </div>
+        </div>
+      </div>
+    `;
+  }
+
+  _renderStylePreview(style) {
+    if (style.preview) {
+      const preview = style.preview();
+      // 简单的innerHTML渲染预览
+      const div = document.createElement('div');
+      div.innerHTML = preview;
+      return div;
+    }
+    
+    // 默认预览
+    return html`
+      <div style="text-align: center; padding: 10px;">
+        <div style="font-size: 1.5em;">${style.icon}</div>
+        <div style="font-size: 0.7em; margin-top: 4px;">${style.displayName}</div>
+      </div>
+    `;
+  }
+
+  _renderLivePreview() {
+    const styleConfig = window.Registry.getStyle(this.config.style);
+    if (!styleConfig) {
+      return html`<div>请先选择外观样式</div>`;
+    }
+
+    try {
+      // 创建模拟的实体状态用于预览
+      const mockEntities = new Map();
+      if (styleConfig.requiresEntities && styleConfig.entityInterfaces) {
+        styleConfig.entityInterfaces.required?.forEach(entity => {
+          const entityId = this.config.entities?.[entity.key];
+          if (entityId && this.hass?.states[entityId]) {
+            mockEntities.set(entity.key, this.hass.states[entityId]);
+          } else {
+            // 使用模拟数据
+            mockEntities.set(entity.key, {
+              state: '预览数据',
+              attributes: { friendly_name: entity.description }
+            });
+          }
+        });
+      }
+
+      const previewHTML = styleConfig.render(this.config, this.hass, mockEntities);
+      const div = document.createElement('div');
+      div.innerHTML = previewHTML;
+      return div;
+
+    } catch (error) {
+      console.error('预览渲染失败:', error);
+      return html`<div>预览渲染失败</div>`;
+    }
+  }
+
   _renderThemeTab() {
-    const themes = window.ThemeManager ? window.ThemeManager.getAllThemes() : [];
+    const themes = window.ThemeManager.getAllThemes();
 
     return html`
       <!-- 主题选择 -->
@@ -397,91 +520,23 @@ class HaCardForgeEditor extends LitElement {
         </div>
       </div>
 
-      <!-- 颜色定制 -->
+      <!-- 自定义样式 -->
       <div class="section">
-        <h3 class="section-title">🎯 自定义颜色</h3>
+        <h3 class="section-title">🎯 自定义样式</h3>
         <div class="color-picker-group">
           <ha-textfield
             label="背景颜色"
-            .value=${this.config.style?.backgroundColor || ''}
-            @input=${e => this._updateConfig('style.backgroundColor', e.target.value)}
+            .value=${this.config.custom?.backgroundColor || ''}
+            @input=${e => this._updateConfig('custom.backgroundColor', e.target.value)}
             style="width: 100%;"
           ></ha-textfield>
           
           <ha-textfield
             label="文字颜色"
-            .value=${this.config.style?.textColor || ''}
-            @input=${e => this._updateConfig('style.textColor', e.target.value)}
+            .value=${this.config.custom?.textColor || ''}
+            @input=${e => this._updateConfig('custom.textColor', e.target.value)}
             style="width: 100%;"
           ></ha-textfield>
-          
-          <ha-textfield
-            label="主色调"
-            .value=${this.config.style?.primaryColor || ''}
-            @input=${e => this._updateConfig('style.primaryColor', e.target.value)}
-            style="width: 100%;"
-          ></ha-textfield>
-        </div>
-      </div>
-
-      <!-- 布局设置 -->
-      <div class="section">
-        <h3 class="section-title">📐 布局设置</h3>
-        <div class="form-group">
-          <ha-select
-            label="内边距"
-            .value=${this.config.style?.padding || '16px'}
-            @selected=${e => this._updateConfig('style.padding', e.target.value)}
-            style="width: 100%;"
-          >
-            <mwc-list-item value="8px">小 (8px)</mwc-list-item>
-            <mwc-list-item value="16px">中 (16px)</mwc-list-item>
-            <mwc-list-item value="24px">大 (24px)</mwc-list-item>
-          </ha-select>
-        </div>
-      </div>
-    `;
-  }
-
-  _renderStyleTab() {
-    return html`
-      <!-- 样式微调 -->
-      <div class="section">
-        <h3 class="section-title">🔧 样式微调</h3>
-        <div class="form-group">
-          <ha-select
-            label="字体大小"
-            .value=${this.config.style?.fontSize || 'medium'}
-            @selected=${e => this._updateConfig('style.fontSize', e.target.value)}
-            style="width: 100%;"
-          >
-            <mwc-list-item value="small">小</mwc-list-item>
-            <mwc-list-item value="medium">中</mwc-list-item>
-            <mwc-list-item value="large">大</mwc-list-item>
-          </ha-select>
-        </div>
-      </div>
-
-      <!-- 显示选项 -->
-      <div class="section">
-        <h3 class="section-title">📊 显示选项</h3>
-        <div class="form-group">
-          <ha-formfield label="显示秒针">
-            <ha-switch
-              .checked=${this.config.style?.showSeconds !== false}
-              @change=${e => this._updateConfig('style.showSeconds', e.target.checked)}
-            ></ha-switch>
-          </ha-formfield>
-        </div>
-      </div>
-
-      <!-- 实时预览 -->
-      <div class="section">
-        <h3 class="section-title">🎭 实时预览</h3>
-        <div class="preview-container">
-          <div class="preview-content">
-            ${this._renderPreview()}
-          </div>
         </div>
       </div>
     `;
@@ -495,8 +550,8 @@ class HaCardForgeEditor extends LitElement {
         <div class="form-group">
           <ha-select
             label="刷新间隔"
-            .value=${this.config.advanced?.refreshInterval || '30s'}
-            @selected=${e => this._updateConfig('advanced.refreshInterval', e.target.value)}
+            .value=${this.config.custom?.refreshInterval || '30s'}
+            @selected=${e => this._updateConfig('custom.refreshInterval', e.target.value)}
             style="width: 100%;"
           >
             <mwc-list-item value="10s">10秒</mwc-list-item>
@@ -511,8 +566,8 @@ class HaCardForgeEditor extends LitElement {
         <h3 class="section-title">📝 自定义CSS</h3>
         <ha-textarea
           label="自定义样式"
-          .value=${this.config.advanced?.customCSS || ''}
-          @input=${e => this._updateConfig('advanced.customCSS', e.target.value)}
+          .value=${this.config.custom?.css || ''}
+          @input=${e => this._updateConfig('custom.css', e.target.value)}
           style="width: 100%;"
           rows="4"
         ></ha-textarea>
@@ -520,40 +575,43 @@ class HaCardForgeEditor extends LitElement {
     `;
   }
 
-  _getFilteredCards() {
-    let filtered = this._availableCards;
+  _getFilteredStyles() {
+    let filtered = this._availableStyles;
 
     // 分类筛选
     if (this._selectedCategory !== 'all') {
-      filtered = filtered.filter(card => card.category === this._selectedCategory);
+      filtered = filtered.filter(style => style.category === this._selectedCategory);
     }
 
     // 搜索筛选
     if (this._searchQuery) {
       const query = this._searchQuery.toLowerCase();
-      filtered = filtered.filter(card => 
-        card.name.toLowerCase().includes(query) ||
-        card.description.toLowerCase().includes(query)
+      filtered = filtered.filter(style => 
+        style.displayName.toLowerCase().includes(query) ||
+        style.description.toLowerCase().includes(query) ||
+        style.name.toLowerCase().includes(query)
       );
     }
 
     return filtered;
   }
 
-  _selectCardType(cardType) {
-    const cardConfig = window.CardRegistry.getCardConfig(cardType);
-    
+  _selectStyle(styleName) {
+    const styleConfig = window.Registry.getStyle(styleName);
+    if (!styleConfig) return;
+
     // 创建新配置
     const newConfig = { 
-      type: cardType,
+      style: styleName,
+      theme: this.config.theme || 'default',
       entities: {},
-      style: {},
-      advanced: {}
+      custom: this.config.custom || {},
+      tap_action: this.config.tap_action || { action: 'more-info' }
     };
 
     // 设置实体默认值
-    if (cardConfig.entityInterfaces) {
-      cardConfig.entityInterfaces.required?.forEach(entity => {
+    if (styleConfig.requiresEntities && styleConfig.entityInterfaces) {
+      styleConfig.entityInterfaces.required?.forEach(entity => {
         if (entity.default) {
           newConfig.entities[entity.key] = entity.default;
         }
@@ -577,35 +635,19 @@ class HaCardForgeEditor extends LitElement {
     this._fireConfigChanged();
   }
 
-  _renderPreview() {
-    if (!this.config.type) {
-      return html`<div>请先选择卡片类型</div>`;
-    }
-
-    const cardConfig = window.CardRegistry.getCardConfig(this.config.type);
-    if (!cardConfig.preview) {
-      return html`<div>暂无预览</div>`;
-    }
-
-    // 简单的文本预览
-    return html`
-      <div style="text-align: center; padding: 20px;">
-        <div style="font-size: 1.5em; margin-bottom: 8px;">${cardConfig.icon}</div>
-        <div style="font-weight: bold;">${cardConfig.name}</div>
-        <div style="font-size: 0.9em; color: var(--secondary-text-color); margin-top: 4px;">
-          ${cardConfig.description}
-        </div>
-      </div>
-    `;
-  }
-
   _cancel() {
-    this.dispatchEvent(new CustomEvent('config-cancel', { bubbles: true, composed: true }));
+    this.dispatchEvent(new CustomEvent('config-cancel', { 
+      bubbles: true, 
+      composed: true 
+    }));
   }
 
   _save() {
     this._fireConfigChanged();
-    this.dispatchEvent(new CustomEvent('config-save', { bubbles: true, composed: true }));
+    this.dispatchEvent(new CustomEvent('config-save', { 
+      bubbles: true, 
+      composed: true 
+    }));
   }
 
   _fireConfigChanged() {
