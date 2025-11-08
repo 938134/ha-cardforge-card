@@ -191,6 +191,18 @@ class HaCardForgeEditor extends LitElement {
 
   setConfig(config) {
     this.config = { ...this._getDefaultConfig(), ...config };
+      // 确保必要的属性存在
+    if (!this.config.entities) {
+      this.config.entities = {};
+    }
+    if (!this.config.custom) {
+      this.config.custom = {};
+    }
+    if (!this.config.tap_action) {
+      this.config.tap_action = { action: 'more-info' };
+    }
+    
+    console.log('编辑器配置已设置:', this.config);
   }
 
   _getDefaultConfig() {

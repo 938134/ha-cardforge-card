@@ -204,16 +204,29 @@ class HaCardForgeCard extends LitElement {
   }
 
   static getConfigElement() {
-    return document.createElement('ha-cardforge-editor');
+    // 确保编辑器元素已注册
+    if (!customElements.get('ha-cardforge-editor')) {
+      console.warn('编辑器元素未注册，使用默认配置');
+      return null;
+    }
+    
+    const editor = document.createElement('ha-cardforge-editor');
+    console.log('创建编辑器实例:', editor);
+    return editor;
   }
-
-  static getStubConfig() {
+  
+  static getStubConfig(hass, entities) {
     return {
       style: 'time-week',
+      theme: 'default',
       entities: {
         time: 'sensor.time',
         date: 'sensor.date',
         week: 'sensor.xing_qi'
+      },
+      custom: {},
+      tap_action: {
+        action: 'more-info'
       }
     };
   }
