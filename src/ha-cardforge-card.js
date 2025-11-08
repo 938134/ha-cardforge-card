@@ -1,215 +1,107 @@
-import { LitElement, html, css } from 'https://unpkg.com/lit@2.8.0/index.js?module';
-import './components/registry.js';
-import './components/theme.js';
+// ha-cardforge-card/ha-cardforge-card.js
+import { LitElement } from 'https://unpkg.com/lit@2.8.0/index.js?module';
 
-// 导出卡片类
-export class HaCardForgeCard extends LitElement {
+const ButtonCard = customElements.get('button-card');
+
+class HaCardForgeCard extends ButtonCard {
   static properties = {
     hass: { type: Object },
     config: { type: Object },
-    _entityStates: { state: true },
-    _error: { state: true }
+    _entities: { state: true }
   };
-
-  static styles = css`
-    :host {
-      display: block;
-    }
-    
-    .cardforge-card {
-      position: relative;
-      box-sizing: border-box;
-    }
-    
-    .card-error {
-      padding: 20px;
-      text-align: center;
-      color: var(--error-color);
-      background: var(--card-background-color);
-      border-radius: var(--ha-card-border-radius, 12px);
-    }
-  `;
 
   constructor() {
     super();
-    this._entityStates = new Map();
-    this._error = null;
+    this._entities = new Map();
+    this._styleManager = new StyleManager();
   }
 
   async setConfig(config) {
-    try {
-      await window.Registry.initialize();
-      this.config = this._validateConfig(config);
-      console.log('✅ 卡片配置已设置:', this.config);
-    } catch (error) {
-      this._showError(`配置错误: ${error.message}`);
-    }
+    this._config = this._validateConfig(config);
+    this._updateEntities();
+    
+    // 动态加载样式
+    const style = await this._styleManager.loadStyle(this._config.style);
+    
+    const buttonConfig = this._convertToButtonCard(this._config, style);
+    super.setConfig(buttonConfig);
   }
 
   _validateConfig(config) {
-    if (!config.style) {
-      const styles = window.Registry.getAllStyles();
-      if (styles.length > 0) {
-        config.style = styles[0].name;
-      } else {
-        throw new Error('没有可用的外观样式');
-      }
-    }
-
-    if (!window.Registry.hasStyle(config.style)) {
-      throw new Error(`未知的外观样式: ${config.style}`);
-    }
-
-    const styleConfig = window.Registry.getStyle(config.style);
-    const defaults = {
-      style: config.style,
+    return {
+      style: 'time-week',
       theme: 'default',
       entities: {},
-      custom: {}
+      custom: {},
+      ...config
     };
-
-    if (styleConfig.requiresEntities && styleConfig.entityInterfaces) {
-      styleConfig.entityInterfaces.required?.forEach(entity => {
-        if (entity.default) {
-          defaults.entities[entity.key] = entity.default;
-        }
-      });
-    }
-
-    return this._deepMerge(defaults, config);
   }
 
-  _deepMerge(target, source) {
-    const result = { ...target };
-    for (const key in source) {
-      if (source[key] && typeof source[key] === 'object' && !Array.isArray(source[key])) {
-        result[key] = this._deepMerge(result[key] || {}, source[key]);
-      } else {
-        result[key] = source[key];
+  _updateEntities() {
+    this._entities.clear();
+    if (!this.hass || !this._config.entities) return;
+    
+    Object.entries(this._config.entities).forEach(([key, entityId]) => {
+      if (entityId && this.hass.states[entityId]) {
+        this._entities.set(key, this.hass.states[entityId]);
       }
-    }
-    return result;
+    });
+  }
+
+  _convertToButtonCard(config, style) {
+    const entities = Object.fromEntries(this._entities);
+    
+    return {
+      type: 'custom:button-card',
+      template: style.getTemplate(config, entities),
+      styles: style.getStyles(config) + this._getThemeStyles(config.theme),
+      ...this._applyTheme(config)
+    };
+  }
+
+  _getThemeStyles(theme) {
+    const themes = {
+      'default': `
+        .cardforge-card { 
+          background: var(--card-background-color); 
+          color: var(--primary-text-color);
+        }
+      `,
+      'dark': `
+        .cardforge-card { 
+          background: #1e1e1e; 
+          color: white;
+        }
+      `,
+      'material': `
+        .cardforge-card { 
+          background: #fafafa; 
+          color: #212121;
+          border-radius: 8px;
+          box-shadow: 0 3px 6px rgba(0,0,0,0.16);
+        }
+      `
+    };
+    return themes[theme] || themes.default;
+  }
+
+  _applyTheme(config) {
+    const themeConfigs = {
+      'dark': { style: 'background: #1e1e1e; color: white;' },
+      'material': { style: 'background: #fafafa; color: #212121;' }
+    };
+    return themeConfigs[config.theme] || {};
   }
 
   updated(changedProperties) {
     if (changedProperties.has('hass')) {
-      this._updateEntityStates();
+      this._updateEntities();
+      this.setConfig(this._config);
     }
-  }
-
-  _updateEntityStates() {
-    if (!this.hass || !this.config.entities) return;
-
-    this._entityStates.clear();
-    Object.entries(this.config.entities).forEach(([key, entityId]) => {
-      if (entityId && this.hass.states[entityId]) {
-        this._entityStates.set(key, this.hass.states[entityId]);
-      }
-    });
-  }
-
-  _handleAction(actionConfig) {
-    if (!actionConfig || !this.hass) return;
-
-    const { action, entity, service, data } = actionConfig;
-    
-    switch (action) {
-      case 'more-info':
-        this._fireEvent('hass-more-info', { entityId: entity });
-        break;
-      case 'call-service':
-        this._callService(service, entity, data);
-        break;
-      case 'navigate':
-        this._fireEvent('location-changed', { navigation_path: data?.navigation_path });
-        break;
-      default:
-        console.warn('未知动作:', action);
-    }
-  }
-
-  _fireEvent(type, detail) {
-    this.dispatchEvent(new CustomEvent(type, {
-      bubbles: true,
-      composed: true,
-      detail
-    }));
-  }
-
-  _callService(service, entityId, data = {}) {
-    const [domain, serviceName] = service.split('.');
-    this.hass.callService(domain, serviceName, {
-      entity_id: entityId,
-      ...data
-    });
-  }
-
-  _showError(message) {
-    this._error = message;
-    this.requestUpdate();
-  }
-
-  _renderContent() {
-    if (this._error) {
-      return html`<div class="card-error">${this._error}</div>`;
-    }
-
-    const styleConfig = window.Registry.getStyle(this.config.style);
-    if (!styleConfig) {
-      return html`<div class="card-error">未知外观: ${this.config.style}</div>`;
-    }
-
-    if (styleConfig.requiresEntities && styleConfig.entityInterfaces) {
-      const missing = styleConfig.entityInterfaces.required?.filter(
-        entity => !this.config.entities?.[entity.key]
-      ) || [];
-      
-      if (missing.length > 0) {
-        return html`<div class="card-error">缺少必需实体: ${missing.map(e => e.description).join(', ')}</div>`;
-      }
-    }
-
-    try {
-      if (window.ThemeManager && this.config.theme) {
-        window.ThemeManager.applyTheme(this, this.config.theme);
-      }
-
-      const renderResult = styleConfig.render(this.config, this.hass, this._entityStates);
-      
-      if (typeof renderResult === 'string') {
-        const template = document.createElement('template');
-        template.innerHTML = renderResult;
-        return html`${template.content}`;
-      }
-      
-      return renderResult;
-
-    } catch (error) {
-      console.error('渲染外观失败:', error);
-      return html`<div class="card-error">渲染失败: ${error.message}</div>`;
-    }
-  }
-
-  render() {
-    return html`
-      <ha-card @click=${() => this._handleAction(this.config.tap_action)}>
-        <div class="cardforge-card">
-          ${this._renderContent()}
-        </div>
-      </ha-card>
-    `;
-  }
-
-  getCardSize() {
-    const styleConfig = window.Registry.getStyle(this.config.style);
-    return styleConfig?.cardSize || 3;
   }
 
   static getConfigElement() {
-    console.log('📝 获取配置编辑器元素');
-    const editor = document.createElement('ha-cardforge-editor');
-    console.log('✅ 编辑器实例创建成功:', editor);
-    return editor;
+    return document.createElement('ha-cardforge-editor');
   }
 
   static getStubConfig() {
@@ -218,13 +110,61 @@ export class HaCardForgeCard extends LitElement {
       theme: 'default',
       entities: {
         time: 'sensor.time',
-        date: 'sensor.date',
-        week: 'sensor.xing_qi'
-      },
-      custom: {},
-      tap_action: {
-        action: 'more-info'
+        date: 'sensor.date'
       }
     };
   }
 }
+
+// 样式管理器
+class StyleManager {
+  constructor() {
+    this._cache = new Map();
+  }
+
+  async loadStyle(styleName) {
+    if (this._cache.has(styleName)) {
+      return this._cache.get(styleName);
+    }
+
+    try {
+      const module = await import(`./styles/${styleName}.js`);
+      const styleInstance = new module.default();
+      this._cache.set(styleName, styleInstance);
+      return styleInstance;
+    } catch (error) {
+      console.error(`加载样式 ${styleName} 失败:`, error);
+      return new FallbackStyle(styleName);
+    }
+  }
+
+  clearCache() {
+    this._cache.clear();
+  }
+}
+
+// 回退样式
+class FallbackStyle {
+  constructor(styleName) {
+    this.styleName = styleName;
+  }
+
+  getTemplate(config, entities) {
+    return `
+      <div style="padding:20px;text-align:center;color:var(--error-color)">
+        <div style="font-size:2em">❌</div>
+        <div>样式 "${this.styleName}" 加载失败</div>
+      </div>
+    `;
+  }
+
+  getStyles(config) {
+    return `
+      .cardforge-card {
+        border-radius: var(--ha-card-border-radius, 12px);
+      }
+    `;
+  }
+}
+
+export { HaCardForgeCard };
