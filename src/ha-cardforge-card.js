@@ -1,53 +1,74 @@
-import { LitElement, html } from 'https://unpkg.com/lit@2.8.0/index.js?module';
-import './components/card-registry.js';
-import './components/base-card.js';
+import { LitElement, html, css } from 'https://unpkg.com/lit@2.8.0/index.js?module';
+import './components/registry.js';
+import './components/theme.js';
 
 class HaCardForgeCard extends LitElement {
   static properties = {
     hass: { type: Object },
     config: { type: Object },
-    _cardElement: { state: true },
+    _entityStates: { state: true },
     _error: { state: true }
   };
 
+  static styles = css`
+    :host {
+      display: block;
+    }
+    
+    .cardforge-card {
+      position: relative;
+      box-sizing: border-box;
+    }
+    
+    .card-error {
+      padding: 20px;
+      text-align: center;
+      color: var(--error-color);
+      background: var(--card-background-color);
+      border-radius: var(--ha-card-border-radius, 12px);
+    }
+  `;
+
   constructor() {
     super();
-    this._cardElement = null;
+    this._entityStates = new Map();
     this._error = null;
   }
 
   async setConfig(config) {
     try {
-      await window.CardRegistry.initialize();
+      await window.Registry.initialize();
       this.config = this._validateConfig(config);
-      this._loadCard();
     } catch (error) {
       this._showError(`配置错误: ${error.message}`);
     }
   }
 
   _validateConfig(config) {
-    if (!config.type) {
-      const defaultCard = window.CardRegistry.getDefaultCard();
-      config.type = defaultCard.type;
+    if (!config.style) {
+      const styles = window.Registry.getAllStyles();
+      if (styles.length > 0) {
+        config.style = styles[0].name;
+      } else {
+        throw new Error('没有可用的外观样式');
+      }
     }
 
-    if (!window.CardRegistry.hasCardType(config.type)) {
-      throw new Error(`不支持的卡片类型: ${config.type}`);
+    if (!window.Registry.hasStyle(config.style)) {
+      throw new Error(`未知的外观样式: ${config.style}`);
     }
 
-    const cardConfig = window.CardRegistry.getCardConfig(config.type);
+    const styleConfig = window.Registry.getStyle(config.style);
     const defaults = {
-      type: config.type,
+      style: config.style,
       theme: 'default',
       entities: {},
-      style: {},
-      advanced: {}
+      custom: {}
     };
 
     // 设置实体默认值
-    if (cardConfig.entityInterfaces) {
-      cardConfig.entityInterfaces.required?.forEach(entity => {
+    if (styleConfig.requiresEntities && styleConfig.entityInterfaces) {
+      styleConfig.entityInterfaces.required?.forEach(entity => {
         if (entity.default) {
           defaults.entities[entity.key] = entity.default;
         }
@@ -69,36 +90,57 @@ class HaCardForgeCard extends LitElement {
     return result;
   }
 
-  _loadCard() {
-    if (!this.config?.type) return;
-
-    try {
-      this._error = null;
-      
-      if (this._cardElement) {
-        this.shadowRoot.removeChild(this._cardElement);
-        this._cardElement = null;
-      }
-
-      const cardElement = document.createElement('base-card');
-      cardElement.setConfig(this.config);
-      
-      if (this.hass) {
-        cardElement.hass = this.hass;
-      }
-      
-      this._cardElement = cardElement;
-      
-      if (!this.shadowRoot) {
-        this.attachShadow({ mode: 'open' });
-      }
-      
-      this.shadowRoot.appendChild(this._cardElement);
-
-    } catch (error) {
-      console.error('加载卡片失败:', error);
-      this._showError(`卡片加载失败: ${error.message}`);
+  updated(changedProperties) {
+    if (changedProperties.has('hass')) {
+      this._updateEntityStates();
     }
+  }
+
+  _updateEntityStates() {
+    if (!this.hass || !this.config.entities) return;
+
+    this._entityStates.clear();
+    Object.entries(this.config.entities).forEach(([key, entityId]) => {
+      if (entityId && this.hass.states[entityId]) {
+        this._entityStates.set(key, this.hass.states[entityId]);
+      }
+    });
+  }
+
+  _handleAction(actionConfig) {
+    if (!actionConfig || !this.hass) return;
+
+    const { action, entity, service, data } = actionConfig;
+    
+    switch (action) {
+      case 'more-info':
+        this._fireEvent('hass-more-info', { entityId: entity });
+        break;
+      case 'call-service':
+        this._callService(service, entity, data);
+        break;
+      case 'navigate':
+        this._fireEvent('location-changed', { navigation_path: data?.navigation_path });
+        break;
+      default:
+        console.warn('未知动作:', action);
+    }
+  }
+
+  _fireEvent(type, detail) {
+    this.dispatchEvent(new CustomEvent(type, {
+      bubbles: true,
+      composed: true,
+      detail
+    }));
+  }
+
+  _callService(service, entityId, data = {}) {
+    const [domain, serviceName] = service.split('.');
+    this.hass.callService(domain, serviceName, {
+      entity_id: entityId,
+      ...data
+    });
   }
 
   _showError(message) {
@@ -106,29 +148,53 @@ class HaCardForgeCard extends LitElement {
     this.requestUpdate();
   }
 
-  updated(changedProperties) {
-    if (changedProperties.has('hass') && this._cardElement) {
-      this._cardElement.hass = this.hass;
+  _renderContent() {
+    if (this._error) {
+      return html`<div class="card-error">${this._error}</div>`;
     }
-    
-    if (changedProperties.has('config')) {
-      this._loadCard();
+
+    const styleConfig = window.Registry.getStyle(this.config.style);
+    if (!styleConfig) {
+      return html`<div class="card-error">未知外观: ${this.config.style}</div>`;
+    }
+
+    // 验证必需实体
+    if (styleConfig.requiresEntities && styleConfig.entityInterfaces) {
+      const missing = styleConfig.entityInterfaces.required?.filter(
+        entity => !this.config.entities?.[entity.key]
+      ) || [];
+      
+      if (missing.length > 0) {
+        return html`<div class="card-error">缺少必需实体: ${missing.map(e => e.description).join(', ')}</div>`;
+      }
+    }
+
+    try {
+      // 应用主题
+      if (window.ThemeManager && this.config.theme) {
+        window.ThemeManager.applyTheme(this, this.config.theme);
+      }
+
+      return styleConfig.render(this.config, this.hass, this._entityStates);
+    } catch (error) {
+      console.error('渲染外观失败:', error);
+      return html`<div class="card-error">渲染失败: ${error.message}</div>`;
     }
   }
 
   render() {
-    if (this._error) {
-      return html`
-        <ha-card>
-          <div class="card-content" style="padding: 20px; text-align: center; color: var(--error-color);">
-            <ha-icon icon="mdi:alert-circle"></ha-icon>
-            <p>${this._error}</p>
-          </div>
-        </ha-card>
-      `;
-    }
+    return html`
+      <ha-card @click=${() => this._handleAction(this.config.tap_action)}>
+        <div class="cardforge-card">
+          ${this._renderContent()}
+        </div>
+      </ha-card>
+    `;
+  }
 
-    return html`<div id="card-container"></div>`;
+  getCardSize() {
+    const styleConfig = window.Registry.getStyle(this.config.style);
+    return styleConfig?.cardSize || 3;
   }
 
   static getConfigElement() {
@@ -137,7 +203,7 @@ class HaCardForgeCard extends LitElement {
 
   static getStubConfig() {
     return {
-      type: 'time-week',
+      style: 'time-week',
       entities: {
         time: 'sensor.time',
         date: 'sensor.date',
@@ -145,10 +211,16 @@ class HaCardForgeCard extends LitElement {
       }
     };
   }
-
-  getCardSize() {
-    return this._cardElement?.getCardSize ? this._cardElement.getCardSize() : 3;
-  }
 }
 
 customElements.define('ha-cardforge-card', HaCardForgeCard);
+
+if (window.customCards) {
+  window.customCards.push({
+    type: 'ha-cardforge-card',
+    name: '卡片工坊',
+    description: '基于 button-card 的多种外观样式',
+    preview: true,
+    documentationURL: 'https://github.com/your-repo/ha-cardforge'
+  });
+}
