@@ -193,7 +193,7 @@ export class HaCardForgeEditor extends LitElement {
 
   setConfig(config) {
     console.log('📝 设置编辑器配置:', config);
-    this.config = { ...this._getDefaultConfig(), ...config };
+    this.config = this._deepClone({ ...this._getDefaultConfig(), ...config });
     console.log('✅ 最终编辑器配置:', this.config);
   }
 
@@ -202,6 +202,7 @@ export class HaCardForgeEditor extends LitElement {
       style: 'time-week',
       theme: 'default',
       entities: {},
+      custom: {},
       tap_action: {
         action: 'more-info'
       }
@@ -614,13 +615,13 @@ export class HaCardForgeEditor extends LitElement {
     const styleConfig = window.Registry.getStyle(styleName);
     if (!styleConfig) return;
 
-    const newConfig = { 
+    const newConfig = this._deepClone({ 
       style: styleName,
       theme: this.config.theme || 'default',
       entities: {},
       custom: this.config.custom || {},
       tap_action: this.config.tap_action || { action: 'more-info' }
-    };
+    });
 
     if (styleConfig.requiresEntities && styleConfig.entityInterfaces) {
       styleConfig.entityInterfaces.required?.forEach(entity => {
@@ -635,16 +636,47 @@ export class HaCardForgeEditor extends LitElement {
   }
 
   _updateConfig(path, value) {
+    // 创建配置的深拷贝，避免修改冻结对象
+    const newConfig = this._deepClone(this.config);
+    
     const keys = path.split('.');
     const lastKey = keys.pop();
     const target = keys.reduce((obj, key) => {
       if (!obj[key]) obj[key] = {};
       return obj[key];
-    }, this.config);
+    }, newConfig);
     
     target[lastKey] = value;
+    
+    // 更新整个配置对象
+    this.config = newConfig;
     this.requestUpdate();
     this._fireConfigChanged();
+  }
+
+  // 深拷贝方法
+  _deepClone(obj) {
+    if (obj === null || typeof obj !== 'object') {
+      return obj;
+    }
+    
+    if (obj instanceof Date) {
+      return new Date(obj.getTime());
+    }
+    
+    if (obj instanceof Array) {
+      return obj.map(item => this._deepClone(item));
+    }
+    
+    if (typeof obj === 'object') {
+      const clonedObj = {};
+      for (const key in obj) {
+        if (obj.hasOwnProperty(key)) {
+          clonedObj[key] = this._deepClone(obj[key]);
+        }
+      }
+      return clonedObj;
+    }
   }
 
   _cancel() {
