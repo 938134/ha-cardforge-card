@@ -446,14 +446,19 @@ class HaCardForgeEditor extends LitElement {
 
   _renderStylePreview(style) {
     if (style.preview) {
-      const preview = style.preview();
-      // 简单的innerHTML渲染预览
-      const div = document.createElement('div');
-      div.innerHTML = preview;
-      return div;
+      try {
+        const previewResult = style.preview();
+        if (typeof previewResult === 'string') {
+          const template = document.createElement('template');
+          template.innerHTML = previewResult;
+          return html`${template.content}`;
+        }
+        return previewResult;
+      } catch (error) {
+        console.error('样式预览失败:', error);
+      }
     }
     
-    // 默认预览
     return html`
       <div style="text-align: center; padding: 10px;">
         <div style="font-size: 1.5em;">${style.icon}</div>
@@ -469,7 +474,6 @@ class HaCardForgeEditor extends LitElement {
     }
 
     try {
-      // 创建模拟的实体状态用于预览
       const mockEntities = new Map();
       if (styleConfig.requiresEntities && styleConfig.entityInterfaces) {
         styleConfig.entityInterfaces.required?.forEach(entity => {
@@ -477,23 +481,31 @@ class HaCardForgeEditor extends LitElement {
           if (entityId && this.hass?.states[entityId]) {
             mockEntities.set(entity.key, this.hass.states[entityId]);
           } else {
-            // 使用模拟数据
             mockEntities.set(entity.key, {
-              state: '预览数据',
+              state: entity.key === 'time' ? '14:30' : 
+                     entity.key === 'date' ? '2024-08-15' : 
+                     entity.key === 'week' ? '星期四' : '预览数据',
               attributes: { friendly_name: entity.description }
             });
           }
         });
       }
 
-      const previewHTML = styleConfig.render(this.config, this.hass, mockEntities);
-      const div = document.createElement('div');
-      div.innerHTML = previewHTML;
-      return div;
+      const previewResult = styleConfig.render(this.config, this.hass, mockEntities);
+      
+      if (typeof previewResult === 'string') {
+        const template = document.createElement('template');
+        template.innerHTML = previewResult;
+        return html`${template.content}`;
+      }
+      
+      return previewResult;
 
     } catch (error) {
       console.error('预览渲染失败:', error);
-      return html`<div>预览渲染失败</div>`;
+      return html`<div style="text-align: center; padding: 20px; color: var(--secondary-text-color);">
+        预览渲染失败: ${error.message}
+      </div>`;
     }
   }
 
@@ -578,12 +590,10 @@ class HaCardForgeEditor extends LitElement {
   _getFilteredStyles() {
     let filtered = this._availableStyles;
 
-    // 分类筛选
     if (this._selectedCategory !== 'all') {
       filtered = filtered.filter(style => style.category === this._selectedCategory);
     }
 
-    // 搜索筛选
     if (this._searchQuery) {
       const query = this._searchQuery.toLowerCase();
       filtered = filtered.filter(style => 
@@ -600,7 +610,6 @@ class HaCardForgeEditor extends LitElement {
     const styleConfig = window.Registry.getStyle(styleName);
     if (!styleConfig) return;
 
-    // 创建新配置
     const newConfig = { 
       style: styleName,
       theme: this.config.theme || 'default',
@@ -609,7 +618,6 @@ class HaCardForgeEditor extends LitElement {
       tap_action: this.config.tap_action || { action: 'more-info' }
     };
 
-    // 设置实体默认值
     if (styleConfig.requiresEntities && styleConfig.entityInterfaces) {
       styleConfig.entityInterfaces.required?.forEach(entity => {
         if (entity.default) {

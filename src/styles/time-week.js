@@ -1,3 +1,5 @@
+import { html } from 'https://unpkg.com/lit@2.8.0/index.js?module';
+
 export default {
   name: 'time-week',
   displayName: '时间星期',
@@ -47,7 +49,7 @@ export default {
     const dateParts = date.split('-');
     const dateDisplay = dateParts.length === 3 ? `${dateParts[1]}/${dateParts[2]}日` : '01/01';
 
-    return `
+    return html`
       <div class="time-week-card" style="
         display: grid;
         grid-template-areas: 'a' 'b' 'c';
@@ -97,7 +99,7 @@ export default {
   },
   
   preview: function() {
-    return `
+    return html`
       <div style="
         padding: 16px;
         background: var(--card-background-color);

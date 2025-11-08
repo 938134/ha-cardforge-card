@@ -28,10 +28,8 @@ export class TemplateEngine {
       entities: entityStates,
       states: hass?.states || {},
       now: new Date(),
-      // 工具函数
       formatTime: (time) => time ? time.split(':').slice(0, 2).join(':') : '00:00',
       getEntity: (entityId) => hass?.states[entityId],
-      // 数学函数
       Math: Math,
       Date: Date
     };

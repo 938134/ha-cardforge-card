@@ -66,7 +66,6 @@ class HaCardForgeCard extends LitElement {
       custom: {}
     };
 
-    // 设置实体默认值
     if (styleConfig.requiresEntities && styleConfig.entityInterfaces) {
       styleConfig.entityInterfaces.required?.forEach(entity => {
         if (entity.default) {
@@ -158,7 +157,6 @@ class HaCardForgeCard extends LitElement {
       return html`<div class="card-error">未知外观: ${this.config.style}</div>`;
     }
 
-    // 验证必需实体
     if (styleConfig.requiresEntities && styleConfig.entityInterfaces) {
       const missing = styleConfig.entityInterfaces.required?.filter(
         entity => !this.config.entities?.[entity.key]
@@ -170,12 +168,20 @@ class HaCardForgeCard extends LitElement {
     }
 
     try {
-      // 应用主题
       if (window.ThemeManager && this.config.theme) {
         window.ThemeManager.applyTheme(this, this.config.theme);
       }
 
-      return styleConfig.render(this.config, this.hass, this._entityStates);
+      const renderResult = styleConfig.render(this.config, this.hass, this._entityStates);
+      
+      if (typeof renderResult === 'string') {
+        const template = document.createElement('template');
+        template.innerHTML = renderResult;
+        return html`${template.content}`;
+      }
+      
+      return renderResult;
+
     } catch (error) {
       console.error('渲染外观失败:', error);
       return html`<div class="card-error">渲染失败: ${error.message}</div>`;
