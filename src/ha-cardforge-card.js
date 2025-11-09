@@ -103,44 +103,23 @@ class HaCardForgeCard extends ButtonCard {
     const template = plugin.getTemplate(config, entities);
     const styles = plugin.getStyles(config) + this._getThemeStyles(config.theme);
     
-    // 创建 button-card 兼容的配置
+    // 创建 button-card 兼容的配置 - 使用简单的 template 字符串
     const buttonConfig = {
       type: 'custom:button-card',
-      template: [
-        {
-          type: 'custom:template',
-          entity: Object.keys(entities)[0] || 'sensor.time', // 需要一个实体引用
-          content: template
-        }
-      ],
-      styles: {
-        // 将 CSS 转换为 button-card 的样式格式
-        card: [
-          {
-            // 基础样式
-            'border-radius': 'var(--ha-card-border-radius, 12px)',
-            'box-shadow': 'var(--ha-card-box-shadow, none)',
-            'overflow': 'hidden'
-          }
-        ],
-        ...this._convertStylesToButtonCardFormat(styles)
-      },
-      ...this._applyTheme(config),
-      // 添加自定义属性以便在模板中使用
-      custom_fields: {
-        cardforge_template: template,
-        cardforge_styles: styles
-      }
+      template: template, // 直接使用 HTML 字符串
+      styles: this._convertStylesToButtonCardFormat(styles),
+      ...this._applyTheme(config)
     };
 
     return buttonConfig;
   }
 
   _convertStylesToButtonCardFormat(css) {
-    // 简单的 CSS 解析，将 CSS 转换为 button-card 样式格式
+    // 将 CSS 转换为 button-card 的样式对象格式
     const styles = {};
-    const rules = css.split('}');
     
+    // 解析 CSS 规则
+    const rules = css.split('}');
     rules.forEach(rule => {
       const parts = rule.split('{');
       if (parts.length === 2) {
@@ -149,13 +128,8 @@ class HaCardForgeCard extends ButtonCard {
         
         if (selector === '.cardforge-card' || selector.includes('cardforge-card')) {
           styles.card = this._parseCSSProperties(properties);
-        } else if (selector.includes('.time-week') || selector.includes('.time-card') || 
-                   selector.includes('.weather') || selector.includes('.clock-lunar') || 
-                   selector.includes('.welcome')) {
-          // 插件特定样式
-          if (!styles.custom) styles.custom = {};
-          styles.custom[selector.replace('.', '')] = this._parseCSSProperties(properties);
         }
+        // 可以添加更多选择器的处理
       }
     });
     
@@ -171,11 +145,37 @@ class HaCardForgeCard extends ButtonCard {
       if (parts.length === 2) {
         const property = parts[0].trim();
         const value = parts[1].trim();
-        properties[property] = value;
+        // 转换 CSS 属性名到 button-card 格式
+        const buttonCardProperty = this._convertCSSPropertyToButtonCard(property);
+        if (buttonCardProperty) {
+          properties[buttonCardProperty] = value;
+        }
       }
     });
     
     return properties;
+  }
+
+  _convertCSSPropertyToButtonCard(cssProperty) {
+    // 将 CSS 属性转换为 button-card 支持的属性
+    const mapping = {
+      'background': 'background',
+      'color': 'color',
+      'border-radius': 'border-radius',
+      'padding': 'padding',
+      'font-size': 'font-size',
+      'font-weight': 'font-weight',
+      'display': 'display',
+      'flex-direction': 'flex-direction',
+      'justify-content': 'justify-content',
+      'align-items': 'align-items',
+      'text-align': 'text-align',
+      'grid-template-columns': 'grid-template-columns',
+      'gap': 'gap',
+      'height': 'height'
+    };
+    
+    return mapping[cssProperty] || null;
   }
 
   _getThemeStyles(theme) {
@@ -251,7 +251,7 @@ class HaCardForgeCard extends ButtonCard {
   // 重写 render 方法以处理错误显示
   render() {
     if (this._error) {
-      // 创建简单的错误显示，不依赖 button-card 模板
+      // 创建简单的错误显示
       const errorElement = document.createElement('div');
       errorElement.className = 'cardforge-error';
       errorElement.innerHTML = `
@@ -263,6 +263,7 @@ class HaCardForgeCard extends ButtonCard {
             border-radius: 8px;
             text-align: center;
             margin: 8px;
+            font-family: var(--primary-font-family);
           }
           .cardforge-error ha-icon {
             --mdc-icon-size: 24px;
