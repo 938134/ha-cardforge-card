@@ -1,6 +1,6 @@
 // ha-cardforge-card/src/ha-cardforge-editor.js
 import { LitElement, html, css } from 'https://unpkg.com/lit@2.8.0/index.js?module';
-import { PluginManager } from './components/plugins.js';
+import { PluginManager } from './components/plugin.js';
 
 class HaCardForgeEditor extends LitElement {
   static properties = {
