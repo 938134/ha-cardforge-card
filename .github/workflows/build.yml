@@ -53,110 +53,24 @@ jobs:
       # ---------- 检查构建产物 ----------
       - name: 检查构建结果
         run: |
-          echo "=== 构建结果 ==="
-          ls -la dist/
-          if [ -d "dist/plugins" ]; then
-            echo "=== 插件目录内容 ==="
-            ls -la dist/plugins/
-            echo "=== 插件文件列表 ==="
-            find dist/plugins/ -name "*.js" | sort
-          fi
-
-      # ---------- 准备发布文件 ----------
-      - name: 准备发布文件
-        run: |
-          # 创建发布目录
-          mkdir -p release
-          # 复制主文件
-          cp dist/ha-cardforge-card.js release/
-          # 复制插件目录
-          if [ -d "dist/plugins" ]; then
-            cp -r dist/plugins release/
-          fi
-          echo "=== 发布文件结构 ==="
-          find release/ -type f | sort
-          echo "=== 发布目录大小 ==="
-          du -sh release/
-
-      # ---------- 创建压缩包 ----------
-      - name: 创建压缩包
-        run: |
-          echo "=== 创建压缩包 ==="
-          cd release
-          tar -czf ../ha-cardforge-card-${{ steps.version.outputs.version }}.tar.gz ./*
-          cd ..
-          echo "=== 压缩包内容 ==="
-          tar -tzf ha-cardforge-card-${{ steps.version.outputs.version }}.tar.gz | head -20
-          echo "=== 压缩包大小 ==="
-          ls -lh ha-cardforge-card-${{ steps.version.outputs.version }}.tar.gz
+          echo "=== 构建文件 ==="
+          ls -la ha-cardforge-card.js
+          echo "=== 文件大小 ==="
+          du -h ha-cardforge-card.js
 
       # ---------- 生成发布说明 ----------
       - name: 生成发布说明
         run: |
-          # 获取插件列表
-          PLUGIN_LIST=""
-          if [ -d "release/plugins" ]; then
-            PLUGIN_LIST=$(find release/plugins -name "*.js" -exec basename {} \; | sort | sed 's/^/- `/; s/$/`/')
-          fi
-          
-          cat > release-body.md << EOF
+          cat > release-notes.md << EOF
           ## 安装方式
-
-          ### 方式一：完整包安装（推荐）
-          1. 下载 \`ha-cardforge-card-${{ steps.version.outputs.version }}.tar.gz\`
-          2. 解压到 Home Assistant 的 \`www/\` 目录：
-             \`\`\`bash
-             tar -xzf ha-cardforge-card-${{ steps.version.outputs.version }}.tar.gz -C /path/to/your/config/www/
-             \`\`\`
-          3. 在 Lovelace 配置中添加资源：
-             \`\`\`yaml
-             resources:
-               - url: /local/ha-cardforge-card.js
-                 type: module
-             \`\`\`
-
-          ### 方式二：单独文件安装
-          1. 下载 \`ha-cardforge-card.js\` 文件
-          2. 下载 plugins 目录下的所有插件文件
-          3. 创建目录结构：
-             \`\`\`
-             www/
-             ├── ha-cardforge-card.js
-             └── plugins/
-                 ├── time-week.js
-                 ├── time-card.js
-                 └── ...
-             \`\`\`
-          4. 在 Lovelace 配置中添加资源：
-             \`\`\`yaml
-             resources:
-               - url: /local/ha-cardforge-card.js
-                 type: module
-             \`\`\`
-
-          ### HACS 安装
+          
           在 HACS → **前端** → **自定义仓库** 中添加：
           \`https://github.com/${{ github.repository }}\`
 
-          ## 包含文件
-
-          ### 主文件
-          - \`ha-cardforge-card.js\` - 主卡片文件（必需）
-
-          ### 插件文件
-          ${PLUGIN_LIST}
-
           ## 更新日志
-          - 基于提交 ${{ github.sha }} 自动构建
-
-          ## 版本信息
-          - 版本: ${{ steps.version.outputs.version }}
-          - 提交: ${{ github.sha }}
-          - 构建时间: $(date -u +"%Y-%m-%d %H:%M:%S UTC")
-          EOF
           
-          echo "=== 生成的发布说明 ==="
-          cat release-body.md
+          基于提交 ${{ github.sha }} 自动构建
+          EOF
 
       # ---------- 可选：删除同名 release ----------
       - name: 若已存在则删除旧版 Release
@@ -169,19 +83,16 @@ jobs:
       - name: 创建 Release
         uses: ncipollo/release-action@v1.14.0
         with:
-          artifacts: "ha-cardforge-card-${{ steps.version.outputs.version }}.tar.gz,release/**"
+          artifacts: "ha-cardforge-card.js"
           token: ${{ secrets.GITHUB_TOKEN }}
           tag: ${{ steps.version.outputs.version }}
           name: ${{ steps.version.outputs.version }}
-          bodyFile: "release-body.md"
+          bodyFile: "release-notes.md"
           makeLatest: true
           skipIfReleaseExists: false
 
       # ---------- 清理临时文件 ----------
       - name: 清理临时文件
         run: |
-          echo "=== 清理临时文件 ==="
-          rm -rf release
-          rm -f ha-cardforge-card-*.tar.gz
-          rm -f release-body.md
-          echo "清理完成"
+          rm -f release-notes.md
+          echo "构建完成"
