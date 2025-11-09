@@ -37,16 +37,6 @@ jobs:
       - name: 构建项目
         run: npm run build
 
-      # ---------- 验证构建结果 ----------
-      - name: 检查构建产物
-        run: |
-          echo "构建结果："
-          ls -la dist/
-          if [ -d "dist/plugins" ]; then
-            echo "插件目录内容："
-            ls -la dist/plugins/
-          fi
-
       # ---------- 计算版本号 ----------
       - name: 生成版本号
         id: version
@@ -60,6 +50,36 @@ jobs:
           echo "version=$NEW_VERSION" >> $GITHUB_OUTPUT
           echo "本次版本：$NEW_VERSION"
 
+      # ---------- 检查并压缩构建产物 ----------
+      - name: 检查并压缩发布包
+        run: |
+          echo "=== 检查构建结果 ==="
+          ls -la dist/
+          if [ -d "dist/plugins" ]; then
+            echo "=== 插件目录内容 ==="
+            ls -la dist/plugins/
+          fi
+          
+          echo "=== 开始压缩 ==="
+          cd dist
+          tar -czf ../ha-cardforge-card-${{ steps.version.outputs.version }}.tar.gz ./*
+          cd ..
+          echo "=== 压缩完成 ==="
+          ls -la *.tar.gz
+
+      # ---------- 生成发布说明 ----------
+      - name: 生成发布说明
+        run: |
+          sed \
+            -e "s/{{ REPOSITORY }}/${{ github.repository }}/g" \
+            -e "s/{{ TAG_NAME }}/${{ steps.version.outputs.version }}/g" \
+            -e "s/{{ SHA }}/${{ github.sha }}/g" \
+            -e "s/{{ BUILD_TIME }}/$(date -u +"%Y-%m-%d %H:%M:%S UTC")/g" \
+            -e "s/{{ CHANGELOG }}/- 基于提交 ${{ github.sha }} 自动构建/g" \
+            .github/release.md > release-body.md
+          echo "生成的发布说明："
+          cat release-body.md
+
       # ---------- 可选：删除同名 release ----------
       - name: 若已存在则删除旧版 Release
         continue-on-error: true
@@ -71,22 +91,16 @@ jobs:
       - name: 创建 Release
         uses: ncipollo/release-action@v1.14.0
         with:
-          artifacts: "dist/**/*"  # 发布 dist 下的所有文件
+          artifacts: "ha-cardforge-card-${{ steps.version.outputs.version }}.tar.gz"
           token: ${{ secrets.GITHUB_TOKEN }}
           tag: ${{ steps.version.outputs.version }}
           name: ${{ steps.version.outputs.version }}
-          body: |
-            ## 安装方式
-            在 HACS → **前端** → **自定义仓库** 中添加  
-            `https://github.com/${{ github.repository }}`
-
-            ## 文件说明
-            - `ha-cardforge-card.js`: 主卡片文件
-            - `plugins/`: 插件目录
-
-            ## 更新日志
-            - 版本: ${{ steps.version.outputs.version }}
-            - 基于提交: ${{ github.sha }}
-            - 构建时间: $(date -u +"%Y-%m-%d %H:%M:%S UTC")
+          bodyFile: "release-body.md"
           makeLatest: true
-          skipIfReleaseExists: true
+          skipIfReleaseExists: false
+
+      # ---------- 清理临时文件 ----------
+      - name: 清理临时文件
+        run: |
+          rm -f ha-cardforge-card-*.tar.gz
+          rm -f release-body.md
