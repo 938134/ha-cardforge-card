@@ -2,12 +2,12 @@ import { nodeResolve } from '@rollup/plugin-node-resolve';
 import copy from 'rollup-plugin-copy';
 
 export default {
-  input: 'src/main.js',  
+  input: 'src/main.js',
   output: {
     file: 'dist/ha-cardforge-card.js',
     format: 'es',
+    inlineDynamicImports: true  // 正确的放置位置
   },
-  inlineDynamicImports: true,  // 关键：内联所有动态导入
   external: [
     /^lit/,
     /^@lit/,
