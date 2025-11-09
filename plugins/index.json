@@ -1,0 +1,57 @@
+{
+  "plugins": [
+    {
+      "id": "time-week",
+      "name": "时间星期",
+      "description": "垂直布局的时间星期显示",
+      "author": "CardForge Team",
+      "version": "1.0.0",
+      "icon": "⏰",
+      "category": "time",
+      "mainClass": "TimeWeekPlugin",
+      "requiresWeek": true,
+      "featured": true
+    },
+    {
+      "id": "time-card",
+      "name": "时间卡片", 
+      "description": "水平布局的时间日期卡片",
+      "author": "CardForge Team",
+      "version": "1.0.0",
+      "icon": "🕒",
+      "category": "time",
+      "mainClass": "TimeCardPlugin",
+      "requiresWeek": true
+    },
+    {
+      "id": "weather",
+      "name": "天气卡片",
+      "description": "简洁的天气信息显示",
+      "author": "CardForge Team", 
+      "version": "1.0.0",
+      "icon": "🌤️",
+      "category": "weather",
+      "mainClass": "WeatherPlugin"
+    },
+    {
+      "id": "clock-lunar",
+      "name": "时钟农历",
+      "description": "模拟时钟和农历信息",
+      "author": "CardForge Team",
+      "version": "1.0.0", 
+      "icon": "🌙",
+      "category": "time",
+      "mainClass": "ClockLunarPlugin"
+    },
+    {
+      "id": "welcome",
+      "name": "欢迎卡片",
+      "description": "个性化欢迎信息",
+      "author": "CardForge Team",
+      "version": "1.0.0",
+      "icon": "👋", 
+      "category": "info",
+      "mainClass": "WelcomePlugin"
+    }
+  ]
+}
