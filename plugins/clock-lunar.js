@@ -1,5 +1,5 @@
-// ha-cardforge-card/plugins/clock-lunar.js
-export default class ClockLunarPlugin {
+// plugins/clock-lunar.js
+class ClockLunarPlugin {
   constructor() {
     this.name = 'clock-lunar';
     this.displayName = '时钟农历';
@@ -49,10 +49,12 @@ export default class ClockLunarPlugin {
     const secondAngle = seconds * 6;
 
     return `
-      <svg class="clock" viewBox="0 0 100 100">
+      <svg class="clock" viewBox="0 0 100 100" width="100" height="100">
+        <!-- 表盘 -->
         <circle cx="50" cy="50" r="45" fill="var(--card-background-color)" 
                 stroke="var(--primary-text-color)" stroke-width="2"/>
         
+        <!-- 时刻度 -->
         ${Array.from({length: 12}, (_, i) => {
           const angle = i * 30;
           const rad = angle * Math.PI / 180;
@@ -64,21 +66,25 @@ export default class ClockLunarPlugin {
                        stroke="var(--primary-text-color)" stroke-width="2"/>`;
         }).join('')}
         
+        <!-- 时针 -->
         <line class="hour-hand" x1="50" y1="50" 
               x2="${50 + 20 * Math.sin(hourAngle * Math.PI / 180)}" 
               y2="${50 - 20 * Math.cos(hourAngle * Math.PI / 180)}" 
               stroke="var(--primary-color)" stroke-width="3" stroke-linecap="round"/>
         
+        <!-- 分针 -->
         <line class="minute-hand" x1="50" y1="50" 
               x2="${50 + 30 * Math.sin(minuteAngle * Math.PI / 180)}" 
               y2="${50 - 30 * Math.cos(minuteAngle * Math.PI / 180)}" 
               stroke="var(--primary-color)" stroke-width="2" stroke-linecap="round"/>
         
+        <!-- 秒针 -->
         <line class="second-hand" x1="50" y1="50" 
               x2="${50 + 35 * Math.sin(secondAngle * Math.PI / 180)}" 
               y2="${50 - 35 * Math.cos(secondAngle * Math.PI / 180)}" 
               stroke="var(--accent-color)" stroke-width="1" stroke-linecap="round"/>
         
+        <!-- 中心点 -->
         <circle cx="50" cy="50" r="3" fill="var(--primary-color)"/>
       </svg>
     `;
@@ -166,5 +172,17 @@ export default class ClockLunarPlugin {
         }
       }
     `;
+  }
+
+  getEntityRequirements() {
+    return {
+      required: [
+        { key: 'time', type: 'sensor', description: '时间实体' },
+        { key: 'date', type: 'sensor', description: '日期实体' }
+      ],
+      optional: [
+        { key: 'lunar', type: 'sensor', description: '农历实体' }
+      ]
+    };
   }
 }

@@ -10,12 +10,15 @@ class HaCardForgeEditor extends LitElement {
     _categories: { state: true },
     _searchQuery: { state: true },
     _selectedCategory: { state: true },
-    _loading: { state: true }
+    _loading: { state: true },
+    _activeTab: { state: true },
+    _selectedPlugin: { state: true }
   };
 
   static styles = css`
     .editor {
       padding: 16px;
+      max-width: 800px;
     }
     
     .config-section {
@@ -139,7 +142,12 @@ class HaCardForgeEditor extends LitElement {
     }
     
     .tab-content {
+      display: none;
       padding: 16px 0;
+    }
+    
+    .tab-content.active {
+      display: block;
     }
     
     .theme-previews {
@@ -176,7 +184,7 @@ class HaCardForgeEditor extends LitElement {
       color: var(--secondary-text-color);
     }
 
-    /* 修复标签页样式 */
+    /* 标签页样式 */
     .tabs {
       display: flex;
       border-bottom: 1px solid var(--divider-color);
@@ -189,6 +197,9 @@ class HaCardForgeEditor extends LitElement {
       border-bottom: 2px solid transparent;
       font-weight: 500;
       color: var(--secondary-text-color);
+      display: flex;
+      align-items: center;
+      gap: 8px;
     }
     
     .tab.active {
@@ -200,12 +211,47 @@ class HaCardForgeEditor extends LitElement {
       background: var(--secondary-background-color);
     }
 
-    .tab-content {
-      display: none;
+    .current-selection {
+      background: var(--info-color, #0288d1);
+      color: white;
+      padding: 8px 12px;
+      border-radius: 4px;
+      font-size: 0.9em;
+      margin-bottom: 16px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
     }
-    
-    .tab-content.active {
-      display: block;
+
+    .entity-requirements {
+      background: var(--secondary-background-color);
+      padding: 12px;
+      border-radius: 8px;
+      margin-bottom: 16px;
+      font-size: 0.9em;
+    }
+
+    .requirement-item {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 4px;
+    }
+
+    .requirement-badge {
+      background: var(--primary-color);
+      color: white;
+      border-radius: 4px;
+      padding: 2px 6px;
+      font-size: 0.7em;
+    }
+
+    .optional-badge {
+      background: var(--secondary-text-color);
+      color: white;
+      border-radius: 4px;
+      padding: 2px 6px;
+      font-size: 0.7em;
     }
   `;
 
@@ -217,12 +263,17 @@ class HaCardForgeEditor extends LitElement {
     this._searchQuery = '';
     this._selectedCategory = 'all';
     this._loading = false;
-    this._activeTab = 'marketplace'; // 改为字符串标识
+    this._activeTab = 'marketplace';
+    this._selectedPlugin = null;
     this._pluginManager = new PluginManager();
   }
 
   async firstUpdated() {
     await this._loadPlugins();
+    // 如果有配置，设置选中的插件
+    if (this.config.plugin) {
+      this._selectedPlugin = this._plugins.find(p => p.id === this.config.plugin);
+    }
   }
 
   setConfig(config) {
@@ -232,6 +283,10 @@ class HaCardForgeEditor extends LitElement {
       entities: {},
       ...config 
     };
+    // 更新选中的插件信息
+    if (this.config.plugin && this._plugins.length > 0) {
+      this._selectedPlugin = this._plugins.find(p => p.id === this.config.plugin);
+    }
   }
 
   async _loadPlugins() {
@@ -239,6 +294,7 @@ class HaCardForgeEditor extends LitElement {
     try {
       this._plugins = await this._pluginManager.getAvailablePlugins();
       this._categories = await this._pluginManager.getCategories();
+      console.log(`✅ 加载了 ${this._plugins.length} 个插件`);
     } catch (error) {
       console.error('加载插件失败:', error);
       this._plugins = [];
@@ -258,7 +314,8 @@ class HaCardForgeEditor extends LitElement {
             插件市场
           </div>
           <div class="tab ${this._activeTab === 'entities' ? 'active' : ''}" 
-               @click=${() => this._switchTab('entities')}>
+               @click=${() => this._switchTab('entities')}
+               .disabled=${!this.config.plugin}>
             <ha-icon icon="mdi:cog"></ha-icon>
             实体配置
           </div>
@@ -268,6 +325,14 @@ class HaCardForgeEditor extends LitElement {
             主题设置
           </div>
         </div>
+
+        <!-- 当前选择显示 -->
+        ${this.config.plugin ? html`
+          <div class="current-selection">
+            <ha-icon icon="mdi:check-circle"></ha-icon>
+            已选择: ${this._selectedPlugin?.name || this.config.plugin}
+          </div>
+        ` : ''}
 
         <!-- 插件市场 -->
         <div class="tab-content ${this._activeTab === 'marketplace' ? 'active' : ''}">
@@ -373,12 +438,23 @@ class HaCardForgeEditor extends LitElement {
       `;
     }
 
+    // 获取插件信息
+    const pluginInfo = this._selectedPlugin;
+
     return html`
       <div class="config-section">
         <div class="section-title">
           <ha-icon icon="mdi:cog"></ha-icon>
           <span>实体配置</span>
         </div>
+
+        <!-- 实体需求说明 -->
+        ${pluginInfo ? html`
+          <div class="entity-requirements">
+            <div style="font-weight: bold; margin-bottom: 8px;">实体需求:</div>
+            ${this._renderEntityRequirements(pluginInfo)}
+          </div>
+        ` : ''}
         
         <div class="form-group">
           ${this._renderEntityConfig()}
@@ -387,12 +463,75 @@ class HaCardForgeEditor extends LitElement {
     `;
   }
 
+  _renderEntityRequirements(pluginInfo) {
+    // 这里可以调用插件管理器获取详细的实体需求
+    const requirements = this._getPluginRequirements(pluginInfo);
+    
+    return html`
+      ${requirements.required.length > 0 ? html`
+        <div style="margin-bottom: 8px;">
+          <div style="font-size: 0.8em; margin-bottom: 4px;">必需实体:</div>
+          ${requirements.required.map(req => html`
+            <div class="requirement-item">
+              <span class="requirement-badge">必需</span>
+              <span>${req.description} (${req.type})</span>
+            </div>
+          `)}
+        </div>
+      ` : ''}
+      
+      ${requirements.optional.length > 0 ? html`
+        <div>
+          <div style="font-size: 0.8em; margin-bottom: 4px;">可选实体:</div>
+          ${requirements.optional.map(req => html`
+            <div class="requirement-item">
+              <span class="optional-badge">可选</span>
+              <span>${req.description} (${req.type})</span>
+            </div>
+          `)}
+        </div>
+      ` : ''}
+    `;
+  }
+
+  _getPluginRequirements(pluginInfo) {
+    // 根据插件类型返回实体需求
+    const requirements = {
+      required: [],
+      optional: []
+    };
+
+    if (pluginInfo.requiresWeek || pluginInfo.category === 'time') {
+      requirements.required.push(
+        { key: 'time', type: 'sensor', description: '时间实体' },
+        { key: 'date', type: 'sensor', description: '日期实体' }
+      );
+      requirements.optional.push(
+        { key: 'week', type: 'sensor', description: '星期实体' }
+      );
+    }
+
+    if (pluginInfo.category === 'weather') {
+      requirements.required.push(
+        { key: 'weather', type: 'weather', description: '天气实体' }
+      );
+    }
+
+    if (pluginInfo.id === 'clock-lunar') {
+      requirements.optional.push(
+        { key: 'lunar', type: 'sensor', description: '农历实体' }
+      );
+    }
+
+    return requirements;
+  }
+
   _renderEntityConfig() {
     const entities = this.config.entities || {};
-    const pluginInfo = this._plugins.find(p => p.id === this.config.plugin);
+    const pluginInfo = this._selectedPlugin;
 
     return html`
-      ${pluginInfo?.requiresWeek ? html`
+      ${pluginInfo?.requiresWeek || pluginInfo?.category === 'time' ? html`
         <div class="entity-row">
           <div class="entity-label">时间实体</div>
           <ha-entity-picker
@@ -548,6 +687,7 @@ class HaCardForgeEditor extends LitElement {
       plugin: plugin.id,
       entities: this._getDefaultEntities(plugin)
     };
+    this._selectedPlugin = plugin;
     // 自动切换到实体配置标签页
     this._activeTab = 'entities';
     this._fireChanged();

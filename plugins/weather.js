@@ -1,5 +1,5 @@
-// ha-cardforge-card/plugins/weather.js
-export default class WeatherPlugin {
+// plugins/weather.js
+class WeatherPlugin {
   constructor() {
     this.name = 'weather';
     this.displayName = '天气卡片';
@@ -32,9 +32,10 @@ export default class WeatherPlugin {
       'rainy': '🌧️',
       'snowy': '❄️',
       'windy': '💨',
-      'fog': '🌫️'
+      'fog': '🌫️',
+      'hazy': '🌫️'
     };
-    return icons[condition] || '🌤️';
+    return icons[condition?.toLowerCase()] || '🌤️';
   }
 
   getStyles(config) {
@@ -67,5 +68,14 @@ export default class WeatherPlugin {
         opacity: 0.7;
       }
     `;
+  }
+
+  getEntityRequirements() {
+    return {
+      required: [
+        { key: 'weather', type: 'weather', description: '天气实体' }
+      ],
+      optional: []
+    };
   }
 }

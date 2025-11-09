@@ -1,10 +1,11 @@
-// ha-cardforge-card/plugins/time-week.js
-export default class TimeWeekPlugin {
+// plugins/time-week.js
+class TimeWeekPlugin {
   constructor() {
     this.name = 'time-week';
     this.displayName = '时间星期';
     this.icon = '⏰';
     this.category = 'time';
+    this.requiresWeek = true;
   }
 
   getTemplate(config, entities) {
@@ -14,6 +15,7 @@ export default class TimeWeekPlugin {
     const [hour, minute] = time.split(':');
     const [, month, day] = date.split('-');
 
+    // 返回纯 HTML 字符串
     return `
       <div class="cardforge-card time-week">
         <div class="hour">${hour}</div>
@@ -55,5 +57,17 @@ export default class TimeWeekPlugin {
         font-size: 0.9em;
       }
     `;
+  }
+
+  getEntityRequirements() {
+    return {
+      required: [
+        { key: 'time', type: 'sensor', description: '时间实体' },
+        { key: 'date', type: 'sensor', description: '日期实体' }
+      ],
+      optional: [
+        { key: 'week', type: 'sensor', description: '星期实体' }
+      ]
+    };
   }
 }

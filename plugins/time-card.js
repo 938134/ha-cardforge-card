@@ -1,10 +1,11 @@
-// ha-cardforge-card/plugins/time-card.js
-export default class TimeCardPlugin {
+// plugins/time-card.js
+class TimeCardPlugin {
   constructor() {
     this.name = 'time-card';
     this.displayName = '时间卡片';
     this.icon = '🕒';
     this.category = 'time';
+    this.requiresWeek = true;
   }
 
   getTemplate(config, entities) {
@@ -72,5 +73,17 @@ export default class TimeCardPlugin {
         opacity: 0.7;
       }
     `;
+  }
+
+  getEntityRequirements() {
+    return {
+      required: [
+        { key: 'time', type: 'sensor', description: '时间实体' },
+        { key: 'date', type: 'sensor', description: '日期实体' }
+      ],
+      optional: [
+        { key: 'week', type: 'sensor', description: '星期实体' }
+      ]
+    };
   }
 }

@@ -1,5 +1,5 @@
-// ha-cardforge-card/plugins/welcome.js
-export default class WelcomePlugin {
+// plugins/welcome.js
+class WelcomePlugin {
   constructor() {
     this.name = 'welcome';
     this.displayName = '欢迎卡片';
@@ -29,6 +29,7 @@ export default class WelcomePlugin {
   }
 
   _getUserName() {
+    // 在实际使用中可以从 hass.user 获取
     return '家人';
   }
 
@@ -139,6 +140,7 @@ export default class WelcomePlugin {
         right: 40px;
       }
       
+      /* 动画效果 */
       .welcome:hover .circle-1 {
         animation: float 3s ease-in-out infinite;
       }
@@ -160,6 +162,7 @@ export default class WelcomePlugin {
         }
       }
       
+      /* 响应式设计 */
       @media (max-width: 480px) {
         .welcome {
           height: 120px;
@@ -178,15 +181,24 @@ export default class WelcomePlugin {
         }
       }
       
+      /* 深色主题适配 */
       .cardforge-card[data-theme="dark"] .welcome {
         background: linear-gradient(135deg, #bb86fc, #03dac6);
       }
       
+      /* 材质主题适配 */
       .cardforge-card[data-theme="material"] .welcome {
         background: linear-gradient(135deg, #6200ee, #03dac6);
         border-radius: 8px;
         box-shadow: 0 4px 12px rgba(0,0,0,0.15);
       }
     `;
+  }
+
+  getEntityRequirements() {
+    return {
+      required: [],
+      optional: []
+    };
   }
 }

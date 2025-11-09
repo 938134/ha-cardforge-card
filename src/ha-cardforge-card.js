@@ -41,7 +41,7 @@ class HaCardForgeCard extends ButtonCard {
       this._error = `插件加载失败: ${error.message}`;
       console.error('卡片配置错误:', error);
       
-      this._plugin = new FallbackPlugin(this._config.plugin);
+      this._plugin = new FallbackPlugin(this._config.plugin, error.message);
       const buttonConfig = this._convertToButtonCard(this._config, this._plugin);
       super.setConfig(buttonConfig);
     }
@@ -84,12 +84,98 @@ class HaCardForgeCard extends ButtonCard {
   _convertToButtonCard(config, plugin) {
     const entities = Object.fromEntries(this._entities);
     
-    return {
+    // 预览模式使用模拟数据
+    if (config._preview) {
+      entities.time = entities.time || { state: '12:34', attributes: {} };
+      entities.date = entities.date || { state: '2024-01-01', attributes: {} };
+      entities.week = entities.week || { state: '星期一', attributes: {} };
+      entities.weather = entities.weather || { 
+        state: '晴朗', 
+        attributes: { temperature: 25, humidity: 65 } 
+      };
+      entities.lunar = entities.lunar || { 
+        state: '冬月廿三', 
+        attributes: { lunar: { 年干支: '甲辰', 星期: '星期一' } } 
+      };
+    }
+
+    // 获取插件生成的 HTML 和 CSS
+    const template = plugin.getTemplate(config, entities);
+    const styles = plugin.getStyles(config) + this._getThemeStyles(config.theme);
+    
+    // 创建 button-card 兼容的配置
+    const buttonConfig = {
       type: 'custom:button-card',
-      template: plugin.getTemplate(config, entities),
-      styles: plugin.getStyles(config) + this._getThemeStyles(config.theme),
-      ...this._applyTheme(config)
+      template: [
+        {
+          type: 'custom:template',
+          entity: Object.keys(entities)[0] || 'sensor.time', // 需要一个实体引用
+          content: template
+        }
+      ],
+      styles: {
+        // 将 CSS 转换为 button-card 的样式格式
+        card: [
+          {
+            // 基础样式
+            'border-radius': 'var(--ha-card-border-radius, 12px)',
+            'box-shadow': 'var(--ha-card-box-shadow, none)',
+            'overflow': 'hidden'
+          }
+        ],
+        ...this._convertStylesToButtonCardFormat(styles)
+      },
+      ...this._applyTheme(config),
+      // 添加自定义属性以便在模板中使用
+      custom_fields: {
+        cardforge_template: template,
+        cardforge_styles: styles
+      }
     };
+
+    return buttonConfig;
+  }
+
+  _convertStylesToButtonCardFormat(css) {
+    // 简单的 CSS 解析，将 CSS 转换为 button-card 样式格式
+    const styles = {};
+    const rules = css.split('}');
+    
+    rules.forEach(rule => {
+      const parts = rule.split('{');
+      if (parts.length === 2) {
+        const selector = parts[0].trim();
+        const properties = parts[1].trim();
+        
+        if (selector === '.cardforge-card' || selector.includes('cardforge-card')) {
+          styles.card = this._parseCSSProperties(properties);
+        } else if (selector.includes('.time-week') || selector.includes('.time-card') || 
+                   selector.includes('.weather') || selector.includes('.clock-lunar') || 
+                   selector.includes('.welcome')) {
+          // 插件特定样式
+          if (!styles.custom) styles.custom = {};
+          styles.custom[selector.replace('.', '')] = this._parseCSSProperties(properties);
+        }
+      }
+    });
+    
+    return styles;
+  }
+
+  _parseCSSProperties(cssProperties) {
+    const properties = {};
+    const declarations = cssProperties.split(';');
+    
+    declarations.forEach(decl => {
+      const parts = decl.split(':');
+      if (parts.length === 2) {
+        const property = parts[0].trim();
+        const value = parts[1].trim();
+        properties[property] = value;
+      }
+    });
+    
+    return properties;
   }
 
   _getThemeStyles(theme) {
@@ -98,12 +184,14 @@ class HaCardForgeCard extends ButtonCard {
         .cardforge-card { 
           background: var(--card-background-color); 
           color: var(--primary-text-color);
+          border-radius: var(--ha-card-border-radius, 12px);
         }
       `,
       'dark': `
         .cardforge-card { 
           background: #1e1e1e; 
           color: white;
+          border-radius: 12px;
         }
       `,
       'material': `
@@ -113,6 +201,14 @@ class HaCardForgeCard extends ButtonCard {
           border-radius: 8px;
           box-shadow: 0 3px 6px rgba(0,0,0,0.16);
         }
+      `,
+      'glass': `
+        .cardforge-card { 
+          background: rgba(255, 255, 255, 0.1); 
+          color: white;
+          border-radius: 16px;
+          backdrop-filter: blur(10px);
+        }
       `
     };
     return themes[theme] || themes.default;
@@ -120,8 +216,25 @@ class HaCardForgeCard extends ButtonCard {
 
   _applyTheme(config) {
     const themeConfigs = {
-      'dark': { style: 'background: #1e1e1e; color: white;' },
-      'material': { style: 'background: #fafafa; color: #212121;' }
+      'dark': { 
+        style: {
+          'background': '#1e1e1e',
+          'color': 'white'
+        }
+      },
+      'material': { 
+        style: {
+          'background': '#fafafa',
+          'color': '#212121'
+        }
+      },
+      'glass': {
+        style: {
+          'background': 'rgba(255, 255, 255, 0.1)',
+          'color': 'white',
+          'backdrop-filter': 'blur(10px)'
+        }
+      }
     };
     return themeConfigs[config.theme] || {};
   }
@@ -135,15 +248,33 @@ class HaCardForgeCard extends ButtonCard {
     }
   }
 
+  // 重写 render 方法以处理错误显示
   render() {
     if (this._error) {
-      return html`
-        <div class="cardforge-error">
-          <ha-icon icon="mdi:alert-circle"></ha-icon>
-          <div>${this._error}</div>
-        </div>
+      // 创建简单的错误显示，不依赖 button-card 模板
+      const errorElement = document.createElement('div');
+      errorElement.className = 'cardforge-error';
+      errorElement.innerHTML = `
+        <style>
+          .cardforge-error {
+            padding: 16px;
+            background: var(--error-color, #db4437);
+            color: white;
+            border-radius: 8px;
+            text-align: center;
+            margin: 8px;
+          }
+          .cardforge-error ha-icon {
+            --mdc-icon-size: 24px;
+            margin-right: 8px;
+          }
+        </style>
+        <ha-icon icon="mdi:alert-circle"></ha-icon>
+        <span>${this._error}</span>
       `;
+      return errorElement;
     }
+    
     return super.render();
   }
 
