@@ -13,24 +13,35 @@ class HaCardForgeCard extends ButtonCard {
   constructor() {
     super();
     this._pluginCache = new Map();
-    this._config = {}; // 初始化配置
+    this._config = {};
   }
 
   async setConfig(config) {
+    console.log('🔧 setConfig 被调用:', config);
+    
+    if (!config) {
+      console.error('❌ config 为 undefined');
+      return;
+    }
+    
     this._config = this._validateConfig(config);
     
     try {
       const plugin = await this._loadPlugin(this._config.plugin);
+      console.log('✅ 插件加载成功:', this._config.plugin);
+      
       const buttonConfig = this._convertToButtonCard(plugin);
+      console.log('🔧 转换后的 button-card 配置:', buttonConfig);
+      
       super.setConfig(buttonConfig);
+      console.log('✅ button-card 配置设置成功');
     } catch (error) {
-      console.error('加载插件失败:', error);
+      console.error('❌ 加载插件失败:', error);
       super.setConfig(this._getErrorConfig(error));
     }
   }
 
   _validateConfig(config) {
-    // 确保 config 存在且有 plugin 属性
     if (!config || !config.plugin) {
       throw new Error('必须指定 plugin 参数');
     }
@@ -71,6 +82,9 @@ class HaCardForgeCard extends ButtonCard {
     const template = plugin.getTemplate(this._config, this.hass, entities);
     const styles = plugin.getStyles(this._config);
     
+    console.log('📝 插件模板:', template);
+    console.log('🎨 插件样式:', styles);
+    
     return {
       type: 'custom:button-card',
       section_mode: true,
@@ -81,6 +95,7 @@ class HaCardForgeCard extends ButtonCard {
         custom_fields: {
           card: [
             `ha-card { background: transparent; border: none; box-shadow: none; }`,
+            `:host { display: block; }`,
             styles
           ].join(' ')
         }
@@ -103,22 +118,26 @@ class HaCardForgeCard extends ButtonCard {
   }
 
   _getErrorConfig(error) {
+    const errorHtml = `
+      <div style="padding: 20px; text-align: center; color: var(--error-color); border: 2px solid red;">
+        <div style="font-size: 2em;">❌</div>
+        <div style="font-weight: bold;">卡片加载失败</div>
+        <div style="font-size: 0.9em;">${error.message}</div>
+        <div style="font-size: 0.8em; margin-top: 10px;">调试信息</div>
+      </div>
+    `;
+    
     return {
       type: 'custom:button-card',
       section_mode: true,
       custom_fields: {
-        card: `
-          <div style="padding: 20px; text-align: center; color: var(--error-color);">
-            <div style="font-size: 2em;">❌</div>
-            <div style="font-weight: bold;">卡片加载失败</div>
-            <div style="font-size: 0.9em;">${error.message}</div>
-          </div>
-        `
+        card: errorHtml
       },
       styles: {
         custom_fields: {
           card: `
             ha-card { background: transparent; border: none; box-shadow: none; }
+            :host { display: block; }
             .card { 
               padding: 20px; 
               text-align: center; 
@@ -133,7 +152,7 @@ class HaCardForgeCard extends ButtonCard {
 
   updated(changedProperties) {
     if (changedProperties.has('hass') && this._config && this._config.plugin) {
-      // 只有在有有效配置时才重新设置
+      console.log('🔄 Hass 更新，重新配置');
       this.setConfig(this._config);
     }
   }
