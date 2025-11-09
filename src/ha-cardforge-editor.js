@@ -1,97 +1,6 @@
 // ha-cardforge-card/src/ha-cardforge-editor.js
 import { LitElement, html, css } from 'https://unpkg.com/lit@2.8.0/index.js?module';
-
-// 内联 PluginManager 定义（与主卡片相同）
-class EditorPluginManager {
-  constructor() {
-    this._baseURL = this._getBaseURL();
-    this._cache = new Map();
-    this._pluginRegistry = null;
-  }
-
-  _getBaseURL() {
-    const currentScript = document.currentScript || 
-      Array.from(document.querySelectorAll('script')).find(s => 
-        s.src && s.src.includes('ha-cardforge-card.js')
-      );
-    
-    if (currentScript) {
-      const url = new URL(currentScript.src);
-      return url.origin + url.pathname.replace(/\/[^/]*$/, '/');
-    }
-    
-    return '/local/ha-cardforge-card/';
-  }
-
-  async _loadPluginRegistry() {
-    if (this._pluginRegistry) {
-      return this._pluginRegistry;
-    }
-
-    try {
-      const response = await fetch(`${this._baseURL}plugins/index.json`);
-      if (!response.ok) {
-        throw new Error(`获取插件注册表失败: ${response.status}`);
-      }
-      
-      this._pluginRegistry = await response.json();
-      return this._pluginRegistry;
-    } catch (error) {
-      console.error('加载插件注册表失败:', error);
-      this._pluginRegistry = { plugins: [] };
-      return this._pluginRegistry;
-    }
-  }
-
-  async getAvailablePlugins() {
-    try {
-      const registry = await this._loadPluginRegistry();
-      return registry.plugins || [];
-    } catch (error) {
-      console.error('获取可用插件失败:', error);
-      return [];
-    }
-  }
-
-  async getCategories() {
-    try {
-      const plugins = await this.getAvailablePlugins();
-      const categories = new Set(['all']);
-      plugins.forEach(plugin => {
-        if (plugin.category) {
-          categories.add(plugin.category);
-        }
-      });
-      return Array.from(categories);
-    } catch (error) {
-      console.error('获取分类失败:', error);
-      return ['all'];
-    }
-  }
-
-  async searchPlugins(query = '', category = 'all') {
-    try {
-      const plugins = await this.getAvailablePlugins();
-      
-      return plugins.filter(plugin => {
-        const matchesCategory = category === 'all' || plugin.category === category;
-        if (!matchesCategory) return false;
-        
-        if (!query) return true;
-        
-        const searchTerm = query.toLowerCase();
-        return (
-          plugin.name.toLowerCase().includes(searchTerm) ||
-          plugin.description.toLowerCase().includes(searchTerm) ||
-          plugin.id.toLowerCase().includes(searchTerm)
-        );
-      });
-    } catch (error) {
-      console.error('搜索插件失败:', error);
-      return [];
-    }
-  }
-}
+import { PluginManager } from './components/plugins.js';
 
 class HaCardForgeEditor extends LitElement {
   static properties = {
@@ -265,6 +174,28 @@ class HaCardForgeEditor extends LitElement {
       border-top: 1px solid var(--divider-color);
       padding-top: 16px;
     }
+
+    .tabs {
+      display: flex;
+      border-bottom: 1px solid var(--divider-color);
+      margin-bottom: 20px;
+    }
+    
+    .tab {
+      padding: 12px 24px;
+      cursor: pointer;
+      border-bottom: 2px solid transparent;
+      font-weight: 500;
+    }
+    
+    .tab.active {
+      border-bottom-color: var(--primary-color);
+      color: var(--primary-color);
+    }
+    
+    .tab:hover {
+      background: var(--secondary-background-color);
+    }
   `;
 
   constructor() {
@@ -277,7 +208,7 @@ class HaCardForgeEditor extends LitElement {
     this._loading = false;
     this._activeTab = 0;
     this._previewConfig = null;
-    this._pluginManager = new EditorPluginManager();
+    this._pluginManager = new PluginManager();
   }
 
   async firstUpdated() {
@@ -311,6 +242,18 @@ class HaCardForgeEditor extends LitElement {
   render() {
     return html`
       <div class="editor">
+        <div class="tabs">
+          <div class="tab ${this._activeTab === 0 ? 'active' : ''}" @click=${() => this._activeTab = 0}>
+            插件市场
+          </div>
+          <div class="tab ${this._activeTab === 1 ? 'active' : ''}" @click=${() => this._activeTab = 1}>
+            实体配置
+          </div>
+          <div class="tab ${this._activeTab === 2 ? 'active' : ''}" @click=${() => this._activeTab = 2}>
+            主题设置
+          </div>
+        </div>
+
         <div class="editor-content">
           <div>
             ${this._renderActiveTab()}
@@ -536,15 +479,12 @@ class HaCardForgeEditor extends LitElement {
       `;
     }
 
+    // 修复预览：创建真实的卡片元素
     return html`
-      <ha-card style="width: 100%;">
-        <div class="card-content">
-          <ha-cardforge-card
-            .hass=${this.hass}
-            .config=${this._previewConfig}
-          ></ha-cardforge-card>
-        </div>
-      </ha-card>
+      <ha-cardforge-card
+        .hass=${this.hass}
+        .config=${this._previewConfig}
+      ></ha-cardforge-card>
     `;
   }
 

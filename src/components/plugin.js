@@ -1,4 +1,4 @@
-// ha-cardforge-card/components/plugin.js
+// ha-cardforge-card/src/components/plugins.js
 class PluginManager {
   constructor() {
     this._baseURL = this._getBaseURL();
@@ -7,19 +7,7 @@ class PluginManager {
   }
 
   _getBaseURL() {
-    // 获取当前卡片文件的基准URL
-    const currentScript = document.currentScript || 
-      Array.from(document.querySelectorAll('script')).find(s => 
-        s.src && s.src.includes('ha-cardforge-card.js')
-      );
-    
-    if (currentScript) {
-      const url = new URL(currentScript.src);
-      return url.origin + url.pathname.replace(/\/[^/]*$/, '/');
-    }
-    
-    // 回退方案
-    return '/local/ha-cardforge-card/';
+    return 'https://raw.githubusercontent.com/938134/ha-cardforge-card/main/';
   }
 
   async _loadPluginRegistry() {
@@ -28,13 +16,16 @@ class PluginManager {
     }
 
     try {
-      const response = await fetch(`${this._baseURL}plugins/index.json`);
+      const registryURL = `${this._baseURL}plugins/index.json`;
+      console.log(`📥 加载插件注册表: ${registryURL}`);
+      
+      const response = await fetch(registryURL);
       if (!response.ok) {
         throw new Error(`获取插件注册表失败: ${response.status}`);
       }
       
       this._pluginRegistry = await response.json();
-      console.log(`✅ 加载插件注册表，共 ${this._pluginRegistry.plugins?.length || 0} 个插件`);
+      console.log(`✅ 加载插件注册表成功，共 ${this._pluginRegistry.plugins?.length || 0} 个插件`);
       return this._pluginRegistry;
     } catch (error) {
       console.error('❌ 加载插件注册表失败:', error);
@@ -49,7 +40,6 @@ class PluginManager {
     }
 
     try {
-      // 首先加载插件注册表
       const registry = await this._loadPluginRegistry();
       const pluginInfo = registry.plugins?.find(p => p.id === pluginId);
       
@@ -57,7 +47,6 @@ class PluginManager {
         throw new Error(`插件未在注册表中找到: ${pluginId}`);
       }
 
-      // 根据注册表信息加载插件
       const pluginURL = `${this._baseURL}plugins/${pluginId}.js`;
       console.log(`📥 加载插件: ${pluginURL}`);
       
@@ -80,7 +69,6 @@ class PluginManager {
 
   async _createPluginInstance(pluginInfo, pluginCode) {
     try {
-      // 使用动态import来安全加载
       const blob = new Blob([pluginCode], { type: 'application/javascript' });
       const blobURL = URL.createObjectURL(blob);
       
@@ -90,10 +78,7 @@ class PluginManager {
       if (module.default) {
         const pluginInstance = new module.default();
         
-        // 验证插件接口
         this._validatePluginInterface(pluginInstance, pluginInfo);
-        
-        // 注入插件信息
         pluginInstance.pluginInfo = pluginInfo;
         
         return pluginInstance;
@@ -114,14 +99,6 @@ class PluginManager {
     
     if (missingMethods.length > 0) {
       throw new Error(`插件接口不完整，缺少方法: ${missingMethods.join(', ')}`);
-    }
-    
-    // 验证类名是否匹配
-    const expectedClass = pluginInfo.mainClass;
-    const actualClass = pluginInstance.constructor.name;
-    
-    if (expectedClass && expectedClass !== actualClass) {
-      console.warn(`⚠️ 插件类名不匹配: 期望 ${expectedClass}, 实际 ${actualClass}`);
     }
   }
 
@@ -166,11 +143,9 @@ class PluginManager {
       const plugins = await this.getAvailablePlugins();
       
       return plugins.filter(plugin => {
-        // 分类过滤
         const matchesCategory = category === 'all' || plugin.category === category;
         if (!matchesCategory) return false;
         
-        // 搜索过滤
         if (!query) return true;
         
         const searchTerm = query.toLowerCase();
@@ -186,34 +161,10 @@ class PluginManager {
     }
   }
 
-  async preloadFeaturedPlugins() {
-    try {
-      const plugins = await this.getAvailablePlugins();
-      const featured = plugins.filter(p => p.featured).slice(0, 3);
-      const promises = featured.map(p => this.loadPlugin(p.id));
-      return Promise.allSettled(promises);
-    } catch (error) {
-      console.error('预加载推荐插件失败:', error);
-      return [];
-    }
-  }
-
   clearCache() {
     this._cache.clear();
     this._pluginRegistry = null;
     console.log('🧹 插件缓存已清除');
-  }
-
-  async getStats() {
-    const plugins = await this.getAvailablePlugins();
-    const categories = await this.getCategories();
-    
-    return {
-      total: plugins.length,
-      loaded: this._cache.size,
-      categories: categories.length - 1,
-      featured: plugins.filter(p => p.featured).length
-    };
   }
 }
 
@@ -286,4 +237,4 @@ class FallbackPlugin {
   }
 }
 
-export { PluginManager };
+export { PluginManager, FallbackPlugin };
