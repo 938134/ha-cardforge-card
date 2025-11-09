@@ -1,13 +1,9 @@
 // ha-cardforge-card/src/components/plugins.js
 class PluginManager {
   constructor() {
-    this._baseURL = this._getBaseURL();
+    this._baseURL = 'https://raw.githubusercontent.com/938134/ha-cardforge-card/main/';
     this._cache = new Map();
     this._pluginRegistry = null;
-  }
-
-  _getBaseURL() {
-    return 'https://ghfast.top/https://raw.githubusercontent.com/938134/ha-cardforge-card/main/';
   }
 
   async _loadPluginRegistry() {
@@ -29,6 +25,7 @@ class PluginManager {
       return this._pluginRegistry;
     } catch (error) {
       console.error('❌ 加载插件注册表失败:', error);
+      // 返回空的插件列表作为回退
       this._pluginRegistry = { plugins: [] };
       return this._pluginRegistry;
     }
@@ -69,6 +66,7 @@ class PluginManager {
 
   async _createPluginInstance(pluginInfo, pluginCode) {
     try {
+      // 使用动态导入创建插件实例
       const blob = new Blob([pluginCode], { type: 'application/javascript' });
       const blobURL = URL.createObjectURL(blob);
       
@@ -78,6 +76,7 @@ class PluginManager {
       if (module.default) {
         const pluginInstance = new module.default();
         
+        // 验证插件接口
         this._validatePluginInterface(pluginInstance, pluginInfo);
         pluginInstance.pluginInfo = pluginInfo;
         

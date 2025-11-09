@@ -29,11 +29,6 @@ class HaCardForgeCard extends ButtonCard {
     try {
       this._plugin = await this._pluginManager.loadPlugin(this._config.plugin);
       
-      const validation = this._validateEntities();
-      if (!validation.valid) {
-        this._error = validation.errors.join(', ');
-      }
-      
       const buttonConfig = this._convertToButtonCard(this._config, this._plugin);
       super.setConfig(buttonConfig);
       
@@ -68,19 +63,6 @@ class HaCardForgeCard extends ButtonCard {
     });
   }
 
-  _validateEntities() {
-    const requirements = this._plugin?.getEntityRequirements?.() || { required: [] };
-    const errors = [];
-    
-    requirements.required.forEach(req => {
-      if (!this._config.entities?.[req.key]) {
-        errors.push(`缺少必需实体: ${req.description}`);
-      }
-    });
-    
-    return { valid: errors.length === 0, errors };
-  }
-
   _convertToButtonCard(config, plugin) {
     const entities = Object.fromEntries(this._entities);
     
@@ -103,10 +85,10 @@ class HaCardForgeCard extends ButtonCard {
     const template = plugin.getTemplate(config, entities);
     const styles = plugin.getStyles(config) + this._getThemeStyles(config.theme);
     
-    // 创建 button-card 兼容的配置 - 使用简单的 template 字符串
+    // 创建简单的 button-card 配置
     const buttonConfig = {
       type: 'custom:button-card',
-      template: template, // 直接使用 HTML 字符串
+      template: template,
       styles: this._convertStylesToButtonCardFormat(styles),
       ...this._applyTheme(config)
     };
@@ -115,67 +97,18 @@ class HaCardForgeCard extends ButtonCard {
   }
 
   _convertStylesToButtonCardFormat(css) {
-    // 将 CSS 转换为 button-card 的样式对象格式
-    const styles = {};
-    
-    // 解析 CSS 规则
-    const rules = css.split('}');
-    rules.forEach(rule => {
-      const parts = rule.split('{');
-      if (parts.length === 2) {
-        const selector = parts[0].trim();
-        const properties = parts[1].trim();
-        
-        if (selector === '.cardforge-card' || selector.includes('cardforge-card')) {
-          styles.card = this._parseCSSProperties(properties);
+    // 简化样式转换 - 只处理基础样式
+    const styles = {
+      card: [
+        {
+          'border-radius': 'var(--ha-card-border-radius, 12px)',
+          'box-shadow': 'var(--ha-card-box-shadow, none)',
+          'overflow': 'hidden'
         }
-        // 可以添加更多选择器的处理
-      }
-    });
-    
-    return styles;
-  }
-
-  _parseCSSProperties(cssProperties) {
-    const properties = {};
-    const declarations = cssProperties.split(';');
-    
-    declarations.forEach(decl => {
-      const parts = decl.split(':');
-      if (parts.length === 2) {
-        const property = parts[0].trim();
-        const value = parts[1].trim();
-        // 转换 CSS 属性名到 button-card 格式
-        const buttonCardProperty = this._convertCSSPropertyToButtonCard(property);
-        if (buttonCardProperty) {
-          properties[buttonCardProperty] = value;
-        }
-      }
-    });
-    
-    return properties;
-  }
-
-  _convertCSSPropertyToButtonCard(cssProperty) {
-    // 将 CSS 属性转换为 button-card 支持的属性
-    const mapping = {
-      'background': 'background',
-      'color': 'color',
-      'border-radius': 'border-radius',
-      'padding': 'padding',
-      'font-size': 'font-size',
-      'font-weight': 'font-weight',
-      'display': 'display',
-      'flex-direction': 'flex-direction',
-      'justify-content': 'justify-content',
-      'align-items': 'align-items',
-      'text-align': 'text-align',
-      'grid-template-columns': 'grid-template-columns',
-      'gap': 'gap',
-      'height': 'height'
+      ]
     };
     
-    return mapping[cssProperty] || null;
+    return styles;
   }
 
   _getThemeStyles(theme) {
@@ -184,14 +117,12 @@ class HaCardForgeCard extends ButtonCard {
         .cardforge-card { 
           background: var(--card-background-color); 
           color: var(--primary-text-color);
-          border-radius: var(--ha-card-border-radius, 12px);
         }
       `,
       'dark': `
         .cardforge-card { 
           background: #1e1e1e; 
           color: white;
-          border-radius: 12px;
         }
       `,
       'material': `
@@ -201,14 +132,6 @@ class HaCardForgeCard extends ButtonCard {
           border-radius: 8px;
           box-shadow: 0 3px 6px rgba(0,0,0,0.16);
         }
-      `,
-      'glass': `
-        .cardforge-card { 
-          background: rgba(255, 255, 255, 0.1); 
-          color: white;
-          border-radius: 16px;
-          backdrop-filter: blur(10px);
-        }
       `
     };
     return themes[theme] || themes.default;
@@ -217,23 +140,10 @@ class HaCardForgeCard extends ButtonCard {
   _applyTheme(config) {
     const themeConfigs = {
       'dark': { 
-        style: {
-          'background': '#1e1e1e',
-          'color': 'white'
-        }
+        style: 'background: #1e1e1e; color: white;'
       },
       'material': { 
-        style: {
-          'background': '#fafafa',
-          'color': '#212121'
-        }
-      },
-      'glass': {
-        style: {
-          'background': 'rgba(255, 255, 255, 0.1)',
-          'color': 'white',
-          'backdrop-filter': 'blur(10px)'
-        }
+        style: 'background: #fafafa; color: #212121;'
       }
     };
     return themeConfigs[config.theme] || {};
@@ -246,37 +156,6 @@ class HaCardForgeCard extends ButtonCard {
         this.setConfig(this._config);
       }
     }
-  }
-
-  // 重写 render 方法以处理错误显示
-  render() {
-    if (this._error) {
-      // 创建简单的错误显示
-      const errorElement = document.createElement('div');
-      errorElement.className = 'cardforge-error';
-      errorElement.innerHTML = `
-        <style>
-          .cardforge-error {
-            padding: 16px;
-            background: var(--error-color, #db4437);
-            color: white;
-            border-radius: 8px;
-            text-align: center;
-            margin: 8px;
-            font-family: var(--primary-font-family);
-          }
-          .cardforge-error ha-icon {
-            --mdc-icon-size: 24px;
-            margin-right: 8px;
-          }
-        </style>
-        <ha-icon icon="mdi:alert-circle"></ha-icon>
-        <span>${this._error}</span>
-      `;
-      return errorElement;
-    }
-    
-    return super.render();
   }
 
   static getConfigElement() {
