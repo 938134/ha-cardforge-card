@@ -20,11 +20,20 @@ class HaCardForgeCard extends ButtonCard {
     this._config = this._validateConfig(config);
     this._updateEntities();
     
-    // 从市场加载插件
-    const plugin = await this._pluginManager.loadPlugin(this._config.plugin);
-    const buttonConfig = this._convertToButtonCard(this._config, plugin);
-    
-    super.setConfig(buttonConfig);
+    try {
+      // 初始化插件管理器
+      await this._pluginManager.initialize();
+      const plugin = await this._pluginManager.loadPlugin(this._config.plugin);
+      const buttonConfig = this._convertToButtonCard(this._config, plugin);
+      
+      super.setConfig(buttonConfig);
+    } catch (error) {
+      console.error('加载插件失败:', error);
+      // 使用回退插件
+      const fallbackPlugin = new FallbackPlugin(this._config.plugin);
+      const buttonConfig = this._convertToButtonCard(this._config, fallbackPlugin);
+      super.setConfig(buttonConfig);
+    }
   }
 
   _validateConfig(config) {
@@ -65,12 +74,16 @@ class HaCardForgeCard extends ButtonCard {
         .cardforge-card { 
           background: var(--card-background-color); 
           color: var(--primary-text-color);
+          border-radius: var(--ha-card-border-radius, 12px);
+          box-shadow: var(--ha-card-box-shadow, none);
         }
       `,
       'dark': `
         .cardforge-card { 
           background: #1e1e1e; 
           color: white;
+          border-radius: 12px;
+          box-shadow: 0 4px 8px rgba(0,0,0,0.3);
         }
       `,
       'material': `
@@ -80,6 +93,16 @@ class HaCardForgeCard extends ButtonCard {
           border-radius: 8px;
           box-shadow: 0 3px 6px rgba(0,0,0,0.16);
         }
+      `,
+      'glass': `
+        .cardforge-card { 
+          background: rgba(255, 255, 255, 0.1); 
+          color: white;
+          border-radius: 16px;
+          box-shadow: 0 8px 32px rgba(0,0,0,0.1);
+          backdrop-filter: blur(10px);
+          border: 1px solid rgba(255, 255, 255, 0.2);
+        }
       `
     };
     return themes[theme] || themes.default;
@@ -87,8 +110,15 @@ class HaCardForgeCard extends ButtonCard {
 
   _applyTheme(config) {
     const themeConfigs = {
-      'dark': { style: 'background: #1e1e1e; color: white;' },
-      'material': { style: 'background: #fafafa; color: #212121;' }
+      'dark': { 
+        style: 'background: #1e1e1e; color: white;' 
+      },
+      'material': { 
+        style: 'background: #fafafa; color: #212121;' 
+      },
+      'glass': {
+        style: 'background: rgba(255, 255, 255, 0.1); color: white; backdrop-filter: blur(10px);'
+      }
     };
     return themeConfigs[config.theme] || {};
   }
@@ -158,7 +188,7 @@ class PluginManager {
 // 插件市场
 class PluginMarketplace {
   constructor() {
-    this._baseURL = 'https://raw.githubusercontent.com/your-repo/cardforge-plugins/main/';
+    this._baseURL = 'https://raw.githubusercontent.com/938134/ha-cardforge-card/plugins/';
     this._cache = new Map();
   }
 
@@ -169,8 +199,13 @@ class PluginMarketplace {
       throw new Error(`插件不存在: ${pluginId}`);
     }
 
+    // 如果是内置插件，使用内置实现
+    if (pluginInfo.builtin) {
+      return this._createBuiltinPlugin(pluginId);
+    }
+
     // 下载插件代码
-    const pluginURL = `${this._baseURL}plugins/${pluginId}.js`;
+    const pluginURL = `${this._baseURL}${pluginId}.js`;
     try {
       const response = await fetch(pluginURL);
       if (!response.ok) {
@@ -182,6 +217,23 @@ class PluginMarketplace {
     } catch (error) {
       throw new Error(`下载插件失败: ${error.message}`);
     }
+  }
+
+  _createBuiltinPlugin(pluginId) {
+    return {
+      getTemplate: (config, entities) => {
+        if (window.builtinPlugins && window.builtinPlugins[pluginId]) {
+          return window.builtinPlugins[pluginId].getTemplate(config, entities);
+        }
+        return `<div class="fallback-plugin">内置插件 ${pluginId} 加载失败</div>`;
+      },
+      getStyles: (config) => {
+        if (window.builtinPlugins && window.builtinPlugins[pluginId]) {
+          return window.builtinPlugins[pluginId].getStyles(config);
+        }
+        return '.fallback-plugin { padding: 20px; text-align: center; color: #666; }';
+      }
+    };
   }
 
   _createPluginInstance(pluginId, pluginCode, pluginInfo) {
@@ -250,15 +302,138 @@ class PluginMarketplace {
   async _getPluginList() {
     // 从市场获取插件列表
     try {
-      const response = await fetch(`${this._baseURL}plugins/index.json`);
+      const response = await fetch(`${this._baseURL}index.json`);
       if (!response.ok) {
         throw new Error('获取插件列表失败');
       }
-      return await response.json();
+      const data = await response.json();
+      
+      // 合并内置插件
+      const builtinPlugins = [
+        {
+          id: 'time-week',
+          name: '时间星期',
+          description: '垂直布局的时间星期显示',
+          author: 'CardForge Team',
+          version: '1.0.0',
+          icon: '⏰',
+          category: 'time',
+          mainClass: 'TimeWeekPlugin',
+          requiresWeek: true,
+          featured: true,
+          builtin: true
+        },
+        {
+          id: 'time-card',
+          name: '时间卡片',
+          description: '水平布局的时间日期卡片',
+          author: 'CardForge Team',
+          version: '1.0.0',
+          icon: '🕒',
+          category: 'time',
+          mainClass: 'TimeCardPlugin',
+          requiresWeek: true,
+          builtin: true
+        },
+        {
+          id: 'weather',
+          name: '天气卡片',
+          description: '简洁的天气信息显示',
+          author: 'CardForge Team',
+          version: '1.0.0',
+          icon: '🌤️',
+          category: 'weather',
+          mainClass: 'WeatherPlugin',
+          builtin: true
+        },
+        {
+          id: 'clock-lunar',
+          name: '时钟农历',
+          description: '模拟时钟和农历信息',
+          author: 'CardForge Team',
+          version: '1.0.0',
+          icon: '🌙',
+          category: 'time',
+          mainClass: 'ClockLunarPlugin',
+          builtin: true
+        },
+        {
+          id: 'welcome',
+          name: '欢迎卡片',
+          description: '个性化欢迎信息',
+          author: 'CardForge Team',
+          version: '1.0.0',
+          icon: '👋',
+          category: 'info',
+          mainClass: 'WelcomePlugin',
+          builtin: true
+        }
+      ];
+      
+      return [...builtinPlugins, ...(data.plugins || [])];
     } catch (error) {
       console.error('获取插件列表失败:', error);
-      // 返回空列表，避免阻塞
-      return [];
+      // 返回内置插件列表，避免阻塞
+      return [
+        {
+          id: 'time-week',
+          name: '时间星期',
+          description: '垂直布局的时间星期显示',
+          author: 'CardForge Team',
+          version: '1.0.0',
+          icon: '⏰',
+          category: 'time',
+          mainClass: 'TimeWeekPlugin',
+          requiresWeek: true,
+          featured: true,
+          builtin: true
+        },
+        {
+          id: 'time-card',
+          name: '时间卡片',
+          description: '水平布局的时间日期卡片',
+          author: 'CardForge Team',
+          version: '1.0.0',
+          icon: '🕒',
+          category: 'time',
+          mainClass: 'TimeCardPlugin',
+          requiresWeek: true,
+          builtin: true
+        },
+        {
+          id: 'weather',
+          name: '天气卡片',
+          description: '简洁的天气信息显示',
+          author: 'CardForge Team',
+          version: '1.0.0',
+          icon: '🌤️',
+          category: 'weather',
+          mainClass: 'WeatherPlugin',
+          builtin: true
+        },
+        {
+          id: 'clock-lunar',
+          name: '时钟农历',
+          description: '模拟时钟和农历信息',
+          author: 'CardForge Team',
+          version: '1.0.0',
+          icon: '🌙',
+          category: 'time',
+          mainClass: 'ClockLunarPlugin',
+          builtin: true
+        },
+        {
+          id: 'welcome',
+          name: '欢迎卡片',
+          description: '个性化欢迎信息',
+          author: 'CardForge Team',
+          version: '1.0.0',
+          icon: '👋',
+          category: 'info',
+          mainClass: 'WelcomePlugin',
+          builtin: true
+        }
+      ];
     }
   }
 }
