@@ -1,4 +1,5 @@
 // src/core/plugin-registry.js
+// 注意：这里使用相对路径导入，确保构建时能正确解析
 import SimpleClock from '../plugins/simple-clock.js';
 import TimeCard from '../plugins/time-card.js';
 import WelcomeCard from '../plugins/welcome-card.js';

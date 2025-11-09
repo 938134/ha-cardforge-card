@@ -12,10 +12,11 @@ export default class WelcomeCardPlugin extends BasePlugin {
     const message = this._getRandomMessage();
 
     return `
-      <div class="welcome-card">
-        <div class="greeting">${greeting}</div>
-        <div class="time">${new Date().toLocaleTimeString('zh-CN')}</div>
-        <div class="message">${message}</div>
+      <div class="welcome-card" style="border: 2px solid purple; padding: 24px;">
+        <div class="greeting" style="color: white; font-size: 1.4em; font-weight: bold;">${greeting}</div>
+        <div class="time" style="color: white; font-size: 2em; font-weight: bold;">${new Date().toLocaleTimeString('zh-CN')}</div>
+        <div class="message" style="color: white; font-size: 0.9em; opacity: 0.9;">${message}</div>
+        <div style="color: white; font-size: 12px; margin-top: 10px;">欢迎卡片调试信息</div>
       </div>
     `;
   }
@@ -54,22 +55,6 @@ export default class WelcomeCardPlugin extends BasePlugin {
         color: white;
         border-radius: 12px;
         font-family: var(--paper-font-common-nowrap_-_font-family);
-      }
-      .welcome-card .greeting {
-        font-size: 1.4em;
-        font-weight: bold;
-        margin-bottom: 8px;
-      }
-      .welcome-card .time {
-        font-size: 2em;
-        font-weight: bold;
-        margin-bottom: 8px;
-        letter-spacing: 1px;
-      }
-      .welcome-card .message {
-        font-size: 0.9em;
-        opacity: 0.9;
-        font-style: italic;
       }
     `;
   }
