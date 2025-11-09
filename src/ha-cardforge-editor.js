@@ -306,15 +306,15 @@ class HaCardForgeEditor extends LitElement {
 
   async _loadManagers() {
     if (!this._pluginManager) {
-      const { PluginManager } = await import('./managers/plugin.js');
+      const { PluginManager } = await import('./components/plugin.js');
       this._pluginManager = new PluginManager();
     }
     if (!this._entityManager) {
-      const { EntityManager } = await import('./managers/entity.js');
+      const { EntityManager } = await import('./components/entity.js');
       this._entityManager = new EntityManager();
     }
     if (!this._themeManager) {
-      const { ThemeManager } = await import('./managers/theme.js');
+      const { ThemeManager } = await import('./components/theme.js');
       this._themeManager = new ThemeManager();
     }
   }
