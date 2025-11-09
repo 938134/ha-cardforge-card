@@ -1,19 +1,21 @@
-// plugins/time-card.js
-class TimeCardPlugin {
+// src/plugins/time-card.js
+import { BasePlugin } from './base-plugin.js';
+
+export class TimeCardPlugin extends BasePlugin {
   constructor() {
+    super();
     this.name = 'time-card';
     this.displayName = '时间卡片';
     this.icon = '🕒';
     this.category = 'time';
+    this.description = '水平布局的时间日期卡片';
     this.requiresWeek = true;
   }
 
   getTemplate(config, entities) {
-    const time = entities.time?.state || '00:00';
-    const date = entities.date?.state || '2000-01-01';
+    const { hour, minute } = this.formatTime(entities.time?.state);
+    const { month, day } = this.formatDate(entities.date?.state);
     const week = entities.week?.state || '星期一';
-    const [hour, minute] = time.split(':');
-    const [, month, day] = date.split('-');
 
     return `
       <div class="cardforge-card time-card">

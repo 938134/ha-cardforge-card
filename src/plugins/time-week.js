@@ -1,21 +1,23 @@
-// plugins/time-week.js
-class TimeWeekPlugin {
+// src/plugins/time-week.js
+import { BasePlugin } from './base-plugin.js';
+
+export class TimeWeekPlugin extends BasePlugin {
   constructor() {
+    super();
     this.name = 'time-week';
     this.displayName = '时间星期';
     this.icon = '⏰';
     this.category = 'time';
+    this.description = '垂直布局的时间星期显示';
     this.requiresWeek = true;
+    this.featured = true;
   }
 
   getTemplate(config, entities) {
-    const time = entities.time?.state || '00:00';
-    const date = entities.date?.state || '2000-01-01';
+    const { hour, minute } = this.formatTime(entities.time?.state);
+    const { month, day } = this.formatDate(entities.date?.state);
     const week = entities.week?.state || '星期一';
-    const [hour, minute] = time.split(':');
-    const [, month, day] = date.split('-');
 
-    // 返回纯 HTML 字符串
     return `
       <div class="cardforge-card time-week">
         <div class="hour">${hour}</div>

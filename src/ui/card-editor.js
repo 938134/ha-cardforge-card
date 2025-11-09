@@ -1,8 +1,10 @@
-// ha-cardforge-card/src/ha-cardforge-editor.js
+// src/ui/card-editor.js
 import { LitElement, html, css } from 'https://unpkg.com/lit@2.8.0/index.js?module';
-import { PluginManager } from './components/plugins.js';
+import { PluginManager } from '../core/plugin-manager.js';
+import { EntityManager } from '../core/entity-manager.js';
+import { ThemeManager } from '../core/theme-manager.js';
 
-class HaCardForgeEditor extends LitElement {
+export class CardEditor extends LitElement {
   static properties = {
     hass: { type: Object },
     config: { type: Object },
@@ -253,6 +255,10 @@ class HaCardForgeEditor extends LitElement {
       padding: 2px 6px;
       font-size: 0.7em;
     }
+
+    .flex {
+      flex: 1;
+    }
   `;
 
   constructor() {
@@ -265,7 +271,9 @@ class HaCardForgeEditor extends LitElement {
     this._loading = false;
     this._activeTab = 'marketplace';
     this._selectedPlugin = null;
-    this._pluginManager = new PluginManager();
+    this.pluginManager = new PluginManager();
+    this.entityManager = new EntityManager();
+    this.themeManager = new ThemeManager();
   }
 
   async firstUpdated() {
@@ -292,8 +300,8 @@ class HaCardForgeEditor extends LitElement {
   async _loadPlugins() {
     this._loading = true;
     try {
-      this._plugins = await this._pluginManager.getAvailablePlugins();
-      this._categories = await this._pluginManager.getCategories();
+      this._plugins = await this.pluginManager.getAvailablePlugins();
+      this._categories = await this.pluginManager.getCategories();
       console.log(`✅ 加载了 ${this._plugins.length} 个插件`);
     } catch (error) {
       console.error('加载插件失败:', error);
@@ -438,9 +446,6 @@ class HaCardForgeEditor extends LitElement {
       `;
     }
 
-    // 获取插件信息
-    const pluginInfo = this._selectedPlugin;
-
     return html`
       <div class="config-section">
         <div class="section-title">
@@ -449,10 +454,10 @@ class HaCardForgeEditor extends LitElement {
         </div>
 
         <!-- 实体需求说明 -->
-        ${pluginInfo ? html`
+        ${this._selectedPlugin ? html`
           <div class="entity-requirements">
             <div style="font-weight: bold; margin-bottom: 8px;">实体需求:</div>
-            ${this._renderEntityRequirements(pluginInfo)}
+            ${this._renderEntityRequirements(this._selectedPlugin)}
           </div>
         ` : ''}
         
@@ -464,7 +469,6 @@ class HaCardForgeEditor extends LitElement {
   }
 
   _renderEntityRequirements(pluginInfo) {
-    // 这里可以调用插件管理器获取详细的实体需求
     const requirements = this._getPluginRequirements(pluginInfo);
     
     return html`
@@ -617,12 +621,7 @@ class HaCardForgeEditor extends LitElement {
   }
 
   _renderThemeTab() {
-    const themes = [
-      { id: 'default', name: '默认主题', description: '使用 Home Assistant 默认主题', icon: 'mdi:palette-outline' },
-      { id: 'dark', name: '深色主题', description: '适合暗色模式的深色主题', icon: 'mdi:weather-night' },
-      { id: 'material', name: '材质设计', description: 'Google Material Design 风格', icon: 'mdi:material-design' },
-      { id: 'glass', name: '玻璃拟态', description: '毛玻璃效果现代设计', icon: 'mdi:crystal-ball' }
-    ];
+    const themes = this.themeManager.getAllThemes();
 
     return html`
       <div class="config-section">
@@ -639,7 +638,7 @@ class HaCardForgeEditor extends LitElement {
           >
             ${themes.map(theme => html`
               <mwc-list-item value=${theme.id}>
-                <ha-icon icon=${theme.icon} slot="graphic"></ha-icon>
+                <ha-icon icon=${this._getThemeIcon(theme.id)} slot="graphic"></ha-icon>
                 ${theme.name}
               </mwc-list-item>
             `)}
@@ -657,6 +656,16 @@ class HaCardForgeEditor extends LitElement {
         </div>
       </div>
     `;
+  }
+
+  _getThemeIcon(themeId) {
+    const icons = {
+      'default': 'mdi:palette-outline',
+      'dark': 'mdi:weather-night',
+      'material': 'mdi:material-design',
+      'glass': 'mdi:crystal-ball'
+    };
+    return icons[themeId] || 'mdi:palette';
   }
 
   _getFilteredPlugins() {
@@ -685,33 +694,12 @@ class HaCardForgeEditor extends LitElement {
     this.config = {
       ...this.config,
       plugin: plugin.id,
-      entities: this._getDefaultEntities(plugin)
+      entities: this.entityManager.getDefaultEntities(plugin, this.config.entities)
     };
     this._selectedPlugin = plugin;
     // 自动切换到实体配置标签页
     this._activeTab = 'entities';
     this._fireChanged();
-  }
-
-  _getDefaultEntities(plugin) {
-    const defaults = {
-      time: 'sensor.time',
-      date: 'sensor.date'
-    };
-    
-    if (plugin.requiresWeek) {
-      defaults.week = 'sensor.xing_qi';
-    }
-    
-    if (plugin.category === 'weather') {
-      defaults.weather = 'weather.home';
-    }
-    
-    if (plugin.id === 'clock-lunar') {
-      defaults.lunar = 'sensor.lunar_date';
-    }
-    
-    return { ...defaults, ...this.config.entities };
   }
 
   _entityChanged(key, value) {
@@ -740,5 +728,3 @@ class HaCardForgeEditor extends LitElement {
     }));
   }
 }
-
-export { HaCardForgeEditor };

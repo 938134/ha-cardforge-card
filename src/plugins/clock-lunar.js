@@ -1,15 +1,19 @@
-// plugins/clock-lunar.js
-class ClockLunarPlugin {
+// src/plugins/clock-lunar.js
+import { BasePlugin } from './base-plugin.js';
+
+export class ClockLunarPlugin extends BasePlugin {
   constructor() {
+    super();
     this.name = 'clock-lunar';
     this.displayName = '时钟农历';
     this.icon = '🌙';
     this.category = 'time';
+    this.description = '模拟时钟和农历信息';
   }
 
   getTemplate(config, entities) {
-    const time = entities.time?.state || '00:00';
-    const date = entities.date?.state || '2000-01-01';
+    const time = entities.time?.state || '12:34';
+    const date = entities.date?.state || '2024-01-01';
     const lunar = entities.lunar;
     
     const lunarYear = lunar?.attributes?.lunar?.年干支 || '';

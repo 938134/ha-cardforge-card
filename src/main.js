@@ -1,6 +1,16 @@
-// ha-cardforge-card/src/main.js
-import { HaCardForgeCard } from './ha-cardforge-card.js';
-import { HaCardForgeEditor } from './ha-cardforge-editor.js';
+// src/main.js (更新版本)
+import { HaCardForgeCard } from './main-card.js';
+import { CardEditor } from './ui/card-editor.js';
+import { PluginBrowser } from './ui/plugin-browser.js';
+import { EntityPicker } from './ui/entity-picker.js';
+import { PluginManager } from './core/plugin-manager.js';
+
+// 注册内置插件
+import { TimeWeekPlugin } from './plugins/time-week.js';
+import { TimeCardPlugin } from './plugins/time-card.js';
+import { WeatherPlugin } from './plugins/weather.js';
+import { ClockLunarPlugin } from './plugins/clock-lunar.js';
+import { WelcomePlugin } from './plugins/welcome.js';
 
 // 安全的组件注册函数
 function safeDefine(elementName, elementClass) {
@@ -12,9 +22,19 @@ function safeDefine(elementName, elementClass) {
   }
 }
 
-// 注册组件
+// 注册所有组件
 safeDefine('ha-cardforge-card', HaCardForgeCard);
-safeDefine('ha-cardforge-editor', HaCardForgeEditor);
+safeDefine('ha-cardforge-editor', CardEditor);
+safeDefine('plugin-browser', PluginBrowser);
+safeDefine('entity-picker', EntityPicker);
+
+// 初始化插件管理器
+const pluginManager = new PluginManager();
+pluginManager.registerPlugin(TimeWeekPlugin);
+pluginManager.registerPlugin(TimeCardPlugin);
+pluginManager.registerPlugin(WeatherPlugin);
+pluginManager.registerPlugin(ClockLunarPlugin);
+pluginManager.registerPlugin(WelcomePlugin);
 
 // 注册到 customCards
 if (window.customCards) {
@@ -26,4 +46,4 @@ if (window.customCards) {
   });
 }
 
-console.log('🎉 卡片工坊插件市场初始化完成');
+console.log('🎉 卡片工坊初始化完成');

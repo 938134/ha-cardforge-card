@@ -1,10 +1,14 @@
-// plugins/weather.js
-class WeatherPlugin {
+// src/plugins/weather.js
+import { BasePlugin } from './base-plugin.js';
+
+export class WeatherPlugin extends BasePlugin {
   constructor() {
+    super();
     this.name = 'weather';
     this.displayName = '天气卡片';
     this.icon = '🌤️';
     this.category = 'weather';
+    this.description = '简洁的天气信息显示';
   }
 
   getTemplate(config, entities) {

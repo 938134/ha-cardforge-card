@@ -1,10 +1,14 @@
-// plugins/welcome.js
-class WelcomePlugin {
+// src/plugins/welcome.js
+import { BasePlugin } from './base-plugin.js';
+
+export class WelcomePlugin extends BasePlugin {
   constructor() {
+    super();
     this.name = 'welcome';
     this.displayName = '欢迎卡片';
     this.icon = '👋';
     this.category = 'info';
+    this.description = '个性化欢迎信息';
   }
 
   getTemplate(config, entities) {
@@ -29,7 +33,6 @@ class WelcomePlugin {
   }
 
   _getUserName() {
-    // 在实际使用中可以从 hass.user 获取
     return '家人';
   }
 
@@ -179,18 +182,6 @@ class WelcomePlugin {
         .message {
           font-size: 0.8em;
         }
-      }
-      
-      /* 深色主题适配 */
-      .cardforge-card[data-theme="dark"] .welcome {
-        background: linear-gradient(135deg, #bb86fc, #03dac6);
-      }
-      
-      /* 材质主题适配 */
-      .cardforge-card[data-theme="material"] .welcome {
-        background: linear-gradient(135deg, #6200ee, #03dac6);
-        border-radius: 8px;
-        box-shadow: 0 4px 12px rgba(0,0,0,0.15);
       }
     `;
   }
