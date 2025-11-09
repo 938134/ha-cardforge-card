@@ -1,5 +1,5 @@
-// ha-cardforge-card/styles/weather.js
-export default class WeatherStyle {
+// plugins/weather.js
+class WeatherPlugin {
   constructor() {
     this.name = 'weather';
     this.displayName = '天气卡片';

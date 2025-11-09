@@ -1,5 +1,5 @@
-// ha-cardforge-card/styles/welcome.js
-export default class WelcomeStyle {
+// plugins/welcome.js
+class WelcomePlugin {
   constructor() {
     this.name = 'welcome';
     this.displayName = '欢迎卡片';

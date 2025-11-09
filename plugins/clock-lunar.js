@@ -1,5 +1,5 @@
-// ha-cardforge-card/styles/clock-lunar.js
-export default class ClockLunarStyle {
+// plugins/clock-lunar.js
+class ClockLunarPlugin {
   constructor() {
     this.name = 'clock-lunar';
     this.displayName = '时钟农历';

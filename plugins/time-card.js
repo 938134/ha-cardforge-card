@@ -1,5 +1,5 @@
-// ha-cardforge-card/styles/time-card.js
-export default class TimeCardStyle {
+// plugins/time-card.js
+class TimeCardPlugin {
   constructor() {
     this.name = 'time-card';
     this.displayName = '时间卡片';
