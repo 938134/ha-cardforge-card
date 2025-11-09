@@ -1,51 +1,26 @@
-// src/plugins/welcome.js
-import { BasePlugin } from './base-plugin.js';
+// src/plugins/welcome-card.js
+import { BasePlugin } from '../core/base-plugin.js';
 
-export class WelcomePlugin extends BasePlugin {
+export default class WelcomeCardPlugin extends BasePlugin {
   constructor() {
     super();
-    this.name = 'welcome';
-    this.displayName = '欢迎卡片';
-    this.icon = '👋';
-    this.category = 'info';
-    this.description = '个性化欢迎信息';
   }
 
-  getTemplate(config, entities) {
-    const userName = this._getUserName();
-    const currentTime = this._getFormattedTime();
-    const greeting = this._getGreeting();
+  getTemplate(config, hass, entities) {
+    const hour = new Date().getHours();
+    const greeting = this._getGreeting(hour);
+    const message = this._getRandomMessage();
 
     return `
-      <div class="cardforge-card welcome">
-        <div class="welcome-content">
-          <div class="greeting">${greeting}，${userName}！</div>
-          <div class="time">${currentTime}</div>
-          <div class="message">${this._getMessage()}</div>
-        </div>
-        <div class="decoration">
-          <div class="decoration-circle circle-1"></div>
-          <div class="decoration-circle circle-2"></div>
-          <div class="decoration-circle circle-3"></div>
-        </div>
+      <div class="welcome-card">
+        <div class="greeting">${greeting}</div>
+        <div class="time">${new Date().toLocaleTimeString('zh-CN')}</div>
+        <div class="message">${message}</div>
       </div>
     `;
   }
 
-  _getUserName() {
-    return '家人';
-  }
-
-  _getFormattedTime() {
-    const now = new Date();
-    return now.toLocaleTimeString('zh-CN', { 
-      hour: '2-digit', 
-      minute: '2-digit' 
-    });
-  }
-
-  _getGreeting() {
-    const hour = new Date().getHours();
+  _getGreeting(hour) {
     if (hour < 6) return '深夜好';
     if (hour < 9) return '早上好';
     if (hour < 12) return '上午好';
@@ -55,7 +30,7 @@ export class WelcomePlugin extends BasePlugin {
     return '夜深了';
   }
 
-  _getMessage() {
+  _getRandomMessage() {
     const messages = [
       '祝您今天愉快！',
       '一切准备就绪！',
@@ -68,128 +43,33 @@ export class WelcomePlugin extends BasePlugin {
 
   getStyles(config) {
     return `
-      .welcome {
-        position: relative;
-        overflow: hidden;
+      .welcome-card {
+        text-align: center;
+        padding: 24px;
+        height: 160px;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
         background: linear-gradient(135deg, var(--primary-color), var(--accent-color));
         color: white;
-        height: 140px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
+        border-radius: 12px;
       }
-      
-      .welcome-content {
-        position: relative;
-        z-index: 2;
-        text-align: center;
-        padding: 20px;
-      }
-      
-      .greeting {
-        font-size: 1.3em;
-        font-weight: 500;
+      .welcome-card .greeting {
+        font-size: 1.4em;
+        font-weight: bold;
         margin-bottom: 8px;
-        opacity: 0.95;
       }
-      
-      .time {
-        font-size: 2.5em;
+      .welcome-card .time {
+        font-size: 2em;
         font-weight: bold;
         margin-bottom: 8px;
         letter-spacing: 1px;
       }
-      
-      .message {
+      .welcome-card .message {
         font-size: 0.9em;
-        opacity: 0.8;
+        opacity: 0.9;
         font-style: italic;
       }
-      
-      .decoration {
-        position: absolute;
-        top: 0;
-        left: 0;
-        right: 0;
-        bottom: 0;
-        pointer-events: none;
-        z-index: 1;
-      }
-      
-      .decoration-circle {
-        position: absolute;
-        border-radius: 50%;
-        background: rgba(255, 255, 255, 0.1);
-      }
-      
-      .circle-1 {
-        width: 80px;
-        height: 80px;
-        top: -20px;
-        right: -20px;
-      }
-      
-      .circle-2 {
-        width: 60px;
-        height: 60px;
-        bottom: -10px;
-        left: 20px;
-      }
-      
-      .circle-3 {
-        width: 40px;
-        height: 40px;
-        bottom: 30px;
-        right: 40px;
-      }
-      
-      /* 动画效果 */
-      .welcome:hover .circle-1 {
-        animation: float 3s ease-in-out infinite;
-      }
-      
-      .welcome:hover .circle-2 {
-        animation: float 3s ease-in-out infinite 0.5s;
-      }
-      
-      .welcome:hover .circle-3 {
-        animation: float 3s ease-in-out infinite 1s;
-      }
-      
-      @keyframes float {
-        0%, 100% {
-          transform: translateY(0px);
-        }
-        50% {
-          transform: translateY(-10px);
-        }
-      }
-      
-      /* 响应式设计 */
-      @media (max-width: 480px) {
-        .welcome {
-          height: 120px;
-        }
-        
-        .greeting {
-          font-size: 1.1em;
-        }
-        
-        .time {
-          font-size: 2em;
-        }
-        
-        .message {
-          font-size: 0.8em;
-        }
-      }
     `;
-  }
-
-  getEntityRequirements() {
-    return {
-      required: [],
-      optional: []
-    };
   }
 }

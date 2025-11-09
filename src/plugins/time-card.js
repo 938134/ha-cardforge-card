@@ -1,36 +1,41 @@
 // src/plugins/time-card.js
-import { BasePlugin } from './base-plugin.js';
+import { BasePlugin } from '../core/base-plugin.js';
 
-export class TimeCardPlugin extends BasePlugin {
+export default class TimeCardPlugin extends BasePlugin {
   constructor() {
     super();
-    this.name = 'time-card';
-    this.displayName = '时间卡片';
-    this.icon = '🕒';
-    this.category = 'time';
-    this.description = '水平布局的时间日期卡片';
-    this.requiresWeek = true;
   }
 
-  getTemplate(config, entities) {
-    const { hour, minute } = this.formatTime(entities.time?.state);
-    const { month, day } = this.formatDate(entities.date?.state);
-    const week = entities.week?.state || '星期一';
+  getEntityRequirements() {
+    return [
+      { key: 'time', description: '时间实体' },
+      { key: 'date', description: '日期实体' },
+      { key: 'week', description: '星期实体（可选）' }
+    ];
+  }
+
+  getTemplate(config, hass, entities) {
+    const time = this._getEntityState(entities, 'time', '00:00');
+    const date = this._getEntityState(entities, 'date', '2000-01-01');
+    const week = this._getEntityState(entities, 'week', '星期一');
+    
+    const [hour, minute] = time.split(':');
+    const [, month, day] = date.split('-');
 
     return `
-      <div class="cardforge-card time-card">
-        <div class="time-section">
+      <div class="time-card">
+        <div class="time-section hour">
           <div class="label">时</div>
-          <div class="value hour">${hour}</div>
+          <div class="value">${hour}</div>
         </div>
         <div class="date-section">
           <div class="month">${month}月</div>
           <div class="day">${day}</div>
           <div class="week">${week}</div>
         </div>
-        <div class="time-section">
+        <div class="time-section minute">
           <div class="label">分</div>
-          <div class="value minute">${minute}</div>
+          <div class="value">${minute}</div>
         </div>
       </div>
     `;
@@ -39,12 +44,12 @@ export class TimeCardPlugin extends BasePlugin {
   getStyles(config) {
     return `
       .time-card {
-        padding: 16px;
         display: grid;
         grid-template-columns: 1fr 1fr 1fr;
         gap: 10px;
         align-items: center;
         height: 120px;
+        padding: 16px;
       }
       .time-section {
         text-align: center;
@@ -75,17 +80,5 @@ export class TimeCardPlugin extends BasePlugin {
         opacity: 0.7;
       }
     `;
-  }
-
-  getEntityRequirements() {
-    return {
-      required: [
-        { key: 'time', type: 'sensor', description: '时间实体' },
-        { key: 'date', type: 'sensor', description: '日期实体' }
-      ],
-      optional: [
-        { key: 'week', type: 'sensor', description: '星期实体' }
-      ]
-    };
   }
 }
