@@ -105,7 +105,7 @@ class HaCardForgeEditor extends LitElement {
   constructor() {
     super();
     this.config = {};
-    this._plugins = PLUGIN_INFO; // 直接使用导入的插件信息
+    this._plugins = PLUGIN_INFO;
     this._searchQuery = '';
   }
 
@@ -205,10 +205,18 @@ class HaCardForgeEditor extends LitElement {
       `;
     }
 
+    // 创建预览配置，确保包含所有必要字段
+    const previewConfig = {
+      plugin: this.config.plugin,
+      entities: this.config.entities || {},
+      // 添加其他必要字段
+      ...this.config
+    };
+
     return html`
       <ha-cardforge-card
         .hass=${this.hass}
-        .config=${this.config}
+        .config=${previewConfig}
       ></ha-cardforge-card>
     `;
   }
