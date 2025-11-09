@@ -1,4 +1,4 @@
-// ha-cardforge-card/ha-cardforge-card.js
+// ha-cardforge-card/src/ha-cardforge-card.js
 import { LitElement } from 'https://unpkg.com/lit@2.8.0/index.js?module';
 
 const ButtonCard = customElements.get('button-card');
@@ -7,43 +7,46 @@ class HaCardForgeCard extends ButtonCard {
   static properties = {
     hass: { type: Object },
     config: { type: Object },
-    _entities: { state: true }
+    _entities: { state: true },
+    _plugin: { state: true },
+    _error: { state: true }
   };
 
   constructor() {
     super();
     this._entities = new Map();
-    this._pluginManager = null;
-    this._themeManager = null;
+    this._pluginManager = new PluginManager();
+    this._plugin = null;
+    this._error = null;
   }
 
   async setConfig(config) {
     this._config = this._validateConfig(config);
     this._updateEntities();
-    
-    // 延迟加载管理器
-    await this._loadManagers();
+    this._error = null;
     
     try {
-      const plugin = await this._pluginManager.loadPlugin(this._config.plugin);
-      const buttonConfig = this._convertToButtonCard(this._config, plugin);
+      // 加载插件
+      this._plugin = await this._pluginManager.loadPlugin(this._config.plugin);
+      
+      // 验证实体
+      const validation = this._validateEntities();
+      if (!validation.valid) {
+        this._error = validation.errors.join(', ');
+      }
+      
+      // 转换为 button-card 配置
+      const buttonConfig = this._convertToButtonCard(this._config, this._plugin);
       super.setConfig(buttonConfig);
+      
     } catch (error) {
-      console.error('加载插件失败:', error);
-      const fallbackPlugin = await this._pluginManager.getFallbackPlugin(this._config.plugin);
-      const buttonConfig = this._convertToButtonCard(this._config, fallbackPlugin);
+      this._error = `插件加载失败: ${error.message}`;
+      console.error('卡片配置错误:', error);
+      
+      // 使用回退插件
+      this._plugin = new FallbackPlugin(this._config.plugin);
+      const buttonConfig = this._convertToButtonCard(this._config, this._plugin);
       super.setConfig(buttonConfig);
-    }
-  }
-
-  async _loadManagers() {
-    if (!this._pluginManager) {
-      const { PluginManager } = await import('./components/plugin.js');
-      this._pluginManager = new PluginManager();
-    }
-    if (!this._themeManager) {
-      const { ThemeManager } = await import('./components/theme.js');
-      this._themeManager = new ThemeManager();
     }
   }
 
@@ -68,22 +71,83 @@ class HaCardForgeCard extends ButtonCard {
     });
   }
 
+  _validateEntities() {
+    const requirements = this._plugin?.getEntityRequirements?.() || { required: [] };
+    const errors = [];
+    
+    requirements.required.forEach(req => {
+      if (!this._config.entities?.[req.key]) {
+        errors.push(`缺少必需实体: ${req.description}`);
+      }
+    });
+    
+    return { valid: errors.length === 0, errors };
+  }
+
   _convertToButtonCard(config, plugin) {
     const entities = Object.fromEntries(this._entities);
     
     return {
       type: 'custom:button-card',
       template: plugin.getTemplate(config, entities),
-      styles: plugin.getStyles(config) + this._themeManager.getThemeStyles(config.theme),
-      ...this._themeManager.applyTheme(config)
+      styles: plugin.getStyles(config) + this._getThemeStyles(config.theme),
+      ...this._applyTheme(config)
     };
+  }
+
+  _getThemeStyles(theme) {
+    const themes = {
+      'default': `
+        .cardforge-card { 
+          background: var(--card-background-color); 
+          color: var(--primary-text-color);
+        }
+      `,
+      'dark': `
+        .cardforge-card { 
+          background: #1e1e1e; 
+          color: white;
+        }
+      `,
+      'material': `
+        .cardforge-card { 
+          background: #fafafa; 
+          color: #212121;
+          border-radius: 8px;
+          box-shadow: 0 3px 6px rgba(0,0,0,0.16);
+        }
+      `
+    };
+    return themes[theme] || themes.default;
+  }
+
+  _applyTheme(config) {
+    const themeConfigs = {
+      'dark': { style: 'background: #1e1e1e; color: white;' },
+      'material': { style: 'background: #fafafa; color: #212121;' }
+    };
+    return themeConfigs[config.theme] || {};
   }
 
   updated(changedProperties) {
     if (changedProperties.has('hass')) {
       this._updateEntities();
-      this.setConfig(this._config);
+      if (this._config) {
+        this.setConfig(this._config);
+      }
     }
+  }
+
+  render() {
+    if (this._error) {
+      return html`
+        <div class="cardforge-error">
+          <ha-icon icon="mdi:alert-circle"></ha-icon>
+          <div>${this._error}</div>
+        </div>
+      `;
+    }
+    return super.render();
   }
 
   static getConfigElement() {
@@ -100,11 +164,6 @@ class HaCardForgeCard extends ButtonCard {
       }
     };
   }
-}
-
-// 只在未注册的情况下注册组件
-if (!customElements.get('ha-cardforge-card')) {
-  customElements.define('ha-cardforge-card', HaCardForgeCard);
 }
 
 export { HaCardForgeCard };

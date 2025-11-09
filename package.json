@@ -4,8 +4,7 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "build": "rollup -c && npm run copy-plugins",
-    "copy-plugins": "mkdir -p dist/plugins && cp -r src/plugins/* dist/plugins/ || echo '复制完成'",
+    "build": "rollup -c",
     "dev": "rollup -c -w"
   },
   "devDependencies": {
