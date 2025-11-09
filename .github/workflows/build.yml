@@ -50,18 +50,6 @@ jobs:
           echo "version=$NEW_VERSION" >> $GITHUB_OUTPUT
           echo "本次版本：$NEW_VERSION"
 
-      # ---------- 生成 release notes ----------
-      - name: 生成更新说明
-        run: |
-          cat <<EOF > release-notes.md
-          ## 安装方式
-          在 HACS → **前端** → **自定义仓库** 中添加  
-          \`https://github.com/${{ github.repository }}\`
-
-          ## 更新日志
-          - 基于提交 ${{ github.sha }} 构建 dist/ha-cardforge.js
-          EOF
-
       # ---------- 可选：删除同名 release ----------
       - name: 若已存在则删除旧版 Release
         continue-on-error: true
@@ -73,19 +61,18 @@ jobs:
       - name: 创建 Release
         uses: ncipollo/release-action@v1.14.0
         with:
-          artifacts: "ha-cardforge-card.js"
+          artifacts: "dist/**/*"
           token: ${{ secrets.GITHUB_TOKEN }}
           tag: ${{ steps.version.outputs.version }}
           name: ${{ steps.version.outputs.version }}
-          bodyFile: ./release-notes.md
+          body: |
+            ## 安装方式
+            在 HACS → **前端** → **自定义仓库** 中添加  
+            `https://github.com/${{ github.repository }}`
+
+            ## 更新日志
+            - 版本: ${{ steps.version.outputs.version }}
+            - 基于提交: ${{ github.sha }}
+            - 构建时间: $(date -u +"%Y-%m-%d %H:%M:%S UTC")
           makeLatest: true
           skipIfReleaseExists: true
-
-      # ---------- 回写 dist ----------
-      - name: 提交并推送产物
-        run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add -f ha-cardforge-card.js
-          git diff --staged --quiet || git commit -m "bot: 发布 ${{ steps.version.outputs.version }}"
-          git push
