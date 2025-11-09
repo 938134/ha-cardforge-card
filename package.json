@@ -4,12 +4,12 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "build": "rollup -c",
+    "build": "rollup -c && npm run copy-plugins",
+    "copy-plugins": "mkdir -p dist/plugins && cp -r src/plugins/* dist/plugins/ || echo '复制完成'",
     "dev": "rollup -c -w"
   },
   "devDependencies": {
     "rollup": "^4.0.0",
-    "@rollup/plugin-node-resolve": "^15.0.0",
-    "rollup-plugin-copy": "^3.4.0"
+    "@rollup/plugin-node-resolve": "^15.0.0"
   }
 }
