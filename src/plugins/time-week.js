@@ -1,5 +1,5 @@
-// ha-cardforge-card/styles/time-week.js
-export default class TimeWeekStyle {
+// plugins/time-week.js
+class TimeWeekPlugin {
   constructor() {
     this.name = 'time-week';
     this.displayName = '时间星期';

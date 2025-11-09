@@ -1,10 +1,6 @@
 // ha-cardforge-card/main.js
 import { HaCardForgeCard } from './ha-cardforge-card.js';
 import { HaCardForgeEditor } from './ha-cardforge-editor.js';
-import './components/entity.js';
-import './components/registry.js';
-import './components/template.js';
-import './components/theme.js';
 
 // 注册组件
 customElements.define('ha-cardforge-card', HaCardForgeCard);
@@ -15,9 +11,9 @@ if (window.customCards) {
   window.customCards.push({
     type: 'ha-cardforge-card',
     name: '卡片工坊',
-    description: '基于 button-card 的多种卡片样式',
+    description: '基于插件市场的卡片系统',
     preview: true
   });
 }
 
-console.log('🎉 卡片工坊所有组件初始化完成');
+console.log('🎉 卡片工坊插件市场初始化完成');

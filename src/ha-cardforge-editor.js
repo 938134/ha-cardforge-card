@@ -5,205 +5,365 @@ class HaCardForgeEditor extends LitElement {
   static properties = {
     hass: { type: Object },
     config: { type: Object },
-    _availableEntities: { state: true }
+    _plugins: { state: true },
+    _categories: { state: true },
+    _searchQuery: { state: true },
+    _selectedCategory: { state: true },
+    _loading: { state: true },
+    _activeTab: { state: true },
+    _previewConfig: { state: true }
   };
 
   static styles = css`
     .editor {
       padding: 16px;
-      max-width: 600px;
+      max-width: 900px;
     }
-    .section {
+    
+    .editor-content {
+      display: grid;
+      grid-template-columns: 1fr 300px;
+      gap: 20px;
+      align-items: start;
+    }
+    
+    .config-section {
       background: var(--card-background-color);
-      border-radius: 8px;
-      padding: 16px;
+      border-radius: var(--ha-card-border-radius, 12px);
+      padding: 20px;
       margin-bottom: 16px;
       border: 1px solid var(--divider-color);
     }
+    
+    .preview-section {
+      position: sticky;
+      top: 20px;
+      background: var(--card-background-color);
+      border-radius: var(--ha-card-border-radius, 12px);
+      padding: 20px;
+      border: 1px solid var(--divider-color);
+    }
+    
     .section-title {
       margin: 0 0 16px 0;
-      font-size: 1.1em;
+      font-size: 1.2em;
       font-weight: bold;
       color: var(--primary-color);
+      display: flex;
+      align-items: center;
+      gap: 8px;
     }
-    .form-group {
-      margin-bottom: 16px;
-    }
-    label {
-      display: block;
-      margin-bottom: 8px;
-      font-weight: 500;
-    }
-    select, input {
-      width: 100%;
-      padding: 10px;
-      border: 1px solid var(--divider-color);
-      border-radius: 4px;
-      background: var(--card-background-color);
-      color: var(--primary-text-color);
-      font-size: 14px;
-    }
-    select:focus, input:focus {
-      outline: none;
-      border-color: var(--primary-color);
-    }
-    .entity-status {
-      font-size: 0.8em;
-      margin-top: 4px;
-    }
-    .entity-valid {
-      color: var(--success-color);
-    }
-    .entity-invalid {
-      color: var(--error-color);
-    }
-    .theme-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+    
+    .search-header {
+      display: flex;
       gap: 12px;
-      margin-top: 12px;
+      margin-bottom: 20px;
     }
-    .theme-option {
-      padding: 12px;
+    
+    .plugin-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+      gap: 12px;
+      margin-bottom: 20px;
+    }
+    
+    .plugin-card {
+      background: var(--card-background-color);
       border: 2px solid var(--divider-color);
       border-radius: 8px;
+      padding: 16px;
       cursor: pointer;
       text-align: center;
       transition: all 0.2s ease;
+      position: relative;
     }
-    .theme-option:hover {
+    
+    .plugin-card:hover {
       border-color: var(--primary-color);
+      transform: translateY(-2px);
+      box-shadow: 0 4px 8px rgba(0,0,0,0.1);
     }
-    .theme-option.selected {
+    
+    .plugin-card.selected {
       border-color: var(--primary-color);
-      background: rgba(var(--rgb-primary-color), 0.1);
+      background: rgba(var(--rgb-primary-color), 0.05);
     }
-    .theme-icon {
-      font-size: 1.5em;
+    
+    .plugin-icon {
+      font-size: 2.2em;
       margin-bottom: 8px;
+      height: 48px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
     }
+    
+    .plugin-name {
+      font-weight: 600;
+      margin-bottom: 4px;
+      font-size: 0.9em;
+    }
+    
+    .plugin-description {
+      font-size: 0.75em;
+      color: var(--secondary-text-color);
+      line-height: 1.3;
+      height: 32px;
+      overflow: hidden;
+    }
+    
+    .plugin-badge {
+      position: absolute;
+      top: 8px;
+      right: 8px;
+      background: var(--primary-color);
+      color: white;
+      border-radius: 10px;
+      padding: 2px 6px;
+      font-size: 0.65em;
+    }
+    
+    .form-group {
+      margin-bottom: 20px;
+    }
+    
+    .entity-row {
+      display: grid;
+      grid-template-columns: 100px 1fr auto;
+      gap: 12px;
+      align-items: center;
+      margin-bottom: 12px;
+    }
+    
+    .entity-label {
+      font-weight: 500;
+      font-size: 0.9em;
+    }
+    
+    .preview-container {
+      min-height: 200px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: var(--secondary-background-color);
+      border-radius: 8px;
+      padding: 20px;
+    }
+    
+    .preview-placeholder {
+      text-align: center;
+      color: var(--secondary-text-color);
+    }
+    
+    .preview-placeholder ha-icon {
+      color: var(--disabled-text-color);
+      margin-bottom: 12px;
+    }
+    
+    .loading {
+      text-align: center;
+      padding: 40px;
+      color: var(--secondary-text-color);
+    }
+    
+    .no-plugins {
+      text-align: center;
+      padding: 40px;
+      color: var(--secondary-text-color);
+    }
+    
     .actions {
       margin-top: 24px;
       text-align: right;
-    }
-    button {
-      padding: 10px 24px;
-      background: var(--primary-color);
-      color: white;
-      border: none;
-      border-radius: 4px;
-      cursor: pointer;
-      font-weight: 500;
-    }
-    button:hover {
-      opacity: 0.9;
-    }
-    .style-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
-      gap: 12px;
-      margin-top: 12px;
-    }
-    .style-option {
-      padding: 16px;
-      border: 2px solid var(--divider-color);
-      border-radius: 8px;
-      cursor: pointer;
-      text-align: center;
-      transition: all 0.2s ease;
-    }
-    .style-option:hover {
-      border-color: var(--primary-color);
-    }
-    .style-option.selected {
-      border-color: var(--primary-color);
-      background: rgba(var(--rgb-primary-color), 0.1);
-    }
-    .style-icon {
-      font-size: 2em;
-      margin-bottom: 8px;
+      border-top: 1px solid var(--divider-color);
+      padding-top: 16px;
     }
   `;
 
   constructor() {
     super();
     this.config = {};
-    this._availableEntities = [];
+    this._plugins = [];
+    this._categories = ['all'];
+    this._searchQuery = '';
+    this._selectedCategory = 'all';
+    this._loading = false;
+    this._activeTab = 0;
+    this._previewConfig = null;
+    this._pluginManager = new PluginManager();
   }
 
-  firstUpdated() {
-    this._loadAvailableEntities();
+  async firstUpdated() {
+    await this._loadPlugins();
+    this._updatePreview();
   }
 
   setConfig(config) {
     this.config = { 
-      style: 'time-week',
+      plugin: '',
       theme: 'default',
       entities: {},
       ...config 
     };
+    this._updatePreview();
   }
 
-  _loadAvailableEntities() {
-    if (!this.hass) return;
-    this._availableEntities = Object.keys(this.hass.states);
+  async _loadPlugins() {
+    this._loading = true;
+    try {
+      this._plugins = await this._pluginManager.searchPlugins();
+      this._categories = await this._pluginManager.getCategories();
+    } catch (error) {
+      console.error('加载插件失败:', error);
+      this._plugins = [];
+    } finally {
+      this._loading = false;
+    }
   }
 
   render() {
     return html`
       <div class="editor">
-        <!-- 样式选择 -->
-        <div class="section">
-          <div class="section-title">🎨 选择样式</div>
-          <div class="style-grid">
-            ${this._renderStyleOption('time-week', '⏰', '时间星期')}
-            ${this._renderStyleOption('time-card', '🕒', '时间卡片')}
-            ${this._renderStyleOption('weather', '🌤️', '天气卡片')}
+        <ha-tabs
+          .activeIndex=${this._activeTab}
+          @iron-activate=${this._tabChanged}
+          scrollable
+        >
+          <paper-tab>
+            <ha-icon icon="mdi:store"></ha-icon>
+            <span>插件市场</span>
+          </paper-tab>
+          <paper-tab>
+            <ha-icon icon="mdi:cog"></ha-icon>
+            <span>实体配置</span>
+          </paper-tab>
+          <paper-tab>
+            <ha-icon icon="mdi:palette"></ha-icon>
+            <span>主题设置</span>
+          </paper-tab>
+        </ha-tabs>
+
+        <div class="editor-content">
+          <div>
+            ${this._renderActiveTab()}
+          </div>
+          
+          <div class="preview-section">
+            <div class="section-title">
+              <ha-icon icon="mdi:eye"></ha-icon>
+              <span>预览</span>
+            </div>
+            <div class="preview-container">
+              ${this._renderPreview()}
+            </div>
           </div>
         </div>
 
-        <!-- 主题选择 -->
-        <div class="section">
-          <div class="section-title">🎭 选择主题</div>
-          <div class="theme-grid">
-            ${this._renderThemeOption('default', '🎨', '默认主题')}
-            ${this._renderThemeOption('dark', '🌙', '深色主题')}
-            ${this._renderThemeOption('material', '⚡', '材质设计')}
-          </div>
-        </div>
-
-        <!-- 实体配置 -->
-        <div class="section">
-          <div class="section-title">🔧 实体配置</div>
-          ${this._renderEntityConfig()}
-        </div>
-
-        <!-- 操作按钮 -->
         <div class="actions">
-          <button @click=${this._save}>保存配置</button>
+          <mwc-button 
+            raised 
+            label="保存配置" 
+            @click=${this._save}
+            .disabled=${!this.config.plugin}
+          ></mwc-button>
         </div>
       </div>
     `;
   }
 
-  _renderStyleOption(styleName, icon, displayName) {
-    const isSelected = this.config.style === styleName;
+  _renderActiveTab() {
+    switch (this._activeTab) {
+      case 0: return this._renderMarketplaceTab();
+      case 1: return this._renderEntityTab();
+      case 2: return this._renderThemeTab();
+      default: return html`<div>未知选项卡</div>`;
+    }
+  }
+
+  _renderMarketplaceTab() {
+    if (this._loading) {
+      return html`
+        <div class="config-section">
+          <div class="loading">
+            <ha-circular-progress active></ha-circular-progress>
+            <div style="margin-top: 16px;">加载插件市场中...</div>
+          </div>
+        </div>
+      `;
+    }
+
+    const filteredPlugins = this._getFilteredPlugins();
+
     return html`
-      <div class="style-option ${isSelected ? 'selected' : ''}" 
-           @click=${() => this._styleChanged(styleName)}>
-        <div class="style-icon">${icon}</div>
-        <div>${displayName}</div>
+      <div class="config-section">
+        <div class="section-title">
+          <ha-icon icon="mdi:store"></ha-icon>
+          <span>插件市场</span>
+        </div>
+        
+        <div class="search-header">
+          <ha-textfield
+            class="flex"
+            label="搜索插件..."
+            .value=${this._searchQuery}
+            @input=${e => this._searchQuery = e.target.value}
+            icon="mdi:magnify"
+          ></ha-textfield>
+          
+          <ha-select
+            label="分类"
+            .value=${this._selectedCategory}
+            @selected=${e => this._selectedCategory = e.target.value}
+          >
+            ${this._categories.map(category => html`
+              <mwc-list-item value=${category}>
+                ${category === 'all' ? '全部分类' : category}
+              </mwc-list-item>
+            `)}
+          </ha-select>
+        </div>
+
+        <div class="plugin-grid">
+          ${filteredPlugins.map(plugin => html`
+            <div class="plugin-card ${this.config.plugin === plugin.id ? 'selected' : ''}"
+                 @click=${() => this._selectPlugin(plugin)}>
+              ${plugin.featured ? html`<div class="plugin-badge">⭐</div>` : ''}
+              <div class="plugin-icon">${plugin.icon}</div>
+              <div class="plugin-name">${plugin.name}</div>
+              <div class="plugin-description">${plugin.description}</div>
+            </div>
+          `)}
+        </div>
+
+        ${filteredPlugins.length === 0 ? html`
+          <div class="no-plugins">
+            <ha-icon icon="mdi:alert-circle-outline" style="font-size: 3em;"></ha-icon>
+            <div style="margin-top: 12px;">没有找到匹配的插件</div>
+          </div>
+        ` : ''}
       </div>
     `;
   }
 
-  _renderThemeOption(themeName, icon, displayName) {
-    const isSelected = this.config.theme === themeName;
+  _renderEntityTab() {
+    if (!this.config.plugin) {
+      return html`
+        <div class="config-section">
+          <div class="no-plugins">
+            <ha-icon icon="mdi:alert-circle-outline"></ha-icon>
+            <div style="margin-top: 12px;">请先选择插件</div>
+          </div>
+        </div>
+      `;
+    }
+
     return html`
-      <div class="theme-option ${isSelected ? 'selected' : ''}" 
-           @click=${() => this._themeChanged(themeName)}>
-        <div class="theme-icon">${icon}</div>
-        <div>${displayName}</div>
+      <div class="config-section">
+        <div class="section-title">
+          <ha-icon icon="mdi:cog"></ha-icon>
+          <span>实体配置</span>
+        </div>
+        ${this._renderEntityConfig()}
       </div>
     `;
   }
@@ -213,90 +373,157 @@ class HaCardForgeEditor extends LitElement {
 
     return html`
       <div class="form-group">
-        <label>时间实体</label>
-        <input 
-          type="text" 
-          .value=${entities.time || ''}
-          @input=${e => this._entityChanged('time', e.target.value)}
-          placeholder="sensor.time"
-          list="time-entities"
-        >
-        <datalist id="time-entities">
-          ${this._getEntityOptions('sensor')}
-        </datalist>
-        ${this._renderEntityStatus(entities.time)}
-      </div>
+        <div class="entity-row">
+          <div class="entity-label">时间实体</div>
+          <ha-entity-picker
+            .hass=${this.hass}
+            .value=${entities.time || ''}
+            @value-changed=${e => this._entityChanged('time', e.detail.value)}
+            allow-custom-entity
+          ></ha-entity-picker>
+          <ha-icon-button 
+            .path=${entities.time ? 'mdi:check-circle' : 'mdi:alert-circle'}
+            .style="color: ${entities.time ? 'var(--success-color)' : 'var(--warning-color)'}"
+          ></ha-icon-button>
+        </div>
 
-      <div class="form-group">
-        <label>日期实体</label>
-        <input 
-          type="text" 
-          .value=${entities.date || ''}
-          @input=${e => this._entityChanged('date', e.target.value)}
-          placeholder="sensor.date"
-          list="date-entities"
-        >
-        <datalist id="date-entities">
-          ${this._getEntityOptions('sensor')}
-        </datalist>
-        ${this._renderEntityStatus(entities.date)}
-      </div>
+        <div class="entity-row">
+          <div class="entity-label">日期实体</div>
+          <ha-entity-picker
+            .hass=${this.hass}
+            .value=${entities.date || ''}
+            @value-changed=${e => this._entityChanged('date', e.detail.value)}
+            allow-custom-entity
+          ></ha-entity-picker>
+          <ha-icon-button 
+            .path=${entities.date ? 'mdi:check-circle' : 'mdi:alert-circle'}
+            .style="color: ${entities.date ? 'var(--success-color)' : 'var(--warning-color)'}"
+          ></ha-icon-button>
+        </div>
 
-      <div class="form-group">
-        <label>星期实体 (可选)</label>
-        <input 
-          type="text" 
-          .value=${entities.week || ''}
-          @input=${e => this._entityChanged('week', e.target.value)}
-          placeholder="sensor.xing_qi"
-          list="week-entities"
-        >
-        <datalist id="week-entities">
-          ${this._getEntityOptions('sensor')}
-        </datalist>
-        ${this._renderEntityStatus(entities.week)}
+        <div class="entity-row">
+          <div class="entity-label">星期实体</div>
+          <ha-entity-picker
+            .hass=${this.hass}
+            .value=${entities.week || ''}
+            @value-changed=${e => this._entityChanged('week', e.detail.value)}
+            allow-custom-entity
+          ></ha-entity-picker>
+          <ha-icon-button 
+            .path=${entities.week ? 'mdi:check-circle' : 'mdi:information-outline'}
+            .style="color: ${entities.week ? 'var(--success-color)' : 'var(--disabled-text-color)'}"
+          ></ha-icon-button>
+        </div>
       </div>
     `;
   }
 
-  _getEntityOptions(domain) {
-    return this._availableEntities
-      .filter(entityId => entityId.startsWith(domain + '.'))
-      .map(entityId => html`<option value="${entityId}">${entityId}</option>`);
+  _renderThemeTab() {
+    return html`
+      <div class="config-section">
+        <div class="section-title">
+          <ha-icon icon="mdi:palette"></ha-icon>
+          <span>主题设置</span>
+        </div>
+        <div class="form-group">
+          <ha-select
+            label="选择主题"
+            .value=${this.config.theme || 'default'}
+            @selected=${e => this._themeChanged(e.target.value)}
+          >
+            <mwc-list-item value="default">
+              <ha-icon icon="mdi:palette-outline" slot="graphic"></ha-icon>
+              默认主题
+            </mwc-list-item>
+            <mwc-list-item value="dark">
+              <ha-icon icon="mdi:weather-night" slot="graphic"></ha-icon>
+              深色主题
+            </mwc-list-item>
+            <mwc-list-item value="material">
+              <ha-icon icon="mdi:material-design" slot="graphic"></ha-icon>
+              材质设计
+            </mwc-list-item>
+          </ha-select>
+        </div>
+      </div>
+    `;
   }
 
-  _renderEntityStatus(entityId) {
-    if (!entityId) {
-      return html`<div class="entity-status">⚠️ 未配置</div>`;
+  _renderPreview() {
+    if (!this.config.plugin) {
+      return html`
+        <div class="preview-placeholder">
+          <ha-icon icon="mdi:card-bulleted-outline" style="font-size: 3em;"></ha-icon>
+          <div>选择插件后显示预览</div>
+        </div>
+      `;
+    }
+
+    if (!this._previewConfig) {
+      return html`
+        <div class="preview-placeholder">
+          <ha-circular-progress active></ha-circular-progress>
+          <div>生成预览中...</div>
+        </div>
+      `;
+    }
+
+    // 创建预览卡片
+    return html`
+      <ha-card style="width: 100%;">
+        <div class="card-content">
+          <ha-cardforge-card
+            .hass=${this.hass}
+            .config=${this._previewConfig}
+          ></ha-cardforge-card>
+        </div>
+      </ha-card>
+    `;
+  }
+
+  _getFilteredPlugins() {
+    let filtered = this._plugins;
+
+    if (this._selectedCategory !== 'all') {
+      filtered = filtered.filter(plugin => plugin.category === this._selectedCategory);
+    }
+
+    if (this._searchQuery) {
+      const query = this._searchQuery.toLowerCase();
+      filtered = filtered.filter(plugin => 
+        plugin.name.toLowerCase().includes(query) ||
+        plugin.description.toLowerCase().includes(query)
+      );
+    }
+
+    return filtered;
+  }
+
+  _tabChanged(ev) {
+    this._activeTab = ev.detail.selected;
+  }
+
+  _selectPlugin(plugin) {
+    this.config = {
+      ...this.config,
+      plugin: plugin.id,
+      entities: this._getDefaultEntities(plugin)
+    };
+    this._updatePreview();
+    this._fireChanged();
+  }
+
+  _getDefaultEntities(plugin) {
+    const defaults = {
+      time: 'sensor.time',
+      date: 'sensor.date'
+    };
+    
+    if (plugin.requiresWeek) {
+      defaults.week = 'sensor.xing_qi';
     }
     
-    if (!this.hass?.states[entityId]) {
-      return html`<div class="entity-status entity-invalid">❌ 实体不存在</div>`;
-    }
-
-    const entity = this.hass.states[entityId];
-    return html`
-      <div class="entity-status entity-valid">
-        ✅ 状态: ${entity.state}
-        ${entity.attributes.unit_of_measurement ? ` ${entity.attributes.unit_of_measurement}` : ''}
-      </div>
-    `;
-  }
-
-  _styleChanged(styleName) {
-    this.config = { 
-      ...this.config, 
-      style: styleName 
-    };
-    this._fireChanged();
-  }
-
-  _themeChanged(themeName) {
-    this.config = { 
-      ...this.config, 
-      theme: themeName 
-    };
-    this._fireChanged();
+    return { ...defaults, ...this.config.entities };
   }
 
   _entityChanged(key, value) {
@@ -304,7 +531,36 @@ class HaCardForgeEditor extends LitElement {
       ...this.config.entities,
       [key]: value
     };
+    this._updatePreview();
     this._fireChanged();
+  }
+
+  _themeChanged(theme) {
+    this.config = {
+      ...this.config,
+      theme: theme
+    };
+    this._updatePreview();
+    this._fireChanged();
+  }
+
+  async _updatePreview() {
+    if (!this.config.plugin) {
+      this._previewConfig = null;
+      return;
+    }
+
+    try {
+      // 创建预览配置，使用模拟数据
+      this._previewConfig = {
+        ...this.config,
+        // 为预览提供模拟实体数据
+        _preview: true
+      };
+    } catch (error) {
+      console.error('更新预览失败:', error);
+      this._previewConfig = null;
+    }
   }
 
   _save() {
@@ -318,4 +574,5 @@ class HaCardForgeEditor extends LitElement {
   }
 }
 
+customElements.define('ha-cardforge-editor', HaCardForgeEditor);
 export { HaCardForgeEditor };
