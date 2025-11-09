@@ -8,8 +8,9 @@ export class BaseCard {
     this.pluginManager = new PluginManager();
     this.entityManager = new EntityManager();
     this.themeManager = new ThemeManager();
-    this._entities = new Map();
+    this._entities = new Map();  // 确保在基类中初始化
     this._config = null;
+    this.hass = null;
   }
   
   validateConfig(config) {
@@ -23,6 +24,7 @@ export class BaseCard {
   }
   
   updateEntities(hass) {
+    this.hass = hass;  // 保存 hass 引用
     this._entities.clear();
     if (!hass || !this._config?.entities) return;
     

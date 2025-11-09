@@ -13,13 +13,14 @@ export class HaCardForgeCard extends BaseCard {
 
   constructor() {
     super();
+    // 基类已经初始化了 _entities，这里不需要重复初始化
     this._plugin = null;
     this._error = null;
   }
 
   async setConfig(config) {
     this._config = this.validateConfig(config);
-    this.updateEntities(this.hass);
+    this.updateEntities(this.hass);  // 使用基类的方法
     this._error = null;
     
     try {
