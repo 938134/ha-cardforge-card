@@ -11,38 +11,16 @@ class HaCardForgeEditor extends LitElement {
     _searchQuery: { state: true },
     _selectedCategory: { state: true },
     _loading: { state: true },
-    _activeTab: { state: true },
-    _previewConfig: { state: true }
+    _activeTab: { state: true }
   };
 
   static styles = css`
     .editor {
       padding: 16px;
-      max-width: 900px;
-    }
-    
-    .editor-content {
-      display: grid;
-      grid-template-columns: 1fr 300px;
-      gap: 20px;
-      align-items: start;
     }
     
     .config-section {
-      background: var(--card-background-color);
-      border-radius: var(--ha-card-border-radius, 12px);
-      padding: 20px;
-      margin-bottom: 16px;
-      border: 1px solid var(--divider-color);
-    }
-    
-    .preview-section {
-      position: sticky;
-      top: 20px;
-      background: var(--card-background-color);
-      border-radius: var(--ha-card-border-radius, 12px);
-      padding: 20px;
-      border: 1px solid var(--divider-color);
+      margin-bottom: 24px;
     }
     
     .section-title {
@@ -59,6 +37,7 @@ class HaCardForgeEditor extends LitElement {
       display: flex;
       gap: 12px;
       margin-bottom: 20px;
+      align-items: center;
     }
     
     .plugin-grid {
@@ -130,30 +109,15 @@ class HaCardForgeEditor extends LitElement {
     
     .entity-row {
       display: grid;
-      grid-template-columns: 100px 1fr auto;
+      grid-template-columns: 120px 1fr auto;
       gap: 12px;
       align-items: center;
-      margin-bottom: 12px;
+      margin-bottom: 16px;
     }
     
     .entity-label {
       font-weight: 500;
       font-size: 0.9em;
-    }
-    
-    .preview-container {
-      min-height: 200px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      background: var(--secondary-background-color);
-      border-radius: 8px;
-      padding: 20px;
-    }
-    
-    .preview-placeholder {
-      text-align: center;
-      color: var(--secondary-text-color);
     }
     
     .loading {
@@ -174,27 +138,43 @@ class HaCardForgeEditor extends LitElement {
       border-top: 1px solid var(--divider-color);
       padding-top: 16px;
     }
-
-    .tabs {
-      display: flex;
-      border-bottom: 1px solid var(--divider-color);
-      margin-bottom: 20px;
+    
+    .tab-content {
+      padding: 16px 0;
     }
     
-    .tab {
-      padding: 12px 24px;
+    .theme-previews {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 16px;
+      margin-top: 16px;
+    }
+    
+    .theme-preview {
+      border: 2px solid var(--divider-color);
+      border-radius: 8px;
+      padding: 16px;
       cursor: pointer;
-      border-bottom: 2px solid transparent;
-      font-weight: 500;
+      transition: all 0.2s ease;
     }
     
-    .tab.active {
-      border-bottom-color: var(--primary-color);
-      color: var(--primary-color);
+    .theme-preview:hover {
+      border-color: var(--primary-color);
     }
     
-    .tab:hover {
-      background: var(--secondary-background-color);
+    .theme-preview.selected {
+      border-color: var(--primary-color);
+      background: rgba(var(--rgb-primary-color), 0.05);
+    }
+    
+    .theme-name {
+      font-weight: 600;
+      margin-bottom: 8px;
+    }
+    
+    .theme-description {
+      font-size: 0.8em;
+      color: var(--secondary-text-color);
     }
   `;
 
@@ -207,13 +187,11 @@ class HaCardForgeEditor extends LitElement {
     this._selectedCategory = 'all';
     this._loading = false;
     this._activeTab = 0;
-    this._previewConfig = null;
     this._pluginManager = new PluginManager();
   }
 
   async firstUpdated() {
     await this._loadPlugins();
-    this._updatePreview();
   }
 
   setConfig(config) {
@@ -223,7 +201,6 @@ class HaCardForgeEditor extends LitElement {
       entities: {},
       ...config 
     };
-    this._updatePreview();
   }
 
   async _loadPlugins() {
@@ -242,32 +219,27 @@ class HaCardForgeEditor extends LitElement {
   render() {
     return html`
       <div class="editor">
-        <div class="tabs">
-          <div class="tab ${this._activeTab === 0 ? 'active' : ''}" @click=${() => this._activeTab = 0}>
+        <ha-tabs
+          .selected=${this._activeTab}
+          @selected-changed=${this._tabChanged}
+          scrollable
+        >
+          <paper-tab>
+            <ha-icon icon="mdi:store"></ha-icon>
             插件市场
-          </div>
-          <div class="tab ${this._activeTab === 1 ? 'active' : ''}" @click=${() => this._activeTab = 1}>
+          </paper-tab>
+          <paper-tab>
+            <ha-icon icon="mdi:cog"></ha-icon>
             实体配置
-          </div>
-          <div class="tab ${this._activeTab === 2 ? 'active' : ''}" @click=${() => this._activeTab = 2}>
+          </paper-tab>
+          <paper-tab>
+            <ha-icon icon="mdi:palette"></ha-icon>
             主题设置
-          </div>
-        </div>
+          </paper-tab>
+        </ha-tabs>
 
-        <div class="editor-content">
-          <div>
-            ${this._renderActiveTab()}
-          </div>
-          
-          <div class="preview-section">
-            <div class="section-title">
-              <ha-icon icon="mdi:eye"></ha-icon>
-              <span>预览</span>
-            </div>
-            <div class="preview-container">
-              ${this._renderPreview()}
-            </div>
-          </div>
+        <div class="tab-content">
+          ${this._renderActiveTab()}
         </div>
 
         <div class="actions">
@@ -374,16 +346,20 @@ class HaCardForgeEditor extends LitElement {
           <ha-icon icon="mdi:cog"></ha-icon>
           <span>实体配置</span>
         </div>
-        ${this._renderEntityConfig()}
+        
+        <div class="form-group">
+          ${this._renderEntityConfig()}
+        </div>
       </div>
     `;
   }
 
   _renderEntityConfig() {
     const entities = this.config.entities || {};
+    const pluginInfo = this._plugins.find(p => p.id === this.config.plugin);
 
     return html`
-      <div class="form-group">
+      ${pluginInfo?.requiresWeek ? html`
         <div class="entity-row">
           <div class="entity-label">时间实体</div>
           <ha-entity-picker
@@ -425,66 +401,89 @@ class HaCardForgeEditor extends LitElement {
             .style="color: ${entities.week ? 'var(--success-color)' : 'var(--disabled-text-color)'}"
           ></ha-icon-button>
         </div>
-      </div>
+      ` : ''}
+
+      ${pluginInfo?.category === 'weather' ? html`
+        <div class="entity-row">
+          <div class="entity-label">天气实体</div>
+          <ha-entity-picker
+            .hass=${this.hass}
+            .value=${entities.weather || ''}
+            @value-changed=${e => this._entityChanged('weather', e.detail.value)}
+            allow-custom-entity
+          ></ha-entity-picker>
+          <ha-icon-button 
+            .path=${entities.weather ? 'mdi:check-circle' : 'mdi:information-outline'}
+            .style="color: ${entities.weather ? 'var(--success-color)' : 'var(--disabled-text-color)'}"
+          ></ha-icon-button>
+        </div>
+      ` : ''}
+
+      ${pluginInfo?.id === 'clock-lunar' ? html`
+        <div class="entity-row">
+          <div class="entity-label">农历实体</div>
+          <ha-entity-picker
+            .hass=${this.hass}
+            .value=${entities.lunar || ''}
+            @value-changed=${e => this._entityChanged('lunar', e.detail.value)}
+            allow-custom-entity
+          ></ha-entity-picker>
+          <ha-icon-button 
+            .path=${entities.lunar ? 'mdi:check-circle' : 'mdi:information-outline'}
+            .style="color: ${entities.lunar ? 'var(--success-color)' : 'var(--disabled-text-color)'}"
+          ></ha-icon-button>
+        </div>
+      ` : ''}
+
+      ${!pluginInfo?.requiresWeek && pluginInfo?.category !== 'weather' && pluginInfo?.id !== 'clock-lunar' ? html`
+        <div class="no-plugins">
+          <ha-icon icon="mdi:information-outline"></ha-icon>
+          <div style="margin-top: 12px;">此插件无需特殊实体配置</div>
+        </div>
+      ` : ''}
     `;
   }
 
   _renderThemeTab() {
+    const themes = [
+      { id: 'default', name: '默认主题', description: '使用 Home Assistant 默认主题', icon: 'mdi:palette-outline' },
+      { id: 'dark', name: '深色主题', description: '适合暗色模式的深色主题', icon: 'mdi:weather-night' },
+      { id: 'material', name: '材质设计', description: 'Google Material Design 风格', icon: 'mdi:material-design' },
+      { id: 'glass', name: '玻璃拟态', description: '毛玻璃效果现代设计', icon: 'mdi:crystal-ball' }
+    ];
+
     return html`
       <div class="config-section">
         <div class="section-title">
           <ha-icon icon="mdi:palette"></ha-icon>
           <span>主题设置</span>
         </div>
+        
         <div class="form-group">
           <ha-select
             label="选择主题"
             .value=${this.config.theme || 'default'}
             @selected=${e => this._themeChanged(e.target.value)}
           >
-            <mwc-list-item value="default">
-              <ha-icon icon="mdi:palette-outline" slot="graphic"></ha-icon>
-              默认主题
-            </mwc-list-item>
-            <mwc-list-item value="dark">
-              <ha-icon icon="mdi:weather-night" slot="graphic"></ha-icon>
-              深色主题
-            </mwc-list-item>
-            <mwc-list-item value="material">
-              <ha-icon icon="mdi:material-design" slot="graphic"></ha-icon>
-              材质设计
-            </mwc-list-item>
+            ${themes.map(theme => html`
+              <mwc-list-item value=${theme.id}>
+                <ha-icon icon=${theme.icon} slot="graphic"></ha-icon>
+                ${theme.name}
+              </mwc-list-item>
+            `)}
           </ha-select>
         </div>
+
+        <div class="theme-previews">
+          ${themes.map(theme => html`
+            <div class="theme-preview ${this.config.theme === theme.id ? 'selected' : ''}"
+                 @click=${() => this._themeChanged(theme.id)}>
+              <div class="theme-name">${theme.name}</div>
+              <div class="theme-description">${theme.description}</div>
+            </div>
+          `)}
+        </div>
       </div>
-    `;
-  }
-
-  _renderPreview() {
-    if (!this.config.plugin) {
-      return html`
-        <div class="preview-placeholder">
-          <ha-icon icon="mdi:card-bulleted-outline" style="font-size: 3em;"></ha-icon>
-          <div>选择插件后显示预览</div>
-        </div>
-      `;
-    }
-
-    if (!this._previewConfig) {
-      return html`
-        <div class="preview-placeholder">
-          <ha-circular-progress active></ha-circular-progress>
-          <div>生成预览中...</div>
-        </div>
-      `;
-    }
-
-    // 修复预览：创建真实的卡片元素
-    return html`
-      <ha-cardforge-card
-        .hass=${this.hass}
-        .config=${this._previewConfig}
-      ></ha-cardforge-card>
     `;
   }
 
@@ -506,13 +505,16 @@ class HaCardForgeEditor extends LitElement {
     return filtered;
   }
 
+  _tabChanged(ev) {
+    this._activeTab = ev.detail.selected;
+  }
+
   _selectPlugin(plugin) {
     this.config = {
       ...this.config,
       plugin: plugin.id,
       entities: this._getDefaultEntities(plugin)
     };
-    this._updatePreview();
     this._fireChanged();
   }
 
@@ -526,6 +528,14 @@ class HaCardForgeEditor extends LitElement {
       defaults.week = 'sensor.xing_qi';
     }
     
+    if (plugin.category === 'weather') {
+      defaults.weather = 'weather.home';
+    }
+    
+    if (plugin.id === 'clock-lunar') {
+      defaults.lunar = 'sensor.lunar_date';
+    }
+    
     return { ...defaults, ...this.config.entities };
   }
 
@@ -534,7 +544,6 @@ class HaCardForgeEditor extends LitElement {
       ...this.config.entities,
       [key]: value
     };
-    this._updatePreview();
     this._fireChanged();
   }
 
@@ -543,25 +552,7 @@ class HaCardForgeEditor extends LitElement {
       ...this.config,
       theme: theme
     };
-    this._updatePreview();
     this._fireChanged();
-  }
-
-  async _updatePreview() {
-    if (!this.config.plugin) {
-      this._previewConfig = null;
-      return;
-    }
-
-    try {
-      this._previewConfig = {
-        ...this.config,
-        _preview: true
-      };
-    } catch (error) {
-      console.error('更新预览失败:', error);
-      this._previewConfig = null;
-    }
   }
 
   _save() {

@@ -7,7 +7,7 @@ class PluginManager {
   }
 
   _getBaseURL() {
-    return 'https://raw.githubusercontent.com/938134/ha-cardforge-card/main/';
+    return 'https://ghfast.top/https://raw.githubusercontent.com/938134/ha-cardforge-card/main/';
   }
 
   async _loadPluginRegistry() {
