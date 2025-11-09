@@ -1,7 +1,6 @@
-// ha-cardforge-card/components/entity.js
+// ha-cardforge-card/managers/entity.js
 class EntityManager {
   static _favoriteEntities = new Set();
-  static _entityCache = new Map();
 
   static init() {
     this._loadFavorites();
@@ -119,7 +118,6 @@ class EntityManager {
   static _suggestEntity(hass, requirement) {
     const filters = { domains: requirement.type, state: true };
 
-    // 根据需求类型设置特定过滤器
     switch (requirement.key) {
       case 'time':
         filters.domains = ['sensor'];
@@ -131,7 +129,6 @@ class EntityManager {
         break;
       case 'week':
         filters.domains = ['sensor'];
-        // 星期实体通常有特定命名模式
         break;
       case 'temperature':
         filters.domains = ['sensor', 'weather'];
@@ -142,7 +139,6 @@ class EntityManager {
         break;
       case 'lunar':
         filters.domains = ['sensor'];
-        // 农历实体通常有特定命名
         break;
     }
 
@@ -209,99 +205,101 @@ class EntityManager {
     return Array.from(this._favoriteEntities);
   }
 
-  // 批量验证
-  static validateEntityConfig(hass, entityConfig, styleRequirements) {
-    const results = {
-      valid: true,
-      errors: [],
-      warnings: [],
-      entities: {}
-    };
-
-    if (!styleRequirements?.required) return results;
-
-    // 验证必需实体
-    styleRequirements.required.forEach(req => {
-      const entityId = entityConfig[req.key];
-      const validation = this.validateEntity(hass, entityId, req.type);
-
-      if (!validation.isValid) {
-        results.valid = false;
-        results.errors.push({
-          key: req.key,
-          description: req.description,
-          reason: validation.reason,
-          entityId: entityId
-        });
-      } else {
-        results.entities[req.key] = validation.entity;
-      }
-    });
-
-    return results;
-  }
-
-  // 获取实体域列表
-  static getEntityDomains(hass) {
-    if (!hass?.states) return [];
-    
-    const domains = new Set();
-    Object.keys(hass.states).forEach(entityId => {
-      const domain = entityId.split('.')[0];
-      domains.add(domain);
-    });
-    
-    return Array.from(domains).sort();
-  }
-
-  // 获取域内的实体
-  static getEntitiesByDomain(hass, domain) {
-    if (!hass?.states) return [];
-    
-    return Object.keys(hass.states).filter(entityId => 
-      entityId.split('.')[0] === domain
-    );
-  }
-
-  // 实体搜索
-  static searchEntities(hass, query, domain = null) {
-    if (!hass?.states) return [];
-    
-    const searchTerm = query.toLowerCase();
-    return Object.keys(hass.states).filter(entityId => {
-      const entity = hass.states[entityId];
-      const matchesDomain = !domain || entityId.split('.')[0] === domain;
-      const matchesQuery = entityId.toLowerCase().includes(searchTerm) ||
-                          entity.attributes?.friendly_name?.toLowerCase().includes(searchTerm);
-      
-      return matchesDomain && matchesQuery;
-    });
-  }
-
-  // 获取实体统计
-  static getEntityStats(hass) {
-    if (!hass?.states) return {};
-    
-    const stats = {
-      total: Object.keys(hass.states).length,
-      byDomain: {},
-      unavailable: 0
+  // 获取默认实体配置
+  static getDefaultEntities(plugin, existingEntities = {}) {
+    const defaults = {
+      time: 'sensor.time',
+      date: 'sensor.date'
     };
     
-    Object.keys(hass.states).forEach(entityId => {
-      const domain = entityId.split('.')[0];
-      const entity = hass.states[entityId];
-      
-      // 统计域
-      stats.byDomain[domain] = (stats.byDomain[domain] || 0) + 1;
-      
-      // 统计不可用实体
-      if (entity.state === 'unavailable') {
-        stats.unavailable++;
-      }
-    });
+    if (plugin.requiresWeek) {
+      defaults.week = 'sensor.xing_qi';
+    }
     
-    return stats;
+    if (plugin.category === 'weather') {
+      defaults.weather = 'weather.home';
+    }
+    
+    if (plugin.id === 'clock-lunar') {
+      defaults.lunar = 'sensor.lunar_date';
+    }
+    
+    return { ...defaults, ...existingEntities };
+  }
+
+  // UI 渲染方法
+  static renderEntityConfig(hass, entities, onEntityChanged) {
+    return `
+      <div class="entity-row">
+        <div class="entity-label">时间实体</div>
+        <ha-entity-picker
+          .hass="${hass}"
+          .value="${entities.time || ''}"
+          @value-changed="${(e) => onEntityChanged('time', e.detail.value)}"
+          allow-custom-entity
+        ></ha-entity-picker>
+        <ha-icon-button 
+          .path="${entities.time ? 'mdi:check-circle' : 'mdi:alert-circle'}"
+          .style="color: ${entities.time ? 'var(--success-color)' : 'var(--warning-color)'}"
+        ></ha-icon-button>
+      </div>
+
+      <div class="entity-row">
+        <div class="entity-label">日期实体</div>
+        <ha-entity-picker
+          .hass="${hass}"
+          .value="${entities.date || ''}"
+          @value-changed="${(e) => onEntityChanged('date', e.detail.value)}"
+          allow-custom-entity
+        ></ha-entity-picker>
+        <ha-icon-button 
+          .path="${entities.date ? 'mdi:check-circle' : 'mdi:alert-circle'}"
+          .style="color: ${entities.date ? 'var(--success-color)' : 'var(--warning-color)'}"
+        ></ha-icon-button>
+      </div>
+
+      <div class="entity-row">
+        <div class="entity-label">星期实体</div>
+        <ha-entity-picker
+          .hass="${hass}"
+          .value="${entities.week || ''}"
+          @value-changed="${(e) => onEntityChanged('week', e.detail.value)}"
+          allow-custom-entity
+        ></ha-entity-picker>
+        <ha-icon-button 
+          .path="${entities.week ? 'mdi:check-circle' : 'mdi:information-outline'}"
+          .style="color: ${entities.week ? 'var(--success-color)' : 'var(--disabled-text-color)'}"
+        ></ha-icon-button>
+      </div>
+
+      <div class="entity-row">
+        <div class="entity-label">天气实体</div>
+        <ha-entity-picker
+          .hass="${hass}"
+          .value="${entities.weather || ''}"
+          @value-changed="${(e) => onEntityChanged('weather', e.detail.value)}"
+          allow-custom-entity
+        ></ha-entity-picker>
+        <ha-icon-button 
+          .path="${entities.weather ? 'mdi:check-circle' : 'mdi:information-outline'}"
+          .style="color: ${entities.weather ? 'var(--success-color)' : 'var(--disabled-text-color)'}"
+        ></ha-icon-button>
+      </div>
+
+      <div class="entity-row">
+        <div class="entity-label">农历实体</div>
+        <ha-entity-picker
+          .hass="${hass}"
+          .value="${entities.lunar || ''}"
+          @value-changed="${(e) => onEntityChanged('lunar', e.detail.value)}"
+          allow-custom-entity
+        ></ha-entity-picker>
+        <ha-icon-button 
+          .path="${entities.lunar ? 'mdi:check-circle' : 'mdi:information-outline'}"
+          .style="color: ${entities.lunar ? 'var(--success-color)' : 'var(--disabled-text-color)'}"
+        ></ha-icon-button>
+      </div>
+    `;
   }
 }
 

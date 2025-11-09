@@ -12,7 +12,6 @@ class HaCardForgeEditor extends LitElement {
     _loading: { state: true },
     _activeTab: { state: true },
     _previewConfig: { state: true },
-    _selectedPlugin: { state: true },
     _marketplaces: { state: true },
     _currentMarketplace: { state: true },
     _customMarketplaceUrl: { state: true }
@@ -179,11 +178,6 @@ class HaCardForgeEditor extends LitElement {
       color: var(--secondary-text-color);
     }
     
-    .preview-placeholder ha-icon {
-      color: var(--disabled-text-color);
-      margin-bottom: 12px;
-    }
-    
     .loading {
       text-align: center;
       padding: 40px;
@@ -295,17 +289,34 @@ class HaCardForgeEditor extends LitElement {
     this._loading = false;
     this._activeTab = 0;
     this._previewConfig = null;
-    this._selectedPlugin = null;
     this._marketplaces = [];
     this._currentMarketplace = null;
     this._customMarketplaceUrl = '';
-    this._pluginManager = new PluginManager();
+    this._pluginManager = null;
+    this._entityManager = null;
+    this._themeManager = null;
   }
 
   async firstUpdated() {
+    await this._loadManagers();
     await this._loadMarketplaces();
     await this._loadPlugins();
     this._updatePreview();
+  }
+
+  async _loadManagers() {
+    if (!this._pluginManager) {
+      const { PluginManager } = await import('./managers/plugin.js');
+      this._pluginManager = new PluginManager();
+    }
+    if (!this._entityManager) {
+      const { EntityManager } = await import('./managers/entity.js');
+      this._entityManager = new EntityManager();
+    }
+    if (!this._themeManager) {
+      const { ThemeManager } = await import('./managers/theme.js');
+      this._themeManager = new ThemeManager();
+    }
   }
 
   setConfig(config) {
@@ -551,7 +562,6 @@ class HaCardForgeEditor extends LitElement {
 
   _renderEntityConfig() {
     const entities = this.config.entities || {};
-
     return html`
       <div class="form-group">
         <div class="entity-row">
@@ -628,6 +638,8 @@ class HaCardForgeEditor extends LitElement {
   }
 
   _renderThemeTab() {
+    const themes = this._themeManager.getAllThemes();
+    
     return html`
       <div class="config-section">
         <div class="section-title">
@@ -640,23 +652,16 @@ class HaCardForgeEditor extends LitElement {
             .value=${this.config.theme || 'default'}
             @selected=${e => this._themeChanged(e.target.value)}
           >
-            <mwc-list-item value="default">
-              <ha-icon icon="mdi:palette-outline" slot="graphic"></ha-icon>
-              默认主题
-            </mwc-list-item>
-            <mwc-list-item value="dark">
-              <ha-icon icon="mdi:weather-night" slot="graphic"></ha-icon>
-              深色主题
-            </mwc-list-item>
-            <mwc-list-item value="material">
-              <ha-icon icon="mdi:material-design" slot="graphic"></ha-icon>
-              材质设计
-            </mwc-list-item>
-            <mwc-list-item value="glass">
-              <ha-icon icon="mdi:crystal-ball" slot="graphic"></ha-icon>
-              玻璃拟态
-            </mwc-list-item>
+            ${themes.map(theme => html`
+              <mwc-list-item value=${theme.id}>
+                <ha-icon icon=${this._getThemeIcon(theme.id)} slot="graphic"></ha-icon>
+                ${theme.name}
+              </mwc-list-item>
+            `)}
           </ha-select>
+          <div style="font-size: 0.8em; color: var(--secondary-text-color); margin-top: 8px;">
+            ${this._themeManager.getTheme(this.config.theme)?.description || ''}
+          </div>
         </div>
       </div>
     `;
@@ -747,7 +752,7 @@ class HaCardForgeEditor extends LitElement {
                   <div class="plugin-name">${plugin.name}</div>
                   <div class="plugin-description">
                     v${plugin.version} 
-                    <br>${this._getMarketplaceDisplayName(plugin.marketplace)}
+                    <br>${plugin.builtin ? '内置' : plugin.marketplace}
                   </div>
                   ${!plugin.builtin ? html`
                     <mwc-button 
@@ -804,7 +809,6 @@ class HaCardForgeEditor extends LitElement {
       `;
     }
 
-    // 创建预览配置
     const previewConfig = {
       ...this.config,
       _preview: true
@@ -818,6 +822,7 @@ class HaCardForgeEditor extends LitElement {
     `;
   }
 
+  // 工具方法
   _getFilteredPlugins() {
     let filtered = this._plugins;
 
@@ -841,6 +846,17 @@ class HaCardForgeEditor extends LitElement {
     return marketplace ? marketplace.name : marketplaceId;
   }
 
+  _getThemeIcon(themeId) {
+    const icons = {
+      'default': 'mdi:palette-outline',
+      'dark': 'mdi:weather-night',
+      'material': 'mdi:material-design',
+      'glass': 'mdi:crystal-ball'
+    };
+    return icons[themeId] || 'mdi:palette';
+  }
+
+  // 事件处理方法
   async _switchMarketplace(marketplaceId) {
     this._pluginManager.setCurrentMarketplace(marketplaceId);
     this._currentMarketplace = this._pluginManager.getCurrentMarketplace();
@@ -855,32 +871,10 @@ class HaCardForgeEditor extends LitElement {
     this.config = {
       ...this.config,
       plugin: plugin.id,
-      entities: this._getDefaultEntities(plugin)
+      entities: this._entityManager.getDefaultEntities(plugin, this.config.entities)
     };
-    this._selectedPlugin = plugin;
     this._updatePreview();
     this._fireChanged();
-  }
-
-  _getDefaultEntities(plugin) {
-    const defaults = {
-      time: 'sensor.time',
-      date: 'sensor.date'
-    };
-    
-    if (plugin.requiresWeek) {
-      defaults.week = 'sensor.xing_qi';
-    }
-    
-    if (plugin.category === 'weather') {
-      defaults.weather = 'weather.home';
-    }
-    
-    if (plugin.id === 'clock-lunar') {
-      defaults.lunar = 'sensor.lunar_date';
-    }
-    
-    return { ...defaults, ...this.config.entities };
   }
 
   async _installPlugin(pluginId, event) {
@@ -1016,7 +1010,7 @@ class HaCardForgeEditor extends LitElement {
   }
 
   async _updatePreview() {
-    // 预览会自动更新，因为 config 变化会触发卡片重新渲染
+    // 预览会自动更新
   }
 
   _save() {
