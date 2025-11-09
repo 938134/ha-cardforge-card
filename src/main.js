@@ -1,4 +1,4 @@
-// src/main.js
+// src/main.js - 确保注册正确
 import { HaCardForgeCard } from './ha-cardforge-card.js';
 import { HaCardForgeEditor } from './ha-cardforge-editor.js';
 
@@ -7,6 +7,11 @@ console.log('🚀 开始注册自定义元素...');
 // 确保元素名称正确
 const CARD_ELEMENT = 'ha-cardforge-card';
 const EDITOR_ELEMENT = 'ha-cardforge-editor';
+
+console.log('🔧 检查元素是否已存在:', {
+  card: !!customElements.get(CARD_ELEMENT),
+  editor: !!customElements.get(EDITOR_ELEMENT)
+});
 
 if (!customElements.get(CARD_ELEMENT)) {
   customElements.define(CARD_ELEMENT, HaCardForgeCard);
@@ -31,6 +36,8 @@ if (window.customCards) {
     preview: true
   });
   console.log('✅ 注册到 customCards');
+} else {
+  console.log('⚠️ window.customCards 不存在');
 }
 
 console.log('🎉 卡片工坊加载完成');

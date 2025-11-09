@@ -17,26 +17,34 @@ class HaCardForgeCard extends ButtonCard {
   }
 
   async setConfig(config) {
-    console.log('🔧 setConfig 被调用:', config);
+    console.log('🔧 [CardForge] setConfig 被调用:', config);
     
     if (!config) {
-      console.error('❌ config 为 undefined');
+      console.error('❌ [CardForge] config 为 undefined');
       return;
     }
     
     this._config = this._validateConfig(config);
     
     try {
+      console.log('🔍 [CardForge] 开始加载插件:', this._config.plugin);
       const plugin = await this._loadPlugin(this._config.plugin);
-      console.log('✅ 插件加载成功:', this._config.plugin);
+      console.log('✅ [CardForge] 插件加载成功:', this._config.plugin, plugin);
       
       const buttonConfig = this._convertToButtonCard(plugin);
-      console.log('🔧 转换后的 button-card 配置:', buttonConfig);
+      console.log('🔧 [CardForge] 转换后的 button-card 配置:', buttonConfig);
       
+      console.log('🚀 [CardForge] 调用父类 setConfig');
       super.setConfig(buttonConfig);
-      console.log('✅ button-card 配置设置成功');
+      console.log('✅ [CardForge] button-card 配置设置成功');
+      
+      // 检查设置后的状态
+      setTimeout(() => {
+        this._checkButtonCardState();
+      }, 100);
+      
     } catch (error) {
-      console.error('❌ 加载插件失败:', error);
+      console.error('❌ [CardForge] 加载插件失败:', error);
       super.setConfig(this._getErrorConfig(error));
     }
   }
@@ -82,8 +90,8 @@ class HaCardForgeCard extends ButtonCard {
     const template = plugin.getTemplate(this._config, this.hass, entities);
     const styles = plugin.getStyles(this._config);
     
-    console.log('📝 插件模板:', template);
-    console.log('🎨 插件样式:', styles);
+    console.log('📝 [CardForge] 插件模板:', template);
+    console.log('🎨 [CardForge] 插件样式:', styles);
     
     return {
       type: 'custom:button-card',
@@ -119,11 +127,11 @@ class HaCardForgeCard extends ButtonCard {
 
   _getErrorConfig(error) {
     const errorHtml = `
-      <div style="padding: 20px; text-align: center; color: var(--error-color); border: 2px solid red;">
+      <div style="padding: 20px; text-align: center; color: var(--error-color); border: 2px solid red; background: #ffebee;">
         <div style="font-size: 2em;">❌</div>
         <div style="font-weight: bold;">卡片加载失败</div>
         <div style="font-size: 0.9em;">${error.message}</div>
-        <div style="font-size: 0.8em; margin-top: 10px;">调试信息</div>
+        <div style="font-size: 0.8em; margin-top: 10px;">请检查控制台获取详细信息</div>
       </div>
     `;
     
@@ -138,21 +146,37 @@ class HaCardForgeCard extends ButtonCard {
           card: `
             ha-card { background: transparent; border: none; box-shadow: none; }
             :host { display: block; }
-            .card { 
-              padding: 20px; 
-              text-align: center; 
-              color: var(--error-color);
-              font-family: var(--paper-font-common-nowrap_-_font-family);
-            }
           `
         }
       }
     };
   }
 
+  _checkButtonCardState() {
+    console.log('🔍 [CardForge] 检查 button-card 状态');
+    console.log('📊 [CardForge] 当前元素状态:', {
+      shadowRoot: !!this.shadowRoot,
+      children: this.children?.length || 0,
+      innerHTML: this.innerHTML?.substring(0, 200) || '空'
+    });
+    
+    if (this.shadowRoot) {
+      const buttonCardElements = this.shadowRoot.querySelectorAll('*');
+      console.log('🎭 [CardForge] 影子根元素数量:', buttonCardElements.length);
+      
+      buttonCardElements.forEach((el, index) => {
+        if (index < 5) { // 只显示前5个元素避免过多日志
+          console.log(`🎭 [CardForge] 元素 ${index}:`, el.tagName, el.className);
+        }
+      });
+    } else {
+      console.log('❌ [CardForge] 没有影子根');
+    }
+  }
+
   updated(changedProperties) {
     if (changedProperties.has('hass') && this._config && this._config.plugin) {
-      console.log('🔄 Hass 更新，重新配置');
+      console.log('🔄 [CardForge] Hass 更新，重新配置');
       this.setConfig(this._config);
     }
   }
