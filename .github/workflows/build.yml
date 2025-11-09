@@ -37,6 +37,16 @@ jobs:
       - name: 构建项目
         run: npm run build
 
+      # ---------- 验证构建结果 ----------
+      - name: 检查构建产物
+        run: |
+          echo "构建结果："
+          ls -la dist/
+          if [ -d "dist/plugins" ]; then
+            echo "插件目录内容："
+            ls -la dist/plugins/
+          fi
+
       # ---------- 计算版本号 ----------
       - name: 生成版本号
         id: version
@@ -61,7 +71,7 @@ jobs:
       - name: 创建 Release
         uses: ncipollo/release-action@v1.14.0
         with:
-          artifacts: "dist/**/*"
+          artifacts: "dist/**/*"  # 发布 dist 下的所有文件
           token: ${{ secrets.GITHUB_TOKEN }}
           tag: ${{ steps.version.outputs.version }}
           name: ${{ steps.version.outputs.version }}
@@ -69,6 +79,10 @@ jobs:
             ## 安装方式
             在 HACS → **前端** → **自定义仓库** 中添加  
             `https://github.com/${{ github.repository }}`
+
+            ## 文件说明
+            - `ha-cardforge-card.js`: 主卡片文件
+            - `plugins/`: 插件目录
 
             ## 更新日志
             - 版本: ${{ steps.version.outputs.version }}

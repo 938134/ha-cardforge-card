@@ -7,6 +7,7 @@ export default {
     file: 'dist/ha-cardforge-card.js',
     format: 'es',
   },
+  inlineDynamicImports: true,  // 关键：内联所有动态导入
   external: [
     /^lit/,
     /^@lit/,
