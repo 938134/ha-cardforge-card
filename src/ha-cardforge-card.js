@@ -13,6 +13,7 @@ class HaCardForgeCard extends ButtonCard {
   constructor() {
     super();
     this._pluginCache = new Map();
+    this._config = {}; // 初始化配置
   }
 
   async setConfig(config) {
@@ -29,7 +30,8 @@ class HaCardForgeCard extends ButtonCard {
   }
 
   _validateConfig(config) {
-    if (!config.plugin) {
+    // 确保 config 存在且有 plugin 属性
+    if (!config || !config.plugin) {
       throw new Error('必须指定 plugin 参数');
     }
     return {
@@ -130,7 +132,8 @@ class HaCardForgeCard extends ButtonCard {
   }
 
   updated(changedProperties) {
-    if (changedProperties.has('hass')) {
+    if (changedProperties.has('hass') && this._config && this._config.plugin) {
+      // 只有在有有效配置时才重新设置
       this.setConfig(this._config);
     }
   }
