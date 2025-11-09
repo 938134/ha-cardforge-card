@@ -1,5 +1,97 @@
-// ha-cardforge-card/ha-cardforge-editor.js
+// ha-cardforge-card/src/ha-cardforge-editor.js
 import { LitElement, html, css } from 'https://unpkg.com/lit@2.8.0/index.js?module';
+
+// 内联 PluginManager 定义（与主卡片相同）
+class EditorPluginManager {
+  constructor() {
+    this._baseURL = this._getBaseURL();
+    this._cache = new Map();
+    this._pluginRegistry = null;
+  }
+
+  _getBaseURL() {
+    const currentScript = document.currentScript || 
+      Array.from(document.querySelectorAll('script')).find(s => 
+        s.src && s.src.includes('ha-cardforge-card.js')
+      );
+    
+    if (currentScript) {
+      const url = new URL(currentScript.src);
+      return url.origin + url.pathname.replace(/\/[^/]*$/, '/');
+    }
+    
+    return '/local/ha-cardforge-card/';
+  }
+
+  async _loadPluginRegistry() {
+    if (this._pluginRegistry) {
+      return this._pluginRegistry;
+    }
+
+    try {
+      const response = await fetch(`${this._baseURL}plugins/index.json`);
+      if (!response.ok) {
+        throw new Error(`获取插件注册表失败: ${response.status}`);
+      }
+      
+      this._pluginRegistry = await response.json();
+      return this._pluginRegistry;
+    } catch (error) {
+      console.error('加载插件注册表失败:', error);
+      this._pluginRegistry = { plugins: [] };
+      return this._pluginRegistry;
+    }
+  }
+
+  async getAvailablePlugins() {
+    try {
+      const registry = await this._loadPluginRegistry();
+      return registry.plugins || [];
+    } catch (error) {
+      console.error('获取可用插件失败:', error);
+      return [];
+    }
+  }
+
+  async getCategories() {
+    try {
+      const plugins = await this.getAvailablePlugins();
+      const categories = new Set(['all']);
+      plugins.forEach(plugin => {
+        if (plugin.category) {
+          categories.add(plugin.category);
+        }
+      });
+      return Array.from(categories);
+    } catch (error) {
+      console.error('获取分类失败:', error);
+      return ['all'];
+    }
+  }
+
+  async searchPlugins(query = '', category = 'all') {
+    try {
+      const plugins = await this.getAvailablePlugins();
+      
+      return plugins.filter(plugin => {
+        const matchesCategory = category === 'all' || plugin.category === category;
+        if (!matchesCategory) return false;
+        
+        if (!query) return true;
+        
+        const searchTerm = query.toLowerCase();
+        return (
+          plugin.name.toLowerCase().includes(searchTerm) ||
+          plugin.description.toLowerCase().includes(searchTerm) ||
+          plugin.id.toLowerCase().includes(searchTerm)
+        );
+      });
+    } catch (error) {
+      console.error('搜索插件失败:', error);
+      return [];
+    }
+  }
+}
 
 class HaCardForgeEditor extends LitElement {
   static properties = {
@@ -11,10 +103,7 @@ class HaCardForgeEditor extends LitElement {
     _selectedCategory: { state: true },
     _loading: { state: true },
     _activeTab: { state: true },
-    _previewConfig: { state: true },
-    _marketplaces: { state: true },
-    _currentMarketplace: { state: true },
-    _customMarketplaceUrl: { state: true }
+    _previewConfig: { state: true }
   };
 
   static styles = css`
@@ -92,11 +181,6 @@ class HaCardForgeEditor extends LitElement {
       background: rgba(var(--rgb-primary-color), 0.05);
     }
     
-    .plugin-card.installed {
-      border-color: var(--success-color);
-      background: rgba(var(--rgb-success-color), 0.05);
-    }
-    
     .plugin-icon {
       font-size: 2.2em;
       margin-bottom: 8px;
@@ -120,13 +204,6 @@ class HaCardForgeEditor extends LitElement {
       overflow: hidden;
     }
     
-    .plugin-meta {
-      font-size: 0.7em;
-      color: var(--secondary-text-color);
-      margin-top: 4px;
-      opacity: 0.7;
-    }
-    
     .plugin-badge {
       position: absolute;
       top: 8px;
@@ -136,14 +213,6 @@ class HaCardForgeEditor extends LitElement {
       border-radius: 10px;
       padding: 2px 6px;
       font-size: 0.65em;
-    }
-    
-    .plugin-badge.installed {
-      background: var(--success-color);
-    }
-    
-    .plugin-badge.featured {
-      background: var(--warning-color);
     }
     
     .form-group {
@@ -196,87 +265,6 @@ class HaCardForgeEditor extends LitElement {
       border-top: 1px solid var(--divider-color);
       padding-top: 16px;
     }
-    
-    .tabs {
-      display: flex;
-      border-bottom: 1px solid var(--divider-color);
-      margin-bottom: 20px;
-      background: var(--card-background-color);
-      border-radius: 8px 8px 0 0;
-      overflow: hidden;
-    }
-    
-    .tab {
-      padding: 12px 24px;
-      cursor: pointer;
-      border-bottom: 2px solid transparent;
-      transition: all 0.2s ease;
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      flex: 1;
-      justify-content: center;
-    }
-    
-    .tab.active {
-      border-bottom-color: var(--primary-color);
-      color: var(--primary-color);
-      background: rgba(var(--rgb-primary-color), 0.05);
-    }
-    
-    .tab:hover {
-      background: var(--secondary-background-color);
-    }
-    
-    .marketplace-info {
-      background: var(--secondary-background-color);
-      border-radius: 8px;
-      padding: 12px;
-      margin-bottom: 16px;
-      font-size: 0.9em;
-    }
-    
-    .stats-grid {
-      display: grid;
-      grid-template-columns: repeat(3, 1fr);
-      gap: 12px;
-      margin-bottom: 20px;
-    }
-    
-    .stat-card {
-      background: var(--card-background-color);
-      border-radius: 8px;
-      padding: 16px;
-      text-align: center;
-      border: 1px solid var(--divider-color);
-    }
-    
-    .stat-value {
-      font-size: 1.5em;
-      font-weight: bold;
-      color: var(--primary-color);
-    }
-    
-    .stat-label {
-      font-size: 0.8em;
-      color: var(--secondary-text-color);
-      margin-top: 4px;
-    }
-    
-    .marketplace-config {
-      background: var(--secondary-background-color);
-      border-radius: 8px;
-      padding: 16px;
-      margin-bottom: 20px;
-    }
-    
-    .config-row {
-      display: grid;
-      grid-template-columns: 1fr auto;
-      gap: 12px;
-      align-items: end;
-      margin-bottom: 12px;
-    }
   `;
 
   constructor() {
@@ -289,34 +277,12 @@ class HaCardForgeEditor extends LitElement {
     this._loading = false;
     this._activeTab = 0;
     this._previewConfig = null;
-    this._marketplaces = [];
-    this._currentMarketplace = null;
-    this._customMarketplaceUrl = '';
-    this._pluginManager = null;
-    this._entityManager = null;
-    this._themeManager = null;
+    this._pluginManager = new EditorPluginManager();
   }
 
   async firstUpdated() {
-    await this._loadManagers();
-    await this._loadMarketplaces();
     await this._loadPlugins();
     this._updatePreview();
-  }
-
-  async _loadManagers() {
-    if (!this._pluginManager) {
-      const { PluginManager } = await import('./components/plugin.js');
-      this._pluginManager = new PluginManager();
-    }
-    if (!this._entityManager) {
-      const { EntityManager } = await import('./components/entity.js');
-      this._entityManager = new EntityManager();
-    }
-    if (!this._themeManager) {
-      const { ThemeManager } = await import('./components/theme.js');
-      this._themeManager = new ThemeManager();
-    }
   }
 
   setConfig(config) {
@@ -329,17 +295,11 @@ class HaCardForgeEditor extends LitElement {
     this._updatePreview();
   }
 
-  async _loadMarketplaces() {
-    this._marketplaces = this._pluginManager.getMarketplaces().filter(m => m.enabled);
-    this._currentMarketplace = this._pluginManager.getCurrentMarketplace();
-  }
-
   async _loadPlugins() {
     this._loading = true;
     try {
-      await this._pluginManager.init();
-      this._plugins = await this._pluginManager.getAvailablePlugins(this._currentMarketplace?.id);
-      this._categories = await this._pluginManager.getCategories(this._currentMarketplace?.id);
+      this._plugins = await this._pluginManager.getAvailablePlugins();
+      this._categories = await this._pluginManager.getCategories();
     } catch (error) {
       console.error('加载插件失败:', error);
       this._plugins = [];
@@ -351,29 +311,6 @@ class HaCardForgeEditor extends LitElement {
   render() {
     return html`
       <div class="editor">
-        <div class="tabs">
-          <div class="tab ${this._activeTab === 0 ? 'active' : ''}" 
-               @click=${() => this._activeTab = 0}>
-            <ha-icon icon="mdi:store"></ha-icon>
-            <span>插件市场</span>
-          </div>
-          <div class="tab ${this._activeTab === 1 ? 'active' : ''}" 
-               @click=${() => this._activeTab = 1}>
-            <ha-icon icon="mdi:cog"></ha-icon>
-            <span>实体配置</span>
-          </div>
-          <div class="tab ${this._activeTab === 2 ? 'active' : ''}" 
-               @click=${() => this._activeTab = 2}>
-            <ha-icon icon="mdi:palette"></ha-icon>
-            <span>主题设置</span>
-          </div>
-          <div class="tab ${this._activeTab === 3 ? 'active' : ''}" 
-               @click=${() => this._activeTab = 3}>
-            <ha-icon icon="mdi:package-variant"></ha-icon>
-            <span>插件管理</span>
-          </div>
-        </div>
-
         <div class="editor-content">
           <div>
             ${this._renderActiveTab()}
@@ -407,7 +344,6 @@ class HaCardForgeEditor extends LitElement {
       case 0: return this._renderMarketplaceTab();
       case 1: return this._renderEntityTab();
       case 2: return this._renderThemeTab();
-      case 3: return this._renderPluginManagementTab();
       default: return html`<div>未知选项卡</div>`;
     }
   }
@@ -425,7 +361,6 @@ class HaCardForgeEditor extends LitElement {
     }
 
     const filteredPlugins = this._getFilteredPlugins();
-    const stats = this._pluginManager.getStats();
 
     return html`
       <div class="config-section">
@@ -434,43 +369,7 @@ class HaCardForgeEditor extends LitElement {
           <span>插件市场</span>
         </div>
         
-        <!-- 市场信息和统计 -->
-        <div class="marketplace-info">
-          <strong>${this._currentMarketplace?.name}</strong> - ${this._currentMarketplace?.description}
-          ${this._currentMarketplace?.baseURL ? html`<br>源: ${this._currentMarketplace.baseURL}` : ''}
-        </div>
-        
-        <div class="stats-grid">
-          <div class="stat-card">
-            <div class="stat-value">${stats.totalPlugins}</div>
-            <div class="stat-label">总插件</div>
-          </div>
-          <div class="stat-card">
-            <div class="stat-value">${stats.installedPlugins}</div>
-            <div class="stat-label">已安装</div>
-          </div>
-          <div class="stat-card">
-            <div class="stat-value">${stats.marketplaces}</div>
-            <div class="stat-label">可用市场</div>
-          </div>
-        </div>
-        
-        <!-- 搜索和筛选 -->
         <div class="search-header">
-          <ha-select
-            label="选择市场"
-            .value=${this._currentMarketplace?.id}
-            @selected=${e => this._switchMarketplace(e.target.value)}
-            style="min-width: 150px;"
-          >
-            ${this._marketplaces.map(marketplace => html`
-              <mwc-list-item value=${marketplace.id}>
-                <span slot="graphic">${marketplace.icon}</span>
-                ${marketplace.name}
-              </mwc-list-item>
-            `)}
-          </ha-select>
-          
           <ha-textfield
             class="flex"
             label="搜索插件..."
@@ -492,31 +391,14 @@ class HaCardForgeEditor extends LitElement {
           </ha-select>
         </div>
 
-        <!-- 插件网格 -->
         <div class="plugin-grid">
           ${filteredPlugins.map(plugin => html`
-            <div class="plugin-card ${this.config.plugin === plugin.id ? 'selected' : ''}
-                                 ${plugin.installed ? 'installed' : ''}"
+            <div class="plugin-card ${this.config.plugin === plugin.id ? 'selected' : ''}"
                  @click=${() => this._selectPlugin(plugin)}>
-              ${plugin.featured ? html`<div class="plugin-badge featured">⭐</div>` : ''}
-              ${plugin.installed ? html`<div class="plugin-badge installed">✓</div>` : ''}
+              ${plugin.featured ? html`<div class="plugin-badge">⭐</div>` : ''}
               <div class="plugin-icon">${plugin.icon}</div>
               <div class="plugin-name">${plugin.name}</div>
               <div class="plugin-description">${plugin.description}</div>
-              <div class="plugin-meta">
-                v${plugin.version} | ${this._getMarketplaceDisplayName(plugin.marketplace)}
-              </div>
-              ${!plugin.installed && !plugin.builtin ? html`
-                <mwc-button 
-                  dense 
-                  raised 
-                  label="安装" 
-                  @click=${(e) => this._installPlugin(plugin.id, e)}
-                  style="margin-top: 8px; width: 100%;"
-                ></mwc-button>
-              ` : html`
-                <div style="height: 36px; margin-top: 8px;"></div>
-              `}
             </div>
           `)}
         </div>
@@ -525,12 +407,6 @@ class HaCardForgeEditor extends LitElement {
           <div class="no-plugins">
             <ha-icon icon="mdi:alert-circle-outline" style="font-size: 3em;"></ha-icon>
             <div style="margin-top: 12px;">没有找到匹配的插件</div>
-            <mwc-button 
-              outlined 
-              label="刷新市场" 
-              @click=${() => this._refreshMarketplace()}
-              style="margin-top: 16px;"
-            ></mwc-button>
           </div>
         ` : ''}
       </div>
@@ -562,6 +438,7 @@ class HaCardForgeEditor extends LitElement {
 
   _renderEntityConfig() {
     const entities = this.config.entities || {};
+
     return html`
       <div class="form-group">
         <div class="entity-row">
@@ -605,41 +482,11 @@ class HaCardForgeEditor extends LitElement {
             .style="color: ${entities.week ? 'var(--success-color)' : 'var(--disabled-text-color)'}"
           ></ha-icon-button>
         </div>
-
-        <div class="entity-row">
-          <div class="entity-label">天气实体</div>
-          <ha-entity-picker
-            .hass=${this.hass}
-            .value=${entities.weather || ''}
-            @value-changed=${e => this._entityChanged('weather', e.detail.value)}
-            allow-custom-entity
-          ></ha-entity-picker>
-          <ha-icon-button 
-            .path=${entities.weather ? 'mdi:check-circle' : 'mdi:information-outline'}
-            .style="color: ${entities.weather ? 'var(--success-color)' : 'var(--disabled-text-color)'}"
-          ></ha-icon-button>
-        </div>
-
-        <div class="entity-row">
-          <div class="entity-label">农历实体</div>
-          <ha-entity-picker
-            .hass=${this.hass}
-            .value=${entities.lunar || ''}
-            @value-changed=${e => this._entityChanged('lunar', e.detail.value)}
-            allow-custom-entity
-          ></ha-entity-picker>
-          <ha-icon-button 
-            .path=${entities.lunar ? 'mdi:check-circle' : 'mdi:information-outline'}
-            .style="color: ${entities.lunar ? 'var(--success-color)' : 'var(--disabled-text-color)'}"
-          ></ha-icon-button>
-        </div>
       </div>
     `;
   }
 
   _renderThemeTab() {
-    const themes = this._themeManager.getAllThemes();
-    
     return html`
       <div class="config-section">
         <div class="section-title">
@@ -652,148 +499,19 @@ class HaCardForgeEditor extends LitElement {
             .value=${this.config.theme || 'default'}
             @selected=${e => this._themeChanged(e.target.value)}
           >
-            ${themes.map(theme => html`
-              <mwc-list-item value=${theme.id}>
-                <ha-icon icon=${this._getThemeIcon(theme.id)} slot="graphic"></ha-icon>
-                ${theme.name}
-              </mwc-list-item>
-            `)}
+            <mwc-list-item value="default">
+              <ha-icon icon="mdi:palette-outline" slot="graphic"></ha-icon>
+              默认主题
+            </mwc-list-item>
+            <mwc-list-item value="dark">
+              <ha-icon icon="mdi:weather-night" slot="graphic"></ha-icon>
+              深色主题
+            </mwc-list-item>
+            <mwc-list-item value="material">
+              <ha-icon icon="mdi:material-design" slot="graphic"></ha-icon>
+              材质设计
+            </mwc-list-item>
           </ha-select>
-          <div style="font-size: 0.8em; color: var(--secondary-text-color); margin-top: 8px;">
-            ${this._themeManager.getTheme(this.config.theme)?.description || ''}
-          </div>
-        </div>
-      </div>
-    `;
-  }
-
-  _renderPluginManagementTab() {
-    const installedPlugins = this._pluginManager.getInstalledPlugins();
-    const stats = this._pluginManager.getStats();
-    const marketplaces = this._pluginManager.getMarketplaces();
-
-    return html`
-      <div class="config-section">
-        <div class="section-title">
-          <ha-icon icon="mdi:package-variant"></ha-icon>
-          <span>插件管理</span>
-        </div>
-        
-        <!-- 统计信息 -->
-        <div class="stats-grid">
-          <div class="stat-card">
-            <div class="stat-value">${stats.totalPlugins}</div>
-            <div class="stat-label">总插件</div>
-          </div>
-          <div class="stat-card">
-            <div class="stat-value">${stats.installedPlugins}</div>
-            <div class="stat-label">已安装</div>
-          </div>
-          <div class="stat-card">
-            <div class="stat-value">${stats.cacheSize}</div>
-            <div class="stat-label">缓存插件</div>
-          </div>
-        </div>
-        
-        <!-- 市场管理 -->
-        <div class="form-group">
-          <h3>市场管理</h3>
-          <div class="marketplace-config">
-            <div class="config-row">
-              <ha-textfield
-                label="添加自定义市场URL"
-                .value=${this._customMarketplaceUrl}
-                @input=${e => this._customMarketplaceUrl = e.target.value}
-                helper="例如: https://raw.githubusercontent.com/user/repo/branch/"
-                style="width: 100%;"
-              ></ha-textfield>
-              <mwc-button 
-                raised 
-                label="添加市场" 
-                @click=${this._addCustomMarketplace}
-                .disabled=${!this._customMarketplaceUrl}
-              ></mwc-button>
-            </div>
-          </div>
-          
-          <div style="font-size: 0.9em; margin-top: 12px;">
-            <strong>可用市场:</strong>
-            ${marketplaces.map(marketplace => html`
-              <div style="display: flex; justify-content: between; align-items: center; margin: 8px 0; padding: 8px; background: var(--card-background-color); border-radius: 4px;">
-                <span>${marketplace.icon} ${marketplace.name} - ${marketplace.description}</span>
-                ${!marketplace.official ? html`
-                  <mwc-button 
-                    dense 
-                    outlined 
-                    label="删除" 
-                    @click=${() => this._removeMarketplace(marketplace.id)}
-                  ></mwc-button>
-                ` : html`
-                  <span style="font-size: 0.8em; color: var(--secondary-text-color);">官方</span>
-                `}
-              </div>
-            `)}
-          </div>
-        </div>
-        
-        <!-- 已安装插件 -->
-        <div class="form-group">
-          <h3>已安装插件 (${installedPlugins.length})</h3>
-          ${installedPlugins.length === 0 ? html`
-            <div class="no-plugins">
-              <ha-icon icon="mdi:package-variant-closed"></ha-icon>
-              <div style="margin-top: 12px;">暂无已安装插件</div>
-            </div>
-          ` : html`
-            <div class="plugin-grid">
-              ${installedPlugins.map(plugin => html`
-                <div class="plugin-card ${plugin.builtin ? 'builtin' : ''}">
-                  <div class="plugin-icon">${plugin.icon}</div>
-                  <div class="plugin-name">${plugin.name}</div>
-                  <div class="plugin-description">
-                    v${plugin.version} 
-                    <br>${plugin.builtin ? '内置' : plugin.marketplace}
-                  </div>
-                  ${!plugin.builtin ? html`
-                    <mwc-button 
-                      dense 
-                      outlined 
-                      label="删除" 
-                      @click=${() => this._uninstallPlugin(plugin.id)}
-                      style="margin-top: 8px; width: 100%;"
-                    ></mwc-button>
-                  ` : html`
-                    <div style="margin-top: 8px; font-size: 0.7em; color: var(--secondary-text-color);">
-                      内置插件
-                    </div>
-                  `}
-                </div>
-              `)}
-            </div>
-          `}
-        </div>
-        
-        <!-- 操作按钮 -->
-        <div class="form-group">
-          <h3>系统操作</h3>
-          <div style="display: flex; gap: 12px; margin-top: 16px;">
-            <mwc-button 
-              raised 
-              label="刷新所有市场" 
-              @click=${this._refreshAllMarketplaces}
-            ></mwc-button>
-            <mwc-button 
-              raised 
-              label="更新所有插件" 
-              @click=${this._updateAllPlugins}
-              .disabled=${installedPlugins.filter(p => !p.builtin).length === 0}
-            ></mwc-button>
-            <mwc-button 
-              outlined 
-              label="清除缓存" 
-              @click=${this._clearPluginCache}
-            ></mwc-button>
-          </div>
         </div>
       </div>
     `;
@@ -809,20 +527,27 @@ class HaCardForgeEditor extends LitElement {
       `;
     }
 
-    const previewConfig = {
-      ...this.config,
-      _preview: true
-    };
+    if (!this._previewConfig) {
+      return html`
+        <div class="preview-placeholder">
+          <ha-circular-progress active></ha-circular-progress>
+          <div>生成预览中...</div>
+        </div>
+      `;
+    }
 
     return html`
-      <ha-cardforge-card
-        .hass=${this.hass}
-        .config=${previewConfig}
-      ></ha-cardforge-card>
+      <ha-card style="width: 100%;">
+        <div class="card-content">
+          <ha-cardforge-card
+            .hass=${this.hass}
+            .config=${this._previewConfig}
+          ></ha-cardforge-card>
+        </div>
+      </ha-card>
     `;
   }
 
-  // 工具方法
   _getFilteredPlugins() {
     let filtered = this._plugins;
 
@@ -841,69 +566,27 @@ class HaCardForgeEditor extends LitElement {
     return filtered;
   }
 
-  _getMarketplaceDisplayName(marketplaceId) {
-    const marketplace = this._marketplaces.find(m => m.id === marketplaceId);
-    return marketplace ? marketplace.name : marketplaceId;
-  }
-
-  _getThemeIcon(themeId) {
-    const icons = {
-      'default': 'mdi:palette-outline',
-      'dark': 'mdi:weather-night',
-      'material': 'mdi:material-design',
-      'glass': 'mdi:crystal-ball'
-    };
-    return icons[themeId] || 'mdi:palette';
-  }
-
-  // 事件处理方法
-  async _switchMarketplace(marketplaceId) {
-    this._pluginManager.setCurrentMarketplace(marketplaceId);
-    this._currentMarketplace = this._pluginManager.getCurrentMarketplace();
-    this._plugins = await this._pluginManager.getAvailablePlugins(marketplaceId);
-    this._categories = await this._pluginManager.getCategories(marketplaceId);
-    this._searchQuery = '';
-    this._selectedCategory = 'all';
-    this.requestUpdate();
-  }
-
   _selectPlugin(plugin) {
     this.config = {
       ...this.config,
       plugin: plugin.id,
-      entities: this._entityManager.getDefaultEntities(plugin, this.config.entities)
+      entities: this._getDefaultEntities(plugin)
     };
     this._updatePreview();
     this._fireChanged();
   }
 
-  async _installPlugin(pluginId, event) {
-    event.stopPropagation();
+  _getDefaultEntities(plugin) {
+    const defaults = {
+      time: 'sensor.time',
+      date: 'sensor.date'
+    };
     
-    try {
-      await this._pluginManager.installPlugin(pluginId);
-      this._plugins = await this._pluginManager.getAvailablePlugins();
-      this.requestUpdate();
-    } catch (error) {
-      console.error('安装插件失败:', error);
-      alert('安装插件失败: ' + error.message);
+    if (plugin.requiresWeek) {
+      defaults.week = 'sensor.xing_qi';
     }
-  }
-
-  async _uninstallPlugin(pluginId) {
-    if (confirm(`确定要删除插件 "${pluginId}" 吗？`)) {
-      try {
-        await this._pluginManager.uninstallPlugin(pluginId);
-        this._plugins = await this._pluginManager.getAvailablePlugins();
-        if (this.config.plugin === pluginId) {
-          this.config.plugin = '';
-        }
-        this.requestUpdate();
-      } catch (error) {
-        console.error('删除插件失败:', error);
-        alert('删除插件失败: ' + error.message);
-      }
-    }
+    
+    return { ...defaults, ...this.config.entities };
   }
 
   _entityChanged(key, value) {
@@ -924,93 +607,21 @@ class HaCardForgeEditor extends LitElement {
     this._fireChanged();
   }
 
-  async _addCustomMarketplace() {
-    if (!this._customMarketplaceUrl) {
-      alert('请输入市场URL');
+  async _updatePreview() {
+    if (!this.config.plugin) {
+      this._previewConfig = null;
       return;
     }
-    
+
     try {
-      const marketplaceId = 'custom_' + Date.now();
-      await this._pluginManager.addMarketplace({
-        id: marketplaceId,
-        name: '自定义市场',
-        description: '用户自定义插件市场',
-        baseURL: this._customMarketplaceUrl,
-        icon: '🔧',
-        official: false
-      });
-      
-      this._marketplaces = this._pluginManager.getMarketplaces().filter(m => m.enabled);
-      this._customMarketplaceUrl = '';
-      this.requestUpdate();
-      alert('自定义市场添加成功！');
+      this._previewConfig = {
+        ...this.config,
+        _preview: true
+      };
     } catch (error) {
-      console.error('添加自定义市场失败:', error);
-      alert('添加自定义市场失败: ' + error.message);
+      console.error('更新预览失败:', error);
+      this._previewConfig = null;
     }
-  }
-
-  async _removeMarketplace(marketplaceId) {
-    if (confirm(`确定要删除市场 "${marketplaceId}" 吗？`)) {
-      try {
-        await this._pluginManager.removeMarketplace(marketplaceId);
-        this._marketplaces = this._pluginManager.getMarketplaces().filter(m => m.enabled);
-        this.requestUpdate();
-        alert('市场删除成功！');
-      } catch (error) {
-        console.error('删除市场失败:', error);
-        alert('删除市场失败: ' + error.message);
-      }
-    }
-  }
-
-  async _refreshMarketplace() {
-    try {
-      await this._pluginManager.refreshMarketplace(this._currentMarketplace?.id);
-      this._plugins = await this._pluginManager.getAvailablePlugins(this._currentMarketplace?.id);
-      this.requestUpdate();
-    } catch (error) {
-      console.error('刷新市场失败:', error);
-      alert('刷新市场失败: ' + error.message);
-    }
-  }
-
-  async _refreshAllMarketplaces() {
-    try {
-      await this._pluginManager.refreshMarketplace();
-      this._plugins = await this._pluginManager.getAvailablePlugins();
-      this.requestUpdate();
-      alert('所有市场刷新成功！');
-    } catch (error) {
-      console.error('刷新所有市场失败:', error);
-      alert('刷新所有市场失败: ' + error.message);
-    }
-  }
-
-  async _updateAllPlugins() {
-    try {
-      const updated = await this._pluginManager.updateAllPlugins();
-      this._plugins = await this._pluginManager.getAvailablePlugins();
-      this.requestUpdate();
-      if (updated.length > 0) {
-        alert(`成功更新 ${updated.length} 个插件: ${updated.join(', ')}`);
-      } else {
-        alert('没有需要更新的插件');
-      }
-    } catch (error) {
-      console.error('更新插件失败:', error);
-      alert('更新插件失败: ' + error.message);
-    }
-  }
-
-  _clearPluginCache() {
-    this._pluginManager.clearCache();
-    alert('插件缓存已清除');
-  }
-
-  async _updatePreview() {
-    // 预览会自动更新
   }
 
   _save() {
@@ -1022,11 +633,6 @@ class HaCardForgeEditor extends LitElement {
       detail: { config: this.config }
     }));
   }
-}
-
-// 只在未注册的情况下注册组件
-if (!customElements.get('ha-cardforge-editor')) {
-  customElements.define('ha-cardforge-editor', HaCardForgeEditor);
 }
 
 export { HaCardForgeEditor };
