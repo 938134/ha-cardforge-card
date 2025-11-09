@@ -70,13 +70,36 @@ jobs:
       # ---------- 生成发布说明 ----------
       - name: 生成发布说明
         run: |
-          sed \
-            -e "s/{{ REPOSITORY }}/${{ github.repository }}/g" \
-            -e "s/{{ TAG_NAME }}/${{ steps.version.outputs.version }}/g" \
-            -e "s/{{ SHA }}/${{ github.sha }}/g" \
-            -e "s/{{ BUILD_TIME }}/$(date -u +"%Y-%m-%d %H:%M:%S UTC")/g" \
-            -e "s/{{ CHANGELOG }}/- 基于提交 ${{ github.sha }} 自动构建/g" \
-            .github/release.md > release-body.md
+          cat > release-body.md << EOF
+          ## 安装方式
+
+          ### HACS 安装
+          在 HACS → **前端** → **自定义仓库** 中添加：
+          \`https://github.com/${{ github.repository }}\`
+
+          ### 手动安装
+          1. 下载 \`ha-cardforge-card-${{ steps.version.outputs.version }}.tar.gz\`
+          2. 解压到你的 Home Assistant 配置目录的 \`www/\` 文件夹
+          3. 在 Lovelace 配置中添加资源引用：
+             \`\`\`yaml
+             resources:
+               - url: /local/ha-cardforge-card.js
+                 type: module
+             \`\`\`
+
+          ## 包含文件
+          - \`ha-cardforge-card.js\` - 主卡片文件
+          - \`plugins/\` - 插件目录（如果有）
+
+          ## 更新日志
+          - 基于提交 ${{ github.sha }} 自动构建
+
+          ## 版本信息
+          - 版本: ${{ steps.version.outputs.version }}
+          - 提交: ${{ github.sha }}
+          - 构建时间: $(date -u +"%Y-%m-%d %H:%M:%S UTC")
+          EOF
+          
           echo "生成的发布说明："
           cat release-body.md
 
