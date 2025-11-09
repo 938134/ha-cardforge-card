@@ -1,6 +1,6 @@
 // ha-cardforge-card/src/ha-cardforge-card.js
 import { LitElement } from 'https://unpkg.com/lit@2.8.0/index.js?module';
-import { PluginManager, FallbackPlugin } from './components/plugins.js';
+import { PluginManager, FallbackPlugin } from './components/plugin.js';
 
 const ButtonCard = customElements.get('button-card');
 
