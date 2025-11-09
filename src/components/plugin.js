@@ -1,4 +1,4 @@
-// ha-cardforge-card/components/plugin.js
+// ha-cardforge-card/managers/plugin.js
 class PluginManager {
   static _instance = null;
   static _installedPlugins = new Map();
@@ -6,13 +6,13 @@ class PluginManager {
   static _cache = new Map();
   static _marketplaces = new Map();
   static _currentMarketplace = null;
+  static _initialized = false;
 
   constructor() {
     if (PluginManager._instance) {
       return PluginManager._instance;
     }
     PluginManager._instance = this;
-    this._initialized = false;
     
     // 注册默认市场
     this._registerDefaultMarketplaces();
@@ -56,13 +56,13 @@ class PluginManager {
     PluginManager._currentMarketplace = 'official';
   }
 
-  async initialize() {
-    if (this._initialized) return;
+  async init() {
+    if (PluginManager._initialized) return;
     
     await this._loadInstalledPlugins();
-    await this._loadBuiltinPlugins(); // 先加载内置插件
-    await this._refreshMarketplacePlugins(); // 然后加载市场插件
-    this._initialized = true;
+    await this._loadBuiltinPlugins();
+    await this._refreshMarketplacePlugins();
+    PluginManager._initialized = true;
   }
 
   async _loadInstalledPlugins() {
@@ -86,7 +86,7 @@ class PluginManager {
 
   async _loadBuiltinPlugins() {
     console.log('🔧 加载内置插件...');
-    const builtinPlugins = await this._getBuiltinPluginsList();
+    const builtinPlugins = this._getBuiltinPluginsList();
     
     builtinPlugins.forEach(plugin => {
       const pluginInfo = {
@@ -101,8 +101,8 @@ class PluginManager {
     });
   }
 
-  async _getBuiltinPluginsList() {
-    // 基础内置插件 - 这些是核心功能必需的
+  _getBuiltinPluginsList() {
+    // 基础内置插件
     return [
       {
         id: 'time-week',
@@ -183,7 +183,6 @@ class PluginManager {
         console.log(`✅ 从 ${marketplace.name} 发现 ${data.plugins?.length || 0} 个插件`);
         
         if (data.plugins && Array.isArray(data.plugins)) {
-          // 只更新当前市场的插件，不影响其他市场的插件
           data.plugins.forEach(plugin => {
             const pluginId = plugin.id;
             const existingPlugin = PluginManager._availablePlugins.get(pluginId);
@@ -246,7 +245,6 @@ class PluginManager {
       enabled: true
     });
     
-    // 保存到本地存储
     this._saveMarketplaces();
     return true;
   }
@@ -259,7 +257,6 @@ class PluginManager {
     if (PluginManager._marketplaces.has(marketplaceId)) {
       PluginManager._marketplaces.delete(marketplaceId);
       
-      // 如果删除的是当前市场，切换到官方市场
       if (PluginManager._currentMarketplace === marketplaceId) {
         PluginManager._currentMarketplace = 'official';
       }
@@ -280,23 +277,9 @@ class PluginManager {
     }
   }
 
-  _loadCustomMarketplaces() {
-    try {
-      const stored = localStorage.getItem('cardforge-custom-marketplaces');
-      if (stored) {
-        const marketplaces = JSON.parse(stored);
-        marketplaces.forEach(marketplace => {
-          PluginManager._marketplaces.set(marketplace.id, marketplace);
-        });
-      }
-    } catch (error) {
-      console.warn('加载自定义市场失败:', error);
-    }
-  }
-
   // 插件管理 API
   async getAvailablePlugins(marketplaceId = null) {
-    await this.initialize();
+    await this.init();
     
     let plugins = Array.from(PluginManager._availablePlugins.values());
     
@@ -319,7 +302,7 @@ class PluginManager {
   }
 
   async installPlugin(pluginId) {
-    await this.initialize();
+    await this.init();
     
     const pluginInfo = PluginManager._availablePlugins.get(pluginId);
     if (!pluginInfo) {
@@ -334,22 +317,16 @@ class PluginManager {
     try {
       let pluginCode;
       if (pluginInfo.builtin || pluginInfo.marketplace === 'builtin') {
-        // 内置插件直接加载
         pluginCode = await this._loadBuiltinPluginCode(pluginId);
       } else {
-        // 远程插件下载
         pluginCode = await this._downloadPlugin(pluginId);
-        
-        // 保存插件代码到本地存储
         localStorage.setItem(`cardforge-plugin-${pluginId}`, pluginCode);
       }
 
-      // 验证插件代码
       if (!this._validatePluginCode(pluginCode)) {
         throw new Error('插件代码验证失败');
       }
 
-      // 更新插件状态
       const installedPlugin = {
         ...pluginInfo,
         installed: true,
@@ -378,10 +355,7 @@ class PluginManager {
       throw new Error('内置插件不能删除');
     }
 
-    // 删除插件代码
     localStorage.removeItem(`cardforge-plugin-${pluginId}`);
-    
-    // 更新插件状态
     PluginManager._installedPlugins.delete(pluginId);
     PluginManager._cache.delete(pluginId);
     
@@ -400,7 +374,7 @@ class PluginManager {
   }
 
   async loadPlugin(pluginId) {
-    await this.initialize();
+    await this.init();
     
     if (PluginManager._cache.has(pluginId)) {
       return PluginManager._cache.get(pluginId);
@@ -427,6 +401,52 @@ class PluginManager {
       console.error(`加载插件失败: ${pluginId}`, error);
       throw error;
     }
+  }
+
+  async getFallbackPlugin(pluginId) {
+    return {
+      getTemplate: (config, entities) => {
+        return `
+          <div class="cardforge-card fallback">
+            <div class="error-icon">❌</div>
+            <div class="error-title">插件加载失败</div>
+            <div class="error-message">${pluginId}</div>
+            <div class="error-help">请检查插件ID或网络连接</div>
+          </div>
+        `;
+      },
+      getStyles: (config) => {
+        return `
+          .fallback {
+            padding: 24px;
+            text-align: center;
+            background: var(--card-background-color);
+            color: var(--primary-text-color);
+            border-radius: 12px;
+          }
+          .fallback .error-icon {
+            font-size: 3em;
+            margin-bottom: 16px;
+            color: var(--error-color);
+          }
+          .fallback .error-title {
+            font-size: 1.2em;
+            font-weight: bold;
+            margin-bottom: 8px;
+            color: var(--error-color);
+          }
+          .fallback .error-message {
+            font-size: 0.9em;
+            margin-bottom: 12px;
+            opacity: 0.8;
+          }
+          .fallback .error-help {
+            font-size: 0.8em;
+            opacity: 0.6;
+          }
+        `;
+      }
+    };
   }
 
   async _downloadPlugin(pluginId) {
@@ -539,21 +559,16 @@ class PluginManager {
 
   async refreshMarketplace(marketplaceId = null) {
     if (marketplaceId) {
-      // 刷新指定市场
       await this._refreshMarketplacePlugins();
     } else {
-      // 刷新所有市场
       for (const marketplace of this.getMarketplaces()) {
         if (marketplace.enabled) {
           PluginManager._currentMarketplace = marketplace.id;
           await this._refreshMarketplacePlugins();
         }
       }
-      // 恢复当前市场
       PluginManager._currentMarketplace = this.getCurrentMarketplace().id;
     }
-    
-    this.requestUpdate?.();
   }
 
   clearCache() {

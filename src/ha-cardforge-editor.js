@@ -337,7 +337,7 @@ class HaCardForgeEditor extends LitElement {
   async _loadPlugins() {
     this._loading = true;
     try {
-      await this._pluginManager.initialize();
+      await this._pluginManager.init();
       this._plugins = await this._pluginManager.getAvailablePlugins(this._currentMarketplace?.id);
       this._categories = await this._pluginManager.getCategories(this._currentMarketplace?.id);
     } catch (error) {
@@ -1024,5 +1024,9 @@ class HaCardForgeEditor extends LitElement {
   }
 }
 
-customElements.define('ha-cardforge-editor', HaCardForgeEditor);
+// 只在未注册的情况下注册组件
+if (!customElements.get('ha-cardforge-editor')) {
+  customElements.define('ha-cardforge-editor', HaCardForgeEditor);
+}
+
 export { HaCardForgeEditor };

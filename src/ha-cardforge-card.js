@@ -102,4 +102,9 @@ class HaCardForgeCard extends ButtonCard {
   }
 }
 
+// 只在未注册的情况下注册组件
+if (!customElements.get('ha-cardforge-card')) {
+  customElements.define('ha-cardforge-card', HaCardForgeCard);
+}
+
 export { HaCardForgeCard };
