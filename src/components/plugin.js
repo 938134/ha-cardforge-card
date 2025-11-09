@@ -1,4 +1,4 @@
-// ha-cardforge-card/managers/plugin.js
+// ha-cardforge-card/src/components/plugin.js
 class PluginManager {
   static _instance = null;
   static _installedPlugins = new Map();
@@ -20,7 +20,18 @@ class PluginManager {
 
   // 注册默认市场
   _registerDefaultMarketplaces() {
-    // 官方市场
+    // 本地市场 - 从同路径下的 plugins 目录加载
+    PluginManager._marketplaces.set('local', {
+      id: 'local',
+      name: '本地插件',
+      description: '内置插件市场',
+      baseURL: './plugins/',  // 相对路径
+      icon: '💻',
+      official: true,
+      enabled: true
+    });
+
+    // 远程市场（可选）
     PluginManager._marketplaces.set('official', {
       id: 'official',
       name: '官方市场',
@@ -28,32 +39,10 @@ class PluginManager {
       baseURL: 'https://raw.githubusercontent.com/938134/ha-cardforge-card/plugins/',
       icon: '🏢',
       official: true,
-      enabled: true
+      enabled: false  // 默认禁用远程市场
     });
 
-    // 社区市场（预留）
-    PluginManager._marketplaces.set('community', {
-      id: 'community',
-      name: '社区市场',
-      description: '社区贡献的插件',
-      baseURL: '',
-      icon: '👥',
-      official: false,
-      enabled: false
-    });
-
-    // 本地市场
-    PluginManager._marketplaces.set('local', {
-      id: 'local',
-      name: '本地插件',
-      description: '用户自定义插件',
-      baseURL: '',
-      icon: '💻',
-      official: false,
-      enabled: true
-    });
-
-    PluginManager._currentMarketplace = 'official';
+    PluginManager._currentMarketplace = 'local';
   }
 
   async init() {
@@ -168,7 +157,16 @@ class PluginManager {
     }
 
     try {
-      const indexUrl = `${marketplace.baseURL}index.json`;
+      // 构建完整的 URL
+      let indexUrl;
+      if (marketplace.baseURL.startsWith('http')) {
+        // 远程 URL
+        indexUrl = `${marketplace.baseURL}index.json`;
+      } else {
+        // 本地相对路径
+        indexUrl = new URL(marketplace.baseURL + 'index.json', window.location.href).href;
+      }
+      
       console.log(`📡 从 ${indexUrl} 加载插件列表...`);
       
       const response = await fetch(indexUrl, { 
@@ -191,8 +189,10 @@ class PluginManager {
               const pluginInfo = {
                 ...plugin,
                 marketplace: marketplace.id,
-                remote: true,
-                downloadUrl: `${marketplace.baseURL}${pluginId}.js`,
+                remote: marketplace.baseURL.startsWith('http'),
+                downloadUrl: marketplace.baseURL.startsWith('http') 
+                  ? `${marketplace.baseURL}${pluginId}.js`
+                  : new URL(marketplace.baseURL + pluginId + '.js', window.location.href).href,
                 installed: PluginManager._installedPlugins.has(pluginId),
                 source: marketplace.name
               };
@@ -205,7 +205,29 @@ class PluginManager {
       }
     } catch (error) {
       console.warn(`❌ 加载市场 ${marketplace.name} 插件失败:`, error);
+      // 如果本地市场加载失败，使用内置插件作为备用
+      if (marketplace.id === 'local') {
+        console.log('使用内置插件作为备用...');
+        this._loadBuiltinPluginsAsFallback();
+      }
     }
+  }
+
+  _loadBuiltinPluginsAsFallback() {
+    const builtinPlugins = this._getBuiltinPluginsList();
+    builtinPlugins.forEach(plugin => {
+      if (!PluginManager._availablePlugins.has(plugin.id)) {
+        const pluginInfo = {
+          ...plugin,
+          builtin: true,
+          installed: true,
+          local: true,
+          marketplace: 'local',
+          source: '内置插件'
+        };
+        PluginManager._availablePlugins.set(plugin.id, pluginInfo);
+      }
+    });
   }
 
   _saveInstalledPlugins() {
@@ -250,15 +272,15 @@ class PluginManager {
   }
 
   removeMarketplace(marketplaceId) {
-    if (marketplaceId === 'official' || marketplaceId === 'builtin') {
-      throw new Error('不能删除官方或内置市场');
+    if (marketplaceId === 'local' || marketplaceId === 'builtin') {
+      throw new Error('不能删除本地或内置市场');
     }
     
     if (PluginManager._marketplaces.has(marketplaceId)) {
       PluginManager._marketplaces.delete(marketplaceId);
       
       if (PluginManager._currentMarketplace === marketplaceId) {
-        PluginManager._currentMarketplace = 'official';
+        PluginManager._currentMarketplace = 'local';
       }
       
       this._saveMarketplaces();
