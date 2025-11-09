@@ -1,6 +1,6 @@
 // ha-cardforge-card/src/ha-cardforge-editor.js
 import { LitElement, html, css } from 'https://unpkg.com/lit@2.8.0/index.js?module';
-import { PluginManager } from './components/plugin.js';
+import { PluginManager } from './components/plugins.js';
 
 class HaCardForgeEditor extends LitElement {
   static properties = {
@@ -10,8 +10,7 @@ class HaCardForgeEditor extends LitElement {
     _categories: { state: true },
     _searchQuery: { state: true },
     _selectedCategory: { state: true },
-    _loading: { state: true },
-    _activeTab: { state: true }
+    _loading: { state: true }
   };
 
   static styles = css`
@@ -176,6 +175,38 @@ class HaCardForgeEditor extends LitElement {
       font-size: 0.8em;
       color: var(--secondary-text-color);
     }
+
+    /* 修复标签页样式 */
+    .tabs {
+      display: flex;
+      border-bottom: 1px solid var(--divider-color);
+      margin-bottom: 20px;
+    }
+    
+    .tab {
+      padding: 12px 24px;
+      cursor: pointer;
+      border-bottom: 2px solid transparent;
+      font-weight: 500;
+      color: var(--secondary-text-color);
+    }
+    
+    .tab.active {
+      border-bottom-color: var(--primary-color);
+      color: var(--primary-color);
+    }
+    
+    .tab:hover {
+      background: var(--secondary-background-color);
+    }
+
+    .tab-content {
+      display: none;
+    }
+    
+    .tab-content.active {
+      display: block;
+    }
   `;
 
   constructor() {
@@ -186,7 +217,7 @@ class HaCardForgeEditor extends LitElement {
     this._searchQuery = '';
     this._selectedCategory = 'all';
     this._loading = false;
-    this._activeTab = 0;
+    this._activeTab = 'marketplace'; // 改为字符串标识
     this._pluginManager = new PluginManager();
   }
 
@@ -219,27 +250,38 @@ class HaCardForgeEditor extends LitElement {
   render() {
     return html`
       <div class="editor">
-        <ha-tabs
-          .selected=${this._activeTab}
-          @selected-changed=${this._tabChanged}
-          scrollable
-        >
-          <paper-tab>
+        <!-- 自定义标签页 -->
+        <div class="tabs">
+          <div class="tab ${this._activeTab === 'marketplace' ? 'active' : ''}" 
+               @click=${() => this._switchTab('marketplace')}>
             <ha-icon icon="mdi:store"></ha-icon>
             插件市场
-          </paper-tab>
-          <paper-tab>
+          </div>
+          <div class="tab ${this._activeTab === 'entities' ? 'active' : ''}" 
+               @click=${() => this._switchTab('entities')}>
             <ha-icon icon="mdi:cog"></ha-icon>
             实体配置
-          </paper-tab>
-          <paper-tab>
+          </div>
+          <div class="tab ${this._activeTab === 'themes' ? 'active' : ''}" 
+               @click=${() => this._switchTab('themes')}>
             <ha-icon icon="mdi:palette"></ha-icon>
             主题设置
-          </paper-tab>
-        </ha-tabs>
+          </div>
+        </div>
 
-        <div class="tab-content">
-          ${this._renderActiveTab()}
+        <!-- 插件市场 -->
+        <div class="tab-content ${this._activeTab === 'marketplace' ? 'active' : ''}">
+          ${this._renderMarketplaceTab()}
+        </div>
+
+        <!-- 实体配置 -->
+        <div class="tab-content ${this._activeTab === 'entities' ? 'active' : ''}">
+          ${this._renderEntityTab()}
+        </div>
+
+        <!-- 主题设置 -->
+        <div class="tab-content ${this._activeTab === 'themes' ? 'active' : ''}">
+          ${this._renderThemeTab()}
         </div>
 
         <div class="actions">
@@ -252,15 +294,6 @@ class HaCardForgeEditor extends LitElement {
         </div>
       </div>
     `;
-  }
-
-  _renderActiveTab() {
-    switch (this._activeTab) {
-      case 0: return this._renderMarketplaceTab();
-      case 1: return this._renderEntityTab();
-      case 2: return this._renderThemeTab();
-      default: return html`<div>未知选项卡</div>`;
-    }
   }
 
   _renderMarketplaceTab() {
@@ -334,7 +367,7 @@ class HaCardForgeEditor extends LitElement {
         <div class="config-section">
           <div class="no-plugins">
             <ha-icon icon="mdi:alert-circle-outline"></ha-icon>
-            <div style="margin-top: 12px;">请先选择插件</div>
+            <div style="margin-top: 12px;">请先在插件市场选择插件</div>
           </div>
         </div>
       `;
@@ -505,8 +538,8 @@ class HaCardForgeEditor extends LitElement {
     return filtered;
   }
 
-  _tabChanged(ev) {
-    this._activeTab = ev.detail.selected;
+  _switchTab(tabName) {
+    this._activeTab = tabName;
   }
 
   _selectPlugin(plugin) {
@@ -515,6 +548,8 @@ class HaCardForgeEditor extends LitElement {
       plugin: plugin.id,
       entities: this._getDefaultEntities(plugin)
     };
+    // 自动切换到实体配置标签页
+    this._activeTab = 'entities';
     this._fireChanged();
   }
 
