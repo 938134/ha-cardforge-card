@@ -1,4 +1,3 @@
-
 // src/plugins/simple-clock.js
 import { BasePlugin } from '../core/base-plugin.js';
 
@@ -35,6 +34,7 @@ export default class SimpleClockPlugin extends BasePlugin {
         display: flex;
         flex-direction: column;
         justify-content: center;
+        font-family: var(--paper-font-common-nowrap_-_font-family);
       }
       .simple-clock .time {
         font-size: 2.5em;

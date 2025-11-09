@@ -50,6 +50,7 @@ export default class TimeCardPlugin extends BasePlugin {
         align-items: center;
         height: 120px;
         padding: 16px;
+        font-family: var(--paper-font-common-nowrap_-_font-family);
       }
       .time-section {
         text-align: center;

@@ -40,7 +40,6 @@ class HaCardForgeCard extends ButtonCard {
   }
 
   async _loadPlugin(pluginId) {
-    // 缓存检查
     if (this._pluginCache.has(pluginId)) {
       return this._pluginCache.get(pluginId);
     }
@@ -53,7 +52,6 @@ class HaCardForgeCard extends ButtonCard {
       
       const pluginInstance = new PluginClass();
       
-      // 验证插件接口
       if (typeof pluginInstance.getTemplate !== 'function' || 
           typeof pluginInstance.getStyles !== 'function') {
         throw new Error('插件接口不完整');
@@ -68,11 +66,23 @@ class HaCardForgeCard extends ButtonCard {
 
   _convertToButtonCard(plugin) {
     const entities = this._getEntities();
+    const template = plugin.getTemplate(this._config, this.hass, entities);
+    const styles = plugin.getStyles(this._config);
     
     return {
       type: 'custom:button-card',
-      template: plugin.getTemplate(this._config, this.hass, entities),
-      styles: plugin.getStyles(this._config),
+      section_mode: true,
+      custom_fields: {
+        card: template
+      },
+      styles: {
+        custom_fields: {
+          card: [
+            `ha-card { background: transparent; border: none; box-shadow: none; }`,
+            styles
+          ].join(' ')
+        }
+      },
       ...this._config
     };
   }
@@ -93,14 +103,29 @@ class HaCardForgeCard extends ButtonCard {
   _getErrorConfig(error) {
     return {
       type: 'custom:button-card',
-      template: `
-        <div style="padding: 20px; text-align: center; color: var(--error-color);">
-          <div style="font-size: 2em;">❌</div>
-          <div style="font-weight: bold;">卡片加载失败</div>
-          <div style="font-size: 0.9em;">${error.message}</div>
-        </div>
-      `,
-      styles: ''
+      section_mode: true,
+      custom_fields: {
+        card: `
+          <div style="padding: 20px; text-align: center; color: var(--error-color);">
+            <div style="font-size: 2em;">❌</div>
+            <div style="font-weight: bold;">卡片加载失败</div>
+            <div style="font-size: 0.9em;">${error.message}</div>
+          </div>
+        `
+      },
+      styles: {
+        custom_fields: {
+          card: `
+            ha-card { background: transparent; border: none; box-shadow: none; }
+            .card { 
+              padding: 20px; 
+              text-align: center; 
+              color: var(--error-color);
+              font-family: var(--paper-font-common-nowrap_-_font-family);
+            }
+          `
+        }
+      }
     };
   }
 

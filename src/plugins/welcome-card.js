@@ -53,6 +53,7 @@ export default class WelcomeCardPlugin extends BasePlugin {
         background: linear-gradient(135deg, var(--primary-color), var(--accent-color));
         color: white;
         border-radius: 12px;
+        font-family: var(--paper-font-common-nowrap_-_font-family);
       }
       .welcome-card .greeting {
         font-size: 1.4em;
