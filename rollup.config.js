@@ -6,6 +6,7 @@ export default {
   output: {
     file: 'ha-cardforge-card.js',
     format: 'es',
+    inlineDynamicImports: true, 
   },
   external: [
     /^lit/,
