@@ -42,15 +42,12 @@ class HaCardForgeCard extends LitElement {
   }
 
   async setConfig(config) {
-    console.log('🎯 [CardForge] 设置配置:', config);
-    
     try {
       this.config = this._validateConfig(config);
       this._error = null;
       
       // 加载插件
       this._plugin = await this._loadPlugin(this.config.plugin);
-      console.log('✅ [CardForge] 插件加载成功:', this.config.plugin);
       
       // 更新实体数据
       this._updateEntities();
@@ -59,7 +56,7 @@ class HaCardForgeCard extends LitElement {
       this.requestUpdate();
       
     } catch (error) {
-      console.error('❌ [CardForge] 配置错误:', error);
+      console.error('卡片加载失败:', error);
       this._error = error;
       this.requestUpdate();
     }
@@ -116,8 +113,6 @@ class HaCardForgeCard extends LitElement {
         this._entities[key] = this.hass.states[entityId];
       }
     });
-    
-    console.log('📊 [CardForge] 实体数据:', this._entities);
   }
 
   render() {
@@ -150,12 +145,6 @@ class HaCardForgeCard extends LitElement {
     const template = this._plugin.getTemplate(this.config, this.hass, this._entities);
     const styles = this._plugin.getStyles(this.config);
     
-    console.log('🎨 [CardForge] 渲染卡片:', {
-      插件: this.config.plugin,
-      模板长度: template.length,
-      样式长度: styles.length
-    });
-    
     return html`
       <ha-card>
         <div class="cardforge-content">
@@ -175,7 +164,6 @@ class HaCardForgeCard extends LitElement {
   updated(changedProperties) {
     // Hass 状态更新时刷新实体数据
     if (changedProperties.has('hass')) {
-      console.log('🔄 [CardForge] Hass 状态更新');
       this._updateEntities();
     }
   }
