@@ -9,7 +9,8 @@ class HaCardForgeEditor extends LitElement {
     _plugins: { state: true },
     _searchQuery: { state: true },
     _selectedCategory: { state: true },
-    _activeTab: { state: true }
+    _activeTab: { state: true },
+    _previewKey: { state: true }  // 新增：用于强制预览更新
   };
 
   static styles = css`
@@ -211,6 +212,7 @@ class HaCardForgeEditor extends LitElement {
     this._searchQuery = '';
     this._selectedCategory = 'all';
     this._activeTab = 0;
+    this._previewKey = 0; // 用于强制预览重新渲染
   }
 
   setConfig(config) {
@@ -219,6 +221,8 @@ class HaCardForgeEditor extends LitElement {
       entities: {},
       ...config 
     };
+    // 重置预览键，确保预览更新
+    this._previewKey = 0;
   }
 
   render() {
@@ -477,6 +481,9 @@ class HaCardForgeEditor extends LitElement {
       entities: this._getDefaultEntities(plugin)
     };
     
+    // 强制预览更新：增加预览键值
+    this._previewKey++;
+    
     // 切换到实体配置标签页（如果有实体需求）
     const hasEntities = plugin.entityRequirements && plugin.entityRequirements.length > 0;
     if (hasEntities) {
@@ -484,6 +491,9 @@ class HaCardForgeEditor extends LitElement {
     }
     
     this.requestUpdate();
+    
+    // 通知系统预览更新
+    this._notifyPreviewUpdate();
   }
 
   _getDefaultEntities(plugin) {
@@ -501,7 +511,9 @@ class HaCardForgeEditor extends LitElement {
       ...this.config.entities,
       [key]: value
     };
+    this._previewKey++; // 实体变化时也更新预览
     this.requestUpdate();
+    this._notifyPreviewUpdate();
   }
 
   _themeChanged(theme) {
@@ -509,7 +521,16 @@ class HaCardForgeEditor extends LitElement {
       ...this.config,
       theme: theme
     };
+    this._previewKey++; // 主题变化时也更新预览
     this.requestUpdate();
+    this._notifyPreviewUpdate();
+  }
+
+  _notifyPreviewUpdate() {
+    // 触发配置变化事件，让系统预览更新
+    this.dispatchEvent(new CustomEvent('config-changed', {
+      detail: { config: this.config }
+    }));
   }
 
   _save() {
@@ -522,6 +543,13 @@ class HaCardForgeEditor extends LitElement {
     this.dispatchEvent(new CustomEvent('config-changed', {
       detail: { config: null }
     }));
+  }
+
+  // 重写 updated 方法，确保配置变化时通知预览更新
+  updated(changedProperties) {
+    if (changedProperties.has('config')) {
+      this._notifyPreviewUpdate();
+    }
   }
 }
 
