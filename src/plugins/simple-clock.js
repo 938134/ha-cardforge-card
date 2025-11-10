@@ -35,22 +35,26 @@ export default class SimpleClockPlugin extends BasePlugin {
         flex-direction: column;
         justify-content: center;
         font-family: var(--paper-font-common-nowrap_-_font-family);
+        background: var(--cardforge-bg-color, var(--card-background-color));
+        color: var(--cardforge-text-color, var(--primary-text-color));
       }
       .simple-clock .time {
         font-size: 2.5em;
         font-weight: bold;
         margin-bottom: 8px;
-        color: var(--primary-text-color);
+        color: var(--cardforge-primary-color, var(--primary-color));
         letter-spacing: 2px;
       }
       .simple-clock .date {
         font-size: 1.1em;
         margin-bottom: 4px;
-        color: var(--secondary-text-color);
+        color: var(--cardforge-text-color, var(--primary-text-color));
+        opacity: 0.8;
       }
       .simple-clock .weekday {
         font-size: 1em;
-        color: var(--disabled-text-color);
+        color: var(--cardforge-text-color, var(--primary-text-color));
+        opacity: 0.6;
       }
     `;
   }
