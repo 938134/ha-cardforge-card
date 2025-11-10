@@ -26,9 +26,9 @@ export const PLUGIN_INFO = [
     icon: '🕒',
     category: 'time',
     entityRequirements: [
-      { key: 'time', description: '时间实体' },
-      { key: 'date', description: '日期实体' },
-      { key: 'week', description: '星期实体' }
+      { key: 'time', type: 'sensor', description: '时间实体' },
+      { key: 'date', type: 'sensor', description: '日期实体' },
+      { key: 'week', type: 'sensor', description: '星期实体' }
     ]
   },
   {
