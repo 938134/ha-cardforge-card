@@ -9,8 +9,7 @@ class HaCardForgeEditor extends LitElement {
     _plugins: { state: true },
     _searchQuery: { state: true },
     _selectedCategory: { state: true },
-    _activeTab: { state: true },
-    _loading: { state: true }
+    _activeTab: { state: true }
   };
 
   static styles = css`
@@ -50,6 +49,11 @@ class HaCardForgeEditor extends LitElement {
     .tab-button.active {
       color: var(--primary-color);
       border-bottom-color: var(--primary-color);
+    }
+    
+    .tab-button:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
     }
     
     .tab-content {
@@ -139,47 +143,6 @@ class HaCardForgeEditor extends LitElement {
       font-weight: 500;
     }
     
-    /* 预览区域 */
-    .preview-section {
-      background: var(--card-background-color);
-      border-radius: var(--ha-card-border-radius, 12px);
-      padding: 24px;
-      margin: 24px 0;
-      border: 1px solid var(--divider-color);
-      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
-    }
-    
-    .preview-title {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      margin-bottom: 16px;
-      font-size: 1.1em;
-      font-weight: 600;
-      color: var(--primary-text-color);
-    }
-    
-    .preview-container {
-      min-height: 160px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      background: var(--secondary-background-color);
-      border-radius: 8px;
-      border: 1px dashed var(--divider-color);
-    }
-    
-    .preview-placeholder {
-      text-align: center;
-      color: var(--secondary-text-color);
-      padding: 40px;
-    }
-    
-    .preview-placeholder ha-icon {
-      color: var(--disabled-text-color);
-      margin-bottom: 12px;
-    }
-    
     /* 实体配置 */
     .entity-config {
       margin: 24px 0;
@@ -227,21 +190,6 @@ class HaCardForgeEditor extends LitElement {
       gap: 12px;
     }
     
-    /* 加载状态 */
-    .loading-container {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      padding: 60px 20px;
-      color: var(--secondary-text-color);
-    }
-    
-    .loading-text {
-      margin-top: 16px;
-      font-size: 0.9em;
-    }
-    
     /* 空状态 */
     .empty-state {
       text-align: center;
@@ -262,12 +210,10 @@ class HaCardForgeEditor extends LitElement {
     this._plugins = PLUGIN_INFO;
     this._searchQuery = '';
     this._selectedCategory = 'all';
-    this._activeTab = 0; // 0: 插件市场, 1: 实体配置, 2: 主题设置
-    this._loading = false;
+    this._activeTab = 0;
   }
 
   setConfig(config) {
-    console.log('🎮 [Editor] 设置配置:', config);
     this.config = { 
       plugin: '',
       entities: {},
@@ -310,17 +256,6 @@ class HaCardForgeEditor extends LitElement {
           </div>
         </div>
 
-        <!-- 预览区域 -->
-        <div class="preview-section">
-          <div class="preview-title">
-            <ha-icon icon="mdi:eye-outline"></ha-icon>
-            <span>实时预览</span>
-          </div>
-          <div class="preview-container">
-            ${this._renderPreview()}
-          </div>
-        </div>
-
         <!-- 操作按钮 -->
         <div class="actions">
           <mwc-button 
@@ -332,7 +267,7 @@ class HaCardForgeEditor extends LitElement {
             raised
             label="保存配置"
             @click=${this._save}
-            .disabled=${!this.config.plugin || this._loading}
+            .disabled=${!this.config.plugin}
           ></mwc-button>
         </div>
       </div>
@@ -495,40 +430,6 @@ class HaCardForgeEditor extends LitElement {
     `;
   }
 
-  _renderPreview() {
-    if (this._loading) {
-      return html`
-        <div class="loading-container">
-          <ha-circular-progress indeterminate></ha-circular-progress>
-          <div class="loading-text">加载中...</div>
-        </div>
-      `;
-    }
-
-    if (!this.config.plugin) {
-      return html`
-        <div class="preview-placeholder">
-          <ha-icon icon="mdi:card-bulleted-outline"></ha-icon>
-          <div style="font-size: 1.1em; margin-bottom: 8px;">选择插件预览效果</div>
-          <div style="font-size: 0.9em;">在左侧选择一个插件后，将在此显示预览</div>
-        </div>
-      `;
-    }
-
-    const previewConfig = {
-      plugin: this.config.plugin,
-      entities: this.config.entities || {},
-      theme: this.config.theme || 'default'
-    };
-
-    return html`
-      <ha-cardforge-card
-        .hass=${this.hass}
-        .config=${previewConfig}
-      ></ha-cardforge-card>
-    `;
-  }
-
   _renderError(message) {
     return html`
       <div class="empty-state">
@@ -570,15 +471,6 @@ class HaCardForgeEditor extends LitElement {
   }
 
   async _selectPlugin(plugin) {
-    console.log('🎯 [Editor] 选择插件:', plugin.id);
-    
-    // 显示加载状态
-    this._loading = true;
-    this.requestUpdate();
-    
-    // 模拟加载延迟，让用户体验更流畅
-    await new Promise(resolve => setTimeout(resolve, 300));
-    
     this.config = {
       ...this.config,
       plugin: plugin.id,
@@ -591,7 +483,6 @@ class HaCardForgeEditor extends LitElement {
       this._activeTab = 1;
     }
     
-    this._loading = false;
     this.requestUpdate();
   }
 
