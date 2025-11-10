@@ -2,6 +2,7 @@
 import { LitElement, html } from 'https://unpkg.com/lit@2.8.0/index.js?module';
 import { unsafeHTML } from 'https://unpkg.com/lit-html/directives/unsafe-html.js?module';
 import { PLUGIN_REGISTRY } from './core/plugin-registry.js';
+import { ThemeManager } from './core/theme-manager.js';
 
 class HaCardForgeCard extends LitElement {
   static properties = {
@@ -9,7 +10,8 @@ class HaCardForgeCard extends LitElement {
     config: { type: Object },
     _plugin: { state: true },
     _entities: { state: true },
-    _error: { state: true }
+    _error: { state: true },
+    _isPreview: { state: true } // 添加预览模式支持
   };
 
   constructor() {
@@ -18,18 +20,25 @@ class HaCardForgeCard extends LitElement {
     this._plugin = null;
     this._entities = {};
     this._error = null;
+    this._isPreview = false;
   }
 
   async setConfig(config) {
     try {
       this.config = this._validateConfig(config);
       this._error = null;
+      this._isPreview = config._isPreview || false; // 检测预览模式
       
       // 加载插件
       this._plugin = await this._loadPlugin(this.config.plugin);
       
       // 更新实体数据
       this._updateEntities();
+      
+      // 应用主题
+      if (this.config.theme) {
+        ThemeManager.applyTheme(this, this.config.theme);
+      }
       
       // 请求重新渲染
       this.requestUpdate();
@@ -91,8 +100,47 @@ class HaCardForgeCard extends LitElement {
     Object.entries(this.config.entities).forEach(([key, entityId]) => {
       if (entityId && this.hass.states[entityId]) {
         this._entities[key] = this.hass.states[entityId];
+      } else if (this._isPreview) {
+        // 预览模式下提供模拟数据
+        this._entities[key] = this._getMockEntity(key, entityId);
       }
     });
+  }
+
+  _getMockEntity(key, entityId) {
+    // 为预览提供模拟实体数据
+    const now = new Date();
+    const mockData = {
+      time: {
+        entity_id: entityId || 'sensor.time',
+        state: now.toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' }),
+        attributes: {}
+      },
+      date: {
+        entity_id: entityId || 'sensor.date', 
+        state: now.toLocaleDateString('zh-CN'),
+        attributes: {}
+      },
+      week: {
+        entity_id: entityId || 'sensor.week',
+        state: '星期' + '日一二三四五六'[now.getDay()],
+        attributes: {}
+      },
+      weather: {
+        entity_id: entityId || 'weather.home',
+        state: '晴朗',
+        attributes: {
+          temperature: 25,
+          humidity: 65
+        }
+      }
+    };
+    
+    return mockData[key] || {
+      entity_id: entityId || `sensor.${key}`,
+      state: '模拟数据',
+      attributes: {}
+    };
   }
 
   render() {
@@ -142,6 +190,11 @@ class HaCardForgeCard extends LitElement {
     // Hass 状态更新时刷新实体数据
     if (changedProperties.has('hass')) {
       this._updateEntities();
+    }
+    
+    // 配置更新时重新应用主题
+    if (changedProperties.has('config') && this.config.theme) {
+      ThemeManager.applyTheme(this, this.config.theme);
     }
   }
 
