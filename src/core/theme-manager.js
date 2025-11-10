@@ -58,6 +58,55 @@ class ThemeManager {
   static getAllThemes() {
     return Array.from(this._themes.values());
   }
+
+  // 修复：添加 applyTheme 方法
+  static applyTheme(element, themeId = null) {
+    const theme = this.getTheme(themeId);
+    if (!theme) {
+      console.warn(`主题 ${themeId} 不存在`);
+      return false;
+    }
+
+    try {
+      // 移除现有的主题样式
+      this._removeExistingTheme(element);
+      
+      // 注入新的主题样式
+      this._injectThemeStyles(element, theme);
+      
+      return true;
+    } catch (error) {
+      console.error('应用主题失败:', error);
+      return false;
+    }
+  }
+
+  static _removeExistingTheme(element) {
+    const root = element.shadowRoot || element;
+    const existing = root.querySelector('style[data-cardforge-theme]');
+    if (existing) {
+      existing.remove();
+    }
+  }
+
+  static _injectThemeStyles(element, theme) {
+    const root = element.shadowRoot || element;
+    const style = document.createElement('style');
+    style.setAttribute('data-cardforge-theme', theme.id);
+    
+    const css = `
+      .cardforge-card {
+        background: ${theme.variables['--cardforge-bg-color']};
+        color: ${theme.variables['--cardforge-text-color']};
+      }
+      .cardforge-primary {
+        color: ${theme.variables['--cardforge-primary-color']} !important;
+      }
+    `;
+    
+    style.textContent = css;
+    root.appendChild(style);
+  }
 }
 
 // 初始化

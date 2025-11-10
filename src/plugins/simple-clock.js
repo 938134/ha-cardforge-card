@@ -21,8 +21,8 @@ export default class SimpleClockPlugin extends BasePlugin {
     const weekDay = '星期' + '日一二三四五六'[now.getDay()];
 
     return `
-      <div class="cardforge-card simple-clock">
-        <div class="time cardforge-primary">${timeStr}</div>
+      <div class="simple-clock">
+        <div class="time">${timeStr}</div>
         <div class="date">${dateStr}</div>
         <div class="weekday">${weekDay}</div>
       </div>
@@ -33,16 +33,20 @@ export default class SimpleClockPlugin extends BasePlugin {
     return `
       .simple-clock {
         text-align: center;
+        padding: 20px;
         height: 140px;
         display: flex;
         flex-direction: column;
         justify-content: center;
         font-family: var(--paper-font-common-nowrap_-_font-family);
+        background: var(--card-background-color);
+        color: var(--primary-text-color);
       }
       .simple-clock .time {
         font-size: 2.5em;
         font-weight: bold;
         margin-bottom: 8px;
+        color: var(--primary-color);
         letter-spacing: 2px;
       }
       .simple-clock .date {

@@ -23,19 +23,19 @@ export default class TimeCardPlugin extends BasePlugin {
     const [, month, day] = date.split('-');
 
     return `
-      <div class="cardforge-card time-card">
+      <div class="time-card">
         <div class="time-section hour">
           <div class="label">时</div>
-          <div class="value cardforge-primary">${hour}</div>
+          <div class="value">${hour}</div>
         </div>
         <div class="date-section">
           <div class="month">${month}月</div>
-          <div class="day cardforge-primary">${day}</div>
+          <div class="day">${day}</div>
           <div class="week">${week}</div>
         </div>
         <div class="time-section minute">
           <div class="label">分</div>
-          <div class="value cardforge-primary">${minute}</div>
+          <div class="value">${minute}</div>
         </div>
       </div>
     `;
@@ -49,7 +49,10 @@ export default class TimeCardPlugin extends BasePlugin {
         gap: 10px;
         align-items: center;
         height: 120px;
+        padding: 16px;
         font-family: var(--paper-font-common-nowrap_-_font-family);
+        background: var(--card-background-color);
+        color: var(--primary-text-color);
       }
       .time-section {
         text-align: center;
@@ -61,6 +64,7 @@ export default class TimeCardPlugin extends BasePlugin {
       .time-section .value {
         font-size: 2em;
         font-weight: bold;
+        color: var(--primary-color);
       }
       .date-section {
         text-align: center;
@@ -73,6 +77,7 @@ export default class TimeCardPlugin extends BasePlugin {
         font-size: 2.8em;
         font-weight: bold;
         line-height: 1;
+        color: var(--primary-color);
       }
       .date-section .week {
         font-size: 0.8em;
