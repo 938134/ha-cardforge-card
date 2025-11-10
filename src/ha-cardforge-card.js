@@ -11,8 +11,7 @@ class HaCardForgeCard extends LitElement {
     config: { type: Object },
     _plugin: { state: true },
     _entities: { state: true },
-    _error: { state: true },
-    _currentTheme: { state: true }
+    _error: { state: true }
   };
 
   static styles = css`
@@ -81,7 +80,7 @@ class HaCardForgeCard extends LitElement {
       this._updateEntities();
       
       // 应用主题
-      this.applyTheme(this.config.theme);
+      ThemeManager.applyTheme(this, this.config.theme);
       
       // 请求重新渲染
       this.requestUpdate();
@@ -148,12 +147,10 @@ class HaCardForgeCard extends LitElement {
   }
 
   render() {
-    const themeClass = `theme-${this.config.theme || 'default'}`;
-    
     // 显示错误状态
     if (this._error) {
       return html`
-        <ha-card class="${themeClass}">
+        <ha-card>
           <div class="cardforge-error">
             <div style="font-size: 2em;">❌</div>
             <div style="font-weight: bold; margin: 8px 0;">卡片加载失败</div>
@@ -166,7 +163,7 @@ class HaCardForgeCard extends LitElement {
     // 显示加载状态
     if (!this._plugin) {
       return html`
-        <ha-card class="${themeClass}">
+        <ha-card>
           <div class="cardforge-loading">
             <ha-circular-progress indeterminate></ha-circular-progress>
             <div style="margin-top: 8px;">加载中...</div>
@@ -201,7 +198,7 @@ class HaCardForgeCard extends LitElement {
       this._updateEntities();
     }
     
-    // 应用主题
+    // 配置更新时重新应用主题
     if (changedProperties.has('config') && this.config.theme) {
       ThemeManager.applyTheme(this, this.config.theme);
     }
