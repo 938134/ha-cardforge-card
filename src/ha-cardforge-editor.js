@@ -32,25 +32,16 @@ class HaCardForgeEditor extends LitElement {
   render() {
     return html`
       <div class="card">
-        <!-- 标签页导航 -->
-        <ha-tabs
-          .activeIndex=${this._activeTab}
-          @iron-activate=${this._tabChanged}
-          scrollable
-        >
-          <paper-tab>
-            <ha-icon icon="mdi:view-grid-outline"></ha-icon>
-            <span>插件市场</span>
-          </paper-tab>
-          <paper-tab .disabled=${!this.config.plugin}>
-            <ha-icon icon="mdi:cog-outline"></ha-icon>
-            <span>实体配置</span>
-          </paper-tab>
-          <paper-tab>
-            <ha-icon icon="mdi:palette-outline"></ha-icon>
-            <span>主题设置</span>
-          </paper-tab>
-        </ha-tabs>
+        <!-- 标签页导航 - 使用简单的按钮实现 -->
+        <div style="
+          display: flex;
+          border-bottom: 1px solid var(--divider-color);
+          margin-bottom: 20px;
+        ">
+          ${this._renderTabButton(0, 'mdi:view-grid-outline', '插件市场')}
+          ${this._renderTabButton(1, 'mdi:cog-outline', '实体配置', !this.config.plugin)}
+          ${this._renderTabButton(2, 'mdi:palette-outline', '主题设置')}
+        </div>
 
         <div class="card-content">
           ${this._renderActiveTab()}
@@ -71,6 +62,34 @@ class HaCardForgeEditor extends LitElement {
           ></mwc-button>
         </div>
       </div>
+    `;
+  }
+
+  _renderTabButton(tabIndex, icon, label, disabled = false) {
+    const isActive = this._activeTab === tabIndex;
+    return html`
+      <button
+        style="
+          padding: 12px 24px;
+          background: none;
+          border: none;
+          border-bottom: 2px solid ${isActive ? 'var(--primary-color)' : 'transparent'};
+          color: ${isActive ? 'var(--primary-color)' : 'var(--secondary-text-color)'};
+          cursor: ${disabled ? 'not-allowed' : 'pointer'};
+          font-size: 0.9em;
+          font-weight: 500;
+          transition: all 0.2s ease;
+          opacity: ${disabled ? 0.5 : 1};
+          display: flex;
+          align-items: center;
+          gap: 8px;
+        "
+        @click=${() => !disabled && this._switchTab(tabIndex)}
+        .disabled=${disabled}
+      >
+        <ha-icon icon="${icon}"></ha-icon>
+        <span>${label}</span>
+      </button>
     `;
   }
 
@@ -177,11 +196,20 @@ class HaCardForgeEditor extends LitElement {
 
     return html`
       <ha-card style="margin: 24px 0;">
-        <div class="card-header">
+        <div style="
+          padding: 16px;
+          border-bottom: 1px solid var(--divider-color);
+          font-size: 1em;
+          font-weight: 600;
+          color: var(--primary-text-color);
+          display: flex;
+          align-items: center;
+          gap: 8px;
+        ">
           <ha-icon icon="mdi:database-cog"></ha-icon>
           <span>实体配置 - ${plugin.name}</span>
         </div>
-        <div class="card-content">
+        <div style="padding: 16px;">
           ${this._renderEntityConfig(plugin)}
         </div>
       </ha-card>
@@ -233,11 +261,20 @@ class HaCardForgeEditor extends LitElement {
 
     return html`
       <ha-card>
-        <div class="card-header">
+        <div style="
+          padding: 16px;
+          border-bottom: 1px solid var(--divider-color);
+          font-size: 1em;
+          font-weight: 600;
+          color: var(--primary-text-color);
+          display: flex;
+          align-items: center;
+          gap: 8px;
+        ">
           <ha-icon icon="mdi:palette"></ha-icon>
           <span>主题设置</span>
         </div>
-        <div class="card-content">
+        <div style="padding: 16px;">
           <ha-select
             label="选择主题风格"
             .value=${this.config.theme || 'default'}
@@ -298,6 +335,7 @@ class HaCardForgeEditor extends LitElement {
 
   _switchTab(tabIndex) {
     this._activeTab = tabIndex;
+    this.requestUpdate();
     this._notifyPreviewUpdate();
   }
 
