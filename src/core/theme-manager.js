@@ -25,7 +25,7 @@ class ThemeManager {
           '--cardforge-accent-color': 'var(--accent-color)',
           '--cardforge-border-radius': 'var(--ha-card-border-radius, 12px)',
           '--cardforge-padding': '16px',
-          '--cardforge-shadow': 'var(--ha-card-box-shadow, none)'
+          '--cardforge-shadow': 'var(--ha-card-box-shadow, 0 2px 4px rgba(0,0,0,0.1))'
         }
       },
       'dark': {
@@ -41,7 +41,7 @@ class ThemeManager {
           '--cardforge-accent-color': '#03dac6',
           '--cardforge-border-radius': '12px',
           '--cardforge-padding': '16px',
-          '--cardforge-shadow': '0 2px 4px rgba(0,0,0,0.3)'
+          '--cardforge-shadow': '0 4px 8px rgba(0,0,0,0.3)'
         }
       },
       'material': {
@@ -72,7 +72,7 @@ class ThemeManager {
           '--cardforge-primary-color': 'var(--primary-color)',
           '--cardforge-accent-color': 'var(--accent-color)',
           '--cardforge-border-radius': '0px',
-          '--cardforge-padding': '8px',
+          '--cardforge-padding': '12px',
           '--cardforge-shadow': 'none'
         }
       }
@@ -166,8 +166,50 @@ class ThemeManager {
     });
     css += `}\n`;
     
+    // 添加主题特定的样式覆盖
+    css += this._getThemeOverrides(theme.id);
+    
     style.textContent = css;
     root.appendChild(style);
+  }
+
+  static _getThemeOverrides(themeId) {
+    const overrides = {
+      'dark': `
+        .cardforge-card {
+          color: var(--cardforge-text-color);
+          background: var(--cardforge-bg-color);
+          border-radius: var(--cardforge-border-radius);
+          padding: var(--cardforge-padding);
+          box-shadow: var(--cardforge-shadow);
+        }
+      `,
+      'material': `
+        .cardforge-card {
+          color: var(--cardforge-text-color);
+          background: var(--cardforge-bg-color);
+          border-radius: var(--cardforge-border-radius);
+          padding: var(--cardforge-padding);
+          box-shadow: var(--cardforge-shadow);
+          transition: all 0.3s ease;
+        }
+        .cardforge-card:hover {
+          box-shadow: 0 6px 12px rgba(0,0,0,0.2);
+        }
+      `,
+      'minimal': `
+        .cardforge-card {
+          color: var(--cardforge-text-color);
+          background: var(--cardforge-bg-color);
+          border-radius: var(--cardforge-border-radius);
+          padding: var(--cardforge-padding);
+          box-shadow: var(--cardforge-shadow);
+        }
+      `,
+      'default': ''
+    };
+    
+    return overrides[themeId] || '';
   }
 
   // 自定义主题管理
@@ -223,13 +265,12 @@ class ThemeManager {
     return false;
   }
 
-  // 获取主题变量
+  // 工具方法
   static getThemeVariables(themeId = null) {
     const theme = this.getTheme(themeId || this._currentTheme);
     return theme ? theme.variables : {};
   }
 
-  // 导出主题
   static exportTheme(themeId) {
     const theme = this.getTheme(themeId);
     if (!theme) return null;
@@ -240,19 +281,18 @@ class ThemeManager {
     };
   }
 
-  // 导入主题
   static importTheme(themeData) {
     if (!themeData.id || !themeData.variables) {
-      return false;
+      throw new Error('无效的主题数据');
     }
     
     const themeId = themeData.id.startsWith('custom-') ? themeData.id : `custom-${themeData.id}`;
     
     const theme = {
       id: themeId,
-      name: themeData.name || '导入主题',
+      name: themeData.name || '导入的主题',
       icon: themeData.icon || '📥',
-      description: themeData.description || '导入的自定义主题',
+      description: themeData.description || '从外部导入的主题',
       type: 'custom',
       variables: themeData.variables,
       imported: new Date().toISOString()
