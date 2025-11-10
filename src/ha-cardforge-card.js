@@ -1,8 +1,6 @@
 // src/ha-cardforge-card.js
-import { LitElement, html, css } from 'https://unpkg.com/lit@2.8.0/index.js?module';
+import { LitElement, html } from 'https://unpkg.com/lit@2.8.0/index.js?module';
 import { unsafeHTML } from 'https://unpkg.com/lit-html/directives/unsafe-html.js?module';
-import { ThemeManager } from './core/theme-manager.js';
-import { EntityManager } from './core/entity-manager.js';
 import { PLUGIN_REGISTRY } from './core/plugin-registry.js';
 
 class HaCardForgeCard extends LitElement {
@@ -13,52 +11,6 @@ class HaCardForgeCard extends LitElement {
     _entities: { state: true },
     _error: { state: true }
   };
-
-  static styles = css`
-    :host {
-      display: block;
-    }
-    
-    .cardforge-error {
-      padding: 20px;
-      text-align: center;
-      color: var(--error-color);
-      background: var(--card-background-color);
-      border-radius: var(--ha-card-border-radius, 12px);
-      border: 1px solid var(--divider-color);
-    }
-    
-    .cardforge-loading {
-      padding: 20px;
-      text-align: center;
-      color: var(--secondary-text-color);
-    }
-    
-    /* 基础卡片样式 */
-    .cardforge-card {
-      background: var(--cardforge-bg-color, var(--card-background-color));
-      color: var(--cardforge-text-color, var(--primary-text-color));
-      border-radius: var(--cardforge-border-radius, var(--ha-card-border-radius, 12px));
-      padding: var(--cardforge-padding, 16px);
-      box-shadow: var(--cardforge-shadow, var(--ha-card-box-shadow, 0 2px 4px rgba(0,0,0,0.1)));
-      transition: all 0.3s ease;
-    }
-    
-    /* 主题颜色工具类 */
-    .cardforge-primary {
-      color: var(--cardforge-primary-color, var(--primary-color)) !important;
-    }
-    
-    .cardforge-accent {
-      color: var(--cardforge-accent-color, var(--accent-color)) !important;
-    }
-    
-    .cardforge-welcome {
-      background: var(--cardforge-welcome-bg, linear-gradient(135deg, var(--primary-color), var(--accent-color))) !important;
-      color: white !important;
-      border: none !important;
-    }
-  `;
 
   constructor() {
     super();
@@ -78,9 +30,6 @@ class HaCardForgeCard extends LitElement {
       
       // 更新实体数据
       this._updateEntities();
-      
-      // 应用主题
-      ThemeManager.applyTheme(this, this.config.theme);
       
       // 请求重新渲染
       this.requestUpdate();
@@ -151,7 +100,7 @@ class HaCardForgeCard extends LitElement {
     if (this._error) {
       return html`
         <ha-card>
-          <div class="cardforge-error">
+          <div style="padding: 20px; text-align: center; color: var(--error-color);">
             <div style="font-size: 2em;">❌</div>
             <div style="font-weight: bold; margin: 8px 0;">卡片加载失败</div>
             <div style="font-size: 0.9em;">${this._error.message}</div>
@@ -164,7 +113,7 @@ class HaCardForgeCard extends LitElement {
     if (!this._plugin) {
       return html`
         <ha-card>
-          <div class="cardforge-loading">
+          <div style="padding: 20px; text-align: center; color: var(--secondary-text-color);">
             <ha-circular-progress indeterminate></ha-circular-progress>
             <div style="margin-top: 8px;">加载中...</div>
           </div>
@@ -178,15 +127,12 @@ class HaCardForgeCard extends LitElement {
 
     return html`
       <ha-card>
-        <div class="cardforge-content">
+        <div style="position: relative;">
           ${unsafeHTML(template)}
         </div>
       </ha-card>
       
       <style>
-        .cardforge-content {
-          position: relative;
-        }
         ${styles}
       </style>
     `;
@@ -196,11 +142,6 @@ class HaCardForgeCard extends LitElement {
     // Hass 状态更新时刷新实体数据
     if (changedProperties.has('hass')) {
       this._updateEntities();
-    }
-    
-    // 配置更新时重新应用主题
-    if (changedProperties.has('config') && this.config.theme) {
-      ThemeManager.applyTheme(this, this.config.theme);
     }
   }
 
