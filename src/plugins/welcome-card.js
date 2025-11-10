@@ -42,6 +42,16 @@ export default class WelcomeCardPlugin extends BasePlugin {
   }
 
   getStyles(config) {
+    const theme = config.theme || 'default';
+    
+    let background = 'linear-gradient(135deg, var(--cardforge-primary-color, var(--primary-color)), var(--accent-color))';
+    
+    if (theme === 'dark') {
+      background = 'linear-gradient(135deg, #bb86fc, #03dac6)';
+    } else if (theme === 'material') {
+      background = 'linear-gradient(135deg, #6200ee, #03dac6)';
+    }
+    
     return `
       .welcome-card {
         text-align: center;
@@ -50,7 +60,7 @@ export default class WelcomeCardPlugin extends BasePlugin {
         display: flex;
         flex-direction: column;
         justify-content: center;
-        background: linear-gradient(135deg, var(--primary-color), var(--accent-color));
+        background: ${background};
         color: white;
         border-radius: 12px;
         font-family: var(--paper-font-common-nowrap_-_font-family);
