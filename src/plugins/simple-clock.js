@@ -17,10 +17,11 @@ export default class SimpleClockPlugin extends BasePlugin {
     const weekDay = '星期' + '日一二三四五六'[now.getDay()];
 
     return `
-      <div class="simple-clock">
-        <div class="time">${timeStr}</div>
-        <div class="date">${dateStr}</div>
-        <div class="weekday">${weekDay}</div>
+      <div class="simple-clock" style="border: 2px solid red; background: yellow; padding: 20px; text-align: center;">
+        <div class="time" style="color: black; font-size: 24px; font-weight: bold;">${timeStr}</div>
+        <div class="date" style="color: black; font-size: 16px; margin: 8px 0;">${dateStr}</div>
+        <div class="weekday" style="color: black; font-size: 14px;">${weekDay}</div>
+        <div style="color: black; font-size: 12px; margin-top: 10px;">调试信息：卡片已渲染</div>
       </div>
     `;
   }
@@ -28,28 +29,11 @@ export default class SimpleClockPlugin extends BasePlugin {
   getStyles(config) {
     return `
       .simple-clock {
-        text-align: center;
-        padding: 20px;
         height: 140px;
         display: flex;
         flex-direction: column;
         justify-content: center;
-      }
-      .simple-clock .time {
-        font-size: 2.5em;
-        font-weight: bold;
-        margin-bottom: 8px;
-        color: var(--primary-text-color);
-        letter-spacing: 2px;
-      }
-      .simple-clock .date {
-        font-size: 1.1em;
-        margin-bottom: 4px;
-        color: var(--secondary-text-color);
-      }
-      .simple-clock .weekday {
-        font-size: 1em;
-        color: var(--disabled-text-color);
+        font-family: var(--paper-font-common-nowrap_-_font-family);
       }
     `;
   }
