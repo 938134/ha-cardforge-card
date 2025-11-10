@@ -257,6 +257,7 @@ class HaCardForgeEditor extends LitElement {
                   @value-changed=${e => this._entityChanged(req.key, e.detail.value)}
                   allow-custom-entity
                   .label=${`选择${req.description}`}
+                  .includeDomains=${req.domains || []}
                 ></ha-entity-picker>
                 <ha-icon 
                   icon=${isValid.valid ? 'mdi:check-circle' : 
@@ -268,6 +269,52 @@ class HaCardForgeEditor extends LitElement {
               </div>
             `;
           })}
+          
+          ${plugin.id === 'welcome-card' ? html`
+            <div style="
+              background: var(--info-color, #2196F3);
+              color: white;
+              padding: 12px 16px;
+              border-radius: 8px;
+              margin-top: 16px;
+              font-size: 0.85em;
+            ">
+              <div style="font-weight: 600; margin-bottom: 4px;">💡 使用建议：</div>
+              <div>• <strong>用户名称</strong>: 可选择 person 实体显示用户名</div>
+              <div>• <strong>欢迎消息</strong>: 可选择 input_text 实体来自定义消息</div>
+              <div>• 两个实体都是可选的，不配置将使用默认值</div>
+            </div>
+          ` : ''}
+
+          ${plugin.id === 'weather-card' ? html`
+            <div style="
+              background: var(--info-color, #2196F3);
+              color: white;
+              padding: 12px 16px;
+              border-radius: 8px;
+              margin-top: 16px;
+              font-size: 0.85em;
+            ">
+              <div style="font-weight: 600; margin-bottom: 4px;">💡 使用建议：</div>
+              <div>• <strong>天气实体</strong>: 必须选择 weather 类型的实体</div>
+              <div>• 支持显示温度、湿度、天气状况等信息</div>
+            </div>
+          ` : ''}
+
+          ${plugin.id === 'simple-clock' ? html`
+            <div style="
+              background: var(--success-color, #4CAF50);
+              color: white;
+              padding: 12px 16px;
+              border-radius: 8px;
+              margin-top: 16px;
+              font-size: 0.85em;
+            ">
+              <div style="font-weight: 600; margin-bottom: 4px;">✅ 简约时钟</div>
+              <div>• 此插件使用系统时间，无需配置实体</div>
+              <div>• 自动显示当前时间、日期和星期</div>
+            </div>
+          ` : ''}
           
           <div style="color: var(--secondary-text-color); font-size: 0.85em; margin-top: 16px;">
             💡 提示：带 <span style="color: var(--error-color);">*</span> 的实体为必选
@@ -328,12 +375,47 @@ class HaCardForgeEditor extends LitElement {
             ` : ''}
             
             <div style="color: var(--secondary-text-color); font-size: 0.85em;">
-              主题设置将实时影响系统预览区域的外观样式
+              主题设置将实时影响卡片的外观样式
             </div>
+
+            ${plugin ? html`
+              <div style="margin-top: 20px; padding: 16px; background: var(--secondary-background-color); border-radius: 8px;">
+                <div style="font-weight: 600; margin-bottom: 8px; color: var(--primary-text-color);">
+                  ${plugin.name} 主题预览
+                </div>
+                <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+                  ${themeOptions.map(theme => html`
+                    <div 
+                      style="
+                        width: 60px;
+                        height: 40px;
+                        border-radius: 6px;
+                        cursor: pointer;
+                        border: 2px solid ${this.config.theme === theme.id ? 'var(--primary-color)' : 'transparent'};
+                        ${this._getThemePreviewStyle(theme.id)}
+                      "
+                      @click=${() => this._themeChanged(theme.id)}
+                      title=${theme.name}
+                    ></div>
+                  `)}
+                </div>
+              </div>
+            ` : ''}
           </div>
         </ha-card>
       </div>
     `;
+  }
+
+  _getThemePreviewStyle(themeId) {
+    const styles = {
+      'default': 'background: var(--card-background-color); border: 1px solid var(--divider-color);',
+      'dark': 'background: #1e1e1e;',
+      'material': 'background: #fafafa; border: 1px solid #e0e0e0;',
+      'minimal': 'background: transparent; border: 1px dashed var(--divider-color);',
+      'gradient': 'background: linear-gradient(135deg, var(--primary-color), var(--accent-color));'
+    };
+    return styles[themeId] || styles.default;
   }
 
   _renderError(message) {
