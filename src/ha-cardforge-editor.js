@@ -9,8 +9,7 @@ class HaCardForgeEditor extends LitElement {
     _plugins: { state: true },
     _searchQuery: { state: true },
     _selectedCategory: { state: true },
-    _activeTab: { state: true },
-    _previewKey: { state: true }  // 新增：用于强制预览更新
+    _activeTab: { state: true }
   };
 
   static styles = css`
@@ -212,7 +211,6 @@ class HaCardForgeEditor extends LitElement {
     this._searchQuery = '';
     this._selectedCategory = 'all';
     this._activeTab = 0;
-    this._previewKey = 0; // 用于强制预览重新渲染
   }
 
   setConfig(config) {
@@ -221,8 +219,6 @@ class HaCardForgeEditor extends LitElement {
       entities: {},
       ...config 
     };
-    // 重置预览键，确保预览更新
-    this._previewKey = 0;
   }
 
   render() {
@@ -472,6 +468,8 @@ class HaCardForgeEditor extends LitElement {
 
   _switchTab(tabIndex) {
     this._activeTab = tabIndex;
+    // 切换标签页时通知预览更新
+    this._notifyPreviewUpdate();
   }
 
   async _selectPlugin(plugin) {
@@ -481,9 +479,6 @@ class HaCardForgeEditor extends LitElement {
       entities: this._getDefaultEntities(plugin)
     };
     
-    // 强制预览更新：增加预览键值
-    this._previewKey++;
-    
     // 切换到实体配置标签页（如果有实体需求）
     const hasEntities = plugin.entityRequirements && plugin.entityRequirements.length > 0;
     if (hasEntities) {
@@ -492,8 +487,10 @@ class HaCardForgeEditor extends LitElement {
     
     this.requestUpdate();
     
-    // 通知系统预览更新
-    this._notifyPreviewUpdate();
+    // 延迟通知预览更新，确保DOM已更新
+    setTimeout(() => {
+      this._notifyPreviewUpdate();
+    }, 100);
   }
 
   _getDefaultEntities(plugin) {
@@ -511,9 +508,12 @@ class HaCardForgeEditor extends LitElement {
       ...this.config.entities,
       [key]: value
     };
-    this._previewKey++; // 实体变化时也更新预览
     this.requestUpdate();
-    this._notifyPreviewUpdate();
+    
+    // 实体变化时通知预览更新
+    setTimeout(() => {
+      this._notifyPreviewUpdate();
+    }, 100);
   }
 
   _themeChanged(theme) {
@@ -521,16 +521,22 @@ class HaCardForgeEditor extends LitElement {
       ...this.config,
       theme: theme
     };
-    this._previewKey++; // 主题变化时也更新预览
     this.requestUpdate();
-    this._notifyPreviewUpdate();
+    
+    // 主题变化时通知预览更新
+    setTimeout(() => {
+      this._notifyPreviewUpdate();
+    }, 100);
   }
 
   _notifyPreviewUpdate() {
     // 触发配置变化事件，让系统预览更新
-    this.dispatchEvent(new CustomEvent('config-changed', {
-      detail: { config: this.config }
-    }));
+    // 使用 setTimeout 确保在下一个事件循环中触发
+    setTimeout(() => {
+      this.dispatchEvent(new CustomEvent('config-changed', {
+        detail: { config: this.config }
+      }));
+    }, 0);
   }
 
   _save() {
@@ -543,13 +549,6 @@ class HaCardForgeEditor extends LitElement {
     this.dispatchEvent(new CustomEvent('config-changed', {
       detail: { config: null }
     }));
-  }
-
-  // 重写 updated 方法，确保配置变化时通知预览更新
-  updated(changedProperties) {
-    if (changedProperties.has('config')) {
-      this._notifyPreviewUpdate();
-    }
   }
 }
 
