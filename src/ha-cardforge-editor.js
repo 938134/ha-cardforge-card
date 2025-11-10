@@ -16,6 +16,9 @@ class HaCardForgeEditor extends LitElement {
     .editor {
       padding: 16px;
       max-width: 800px;
+      background: var(--card-background-color);
+      border-radius: var(--ha-card-border-radius, 12px);
+      border: 1px solid var(--divider-color);
     }
     
     /* 标签页样式 */
@@ -75,39 +78,39 @@ class HaCardForgeEditor extends LitElement {
     /* 插件网格 */
     .plugin-grid {
       display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
-      gap: 16px;
+      grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+      gap: 12px;
       margin-bottom: 20px;
     }
     
     .plugin-card {
-      background: var(--card-background-color);
-      border: 2px solid var(--divider-color);
-      border-radius: 12px;
-      padding: 20px;
+      background: var(--secondary-background-color);
+      border: 1px solid var(--divider-color);
+      border-radius: 8px;
+      padding: 16px;
       cursor: pointer;
       text-align: center;
-      transition: all 0.3s ease;
+      transition: all 0.2s ease;
       position: relative;
       overflow: hidden;
     }
     
     .plugin-card:hover {
       border-color: var(--primary-color);
-      transform: translateY(-2px);
-      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+      transform: translateY(-1px);
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
     }
     
     .plugin-card.selected {
       border-color: var(--primary-color);
-      background: rgba(var(--rgb-primary-color), 0.05);
-      box-shadow: 0 2px 8px rgba(var(--rgb-primary-color), 0.2);
+      background: rgba(var(--rgb-primary-color), 0.08);
+      box-shadow: 0 1px 4px rgba(var(--rgb-primary-color), 0.2);
     }
     
     .plugin-icon {
-      font-size: 2.5em;
-      margin-bottom: 12px;
-      height: 60px;
+      font-size: 2em;
+      margin-bottom: 8px;
+      height: 40px;
       display: flex;
       align-items: center;
       justify-content: center;
@@ -115,16 +118,17 @@ class HaCardForgeEditor extends LitElement {
     
     .plugin-name {
       font-weight: 600;
-      margin-bottom: 6px;
-      font-size: 0.95em;
+      margin-bottom: 4px;
+      font-size: 0.85em;
       color: var(--primary-text-color);
+      line-height: 1.2;
     }
     
     .plugin-description {
-      font-size: 0.8em;
+      font-size: 0.75em;
       color: var(--secondary-text-color);
-      line-height: 1.4;
-      height: 36px;
+      line-height: 1.3;
+      height: 32px;
       overflow: hidden;
       display: -webkit-box;
       -webkit-line-clamp: 2;
@@ -133,28 +137,28 @@ class HaCardForgeEditor extends LitElement {
     
     .plugin-category {
       position: absolute;
-      top: 8px;
-      right: 8px;
+      top: 4px;
+      right: 4px;
       background: var(--primary-color);
       color: white;
-      border-radius: 12px;
-      padding: 2px 8px;
-      font-size: 0.7em;
+      border-radius: 8px;
+      padding: 1px 6px;
+      font-size: 0.65em;
       font-weight: 500;
     }
     
     /* 实体配置 */
     .entity-config {
       margin: 24px 0;
-      background: var(--card-background-color);
-      border-radius: 12px;
-      padding: 20px;
+      background: var(--secondary-background-color);
+      border-radius: 8px;
+      padding: 16px;
       border: 1px solid var(--divider-color);
     }
     
     .entity-config-title {
-      margin: 0 0 16px 0;
-      font-size: 1.1em;
+      margin: 0 0 12px 0;
+      font-size: 1em;
       font-weight: 600;
       color: var(--primary-text-color);
       display: flex;
@@ -164,18 +168,18 @@ class HaCardForgeEditor extends LitElement {
     
     .entity-row {
       display: grid;
-      grid-template-columns: 120px 1fr auto;
-      gap: 16px;
+      grid-template-columns: 100px 1fr auto;
+      gap: 12px;
       align-items: center;
-      margin-bottom: 16px;
-      padding: 12px;
-      background: var(--secondary-background-color);
-      border-radius: 8px;
+      margin-bottom: 12px;
+      padding: 8px;
+      background: var(--card-background-color);
+      border-radius: 6px;
     }
     
     .entity-label {
       font-weight: 500;
-      font-size: 0.9em;
+      font-size: 0.85em;
       color: var(--primary-text-color);
     }
     
@@ -184,23 +188,32 @@ class HaCardForgeEditor extends LitElement {
       margin-top: 24px;
       text-align: right;
       border-top: 1px solid var(--divider-color);
-      padding-top: 20px;
+      padding-top: 16px;
       display: flex;
       justify-content: flex-end;
-      gap: 12px;
+      gap: 8px;
     }
     
     /* 空状态 */
     .empty-state {
       text-align: center;
-      padding: 60px 20px;
+      padding: 40px 20px;
       color: var(--secondary-text-color);
     }
     
     .empty-state ha-icon {
-      font-size: 3em;
-      margin-bottom: 16px;
+      font-size: 2.5em;
+      margin-bottom: 12px;
       opacity: 0.5;
+    }
+    
+    /* 下拉选择器容器 - 防止点击外部关闭 */
+    .select-container {
+      position: relative;
+    }
+    
+    .select-container ha-select {
+      width: 100%;
     }
   `;
 
@@ -292,23 +305,26 @@ class HaCardForgeEditor extends LitElement {
       <div class="filter-header">
         <ha-textfield
           class="search-field"
-          label="搜索插件名称或描述..."
+          label="搜索插件..."
           .value=${this._searchQuery}
           @input=${e => this._searchQuery = e.target.value}
           icon="mdi:magnify"
         ></ha-textfield>
         
-        <ha-select
-          label="分类筛选"
-          .value=${this._selectedCategory}
-          @selected=${e => this._selectedCategory = e.target.value}
-          style="min-width: 140px;"
-        >
-          <mwc-list-item value="all">全部分类</mwc-list-item>
-          ${categories.map(category => html`
-            <mwc-list-item value=${category}>${category}</mwc-list-item>
-          `)}
-        </ha-select>
+        <div class="select-container">
+          <ha-select
+            label="分类"
+            .value=${this._selectedCategory}
+            @closed=${this._preventSelectClose}
+            @selected=${e => this._categoryChanged(e.target.value)}
+            style="min-width: 120px;"
+          >
+            <mwc-list-item value="all">全部分类</mwc-list-item>
+            ${categories.map(category => html`
+              <mwc-list-item value=${category}>${category}</mwc-list-item>
+            `)}
+          </ha-select>
+        </div>
       </div>
 
       <!-- 插件网格 -->
@@ -328,8 +344,8 @@ class HaCardForgeEditor extends LitElement {
       ${filteredPlugins.length === 0 ? html`
         <div class="empty-state">
           <ha-icon icon="mdi:package-variant-closed"></ha-icon>
-          <div style="font-size: 1.1em; margin-bottom: 8px;">没有找到匹配的插件</div>
-          <div style="font-size: 0.9em;">尝试调整搜索条件或选择其他分类</div>
+          <div style="font-size: 1em; margin-bottom: 8px;">没有找到匹配的插件</div>
+          <div style="font-size: 0.85em;">尝试调整搜索条件或选择其他分类</div>
         </div>
       ` : ''}
     `;
@@ -340,8 +356,8 @@ class HaCardForgeEditor extends LitElement {
       return html`
         <div class="empty-state">
           <ha-icon icon="mdi:alert-circle-outline"></ha-icon>
-          <div style="font-size: 1.1em; margin-bottom: 8px;">请先选择插件</div>
-          <div style="font-size: 0.9em;">在"插件市场"选项卡中选择一个插件以配置实体</div>
+          <div style="font-size: 1em; margin-bottom: 8px;">请先选择插件</div>
+          <div style="font-size: 0.85em;">在"插件市场"选项卡中选择一个插件以配置实体</div>
         </div>
       `;
     }
@@ -368,7 +384,7 @@ class HaCardForgeEditor extends LitElement {
       return html`
         <div style="text-align: center; padding: 20px; color: var(--secondary-text-color);">
           <ha-icon icon="mdi:check-circle-outline" style="color: var(--success-color);"></ha-icon>
-          <div style="margin-top: 8px;">此插件无需配置实体</div>
+          <div style="margin-top: 8px; font-size: 0.9em;">此插件无需配置实体</div>
         </div>
       `;
     }
@@ -401,28 +417,31 @@ class HaCardForgeEditor extends LitElement {
           <span>主题设置</span>
         </div>
         
-        <div style="padding: 20px;">
-          <ha-select
-            label="选择主题风格"
-            .value=${this.config.theme || 'default'}
-            @selected=${e => this._themeChanged(e.target.value)}
-            style="width: 100%;"
-          >
-            <mwc-list-item value="default">
-              <ha-icon icon="mdi:palette-outline" slot="graphic"></ha-icon>
-              默认主题
-            </mwc-list-item>
-            <mwc-list-item value="dark">
-              <ha-icon icon="mdi:weather-night" slot="graphic"></ha-icon>
-              深色主题
-            </mwc-list-item>
-            <mwc-list-item value="material">
-              <ha-icon icon="mdi:material-design" slot="graphic"></ha-icon>
-              材质设计
-            </mwc-list-item>
-          </ha-select>
+        <div style="padding: 16px;">
+          <div class="select-container">
+            <ha-select
+              label="选择主题风格"
+              .value=${this.config.theme || 'default'}
+              @closed=${this._preventSelectClose}
+              @selected=${e => this._themeChanged(e.target.value)}
+              style="width: 100%;"
+            >
+              <mwc-list-item value="default">
+                <ha-icon icon="mdi:palette-outline" slot="graphic"></ha-icon>
+                默认主题
+              </mwc-list-item>
+              <mwc-list-item value="dark">
+                <ha-icon icon="mdi:weather-night" slot="graphic"></ha-icon>
+                深色主题
+              </mwc-list-item>
+              <mwc-list-item value="material">
+                <ha-icon icon="mdi:material-design" slot="graphic"></ha-icon>
+                材质设计
+              </mwc-list-item>
+            </ha-select>
+          </div>
           
-          <div style="margin-top: 16px; color: var(--secondary-text-color); font-size: 0.9em;">
+          <div style="margin-top: 12px; color: var(--secondary-text-color); font-size: 0.85em;">
             主题设置将影响卡片的外观样式
           </div>
         </div>
@@ -434,7 +453,7 @@ class HaCardForgeEditor extends LitElement {
     return html`
       <div class="empty-state">
         <ha-icon icon="mdi:alert-circle-outline" style="color: var(--error-color);"></ha-icon>
-        <div style="font-size: 1.1em; margin-bottom: 8px;">${message}</div>
+        <div style="font-size: 1em; margin-bottom: 8px;">${message}</div>
       </div>
     `;
   }
@@ -468,7 +487,6 @@ class HaCardForgeEditor extends LitElement {
 
   _switchTab(tabIndex) {
     this._activeTab = tabIndex;
-    // 切换标签页时通知预览更新
     this._notifyPreviewUpdate();
   }
 
@@ -486,11 +504,7 @@ class HaCardForgeEditor extends LitElement {
     }
     
     this.requestUpdate();
-    
-    // 延迟通知预览更新，确保DOM已更新
-    setTimeout(() => {
-      this._notifyPreviewUpdate();
-    }, 100);
+    this._notifyPreviewUpdate();
   }
 
   _getDefaultEntities(plugin) {
@@ -503,17 +517,18 @@ class HaCardForgeEditor extends LitElement {
     return { ...defaults, ...this.config.entities };
   }
 
+  _categoryChanged(category) {
+    this._selectedCategory = category;
+    this.requestUpdate();
+  }
+
   _entityChanged(key, value) {
     this.config.entities = {
       ...this.config.entities,
       [key]: value
     };
     this.requestUpdate();
-    
-    // 实体变化时通知预览更新
-    setTimeout(() => {
-      this._notifyPreviewUpdate();
-    }, 100);
+    this._notifyPreviewUpdate();
   }
 
   _themeChanged(theme) {
@@ -522,16 +537,15 @@ class HaCardForgeEditor extends LitElement {
       theme: theme
     };
     this.requestUpdate();
-    
-    // 主题变化时通知预览更新
-    setTimeout(() => {
-      this._notifyPreviewUpdate();
-    }, 100);
+    this._notifyPreviewUpdate();
+  }
+
+  // 防止下拉选择器点击外部关闭编辑器
+  _preventSelectClose(e) {
+    e.stopPropagation();
   }
 
   _notifyPreviewUpdate() {
-    // 触发配置变化事件，让系统预览更新
-    // 使用 setTimeout 确保在下一个事件循环中触发
     setTimeout(() => {
       this.dispatchEvent(new CustomEvent('config-changed', {
         detail: { config: this.config }
