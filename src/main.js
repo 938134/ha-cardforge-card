@@ -16,7 +16,10 @@ if (window.customCards) {
   window.customCards.push({
     type: 'ha-cardforge-card',
     name: '卡片工坊',
-    description: '基于插件系统的卡片工坊',
-    preview: true
+    description: '基于插件系统的动态卡片工坊',
+    preview: true,
+    documentationURL: 'https://github.com/your-repo/ha-cardforge'
   });
 }
+
+console.log('🎉 卡片工坊动态插件系统初始化完成');

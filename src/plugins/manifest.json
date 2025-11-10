@@ -1,0 +1,27 @@
+{
+    "version": "1.0.0",
+    "plugins": [
+      {
+        "id": "simple-clock",
+        "name": "简约时钟",
+        "description": "基于系统时间的简约时钟显示",
+        "icon": "⏰",
+        "category": "time",
+        "file": "simple-clock.js",
+        "version": "1.0.0",
+        "author": "CardForge Team",
+        "featured": true
+      },
+      {
+        "id": "welcome-card", 
+        "name": "欢迎卡片",
+        "description": "个性化欢迎信息，支持自定义欢迎词",
+        "icon": "👋",
+        "category": "info",
+        "file": "welcome-card.js",
+        "version": "1.0.0",
+        "author": "CardForge Team",
+        "featured": true
+      }
+    ]
+  }

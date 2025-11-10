@@ -5,66 +5,60 @@ export default class WelcomeCardPlugin extends BasePlugin {
   getPluginInfo() {
     return {
       name: '欢迎卡片',
-      description: '个性化欢迎信息卡片，支持实体绑定',
+      description: '个性化欢迎信息，支持自定义欢迎词',
       icon: '👋',
-      category: 'info'
+      category: 'info',
+      supportsGradient: true
     };
-  }
-
-  getEntityRequirements() {
-    return [
-      {
-        key: 'user',
-        description: '用户名称',
-        required: false,
-        domains: ['person', 'input_text', 'sensor']
-      },
-      {
-        key: 'message',
-        description: '欢迎消息',
-        required: false,
-        domains: ['input_text', 'sensor']
-      },
-      {
-        key: 'weather',
-        description: '天气信息',
-        required: false,
-        domains: ['weather', 'sensor']
-      }
-    ];
   }
 
   getThemeConfig() {
     return {
       useGradient: true,
       gradientType: 'diagonal',
-      gradientColors: ['var(--primary-color)', 'var(--accent-color)']
+      gradientColors: ['#ff6b6b', '#ffa726']
     };
   }
 
+  getEntityRequirements() {
+    return [
+      {
+        key: 'welcomeText',
+        description: '欢迎词实体 (可选)',
+        domains: ['input_text', 'sensor'],
+        required: false
+      },
+      {
+        key: 'userName',
+        description: '用户名实体 (可选)', 
+        domains: ['input_text', 'person'],
+        required: false
+      }
+    ];
+  }
+
   getTemplate(config, hass, entities) {
-    const userEntity = entities.user;
-    const messageEntity = entities.message;
-    const weatherEntity = entities.weather;
+    const systemData = this.getSystemData(hass, config);
     
-    // 获取用户名称
-    const userName = this._getUserName(userEntity, hass);
-    
-    // 获取欢迎消息
-    const welcomeMessage = this._getWelcomeMessage(messageEntity);
-    
-    // 获取天气信息
-    const weatherInfo = this._getWeatherInfo(weatherEntity);
-    
-    const { greeting, time } = this.getSystemData(hass, config);
+    // 优先使用实体数据，回退到系统数据
+    const welcomeText = entities.welcomeText?.state || systemData.greeting;
+    const userName = entities.userName?.state || systemData.user;
+    const showRandomMessage = !entities.welcomeText; // 如果有自定义欢迎词，就不显示随机消息
     
     return `
       <div class="cardforge-card welcome-card">
         <div class="welcome-content">
-          <div class="greeting">${greeting}，${userName}！</div>
-          <div class="time">${time}</div>
-          ${welcomeMessage ? `<div class="message">${welcomeMessage}</div>` : ''}
-          ${weatherInfo ? `<div class="weather-info">${weatherInfo}</div>` : ''}
+          <div class="greeting-section">
+            <div class="greeting">${welcomeText}，</div>
+            <div class="username">${userName}！</div>
+          </div>
+          <div class="time">${systemData.time}</div>
+          ${showRandomMessage ? `
+            <div class="message">
+              <span class="emoji">${systemData.randomEmoji}</span>
+              <span class="text">${systemData.randomMessage}</span>
+            </div>
+          ` : ''}
         </div>
         <div class="decoration">
           <div class="circle circle-1"></div>
@@ -75,89 +69,11 @@ export default class WelcomeCardPlugin extends BasePlugin {
     `;
   }
 
-  _getUserName(userEntity, hass) {
-    // 从实体获取用户名称
-    if (userEntity) {
-      if (userEntity.entity_id.startsWith('person.')) {
-        // person 实体
-        return userEntity.attributes?.friendly_name || '家人';
-      } else if (userEntity.entity_id.startsWith('input_text.')) {
-        // input_text 实体
-        return userEntity.state || '家人';
-      } else if (userEntity.entity_id.startsWith('sensor.')) {
-        // sensor 实体
-        return userEntity.state || '家人';
-      }
-    }
-    
-    // 从 Home Assistant 用户信息获取
-    if (hass?.user?.name) {
-      return hass.user.name;
-    }
-    
-    // 默认值
-    return '家人';
-  }
-
-  _getWelcomeMessage(messageEntity) {
-    if (messageEntity && messageEntity.state && messageEntity.state !== 'unavailable') {
-      return messageEntity.state;
-    }
-    
-    // 默认欢迎消息
-    const messages = [
-      '祝您今天愉快！',
-      '一切准备就绪！',
-      '家，因你而温暖',
-      '美好的一天开始了',
-      '放松心情，享受生活',
-      '今天也是充满希望的一天'
-    ];
-    return messages[Math.floor(Math.random() * messages.length)];
-  }
-
-  _getWeatherInfo(weatherEntity) {
-    if (!weatherEntity) return null;
-    
-    const state = weatherEntity.state;
-    const attributes = weatherEntity.attributes || {};
-    
-    if (state === 'unavailable' || state === 'unknown') {
-      return null;
-    }
-    
-    // 天气图标映射
-    const weatherIcons = {
-      'sunny': '☀️',
-      'clear': '☀️',
-      'partlycloudy': '⛅',
-      'cloudy': '☁️',
-      'rainy': '🌧️',
-      'pouring': '🌧️',
-      'snowy': '❄️',
-      'windy': '💨',
-      'fog': '🌫️',
-      'hail': '🌨️',
-      'lightning': '⚡'
-    };
-    
-    const condition = attributes.friendly_name || state;
-    const temperature = attributes.temperature;
-    const icon = weatherIcons[state] || '🌤️';
-    
-    let weatherText = `${icon} ${condition}`;
-    if (temperature !== undefined) {
-      weatherText += ` ${temperature}°`;
-    }
-    
-    return weatherText;
-  }
-
   getStyles(config) {
     return this.getBaseStyles(config) + `
       .welcome-card {
         ${this._flexCenter()}
-        ${this._responsiveHeight('180px', '160px')}
+        ${this._responsiveHeight('160px', '140px')}
         ${this._responsivePadding('24px', '20px')}
         position: relative;
         overflow: hidden;
@@ -170,41 +86,48 @@ export default class WelcomeCardPlugin extends BasePlugin {
         width: 100%;
       }
       
-      .greeting {
+      .greeting-section {
+        ${this._flexCenter()}
+        justify-content: center;
+        gap: 8px;
+        margin-bottom: 12px;
+        flex-wrap: wrap;
+      }
+      
+      .welcome-card .greeting {
         ${this._responsiveFontSize('1.4em', '1.2em')}
         font-weight: 600;
-        margin-bottom: 8px;
         opacity: 0.95;
-        text-shadow: 0 1px 2px rgba(0,0,0,0.1);
       }
       
-      .time {
+      .welcome-card .username {
+        ${this._responsiveFontSize('1.4em', '1.2em')}
+        font-weight: 700;
+        color: inherit;
+      }
+      
+      .welcome-card .time {
         ${this._responsiveFontSize('2.2em', '1.8em')}
-        font-weight: bold;
-        margin-bottom: 12px;
+        font-weight: 300;
         letter-spacing: 1px;
-        text-shadow: 0 1px 2px rgba(0,0,0,0.1);
-      }
-      
-      .message {
-        ${this._responsiveFontSize('1em', '0.9em')}
+        margin-bottom: 12px;
         opacity: 0.9;
-        font-style: italic;
-        margin-bottom: 8px;
-        text-shadow: 0 1px 1px rgba(0,0,0,0.1);
       }
       
-      .weather-info {
-        ${this._responsiveFontSize('0.9em', '0.8em')}
+      .welcome-card .message {
+        ${this._flexCenter()}
+        gap: 8px;
+        justify-content: center;
+        ${this._responsiveFontSize('0.95em', '0.85em')}
         opacity: 0.8;
-        background: rgba(255,255,255,0.2);
-        border-radius: 12px;
-        padding: 4px 12px;
-        display: inline-block;
-        backdrop-filter: blur(5px);
-        text-shadow: 0 1px 1px rgba(0,0,0,0.1);
+        font-style: italic;
       }
       
+      .welcome-card .emoji {
+        font-size: 1.2em;
+      }
+      
+      /* 装饰元素 */
       .decoration {
         position: absolute;
         top: 0;
@@ -218,8 +141,7 @@ export default class WelcomeCardPlugin extends BasePlugin {
       .circle {
         position: absolute;
         border-radius: 50%;
-        background: rgba(255, 255, 255, 0.15);
-        backdrop-filter: blur(10px);
+        background: rgba(255,255,255,0.1);
       }
       
       .circle-1 {
@@ -262,19 +184,12 @@ export default class WelcomeCardPlugin extends BasePlugin {
       }
       
       /* 深色主题适配 */
-      .cardforge-card[data-theme="dark"] .welcome-card {
-        background: linear-gradient(135deg, #bb86fc, #03dac6);
+      .cardforge-card[data-theme="dark"] .circle {
+        background: rgba(255,255,255,0.05);
       }
       
-      .cardforge-card[data-theme="dark"] .weather-info {
-        background: rgba(0,0,0,0.2);
-      }
-      
-      /* 材质主题适配 */
-      .cardforge-card[data-theme="material"] .welcome-card {
-        background: linear-gradient(135deg, #6200ee, #03dac6);
-        border-radius: 12px;
-        box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+      .cardforge-card[data-theme="minimal"] .circle {
+        display: none;
       }
     `;
   }

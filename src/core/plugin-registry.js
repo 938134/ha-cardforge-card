@@ -1,13 +1,14 @@
 // src/core/plugin-registry.js
 class PluginRegistry {
   static _plugins = new Map();
+  static _categories = new Set(['all']);
   static _initialized = false;
 
   static async initialize() {
     if (this._initialized) return;
-
+    
     try {
-      // 自动发现并加载所有插件
+      // 动态发现并加载插件
       await this._discoverPlugins();
       this._initialized = true;
       console.log(`✅ 插件注册表初始化完成，加载 ${this._plugins.size} 个插件`);
@@ -27,44 +28,40 @@ class PluginRegistry {
 
     for (const [pluginId, importFn] of Object.entries(pluginModules)) {
       try {
-        const module = await importFn();
-        const PluginClass = module.default;
-        
-        // 创建插件实例并验证
-        const pluginInstance = new PluginClass();
-        
-        if (typeof pluginInstance.getTemplate !== 'function' || 
-            typeof pluginInstance.getStyles !== 'function') {
-          console.warn(`插件 ${pluginId} 接口不完整，跳过`);
-          continue;
-        }
-
-        // 获取插件信息
-        const pluginInfo = this._extractPluginInfo(pluginId, pluginInstance);
-        
-        this._plugins.set(pluginId, {
-          id: pluginId,
-          class: PluginClass,
-          info: pluginInfo,
-          instance: pluginInstance
-        });
-
-        console.log(`✅ 注册插件: ${pluginInfo.name}`);
-        
+        await this._registerPlugin(pluginId, importFn);
       } catch (error) {
         console.error(`❌ 加载插件 ${pluginId} 失败:`, error);
       }
     }
   }
 
-  static _extractPluginInfo(pluginId, pluginInstance) {
-    // 从插件实例中提取信息
-    const entityRequirements = pluginInstance.getEntityRequirements ? 
-      pluginInstance.getEntityRequirements() : [];
-    
-    const themeConfig = pluginInstance.getThemeConfig ? 
-      pluginInstance.getThemeConfig() : { useGradient: false };
+  static async _registerPlugin(pluginId, importFn) {
+    try {
+      const module = await importFn();
+      const PluginClass = module.default;
+      
+      // 创建插件实例并验证
+      const pluginInstance = new PluginClass();
+      const pluginInfo = this._extractPluginInfo(pluginId, pluginInstance);
+      
+      this._plugins.set(pluginId, {
+        id: pluginId,
+        class: PluginClass,
+        info: pluginInfo,
+        instance: pluginInstance
+      });
+      
+      // 更新分类
+      this._categories.add(pluginInfo.category);
+      
+      console.log(`✅ 注册插件: ${pluginInfo.name}`);
+    } catch (error) {
+      console.error(`❌ 注册插件 ${pluginId} 失败:`, error);
+      throw error;
+    }
+  }
 
+  static _extractPluginInfo(pluginId, pluginInstance) {
     // 默认插件信息
     const defaultInfo = {
       id: pluginId,
@@ -72,13 +69,19 @@ class PluginRegistry {
       description: '自定义卡片插件',
       icon: '🔧',
       category: 'general',
-      entityRequirements: entityRequirements,
-      supportsGradient: themeConfig.useGradient || false
+      version: '1.0.0',
+      author: 'CardForge Team',
+      featured: false,
+      supportsGradient: false
     };
 
     // 如果插件有自定义信息方法，使用它
     if (pluginInstance.getPluginInfo) {
-      return { ...defaultInfo, ...pluginInstance.getPluginInfo() };
+      const instanceInfo = pluginInstance.getPluginInfo();
+      return { 
+        ...defaultInfo, 
+        ...instanceInfo
+      };
     }
 
     return defaultInfo;
@@ -92,13 +95,18 @@ class PluginRegistry {
       .join(' ');
   }
 
-  // 公共 API
+  // === 公共 API ===
+
+  static get isInitialized() {
+    return this._initialized;
+  }
+
   static getPlugin(pluginId) {
     return this._plugins.get(pluginId);
   }
 
   static getAllPlugins() {
-    return Array.from(this._plugins.values()).map(item => item.info);
+    return Array.from(this._plugins.values()).map(plugin => plugin.info);
   }
 
   static getPluginClass(pluginId) {
@@ -108,19 +116,119 @@ class PluginRegistry {
 
   static createPluginInstance(pluginId) {
     const PluginClass = this.getPluginClass(pluginId);
-    return PluginClass ? new PluginClass() : null;
+    if (!PluginClass) {
+      throw new Error(`插件未注册: ${pluginId}`);
+    }
+    return new PluginClass();
   }
 
   static getCategories() {
-    const categories = new Set(['all']);
-    this.getAllPlugins().forEach(plugin => {
-      categories.add(plugin.category);
+    return Array.from(this._categories);
+  }
+
+  // 获取插件配置表单
+  static getPluginConfigForm(pluginId) {
+    const plugin = this._plugins.get(pluginId);
+    if (!plugin) return null;
+    
+    const instance = plugin.instance;
+    const baseForm = {
+      entityRequirements: instance.getEntityRequirements ? 
+        instance.getEntityRequirements() : [],
+      themeConfig: instance.getThemeConfig ? 
+        instance.getThemeConfig() : {},
+      customFields: []
+    };
+    
+    // 如果插件有自定义配置方法，使用它
+    if (instance.getConfigForm) {
+      return { ...baseForm, ...instance.getConfigForm() };
+    }
+    
+    return baseForm;
+  }
+
+  // 搜索和过滤插件
+  static searchPlugins(query = '', category = 'all') {
+    const plugins = this.getAllPlugins();
+    
+    return plugins.filter(plugin => {
+      const matchesQuery = !query || 
+        plugin.name.toLowerCase().includes(query.toLowerCase()) ||
+        plugin.description.toLowerCase().includes(query.toLowerCase()) ||
+        plugin.category.toLowerCase().includes(query.toLowerCase());
+      
+      const matchesCategory = category === 'all' || plugin.category === category;
+      
+      return matchesQuery && matchesCategory;
     });
-    return Array.from(categories);
+  }
+
+  // 验证插件配置
+  static validatePluginConfig(pluginId, config, hass) {
+    const plugin = this.getPlugin(pluginId);
+    if (!plugin) {
+      return { valid: false, errors: ['插件不存在'] };
+    }
+
+    const requirements = plugin.instance.getEntityRequirements ? 
+      plugin.instance.getEntityRequirements() : [];
+    
+    const errors = [];
+    const warnings = [];
+
+    // 验证必需实体
+    requirements.forEach(req => {
+      if (req.required) {
+        const entityId = config.entities?.[req.key];
+        if (!entityId) {
+          errors.push(`必须配置实体: ${req.description}`);
+          return;
+        }
+
+        // 验证实体存在性和类型
+        if (hass && hass.states) {
+          const entity = hass.states[entityId];
+          if (!entity) {
+            errors.push(`实体不存在: ${entityId}`);
+          } else if (req.domains) {
+            const domain = entityId.split('.')[0];
+            if (!req.domains.includes(domain)) {
+              warnings.push(`实体类型不匹配: ${entityId} (期望: ${req.domains.join(', ')})`);
+            }
+          }
+        }
+      }
+    });
+
+    return {
+      valid: errors.length === 0,
+      errors,
+      warnings
+    };
+  }
+
+  // 手动注册插件（用于动态添加）
+  static async registerNewPlugin(pluginId, importFn) {
+    try {
+      await this._registerPlugin(pluginId, importFn);
+      return true;
+    } catch (error) {
+      console.error(`手动注册插件失败: ${pluginId}`, error);
+      return false;
+    }
+  }
+
+  // 清理缓存（开发时使用）
+  static clearCache() {
+    this._plugins.clear();
+    this._categories.clear();
+    this._categories.add('all');
+    this._initialized = false;
   }
 }
 
 // 自动初始化
-PluginRegistry.initialize();
+PluginRegistry.initialize().catch(console.error);
 
 export { PluginRegistry };
