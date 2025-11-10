@@ -1,5 +1,6 @@
 // src/ha-cardforge-editor.js
 import { LitElement, html, css } from 'https://unpkg.com/lit@2.8.0/index.js?module';
+import { PLUGIN_INFO } from './core/plugin-registry.js';
 
 class HaCardForgeEditor extends LitElement {
   static properties = {
@@ -104,15 +105,12 @@ class HaCardForgeEditor extends LitElement {
   constructor() {
     super();
     this.config = {};
-    this._plugins = [];
+    this._plugins = PLUGIN_INFO;
     this._searchQuery = '';
   }
 
-  async firstUpdated() {
-    await this._loadPlugins();
-  }
-
   setConfig(config) {
+    console.log('🎮 [Editor] 设置配置:', config);
     this.config = { 
       plugin: '',
       entities: {},
@@ -176,7 +174,14 @@ class HaCardForgeEditor extends LitElement {
   _renderEntityConfig() {
     const plugin = this._plugins.find(p => p.id === this.config.plugin);
     if (!plugin?.entityRequirements || plugin.entityRequirements.length === 0) {
-      return html``;
+      return html`
+        <div class="entity-config">
+          <h3>实体配置</h3>
+          <div style="color: var(--secondary-text-color); padding: 10px;">
+            此插件无需配置实体
+          </div>
+        </div>
+      `;
     }
 
     return html`
@@ -208,22 +213,17 @@ class HaCardForgeEditor extends LitElement {
       `;
     }
 
+    const previewConfig = {
+      plugin: this.config.plugin,
+      entities: this.config.entities || {},
+    };
+
     return html`
       <ha-cardforge-card
         .hass=${this.hass}
-        .config=${this.config}
+        .config=${previewConfig}
       ></ha-cardforge-card>
     `;
-  }
-
-  async _loadPlugins() {
-    try {
-      const response = await fetch('/local/plugins/index.json');
-      this._plugins = await response.json();
-    } catch (error) {
-      console.error('加载插件列表失败:', error);
-      this._plugins = [];
-    }
   }
 
   _getFilteredPlugins() {
