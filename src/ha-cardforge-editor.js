@@ -1,6 +1,5 @@
 // src/ha-cardforge-editor.js
 import { LitElement, html, css } from 'https://unpkg.com/lit@2.8.0/index.js?module';
-import { PLUGIN_INFO } from './core/plugin-registry.js';
 
 class HaCardForgeEditor extends LitElement {
   static properties = {
@@ -100,34 +99,20 @@ class HaCardForgeEditor extends LitElement {
       border-top: 1px solid var(--divider-color);
       padding-top: 16px;
     }
-    
-    .debug-info {
-      font-size: 12px;
-      color: var(--secondary-text-color);
-      margin-top: 10px;
-      padding: 8px;
-      background: var(--secondary-background-color);
-      border-radius: 4px;
-    }
-    
-    .test-content {
-      border: 3px solid blue;
-      padding: 20px;
-      background: lightblue;
-      margin-bottom: 10px;
-      border-radius: 8px;
-    }
   `;
 
   constructor() {
     super();
     this.config = {};
-    this._plugins = PLUGIN_INFO;
+    this._plugins = [];
     this._searchQuery = '';
   }
 
+  async firstUpdated() {
+    await this._loadPlugins();
+  }
+
   setConfig(config) {
-    console.log('🎮 [Editor] setConfig:', config);
     this.config = { 
       plugin: '',
       entities: {},
@@ -138,27 +123,6 @@ class HaCardForgeEditor extends LitElement {
   render() {
     return html`
       <div class="editor">
-        <!-- 调试面板 -->
-        <div style="margin-bottom: 20px; border: 1px solid #ccc; padding: 10px; border-radius: 8px;">
-          <div style="font-weight: bold; margin-bottom: 8px;">调试面板</div>
-          <mwc-button 
-            outlined 
-            label="测试独立渲染"
-            @click=${this._testRender}
-          ></mwc-button>
-          <mwc-button 
-            outlined 
-            label="检查预览元素"
-            @click=${this._inspectCardElement}
-            style="margin-left: 8px;"
-          ></mwc-button>
-          <div class="debug-info">
-            当前插件: ${this.config.plugin || '未选择'} | 
-            Hass: ${this.hass ? '已连接' : '未连接'} |
-            实体数: ${Object.keys(this.config.entities || {}).length}
-          </div>
-        </div>
-
         <!-- 插件选择 -->
         <div class="search-header">
           <ha-textfield
@@ -186,7 +150,7 @@ class HaCardForgeEditor extends LitElement {
 
         <!-- 预览区域 -->
         <div class="preview-section">
-          <div class="preview-container" style="border: 2px solid #4CAF50; min-height: 150px; padding: 10px;">
+          <div class="preview-container">
             ${this._renderPreview()}
           </div>
         </div>
@@ -212,14 +176,7 @@ class HaCardForgeEditor extends LitElement {
   _renderEntityConfig() {
     const plugin = this._plugins.find(p => p.id === this.config.plugin);
     if (!plugin?.entityRequirements || plugin.entityRequirements.length === 0) {
-      return html`
-        <div class="entity-config">
-          <h3>实体配置</h3>
-          <div style="color: var(--secondary-text-color); padding: 10px;">
-            此插件无需配置实体
-          </div>
-        </div>
-      `;
+      return html``;
     }
 
     return html`
@@ -242,50 +199,31 @@ class HaCardForgeEditor extends LitElement {
   }
 
   _renderPreview() {
-    console.log('🔄 [Editor] 渲染预览:', this.config.plugin);
-    
     if (!this.config.plugin) {
       return html`
-        <div class="preview-placeholder" style="border: 2px solid orange; padding: 20px;">
+        <div class="preview-placeholder">
           <ha-icon icon="mdi:card-bulleted-outline"></ha-icon>
           <div>选择插件后显示预览</div>
-          <div style="font-size: 12px; color: red;">调试：未选择插件</div>
         </div>
       `;
     }
 
-    const previewConfig = {
-      plugin: this.config.plugin,
-      entities: this.config.entities || {},
-    };
-
-    console.log('📋 [Editor] 预览配置:', previewConfig);
-    console.log('🔍 [Editor] Hass 状态:', !!this.hass);
-
     return html`
-      <div style="width: 100%;">
-        <div style="color: green; font-size: 12px; margin-bottom: 8px;">
-          预览容器开始 - 插件: ${this.config.plugin}
-        </div>
-        
-        <!-- 直接渲染测试内容 -->
-        <div class="test-content">
-          <h4>直接HTML测试</h4>
-          <div>这是一个直接渲染的测试内容</div>
-          <div>时间: ${new Date().toLocaleTimeString()}</div>
-          <div style="font-size: 12px; color: #666;">如果这个显示但卡片不显示，说明卡片渲染有问题</div>
-        </div>
-
-        <!-- 渲染卡片元素 -->
-        <ha-cardforge-card
-          .hass=${this.hass}
-          .config=${previewConfig}
-          style="border: 2px solid red; display: block; min-height: 100px;"
-        ></ha-cardforge-card>
-        
-        <div style="color: green; font-size: 12px; margin-top: 8px;">预览容器结束</div>
-      </div>
+      <ha-cardforge-card
+        .hass=${this.hass}
+        .config=${this.config}
+      ></ha-cardforge-card>
     `;
+  }
+
+  async _loadPlugins() {
+    try {
+      const response = await fetch('/local/plugins/index.json');
+      this._plugins = await response.json();
+    } catch (error) {
+      console.error('加载插件列表失败:', error);
+      this._plugins = [];
+    }
   }
 
   _getFilteredPlugins() {
@@ -301,19 +239,12 @@ class HaCardForgeEditor extends LitElement {
   }
 
   _selectPlugin(plugin) {
-    console.log('🎯 [Editor] 选择插件:', plugin.id);
     this.config = {
       ...this.config,
       plugin: plugin.id,
       entities: this._getDefaultEntities(plugin)
     };
-    
     this.requestUpdate();
-    
-    // 延迟检查DOM
-    setTimeout(() => {
-      this._inspectCardElement();
-    }, 200);
   }
 
   _getDefaultEntities(plugin) {
@@ -334,94 +265,13 @@ class HaCardForgeEditor extends LitElement {
     this.requestUpdate();
   }
 
-  _testRender() {
-    console.log('🧪 [Editor] 开始测试渲染');
-    
-    // 测试直接创建元素
-    const testElement = document.createElement('ha-cardforge-card');
-    testElement.hass = this.hass;
-    testElement.config = {
-      plugin: 'simple-clock',
-      entities: {}
-    };
-    
-    // 添加到临时容器
-    const testContainer = document.createElement('div');
-    testContainer.style.cssText = `
-      position: fixed;
-      top: 50%;
-      left: 50%;
-      transform: translate(-50%, -50%);
-      width: 300px;
-      height: 200px;
-      background: white;
-      border: 3px solid red;
-      z-index: 10000;
-      padding: 20px;
-      box-shadow: 0 0 20px rgba(0,0,0,0.5);
-    `;
-    
-    testContainer.innerHTML = `
-      <h3>测试渲染窗口</h3>
-      <div style="font-size: 12px; color: #666;">这个窗口应该显示卡片内容</div>
-    `;
-    testContainer.appendChild(testElement);
-    document.body.appendChild(testContainer);
-    
-    console.log('🧪 [Editor] 测试元素已创建:', testElement);
-    
-    // 3秒后检查状态
-    setTimeout(() => {
-      console.log('🔍 [Editor] 测试元素状态检查:', {
-        element: testElement,
-        shadowRoot: !!testElement.shadowRoot,
-        children: testElement.children?.length,
-        innerHTML: testElement.innerHTML?.substring(0, 100)
-      });
-    }, 1000);
-    
-    // 5秒后移除
-    setTimeout(() => {
-      testContainer.remove();
-      console.log('🧪 [Editor] 测试窗口已移除');
-    }, 5000);
-  }
-
-  _inspectCardElement() {
-    console.log('🔍 [Editor] 检查预览卡片元素');
-    const cardElement = this.shadowRoot?.querySelector('ha-cardforge-card');
-    
-    if (!cardElement) {
-      console.log('❌ [Editor] 未找到卡片元素');
-      return;
-    }
-    
-    console.log('✅ [Editor] 找到卡片元素:', cardElement);
-    console.log('📊 [Editor] 卡片元素详情:', {
-      tagName: cardElement.tagName,
-      hass: !!cardElement.hass,
-      config: cardElement.config,
-      shadowRoot: !!cardElement.shadowRoot,
-      children: cardElement.children?.length || 0,
-      innerHTML: cardElement.innerHTML?.substring(0, 200) || '空'
-    });
-    
-    if (cardElement.shadowRoot) {
-      console.log('🎭 [Editor] 影子根内容:', cardElement.shadowRoot.innerHTML.substring(0, 500));
-    } else {
-      console.log('❌ [Editor] 卡片元素没有影子根');
-    }
-  }
-
   _save() {
-    console.log('💾 [Editor] 保存配置:', this.config);
     this.dispatchEvent(new CustomEvent('config-changed', {
       detail: { config: this.config }
     }));
   }
 
   _cancel() {
-    console.log('❌ [Editor] 取消配置');
     this.dispatchEvent(new CustomEvent('config-changed', {
       detail: { config: null }
     }));
