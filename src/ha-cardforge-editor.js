@@ -9,8 +9,7 @@ class HaCardForgeEditor extends LitElement {
     _plugins: { state: true },
     _searchQuery: { state: true },
     _selectedCategory: { state: true },
-    _activeTab: { state: true },
-    _previewConfig: { state: true }
+    _activeTab: { state: true }
   };
 
   constructor() {
@@ -20,7 +19,6 @@ class HaCardForgeEditor extends LitElement {
     this._searchQuery = '';
     this._selectedCategory = 'all';
     this._activeTab = 0;
-    this._previewConfig = null;
   }
 
   setConfig(config) {
@@ -30,70 +28,39 @@ class HaCardForgeEditor extends LitElement {
       theme: 'default',
       ...config 
     };
-    this._updatePreview();
   }
 
   render() {
     return html`
-      <div style="max-width: 900px;">
-        <!-- 双栏布局 -->
-        <div style="display: grid; grid-template-columns: 1fr 300px; gap: 20px;">
-          <!-- 左侧配置区域 -->
-          <div>
-            <ha-card>
-              <div class="card-content">
-                <!-- 标签页导航 -->
-                <div style="
-                  display: flex;
-                  border-bottom: 1px solid var(--divider-color);
-                  margin-bottom: 20px;
-                ">
-                  ${this._renderTabButton(0, 'mdi:view-grid-outline', '插件市场')}
-                  ${this._renderTabButton(1, 'mdi:cog-outline', '实体配置', !this.config.plugin)}
-                  ${this._renderTabButton(2, 'mdi:palette-outline', '主题设置')}
-                </div>
+      <div class="card">
+        <!-- 标签页导航 -->
+        <div style="
+          display: flex;
+          border-bottom: 1px solid var(--divider-color);
+          margin-bottom: 20px;
+        ">
+          ${this._renderTabButton(0, 'mdi:view-grid-outline', '插件市场')}
+          ${this._renderTabButton(1, 'mdi:cog-outline', '实体配置', !this.config.plugin)}
+          ${this._renderTabButton(2, 'mdi:palette-outline', '主题设置')}
+        </div>
 
-                ${this._renderActiveTab()}
-              </div>
-            </ha-card>
+        <div class="card-content">
+          ${this._renderActiveTab()}
+        </div>
 
-            <!-- 操作按钮 -->
-            <div style="margin-top: 16px; display: flex; justify-content: flex-end; gap: 8px;">
-              <mwc-button 
-                outlined
-                label="取消"
-                @click=${this._cancel}
-              ></mwc-button>
-              <mwc-button 
-                raised
-                label="保存配置"
-                @click=${this._save}
-                .disabled=${!this.config.plugin}
-              ></mwc-button>
-            </div>
-          </div>
-
-          <!-- 右侧预览区域 -->
-          <div style="position: sticky; top: 20px;">
-            <ha-card>
-              <div style="
-                padding: 16px;
-                border-bottom: 1px solid var(--divider-color);
-                font-size: 1em;
-                font-weight: 600;
-                color: var(--primary-text-color);
-                display: flex;
-                align-items: center;
-                gap: 8px;
-              ">
-                <ha-icon icon="mdi:eye"></ha-icon>
-                <span>实时预览</span>
-              </div>
-              <div style="padding: 16px; min-height: 200px; display: flex; align-items: center; justify-content: center;">
-                ${this._renderPreview()}
-              </div>
-            </ha-card>
-          </div>
+        <!-- 操作按钮 -->
+        <div class="card-actions">
+          <mwc-button 
+            outlined
+            label="取消"
+            @click=${this._cancel}
+          ></mwc-button>
+          <mwc-button 
+            raised
+            label="保存配置"
+            @click=${this._save}
+            .disabled=${!this.config.plugin}
+          ></mwc-button>
         </div>
       </div>
     `;
@@ -284,7 +251,7 @@ class HaCardForgeEditor extends LitElement {
           `)}
           
           <div style="color: var(--secondary-text-color); font-size: 0.85em; margin-top: 16px;">
-            💡 提示：配置实体后，预览区域会显示实时数据
+            💡 提示：系统会在右侧自动预览卡片效果
           </div>
         </div>
       </ha-card>
@@ -332,41 +299,11 @@ class HaCardForgeEditor extends LitElement {
             </ha-select>
             
             <div style="color: var(--secondary-text-color); font-size: 0.85em;">
-              主题设置将实时影响预览区域的外观样式
+              主题设置将实时影响系统预览区域的外观样式
             </div>
           </div>
         </ha-card>
       </div>
-    `;
-  }
-
-  _renderPreview() {
-    if (!this.config.plugin) {
-      return html`
-        <div style="text-align: center; color: var(--secondary-text-color);">
-          <ha-icon icon="mdi:card-bulleted-outline" style="font-size: 3em; margin-bottom: 12px;"></ha-icon>
-          <div style="font-size: 1em;">选择插件开始预览</div>
-        </div>
-      `;
-    }
-
-    if (!this._previewConfig) {
-      return html`
-        <div style="text-align: center; color: var(--secondary-text-color);">
-          <ha-circular-progress indeterminate></ha-circular-progress>
-          <div style="margin-top: 12px;">生成预览中...</div>
-        </div>
-      `;
-    }
-
-    return html`
-      <ha-cardforge-card
-        .hass=${this.hass}
-        .config=${{
-          ...this._previewConfig,
-          _isPreview: true // 标记为预览模式
-        }}
-      ></ha-cardforge-card>
     `;
   }
 
@@ -425,7 +362,7 @@ class HaCardForgeEditor extends LitElement {
     }
     
     this.requestUpdate();
-    this._updatePreview();
+    this._notifyConfigUpdate();
   }
 
   _getDefaultEntities(plugin) {
@@ -450,19 +387,20 @@ class HaCardForgeEditor extends LitElement {
       [key]: value
     };
     this.requestUpdate();
-    this._updatePreview();
+    this._notifyConfigUpdate();
   }
 
   _themeChanged(theme) {
     this.config.theme = theme;
     this.requestUpdate();
-    this._updatePreview();
+    this._notifyConfigUpdate();
   }
 
-  _updatePreview() {
-    // 创建预览配置
-    this._previewConfig = { ...this.config };
-    this.requestUpdate();
+  _notifyConfigUpdate() {
+    // 通知系统更新预览
+    this.dispatchEvent(new CustomEvent('config-changed', {
+      detail: { config: this.config }
+    }));
   }
 
   _save() {
