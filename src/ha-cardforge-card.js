@@ -31,6 +31,27 @@ class HaCardForgeCard extends LitElement {
       text-align: center;
       color: var(--secondary-text-color);
     }
+    
+    /* 主题样式 */
+    .theme-default {
+      --cardforge-bg-color: var(--card-background-color);
+      --cardforge-text-color: var(--primary-text-color);
+      --cardforge-primary-color: var(--primary-color);
+    }
+    
+    .theme-dark {
+      --cardforge-bg-color: #1e1e1e;
+      --cardforge-text-color: #ffffff;
+      --cardforge-primary-color: #bb86fc;
+    }
+    
+    .theme-material {
+      --cardforge-bg-color: #fafafa;
+      --cardforge-text-color: #212121;
+      --cardforge-primary-color: #6200ee;
+      border-radius: 8px;
+      box-shadow: 0 3px 6px rgba(0,0,0,0.16);
+    }
   `;
 
   constructor() {
@@ -70,6 +91,7 @@ class HaCardForgeCard extends LitElement {
     return {
       plugin: '',
       entities: {},
+      theme: 'default',
       ...config
     };
   }
@@ -116,10 +138,12 @@ class HaCardForgeCard extends LitElement {
   }
 
   render() {
+    const themeClass = `theme-${this.config.theme || 'default'}`;
+    
     // 显示错误状态
     if (this._error) {
       return html`
-        <ha-card>
+        <ha-card class="${themeClass}">
           <div class="cardforge-error">
             <div style="font-size: 2em;">❌</div>
             <div style="font-weight: bold; margin: 8px 0;">卡片加载失败</div>
@@ -132,7 +156,7 @@ class HaCardForgeCard extends LitElement {
     // 显示加载状态
     if (!this._plugin) {
       return html`
-        <ha-card>
+        <ha-card class="${themeClass}">
           <div class="cardforge-loading">
             <ha-circular-progress indeterminate></ha-circular-progress>
             <div style="margin-top: 8px;">加载中...</div>
@@ -144,9 +168,9 @@ class HaCardForgeCard extends LitElement {
     // 获取插件的模板和样式
     const template = this._plugin.getTemplate(this.config, this.hass, this._entities);
     const styles = this._plugin.getStyles(this.config);
-    
+
     return html`
-      <ha-card>
+      <ha-card class="${themeClass}">
         <div class="cardforge-content">
           ${unsafeHTML(template)}
         </div>
@@ -165,6 +189,7 @@ class HaCardForgeCard extends LitElement {
     // Hass 状态更新时刷新实体数据
     if (changedProperties.has('hass')) {
       this._updateEntities();
+      this.requestUpdate();
     }
   }
 
@@ -175,7 +200,12 @@ class HaCardForgeCard extends LitElement {
 
   static getStubConfig() {
     return {
-      plugin: 'simple-clock'
+      plugin: 'simple-clock',
+      entities: {
+        time: 'sensor.time',
+        date: 'sensor.date'
+      },
+      theme: 'default'
     };
   }
 }
