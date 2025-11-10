@@ -1,7 +1,7 @@
 // src/ha-cardforge-card.js
 import { LitElement, html } from 'https://unpkg.com/lit@2.8.0/index.js?module';
 import { unsafeHTML } from 'https://unpkg.com/lit-html/directives/unsafe-html.js?module';
-import { PLUGIN_REGISTRY } from './core/plugin-registry.js';
+import { PluginRegistry } from './core/plugin-registry.js';
 
 class HaCardForgeCard extends LitElement {
   static properties = {
@@ -22,6 +22,9 @@ class HaCardForgeCard extends LitElement {
 
   async setConfig(config) {
     try {
+      // 确保插件注册表已初始化
+      await PluginRegistry.initialize();
+      
       this.config = this._validateConfig(config);
       this._error = null;
       
@@ -60,8 +63,8 @@ class HaCardForgeCard extends LitElement {
       return this._pluginCache.get(pluginId);
     }
 
-    // 获取插件类
-    const PluginClass = PLUGIN_REGISTRY[pluginId];
+    // 从注册表获取插件
+    const PluginClass = PluginRegistry.getPluginClass(pluginId);
     if (!PluginClass) {
       throw new Error(`未知插件: ${pluginId}`);
     }
@@ -87,7 +90,6 @@ class HaCardForgeCard extends LitElement {
       return;
     }
     
-    // 从 Hass 获取实体状态
     Object.entries(this.config.entities).forEach(([key, entityId]) => {
       if (entityId && this.hass.states[entityId]) {
         this._entities[key] = this.hass.states[entityId];
@@ -96,7 +98,6 @@ class HaCardForgeCard extends LitElement {
   }
 
   render() {
-    // 显示错误状态
     if (this._error) {
       return html`
         <ha-card>
@@ -109,7 +110,6 @@ class HaCardForgeCard extends LitElement {
       `;
     }
     
-    // 显示加载状态
     if (!this._plugin) {
       return html`
         <ha-card>
@@ -121,7 +121,6 @@ class HaCardForgeCard extends LitElement {
       `;
     }
     
-    // 获取插件的模板和样式
     const template = this._plugin.getTemplate(this.config, this.hass, this._entities);
     const styles = this._plugin.getStyles(this.config);
 
@@ -139,13 +138,11 @@ class HaCardForgeCard extends LitElement {
   }
 
   updated(changedProperties) {
-    // Hass 状态更新时刷新实体数据
     if (changedProperties.has('hass')) {
       this._updateEntities();
     }
   }
 
-  // Lovelace 编辑器集成
   static getConfigElement() {
     return document.createElement('ha-cardforge-editor');
   }
@@ -153,10 +150,7 @@ class HaCardForgeCard extends LitElement {
   static getStubConfig() {
     return {
       plugin: 'simple-clock',
-      entities: {
-        time: 'sensor.time',
-        date: 'sensor.date'
-      },
+      entities: {},
       theme: 'default'
     };
   }

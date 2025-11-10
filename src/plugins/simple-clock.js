@@ -2,60 +2,54 @@
 import { BasePlugin } from '../core/base-plugin.js';
 
 export default class SimpleClockPlugin extends BasePlugin {
-  constructor() {
-    super();
+  getPluginInfo() {
+    return {
+      name: '简约时钟',
+      description: '基于系统时间的简约时钟',
+      icon: '⏰',
+      category: 'time'
+    };
+  }
+
+  getThemeConfig() {
+    return {
+      useGradient: false
+    };
   }
 
   getTemplate(config, hass, entities) {
-    const now = new Date();
-    const timeStr = now.toLocaleTimeString('zh-CN', { 
-      hour12: false, 
-      hour: '2-digit', 
-      minute: '2-digit' 
-    });
-    const dateStr = now.toLocaleDateString('zh-CN', {
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric'
-    });
-    const weekDay = '星期' + '日一二三四五六'[now.getDay()];
-
+    const { time, date, weekday } = this.getSystemData(hass, config);
     return `
-      <div class="simple-clock">
-        <div class="time">${timeStr}</div>
-        <div class="date">${dateStr}</div>
-        <div class="weekday">${weekDay}</div>
+      <div class="cardforge-card simple-clock">
+        <div class="time">${time}</div>
+        <div class="date">${date}</div>
+        <div class="weekday">${weekday}</div>
       </div>
     `;
   }
 
   getStyles(config) {
-    return `
-      .simple-clock {
-        text-align: center;
-        padding: 20px;
-        height: 140px;
-        display: flex;
-        flex-direction: column;
-        justify-content: center;
-        font-family: var(--paper-font-common-nowrap_-_font-family);
-        background: var(--card-background-color);
-        color: var(--primary-text-color);
+    return this.getBaseStyles(config) + `
+      .simple-clock { 
+        ${this._textCenter()} 
+        ${this._flexColumn()} 
+        ${this._responsiveHeight('140px', '120px')}
+        ${this._responsivePadding('20px', '16px')}
       }
-      .simple-clock .time {
-        font-size: 2.5em;
-        font-weight: bold;
-        margin-bottom: 8px;
+      .simple-clock .time { 
+        ${this._responsiveFontSize('2.5em', '2em')} 
+        font-weight: bold; 
         color: var(--primary-color);
+        margin-bottom: 8px;
         letter-spacing: 2px;
       }
-      .simple-clock .date {
-        font-size: 1.1em;
-        margin-bottom: 4px;
+      .simple-clock .date { 
+        ${this._responsiveFontSize('1.1em', '1em')} 
         opacity: 0.8;
+        margin-bottom: 4px;
       }
-      .simple-clock .weekday {
-        font-size: 1em;
+      .simple-clock .weekday { 
+        ${this._responsiveFontSize('1em', '0.9em')} 
         opacity: 0.6;
       }
     `;

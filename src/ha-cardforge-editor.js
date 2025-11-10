@@ -1,6 +1,6 @@
 // src/ha-cardforge-editor.js
 import { LitElement, html } from 'https://unpkg.com/lit@2.8.0/index.js?module';
-import { PLUGIN_INFO } from './core/plugin-registry.js';
+import { PluginRegistry } from './core/plugin-registry.js';
 
 class HaCardForgeEditor extends LitElement {
   static properties = {
@@ -9,16 +9,28 @@ class HaCardForgeEditor extends LitElement {
     _plugins: { state: true },
     _searchQuery: { state: true },
     _selectedCategory: { state: true },
-    _activeTab: { state: true }
+    _activeTab: { state: true },
+    _initialized: { state: true }
   };
 
   constructor() {
     super();
     this.config = {};
-    this._plugins = PLUGIN_INFO;
+    this._plugins = [];
     this._searchQuery = '';
     this._selectedCategory = 'all';
     this._activeTab = 0;
+    this._initialized = false;
+    
+    // 初始化插件注册表
+    this._initializePlugins();
+  }
+
+  async _initializePlugins() {
+    await PluginRegistry.initialize();
+    this._plugins = PluginRegistry.getAllPlugins();
+    this._initialized = true;
+    this.requestUpdate();
   }
 
   setConfig(config) {
@@ -31,9 +43,19 @@ class HaCardForgeEditor extends LitElement {
   }
 
   render() {
+    if (!this._initialized) {
+      return html`
+        <div class="card">
+          <div class="card-content" style="text-align: center; padding: 40px;">
+            <ha-circular-progress indeterminate></ha-circular-progress>
+            <div style="margin-top: 16px;">初始化插件系统...</div>
+          </div>
+        </div>
+      `;
+    }
+
     return html`
       <div class="card">
-        <!-- 标签页导航 -->
         <div style="
           display: flex;
           border-bottom: 1px solid var(--divider-color);
@@ -48,19 +70,9 @@ class HaCardForgeEditor extends LitElement {
           ${this._renderActiveTab()}
         </div>
 
-        <!-- 操作按钮 -->
         <div class="card-actions">
-          <mwc-button 
-            outlined
-            label="取消"
-            @click=${this._cancel}
-          ></mwc-button>
-          <mwc-button 
-            raised
-            label="保存配置"
-            @click=${this._save}
-            .disabled=${!this.config.plugin}
-          ></mwc-button>
+          <mwc-button outlined label="取消" @click=${this._cancel}></mwc-button>
+          <mwc-button raised label="保存配置" @click=${this._save} .disabled=${!this.config.plugin}></mwc-button>
         </div>
       </div>
     `;
@@ -105,10 +117,9 @@ class HaCardForgeEditor extends LitElement {
 
   _renderMarketplaceTab() {
     const filteredPlugins = this._getFilteredPlugins();
-    const categories = this._getCategories();
+    const categories = PluginRegistry.getCategories();
 
     return html`
-      <!-- 搜索和分类 -->
       <div style="display: flex; gap: 12px; margin-bottom: 20px; align-items: center;">
         <ha-textfield
           style="flex: 1;"
@@ -124,14 +135,14 @@ class HaCardForgeEditor extends LitElement {
           @selected=${e => this._categoryChanged(e.target.value)}
           style="min-width: 120px;"
         >
-          <mwc-list-item value="all">全部分类</mwc-list-item>
           ${categories.map(category => html`
-            <mwc-list-item value=${category}>${category}</mwc-list-item>
+            <mwc-list-item value=${category}>
+              ${category === 'all' ? '全部分类' : category}
+            </mwc-list-item>
           `)}
         </ha-select>
       </div>
 
-      <!-- 插件网格 -->
       <div style="
         display: grid;
         grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
@@ -169,7 +180,6 @@ class HaCardForgeEditor extends LitElement {
         `)}
       </div>
 
-      <!-- 空状态 -->
       ${filteredPlugins.length === 0 ? html`
         <div style="text-align: center; padding: 40px 20px; color: var(--secondary-text-color);">
           <ha-icon icon="mdi:package-variant-closed" style="font-size: 3em; margin-bottom: 12px; opacity: 0.5;"></ha-icon>
@@ -231,27 +241,36 @@ class HaCardForgeEditor extends LitElement {
     return html`
       <ha-card>
         <div style="padding: 20px;">
-          ${requirements.map(req => html`
-            <div style="display: grid; grid-template-columns: 120px 1fr auto; gap: 12px; align-items: center; margin-bottom: 16px; padding: 12px; background: var(--card-background-color); border-radius: 8px;">
-              <div style="font-weight: 500; font-size: 0.9em; color: var(--primary-text-color);">
-                ${req.description}
+          ${requirements.map(req => {
+            const entityId = this.config.entities?.[req.key] || '';
+            const isValid = this._validateEntity(this.hass, entityId, req);
+            
+            return html`
+              <div style="display: grid; grid-template-columns: 120px 1fr auto; gap: 12px; align-items: center; margin-bottom: 16px; padding: 12px; background: var(--card-background-color); border-radius: 8px;">
+                <div style="font-weight: 500; font-size: 0.9em; color: var(--primary-text-color);">
+                  ${req.description}
+                  ${req.required ? html`<span style="color: var(--error-color); margin-left: 4px;">*</span>` : ''}
+                </div>
+                <ha-entity-picker
+                  .hass=${this.hass}
+                  .value=${entityId}
+                  @value-changed=${e => this._entityChanged(req.key, e.detail.value)}
+                  allow-custom-entity
+                  .label=${`选择${req.description}`}
+                ></ha-entity-picker>
+                <ha-icon 
+                  icon=${isValid.valid ? 'mdi:check-circle' : 
+                        req.required ? 'mdi:alert-circle' : 'mdi:information'}
+                  style="color: ${isValid.valid ? 'var(--success-color)' : 
+                          req.required ? 'var(--error-color)' : 'var(--warning-color)'}"
+                  .title=${isValid.message || ''}
+                ></ha-icon>
               </div>
-              <ha-entity-picker
-                .hass=${this.hass}
-                .value=${this.config.entities?.[req.key] || ''}
-                @value-changed=${e => this._entityChanged(req.key, e.detail.value)}
-                allow-custom-entity
-                .label=${`选择${req.description}`}
-              ></ha-entity-picker>
-              <ha-icon 
-                icon=${this.config.entities?.[req.key] ? 'mdi:check-circle' : 'mdi:alert-circle-outline'}
-                style="color: ${this.config.entities?.[req.key] ? 'var(--success-color)' : 'var(--warning-color)'}"
-              ></ha-icon>
-            </div>
-          `)}
+            `;
+          })}
           
           <div style="color: var(--secondary-text-color); font-size: 0.85em; margin-top: 16px;">
-            💡 提示：系统会在右侧自动预览卡片效果
+            💡 提示：带 <span style="color: var(--error-color);">*</span> 的实体为必选
           </div>
         </div>
       </ha-card>
@@ -264,9 +283,11 @@ class HaCardForgeEditor extends LitElement {
       { id: 'dark', name: '深色主题', icon: 'mdi:weather-night' },
       { id: 'material', name: '材质设计', icon: 'mdi:material-design' },
       { id: 'minimal', name: '极简风格', icon: 'mdi:cellphone' },
-      { id: 'modern', name: '现代风格', icon: 'mdi:palette-swatch' }
+      { id: 'gradient', name: '渐变主题', icon: 'mdi:gradient' }
     ];
 
+    const plugin = this._plugins.find(p => p.id === this.config.plugin);
+    
     return html`
       <div>
         <div style="
@@ -279,7 +300,7 @@ class HaCardForgeEditor extends LitElement {
           gap: 8px;
         ">
           <ha-icon icon="mdi:palette"></ha-icon>
-          <span>主题设置</span>
+          <span>主题设置 ${plugin ? `- ${plugin.name}` : ''}</span>
         </div>
         
         <ha-card>
@@ -297,6 +318,14 @@ class HaCardForgeEditor extends LitElement {
                 </mwc-list-item>
               `)}
             </ha-select>
+            
+            ${plugin && plugin.supportsGradient !== undefined ? html`
+              <div style="color: var(--secondary-text-color); font-size: 0.85em; margin-bottom: 16px;">
+                ${plugin.supportsGradient ? 
+                  '✅ 此插件支持渐变背景' : 
+                  'ℹ️ 此插件不支持渐变背景'}
+              </div>
+            ` : ''}
             
             <div style="color: var(--secondary-text-color); font-size: 0.85em;">
               主题设置将实时影响系统预览区域的外观样式
@@ -316,21 +345,41 @@ class HaCardForgeEditor extends LitElement {
     `;
   }
 
-  _getCategories() {
-    const categories = new Set();
-    this._plugins.forEach(plugin => categories.add(plugin.category));
-    return Array.from(categories);
+  _validateEntity(hass, entityId, requirement) {
+    if (!entityId) {
+      return {
+        valid: !requirement.required,
+        message: requirement.required ? '必须选择实体' : '实体可选'
+      };
+    }
+
+    if (!hass || !hass.states) {
+      return { valid: false, message: 'Home Assistant 未连接' };
+    }
+
+    const entity = hass.states[entityId];
+    if (!entity) {
+      return { valid: false, message: '实体不存在' };
+    }
+
+    const domain = entityId.split('.')[0];
+    if (requirement.domains && !requirement.domains.includes(domain)) {
+      return { 
+        valid: false, 
+        message: `实体类型应为 ${requirement.domains.join(' 或 ')}，实际为 ${domain}` 
+      };
+    }
+
+    return { valid: true, message: '实体有效' };
   }
 
   _getFilteredPlugins() {
     let filtered = this._plugins;
 
-    // 分类筛选
     if (this._selectedCategory !== 'all') {
       filtered = filtered.filter(plugin => plugin.category === this._selectedCategory);
     }
 
-    // 搜索筛选
     if (this._searchQuery) {
       const query = this._searchQuery.toLowerCase();
       filtered = filtered.filter(plugin => 
@@ -349,31 +398,26 @@ class HaCardForgeEditor extends LitElement {
   }
 
   async _selectPlugin(plugin) {
+    const pluginInstance = PluginRegistry.createPluginInstance(plugin.id);
+    const entityRequirements = pluginInstance ? pluginInstance.getEntityRequirements() : [];
+    
+    const defaultEntities = {};
+    entityRequirements.forEach(req => {
+      defaultEntities[req.key] = '';
+    });
+
     this.config = {
       ...this.config,
       plugin: plugin.id,
-      entities: this._getDefaultEntities(plugin)
+      entities: { ...defaultEntities, ...this.config.entities }
     };
     
-    // 切换到实体配置标签页（如果有实体需求）
-    const hasEntities = plugin.entityRequirements && plugin.entityRequirements.length > 0;
-    if (hasEntities) {
+    if (entityRequirements.length > 0) {
       this._activeTab = 1;
     }
     
     this.requestUpdate();
     this._notifyConfigUpdate();
-  }
-
-  _getDefaultEntities(plugin) {
-    const defaults = {};
-    plugin.entityRequirements?.forEach(req => {
-      if (req.key === 'time') defaults.time = 'sensor.time';
-      if (req.key === 'date') defaults.date = 'sensor.date';
-      if (req.key === 'week') defaults.week = 'sensor.xing_qi';
-      if (req.key === 'weather') defaults.weather = 'weather.home';
-    });
-    return { ...defaults, ...this.config.entities };
   }
 
   _categoryChanged(category) {
@@ -397,7 +441,6 @@ class HaCardForgeEditor extends LitElement {
   }
 
   _notifyConfigUpdate() {
-    // 通知系统更新预览
     this.dispatchEvent(new CustomEvent('config-changed', {
       detail: { config: this.config }
     }));
