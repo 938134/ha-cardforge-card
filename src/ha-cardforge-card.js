@@ -1,6 +1,8 @@
 // src/ha-cardforge-card.js
 import { LitElement, html, css } from 'https://unpkg.com/lit@2.8.0/index.js?module';
 import { unsafeHTML } from 'https://unpkg.com/lit-html/directives/unsafe-html.js?module';
+import { ThemeManager } from './core/theme-manager.js';
+import { EntityManager } from './core/entity-manager.js';
 import { PLUGIN_REGISTRY } from './core/plugin-registry.js';
 
 class HaCardForgeCard extends LitElement {
@@ -170,7 +172,7 @@ class HaCardForgeCard extends LitElement {
     const styles = this._plugin.getStyles(this.config);
 
     return html`
-      <ha-card class="${themeClass}">
+      <ha-card>
         <div class="cardforge-content">
           ${unsafeHTML(template)}
         </div>
@@ -189,7 +191,11 @@ class HaCardForgeCard extends LitElement {
     // Hass 状态更新时刷新实体数据
     if (changedProperties.has('hass')) {
       this._updateEntities();
-      this.requestUpdate();
+    }
+    
+    // 应用主题
+    if (changedProperties.has('config') && this.config.theme) {
+      ThemeManager.applyTheme(this, this.config.theme);
     }
   }
 
