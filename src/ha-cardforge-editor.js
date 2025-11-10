@@ -409,44 +409,136 @@ class HaCardForgeEditor extends LitElement {
     `;
   }
 
-  _renderThemeTab() {
-    return html`
-      <div class="entity-config">
-        <div class="entity-config-title">
-          <ha-icon icon="mdi:palette"></ha-icon>
-          <span>主题设置</span>
+// src/ha-cardforge-editor.js - 只更新 _renderThemeTab 方法
+_renderThemeTab() {
+  const builtinThemes = ThemeManager.getBuiltinThemes();
+  const systemThemes = ThemeManager.getSystemThemes();
+  const customThemes = ThemeManager.getCustomThemes();
+
+  return html`
+    <div class="entity-config">
+      <div class="entity-config-title">
+        <ha-icon icon="mdi:palette"></ha-icon>
+        <span>主题设置</span>
+      </div>
+      
+      <div style="padding: 16px;">
+        <!-- 主题选择器 -->
+        <div class="select-container">
+          <ha-select
+            label="选择主题风格"
+            .value=${this.config.theme || 'default'}
+            @closed=${this._preventSelectClose}
+            @selected=${e => this._themeChanged(e.target.value)}
+            style="width: 100%; margin-bottom: 20px;"
+          >
+            <!-- 内置主题分组 -->
+            <mwc-list-item class="group-header" noninteractive>
+              <span style="font-weight: bold; color: var(--primary-color);">内置主题</span>
+            </mwc-list-item>
+            ${builtinThemes.map(theme => html`
+              <mwc-list-item value=${theme.id} graphic="icon">
+                <ha-icon .icon=${this._getThemeIcon(theme.icon)} slot="graphic"></ha-icon>
+                ${theme.name}
+                <span slot="meta" style="font-size: 0.8em; opacity: 0.7;">${theme.description}</span>
+              </mwc-list-item>
+            `)}
+            
+            <!-- 系统主题分组 -->
+            ${systemThemes.length > 0 ? html`
+              <mwc-list-item class="group-header" noninteractive>
+                <span style="font-weight: bold; color: var(--primary-color);">系统主题</span>
+              </mwc-list-item>
+              ${systemThemes.map(theme => html`
+                <mwc-list-item value=${theme.id} graphic="icon">
+                  <ha-icon icon="mdi:home-assistant" slot="graphic"></ha-icon>
+                  ${theme.name}
+                  <span slot="meta" style="font-size: 0.8em; opacity: 0.7;">${theme.description}</span>
+                </mwc-list-item>
+              `)}
+            ` : ''}
+            
+            <!-- 自定义主题分组 -->
+            ${customThemes.length > 0 ? html`
+              <mwc-list-item class="group-header" noninteractive>
+                <span style="font-weight: bold; color: var(--primary-color);">自定义主题</span>
+              </mwc-list-item>
+              ${customThemes.map(theme => html`
+                <mwc-list-item value=${theme.id} graphic="icon">
+                  <ha-icon icon="mdi:brush" slot="graphic"></ha-icon>
+                  ${theme.name}
+                </mwc-list-item>
+              `)}
+            ` : ''}
+          </ha-select>
         </div>
         
-        <div style="padding: 16px;">
-          <div class="select-container">
-            <ha-select
-              label="选择主题风格"
-              .value=${this.config.theme || 'default'}
-              @closed=${this._preventSelectClose}
-              @selected=${e => this._themeChanged(e.target.value)}
-              style="width: 100%;"
-            >
-              <mwc-list-item value="default">
-                <ha-icon icon="mdi:palette-outline" slot="graphic"></ha-icon>
-                默认主题
-              </mwc-list-item>
-              <mwc-list-item value="dark">
-                <ha-icon icon="mdi:weather-night" slot="graphic"></ha-icon>
-                深色主题
-              </mwc-list-item>
-              <mwc-list-item value="material">
-                <ha-icon icon="mdi:material-design" slot="graphic"></ha-icon>
-                材质设计
-              </mwc-list-item>
-            </ha-select>
+        <!-- 主题预览 -->
+        <div style="margin-top: 16px;">
+          <div style="font-size: 0.9em; font-weight: 500; margin-bottom: 8px; color: var(--primary-text-color);">
+            主题预览
           </div>
-          
-          <div style="margin-top: 12px; color: var(--secondary-text-color); font-size: 0.85em;">
-            主题设置将影响卡片的外观样式
+          <div style="
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(80px, 1fr));
+            gap: 8px;
+            margin-bottom: 16px;
+          ">
+            ${this._renderThemePreviews()}
           </div>
         </div>
+        
+        <div style="margin-top: 12px; color: var(--secondary-text-color); font-size: 0.85em;">
+          主题设置将影响所有卡片的外观样式，包括背景色、文字颜色等
+        </div>
       </div>
-    `;
+    </div>
+  `;
+}
+
+  _renderThemePreviews() {
+    const currentTheme = this.config.theme || 'default';
+    const previewThemes = [
+      'default', 'dark', 'material', 'modern', 'minimal'
+    ].slice(0, 4); // 只显示前4个主题预览
+
+    return previewThemes.map(themeId => {
+      const theme = ThemeManager.getTheme(themeId);
+      const isActive = currentTheme === themeId;
+      
+      return html`
+        <div 
+          class="theme-preview ${isActive ? 'active' : ''}"
+          style="
+            background: ${theme.variables['--cardforge-bg-color']};
+            color: ${theme.variables['--cardforge-text-color']};
+            border-radius: 8px;
+            padding: 8px;
+            text-align: center;
+            cursor: pointer;
+            border: 2px solid ${isActive ? 'var(--primary-color)' : 'transparent'};
+            transition: all 0.2s ease;
+          "
+          @click=${() => this._themeChanged(themeId)}
+          title="${theme.name}"
+        >
+          <div style="font-size: 1.2em; margin-bottom: 4px;">${theme.icon}</div>
+          <div style="font-size: 0.7em; font-weight: 500;">${theme.name}</div>
+        </div>
+      `;
+    });
+  }
+
+  _getThemeIcon(icon) {
+    const iconMap = {
+      '🎨': 'mdi:palette',
+      '🌙': 'mdi:weather-night',
+      '⚡': 'mdi:flash',
+      '📱': 'mdi:cellphone',
+      '💎': 'mdi:diamond-stone',
+      '🏠': 'mdi:home-assistant'
+    };
+    return iconMap[icon] || 'mdi:palette';
   }
 
   _renderError(message) {

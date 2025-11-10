@@ -11,7 +11,8 @@ class HaCardForgeCard extends LitElement {
     config: { type: Object },
     _plugin: { state: true },
     _entities: { state: true },
-    _error: { state: true }
+    _error: { state: true },
+    _currentTheme: { state: true }
   };
 
   static styles = css`
@@ -34,25 +35,29 @@ class HaCardForgeCard extends LitElement {
       color: var(--secondary-text-color);
     }
     
-    /* 主题样式 */
-    .theme-default {
-      --cardforge-bg-color: var(--card-background-color);
-      --cardforge-text-color: var(--primary-text-color);
-      --cardforge-primary-color: var(--primary-color);
+    /* 基础卡片样式 */
+    .cardforge-card {
+      background: var(--cardforge-bg-color, var(--card-background-color));
+      color: var(--cardforge-text-color, var(--primary-text-color));
+      border-radius: var(--cardforge-border-radius, var(--ha-card-border-radius, 12px));
+      padding: var(--cardforge-padding, 16px);
+      box-shadow: var(--cardforge-shadow, var(--ha-card-box-shadow, 0 2px 4px rgba(0,0,0,0.1)));
+      transition: all 0.3s ease;
     }
     
-    .theme-dark {
-      --cardforge-bg-color: #1e1e1e;
-      --cardforge-text-color: #ffffff;
-      --cardforge-primary-color: #bb86fc;
+    /* 主题颜色工具类 */
+    .cardforge-primary {
+      color: var(--cardforge-primary-color, var(--primary-color)) !important;
     }
     
-    .theme-material {
-      --cardforge-bg-color: #fafafa;
-      --cardforge-text-color: #212121;
-      --cardforge-primary-color: #6200ee;
-      border-radius: 8px;
-      box-shadow: 0 3px 6px rgba(0,0,0,0.16);
+    .cardforge-accent {
+      color: var(--cardforge-accent-color, var(--accent-color)) !important;
+    }
+    
+    .cardforge-welcome {
+      background: var(--cardforge-welcome-bg, linear-gradient(135deg, var(--primary-color), var(--accent-color))) !important;
+      color: white !important;
+      border: none !important;
     }
   `;
 
@@ -74,6 +79,9 @@ class HaCardForgeCard extends LitElement {
       
       // 更新实体数据
       this._updateEntities();
+      
+      // 应用主题
+      this.applyTheme(this.config.theme);
       
       // 请求重新渲染
       this.requestUpdate();

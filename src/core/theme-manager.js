@@ -3,9 +3,11 @@ class ThemeManager {
   static _themes = new Map();
   static _currentTheme = 'default';
   static _customThemes = new Map();
+  static _systemThemes = new Map();
 
   static init() {
     this._registerBuiltinThemes();
+    this._loadSystemThemes();
     this._loadCustomThemes();
     this._loadCurrentTheme();
   }
@@ -25,7 +27,8 @@ class ThemeManager {
           '--cardforge-accent-color': 'var(--accent-color)',
           '--cardforge-border-radius': 'var(--ha-card-border-radius, 12px)',
           '--cardforge-padding': '16px',
-          '--cardforge-shadow': 'var(--ha-card-box-shadow, 0 2px 4px rgba(0,0,0,0.1))'
+          '--cardforge-shadow': 'var(--ha-card-box-shadow, 0 2px 4px rgba(0,0,0,0.1))',
+          '--cardforge-welcome-bg': 'linear-gradient(135deg, var(--primary-color), var(--accent-color))'
         }
       },
       'dark': {
@@ -41,7 +44,8 @@ class ThemeManager {
           '--cardforge-accent-color': '#03dac6',
           '--cardforge-border-radius': '12px',
           '--cardforge-padding': '16px',
-          '--cardforge-shadow': '0 4px 8px rgba(0,0,0,0.3)'
+          '--cardforge-shadow': '0 4px 8px rgba(0,0,0,0.3)',
+          '--cardforge-welcome-bg': 'linear-gradient(135deg, #bb86fc, #03dac6)'
         }
       },
       'material': {
@@ -57,7 +61,8 @@ class ThemeManager {
           '--cardforge-accent-color': '#03dac6',
           '--cardforge-border-radius': '8px',
           '--cardforge-padding': '16px',
-          '--cardforge-shadow': '0 3px 6px rgba(0,0,0,0.16)'
+          '--cardforge-shadow': '0 3px 6px rgba(0,0,0,0.16)',
+          '--cardforge-welcome-bg': 'linear-gradient(135deg, #6200ee, #03dac6)'
         }
       },
       'minimal': {
@@ -73,7 +78,25 @@ class ThemeManager {
           '--cardforge-accent-color': 'var(--accent-color)',
           '--cardforge-border-radius': '0px',
           '--cardforge-padding': '12px',
-          '--cardforge-shadow': 'none'
+          '--cardforge-shadow': 'none',
+          '--cardforge-welcome-bg': 'linear-gradient(135deg, var(--primary-color), var(--accent-color))'
+        }
+      },
+      'modern': {
+        id: 'modern',
+        name: '现代风格',
+        icon: '💎',
+        description: '现代时尚的设计风格',
+        type: 'builtin',
+        variables: {
+          '--cardforge-bg-color': 'rgba(255, 255, 255, 0.9)',
+          '--cardforge-text-color': '#2c3e50',
+          '--cardforge-primary-color': '#3498db',
+          '--cardforge-accent-color': '#9b59b6',
+          '--cardforge-border-radius': '16px',
+          '--cardforge-padding': '20px',
+          '--cardforge-shadow': '0 8px 32px rgba(0,0,0,0.1)',
+          '--cardforge-welcome-bg': 'linear-gradient(135deg, #667eea, #764ba2)'
         }
       }
     };
@@ -81,6 +104,40 @@ class ThemeManager {
     Object.entries(builtinThemes).forEach(([id, theme]) => {
       this._themes.set(id, theme);
     });
+  }
+
+  static _loadSystemThemes() {
+    // 检测并加载 Home Assistant 系统主题
+    if (window.themes && window.themes.themes) {
+      Object.entries(window.themes.themes).forEach(([themeName, themeConfig]) => {
+        if (themeConfig && typeof themeConfig === 'object') {
+          const systemTheme = {
+            id: `system-${themeName}`,
+            name: `系统: ${themeName}`,
+            icon: '🏠',
+            description: `Home Assistant 系统主题: ${themeName}`,
+            type: 'system',
+            variables: this._convertSystemTheme(themeConfig)
+          };
+          this._systemThemes.set(systemTheme.id, systemTheme);
+          this._themes.set(systemTheme.id, systemTheme);
+        }
+      });
+    }
+  }
+
+  static _convertSystemTheme(systemTheme) {
+    // 将系统主题转换为卡片工坊主题变量
+    return {
+      '--cardforge-bg-color': systemTheme['card-background-color'] || 'var(--card-background-color)',
+      '--cardforge-text-color': systemTheme['primary-text-color'] || 'var(--primary-text-color)',
+      '--cardforge-primary-color': systemTheme['primary-color'] || 'var(--primary-color)',
+      '--cardforge-accent-color': systemTheme['accent-color'] || 'var(--accent-color)',
+      '--cardforge-border-radius': systemTheme['ha-card-border-radius'] || 'var(--ha-card-border-radius, 12px)',
+      '--cardforge-padding': '16px',
+      '--cardforge-shadow': systemTheme['ha-card-box-shadow'] || 'var(--ha-card-box-shadow, 0 2px 4px rgba(0,0,0,0.1))',
+      '--cardforge-welcome-bg': `linear-gradient(135deg, ${systemTheme['primary-color'] || 'var(--primary-color)'}, ${systemTheme['accent-color'] || 'var(--accent-color)'})`
+    };
   }
 
   static _loadCustomThemes() {
@@ -123,6 +180,18 @@ class ThemeManager {
     return Array.from(this._themes.values());
   }
 
+  static getBuiltinThemes() {
+    return Array.from(this._themes.values()).filter(theme => theme.type === 'builtin');
+  }
+
+  static getSystemThemes() {
+    return Array.from(this._systemThemes.values());
+  }
+
+  static getCustomThemes() {
+    return Array.from(this._customThemes.values());
+  }
+
   static getTheme(themeId) {
     return this._themes.get(themeId) || this._themes.get('default');
   }
@@ -160,11 +229,28 @@ class ThemeManager {
     const style = document.createElement('style');
     style.setAttribute('data-cardforge-theme', theme.id);
     
-    let css = `.cardforge-card {\n`;
-    Object.entries(theme.variables).forEach(([varName, value]) => {
-      css += `  ${varName}: ${value};\n`;
-    });
-    css += `}\n`;
+    let css = `
+      .cardforge-card {
+        background: var(--cardforge-bg-color);
+        color: var(--cardforge-text-color);
+        border-radius: var(--cardforge-border-radius);
+        padding: var(--cardforge-padding);
+        box-shadow: var(--cardforge-shadow);
+      }
+      
+      .cardforge-welcome {
+        background: var(--cardforge-welcome-bg) !important;
+        color: white;
+      }
+      
+      .cardforge-primary {
+        color: var(--cardforge-primary-color);
+      }
+      
+      .cardforge-accent {
+        color: var(--cardforge-accent-color);
+      }
+    `;
     
     // 添加主题特定的样式覆盖
     css += this._getThemeOverrides(theme.id);
@@ -177,20 +263,11 @@ class ThemeManager {
     const overrides = {
       'dark': `
         .cardforge-card {
-          color: var(--cardforge-text-color);
-          background: var(--cardforge-bg-color);
-          border-radius: var(--cardforge-border-radius);
-          padding: var(--cardforge-padding);
-          box-shadow: var(--cardforge-shadow);
+          border: 1px solid rgba(255, 255, 255, 0.1);
         }
       `,
       'material': `
         .cardforge-card {
-          color: var(--cardforge-text-color);
-          background: var(--cardforge-bg-color);
-          border-radius: var(--cardforge-border-radius);
-          padding: var(--cardforge-padding);
-          box-shadow: var(--cardforge-shadow);
           transition: all 0.3s ease;
         }
         .cardforge-card:hover {
@@ -199,11 +276,13 @@ class ThemeManager {
       `,
       'minimal': `
         .cardforge-card {
-          color: var(--cardforge-text-color);
-          background: var(--cardforge-bg-color);
-          border-radius: var(--cardforge-border-radius);
-          padding: var(--cardforge-padding);
-          box-shadow: var(--cardforge-shadow);
+          border: none;
+        }
+      `,
+      'modern': `
+        .cardforge-card {
+          backdrop-filter: blur(10px);
+          border: 1px solid rgba(255, 255, 255, 0.2);
         }
       `,
       'default': ''
@@ -303,6 +382,18 @@ class ThemeManager {
     this._saveCustomThemes();
     
     return themeId;
+  }
+
+  // 刷新系统主题（当HA主题变化时调用）
+  static refreshSystemThemes() {
+    // 清除现有系统主题
+    this._systemThemes.forEach((theme, id) => {
+      this._themes.delete(id);
+    });
+    this._systemThemes.clear();
+    
+    // 重新加载系统主题
+    this._loadSystemThemes();
   }
 }
 
