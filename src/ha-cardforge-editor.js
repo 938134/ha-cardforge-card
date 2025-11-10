@@ -9,7 +9,8 @@ class HaCardForgeEditor extends LitElement {
     _plugins: { state: true },
     _searchQuery: { state: true },
     _selectedCategory: { state: true },
-    _activeTab: { state: true }
+    _activeTab: { state: true },
+    _previewConfig: { state: true } // 添加预览配置
   };
 
   constructor() {
@@ -19,20 +20,28 @@ class HaCardForgeEditor extends LitElement {
     this._searchQuery = '';
     this._selectedCategory = 'all';
     this._activeTab = 0;
+    this._previewConfig = null; // 预览配置
   }
 
   setConfig(config) {
     this.config = { 
       plugin: '',
       entities: {},
+      theme: 'default',
       ...config 
     };
+    this._updatePreviewConfig();
+  }
+
+  _updatePreviewConfig() {
+    // 创建预览配置，不触发保存
+    this._previewConfig = { ...this.config };
   }
 
   render() {
     return html`
       <div class="card">
-        <!-- 标签页导航 - 使用简单的按钮实现 -->
+        <!-- 标签页导航 -->
         <div style="
           display: flex;
           border-bottom: 1px solid var(--divider-color);
@@ -290,10 +299,42 @@ class HaCardForgeEditor extends LitElement {
           </ha-select>
           
           <div style="color: var(--secondary-text-color); font-size: 0.85em;">
-            主题设置将影响卡片的外观样式
+            主题设置将影响卡片的外观样式，点击"保存配置"后生效
           </div>
+
+          <!-- 预览区域 -->
+          ${this._renderThemePreview()}
         </div>
       </ha-card>
+    `;
+  }
+
+  _renderThemePreview() {
+    if (!this.config.plugin) {
+      return html`
+        <div style="text-align: center; padding: 20px; color: var(--secondary-text-color); margin-top: 20px;">
+          <ha-icon icon="mdi:eye-off" style="font-size: 2em; margin-bottom: 8px;"></ha-icon>
+          <div>选择插件后可预览主题效果</div>
+        </div>
+      `;
+    }
+
+    return html`
+      <div style="margin-top: 20px;">
+        <div style="font-size: 0.9em; font-weight: 500; margin-bottom: 8px; color: var(--primary-text-color);">
+          主题预览
+        </div>
+        <ha-card>
+          <div style="padding: 16px;">
+            <!-- 这里可以放置主题预览组件 -->
+            <div style="text-align: center; color: var(--secondary-text-color);">
+              <ha-icon icon="mdi:palette-swatch" style="font-size: 2em; margin-bottom: 8px;"></ha-icon>
+              <div>当前主题: ${this.config.theme || 'default'}</div>
+              <div style="font-size: 0.8em; margin-top: 4px;">更改主题后点击"保存配置"应用</div>
+            </div>
+          </div>
+        </ha-card>
+      </div>
     `;
   }
 
@@ -336,7 +377,6 @@ class HaCardForgeEditor extends LitElement {
   _switchTab(tabIndex) {
     this._activeTab = tabIndex;
     this.requestUpdate();
-    this._notifyPreviewUpdate();
   }
 
   async _selectPlugin(plugin) {
@@ -353,6 +393,7 @@ class HaCardForgeEditor extends LitElement {
     }
     
     this.requestUpdate();
+    this._updatePreviewConfig();
     this._notifyPreviewUpdate();
   }
 
@@ -377,27 +418,34 @@ class HaCardForgeEditor extends LitElement {
       [key]: value
     };
     this.requestUpdate();
+    this._updatePreviewConfig();
     this._notifyPreviewUpdate();
   }
 
   _themeChanged(theme) {
-    this.config = {
-      ...this.config,
-      theme: theme
-    };
+    // 只更新预览配置，不触发保存
+    this.config.theme = theme;
     this.requestUpdate();
+    this._updatePreviewConfig();
     this._notifyPreviewUpdate();
   }
 
+  _updatePreviewConfig() {
+    // 创建预览配置副本
+    this._previewConfig = { ...this.config };
+  }
+
   _notifyPreviewUpdate() {
+    // 只发送预览更新，不触发配置保存
     setTimeout(() => {
-      this.dispatchEvent(new CustomEvent('config-changed', {
-        detail: { config: this.config }
+      this.dispatchEvent(new CustomEvent('preview-changed', {
+        detail: { config: this._previewConfig }
       }));
     }, 0);
   }
 
   _save() {
+    // 保存时才发送配置更改事件
     this.dispatchEvent(new CustomEvent('config-changed', {
       detail: { config: this.config }
     }));
