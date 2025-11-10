@@ -23,7 +23,7 @@ export default class TimeCardPlugin extends BasePlugin {
     const [, month, day] = date.split('-');
 
     return `
-      <div class="time-card">
+      <div class="time-card" style="border: 2px solid green; background: lightgreen; padding: 16px;">
         <div class="time-section hour">
           <div class="label">时</div>
           <div class="value">${hour}</div>
@@ -37,6 +37,7 @@ export default class TimeCardPlugin extends BasePlugin {
           <div class="label">分</div>
           <div class="value">${minute}</div>
         </div>
+        <div style="color: black; font-size: 12px; text-align: center; margin-top: 10px;">时间卡片调试信息</div>
       </div>
     `;
   }
@@ -49,7 +50,7 @@ export default class TimeCardPlugin extends BasePlugin {
         gap: 10px;
         align-items: center;
         height: 120px;
-        padding: 16px;
+        font-family: var(--paper-font-common-nowrap_-_font-family);
       }
       .time-section {
         text-align: center;
