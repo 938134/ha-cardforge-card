@@ -174,27 +174,25 @@ class EntityManager {
       entities: {}
     };
 
-    if (!pluginRequirements) return results;
+    if (!pluginRequirements.required) return results;
 
     // 验证必需实体
-    if (pluginRequirements.required) {
-      pluginRequirements.required.forEach(req => {
-        const entityId = entityConfig[req.key];
-        const validation = this.validateEntity(hass, entityId, req.type);
+    pluginRequirements.required.forEach(req => {
+      const entityId = entityConfig[req.key];
+      const validation = this.validateEntity(hass, entityId, req.type);
 
-        if (!validation.isValid) {
-          results.valid = false;
-          results.errors.push({
-            key: req.key,
-            description: req.description,
-            reason: validation.reason,
-            entityId: entityId
-          });
-        } else {
-          results.entities[req.key] = validation.entity;
-        }
-      });
-    }
+      if (!validation.isValid) {
+        results.valid = false;
+        results.errors.push({
+          key: req.key,
+          description: req.description,
+          reason: validation.reason,
+          entityId: entityId
+        });
+      } else {
+        results.entities[req.key] = validation.entity;
+      }
+    });
 
     return results;
   }
