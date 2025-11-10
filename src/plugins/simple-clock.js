@@ -1,5 +1,4 @@
 // src/plugins/simple-clock.js
-// 确保正确导入 BasePlugin
 import { BasePlugin } from '../core/base-plugin.js';
 
 export default class SimpleClockPlugin extends BasePlugin {
@@ -18,11 +17,10 @@ export default class SimpleClockPlugin extends BasePlugin {
     const weekDay = '星期' + '日一二三四五六'[now.getDay()];
 
     return `
-      <div class="simple-clock" style="border: 2px solid red; background: yellow; padding: 20px;">
-        <div class="time" style="color: black; font-size: 24px; font-weight: bold;">${timeStr}</div>
-        <div class="date" style="color: black; font-size: 16px;">${dateStr}</div>
-        <div class="weekday" style="color: black; font-size: 14px;">${weekDay}</div>
-        <div style="color: black; font-size: 12px; margin-top: 10px;">调试信息：卡片已渲染</div>
+      <div class="simple-clock">
+        <div class="time">${timeStr}</div>
+        <div class="date">${dateStr}</div>
+        <div class="weekday">${weekDay}</div>
       </div>
     `;
   }
@@ -36,9 +34,22 @@ export default class SimpleClockPlugin extends BasePlugin {
         display: flex;
         flex-direction: column;
         justify-content: center;
-        font-family: var(--paper-font-common-nowrap_-_font-family);
-        background: rgba(255, 0, 0, 0.1) !important;
-        border: 2px dashed blue !important;
+      }
+      .simple-clock .time {
+        font-size: 2.5em;
+        font-weight: bold;
+        margin-bottom: 8px;
+        color: var(--primary-text-color);
+        letter-spacing: 2px;
+      }
+      .simple-clock .date {
+        font-size: 1.1em;
+        margin-bottom: 4px;
+        color: var(--secondary-text-color);
+      }
+      .simple-clock .weekday {
+        font-size: 1em;
+        color: var(--disabled-text-color);
       }
     `;
   }
