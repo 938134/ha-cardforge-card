@@ -474,6 +474,7 @@ class HaCardForgeEditor extends LitElement {
       return { isValid: false, reason: '实体不存在' };
     }
 
+    // 完全移除域名验证，允许选择任何实体
     return { isValid: true, reason: '实体有效' };
   }
 

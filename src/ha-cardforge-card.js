@@ -2,7 +2,6 @@
 import { LitElement, html } from 'https://unpkg.com/lit@2.8.0/index.js?module';
 import { unsafeHTML } from 'https://unpkg.com/lit-html/directives/unsafe-html.js?module';
 import { PluginRegistry } from './core/plugin-registry.js';
-import { ThemeManager } from './core/theme-manager.js';
 
 class HaCardForgeCard extends LitElement {
   static properties = {
@@ -100,13 +99,6 @@ class HaCardForgeCard extends LitElement {
   }
 
   render() {
-    // 在渲染时应用主题
-    if (this.config.theme && this._plugin && !this._error && !this._loading) {
-      setTimeout(() => {
-        ThemeManager.applyTheme(this, this.config.theme);
-      }, 0);
-    }
-    
     if (this._error) {
       return html`
         <ha-card>

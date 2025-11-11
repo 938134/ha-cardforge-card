@@ -15,7 +15,6 @@ export const manifest = {
       type: 'weather',
       description: '天气实体',
       required: true,
-      domains: ['weather']  // 修正：使用 domains 而不是 type
     }
   ],
   themeSupport: true,
