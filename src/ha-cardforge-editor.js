@@ -350,9 +350,20 @@ class HaCardForgeEditor extends LitElement {
     `;
   }
 
-// 强制显示实体选择器的版本
+// 添加 hass 对象检查
 _renderEntityConfig(plugin) {
   const requirements = plugin.entityRequirements || [];
+
+  // 检查 hass 对象
+  if (!this.hass) {
+    return html`
+      <div class="empty-state" style="padding: 20px;">
+        <ha-icon icon="mdi:alert-circle-outline" style="color: var(--error-color); font-size: 2em;"></ha-icon>
+        <div style="margin-top: 12px; font-size: 1em;">Home Assistant 连接不可用</div>
+        <div style="font-size: 0.9em; margin-top: 8px;">请确保已正确连接到 Home Assistant</div>
+      </div>
+    `;
+  }
 
   if (requirements.length === 0) {
     return html`
@@ -376,7 +387,6 @@ _renderEntityConfig(plugin) {
               ${req.required ? html`<span style="color: var(--error-color); margin-left: 4px;">*</span>` : ''}
             </div>
             
-            <!-- 实体选择器 - 强制显示样式 -->
             <div style="flex: 1; min-width: 200px;">
               <ha-entity-picker
                 .hass=${this.hass}
@@ -400,19 +410,8 @@ _renderEntityConfig(plugin) {
         </div>
       `;
     })}
-    
-    <div style="color: var(--secondary-text-color); font-size: 0.85em; margin-top: 20px; padding: 12px; background: var(--secondary-background-color); border-radius: 8px;">
-      💡 <strong>使用说明：</strong>
-      <ul style="margin: 8px 0 0 0; padding-left: 20px;">
-        <li>带 <span style="color: var(--error-color);">*</span> 的实体为必选</li>
-        <li>点击下拉箭头选择实体</li>
-        <li>绿色勾号表示实体有效</li>
-        <li>如需时间实体，请确保已安装时间日期传感器</li>
-      </ul>
-    </div>
   `;
 }
-
   _renderThemeTab() {
     const themeOptions = [
       { id: 'default', name: '默认主题', icon: 'mdi:palette-outline' },
