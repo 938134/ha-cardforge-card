@@ -350,7 +350,7 @@ class HaCardForgeEditor extends LitElement {
     `;
   }
 
-// 在 src/ha-cardforge-editor.js 的 _renderEntityConfig 方法中
+
 _renderEntityConfig(plugin) {
   const requirements = plugin.entityRequirements || [];
 
@@ -369,32 +369,34 @@ _renderEntityConfig(plugin) {
       const isValid = this._validateEntity(this.hass, entityId, req);
       
       return html`
-        <div class="entity-row">
-          <div class="entity-label">
-            ${req.description}
-            ${req.required ? html`<span class="required-star">*</span>` : ''}
+        <div style="margin-bottom: 16px; padding: 12px; background: var(--card-background-color); border-radius: 8px;">
+          <div style="display: flex; align-items: center; gap: 12px;">
+            <div style="font-weight: 500; min-width: 120px;">
+              ${req.description}
+              ${req.required ? html`<span style="color: var(--error-color);">*</span>` : ''}
+            </div>
+            <ha-entity-picker
+              .hass=${this.hass}
+              .value=${entityId}
+              @value-changed=${e => this._onEntityChange(req.key, e.detail.value)}
+              allow-custom-entity
+              .label=${`选择${req.description}`}
+              style="flex: 1;"
+            ></ha-entity-picker>
+            <ha-icon 
+              icon=${isValid.isValid ? 'mdi:check-circle' : 
+                    req.required ? 'mdi:alert-circle' : 'mdi:information'}
+              style="color: ${isValid.isValid ? 'var(--success-color)' : 
+                      req.required ? 'var(--error-color)' : 'var(--warning-color)'}"
+              .title=${isValid.reason || ''}
+            ></ha-icon>
           </div>
-          <ha-entity-picker
-            .hass=${this.hass}
-            .value=${entityId}
-            @value-changed=${e => this._onEntityChange(req.key, e.detail.value)}
-            allow-custom-entity
-            .includeDomains=${req.domains || []}  // 添加域名过滤
-            .label=${`选择${req.description}`}
-          ></ha-entity-picker>
-          <ha-icon 
-            icon=${isValid.isValid ? 'mdi:check-circle' : 
-                  req.required ? 'mdi:alert-circle' : 'mdi:information'}
-            style="color: ${isValid.isValid ? 'var(--success-color)' : 
-                    req.required ? 'var(--error-color)' : 'var(--warning-color)'}"
-            .title=${isValid.reason || ''}
-          ></ha-icon>
         </div>
       `;
     })}
     
     <div style="color: var(--secondary-text-color); font-size: 0.85em; margin-top: 16px;">
-      💡 提示：带 <span class="required-star">*</span> 的实体为必选
+      💡 提示：带 <span style="color: var(--error-color);">*</span> 的实体为必选
     </div>
   `;
 }
