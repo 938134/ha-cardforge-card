@@ -350,68 +350,56 @@ class HaCardForgeEditor extends LitElement {
     `;
   }
 
-// 添加 hass 对象检查
-_renderEntityConfig(plugin) {
-  const requirements = plugin.entityRequirements || [];
+  _renderEntityConfig(plugin) {
+    const requirements = plugin.entityRequirements || [];
 
-  // 检查 hass 对象
-  if (!this.hass) {
-    return html`
-      <div class="empty-state" style="padding: 20px;">
-        <ha-icon icon="mdi:alert-circle-outline" style="color: var(--error-color); font-size: 2em;"></ha-icon>
-        <div style="margin-top: 12px; font-size: 1em;">Home Assistant 连接不可用</div>
-        <div style="font-size: 0.9em; margin-top: 8px;">请确保已正确连接到 Home Assistant</div>
-      </div>
-    `;
-  }
-
-  if (requirements.length === 0) {
-    return html`
-      <div class="empty-state" style="padding: 20px;">
-        <ha-icon icon="mdi:check-circle-outline" style="color: var(--success-color); font-size: 2em;"></ha-icon>
-        <div style="margin-top: 12px; font-size: 1em;">此插件无需配置实体</div>
-      </div>
-    `;
-  }
-
-  return html`
-    ${requirements.map(req => {
-      const entityId = this.config.entities?.[req.key] || '';
-      const isValid = this._validateEntity(this.hass, entityId, req);
-      
+    if (requirements.length === 0) {
       return html`
-        <div style="margin-bottom: 16px; padding: 16px; background: var(--card-background-color); border-radius: 8px; border: 1px solid var(--divider-color);">
-          <div style="display: flex; align-items: center; gap: 16px;">
-            <div style="font-weight: 600; min-width: 140px; font-size: 0.95em;">
+        <div class="empty-state" style="padding: 20px;">
+          <ha-icon icon="mdi:check-circle-outline" style="color: var(--success-color); font-size: 2em;"></ha-icon>
+          <div style="margin-top: 12px; font-size: 1em;">此插件无需配置实体</div>
+        </div>
+      `;
+    }
+
+    return html`
+      ${requirements.map(req => {
+        const entityId = this.config.entities?.[req.key] || '';
+        const isValid = this._validateEntity(this.hass, entityId, req);
+        
+        return html`
+          <div class="entity-row">
+            <div class="entity-label">
               ${req.description}
-              ${req.required ? html`<span style="color: var(--error-color); margin-left: 4px;">*</span>` : ''}
+              ${req.required ? html`<span class="required-star">*</span>` : ''}
             </div>
-            
-            <div style="flex: 1; min-width: 200px;">
-              <ha-entity-picker
-                .hass=${this.hass}
-                .value=${entityId}
-                @value-changed=${e => this._onEntityChange(req.key, e.detail.value)}
-                allow-custom-entity
-                .label=${`选择${req.description}`}
-                style="width: 100%; display: block;"
-              ></ha-entity-picker>
-            </div>
-            
+            <ha-entity-picker
+              .hass=${this.hass}
+              .value=${entityId}
+              @value-changed=${e => this._onEntityChange(req.key, e.detail.value)}
+              allow-custom-entity
+              .label=${`选择${req.description}`}
+              .includeDomains=${req.domains || null}  <!-- 如果有域名限制就使用，否则显示所有 -->
+              .includeDeviceClasses=${req.deviceClasses || null}
+              style="width: 100%;"
+            ></ha-entity-picker>
             <ha-icon 
               icon=${isValid.isValid ? 'mdi:check-circle' : 
                     req.required ? 'mdi:alert-circle' : 'mdi:information'}
               style="color: ${isValid.isValid ? 'var(--success-color)' : 
-                      req.required ? 'var(--error-color)' : 'var(--warning-color)'};
-                     font-size: 24px;"
+                      req.required ? 'var(--error-color)' : 'var(--warning-color)'}"
               .title=${isValid.reason || ''}
             ></ha-icon>
           </div>
-        </div>
-      `;
-    })}
-  `;
-}
+        `;
+      })}
+      
+      <div style="color: var(--secondary-text-color); font-size: 0.85em; margin-top: 16px;">
+        💡 提示：带 <span class="required-star">*</span> 的实体为必选
+      </div>
+    `;
+  }
+
   _renderThemeTab() {
     const themeOptions = [
       { id: 'default', name: '默认主题', icon: 'mdi:palette-outline' },

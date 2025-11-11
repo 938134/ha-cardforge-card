@@ -13,12 +13,14 @@ export const manifest = {
     {
       key: 'time',
       description: '时间实体',
-      required: false
+      required: false,
+      domains: ['sensor', 'input_datetime']
     },
     {
       key: 'date', 
       description: '日期实体',
-      required: false
+      required: false,
+      domains: ['sensor', 'input_datetime'] 
     }
   ],
   themeSupport: true,
