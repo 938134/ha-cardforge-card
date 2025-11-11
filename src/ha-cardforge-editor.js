@@ -11,9 +11,7 @@ class HaCardForgeEditor extends LitElement {
     _searchQuery: { state: true },
     _selectedCategory: { state: true },
     _activeTab: { state: true },
-    _initialized: { state: true },
-    _previewPlugin: { state: true },
-    _previewEntities: { state: true }
+    _initialized: { state: true }
   };
 
   static styles = css`
@@ -153,16 +151,6 @@ class HaCardForgeEditor extends LitElement {
       margin-left: 4px;
     }
     
-    .preview-container {
-      min-height: 200px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      background: var(--secondary-background-color);
-      border-radius: 8px;
-      padding: 20px;
-    }
-    
     .empty-state {
       text-align: center;
       padding: 40px 20px;
@@ -191,18 +179,16 @@ class HaCardForgeEditor extends LitElement {
     this._selectedCategory = 'all';
     this._activeTab = 0;
     this._initialized = false;
-    this._previewPlugin = null;
-    this._previewEntities = {};
     
     this._initializePlugins();
   }
 
-async _initializePlugins() {
-  await PluginRegistry.initialize();
-  this._plugins = PluginRegistry.getAllPlugins();
-  this._initialized = true;
-  this.requestUpdate();
-}
+  async _initializePlugins() {
+    await PluginRegistry.initialize();
+    this._plugins = PluginRegistry.getAllPlugins();
+    this._initialized = true;
+    this.requestUpdate();
+  }
 
   setConfig(config) {
     this.config = { 
@@ -211,9 +197,6 @@ async _initializePlugins() {
       theme: 'default',
       ...config 
     };
-    
-    // 初始化预览
-    this._updatePreview();
   }
 
   render() {
@@ -236,18 +219,8 @@ async _initializePlugins() {
           ${this._renderTabButton(2, 'mdi:palette-outline', '主题设置')}
         </div>
 
-        <div style="display: grid; grid-template-columns: 1fr 300px; gap: 20px;">
-          <div>
-            ${this._renderActiveTab()}
-          </div>
-          
-          <div>
-            <ha-card>
-              <div class="preview-container">
-                ${this._renderPreview()}
-              </div>
-            </ha-card>
-          </div>
+        <div>
+          ${this._renderActiveTab()}
         </div>
 
         <div class="card-actions">
@@ -469,58 +442,11 @@ async _initializePlugins() {
           ` : ''}
           
           <div style="color: var(--secondary-text-color); font-size: 0.85em;">
-            主题设置将实时影响预览区域的外观样式
+            主题设置将实时影响系统预览区域的外观样式
           </div>
         </div>
       </ha-card>
     `;
-  }
-
-  _renderPreview() {
-    if (!this.config.plugin) {
-      return html`
-        <div class="empty-state">
-          <ha-icon icon="mdi:card-bulleted-outline" class="empty-icon"></ha-icon>
-          <div>选择插件后显示预览</div>
-        </div>
-      `;
-    }
-
-    if (!this._previewPlugin) {
-      return html`
-        <div class="empty-state">
-          <ha-circular-progress indeterminate></ha-circular-progress>
-          <div>生成预览中...</div>
-        </div>
-      `;
-    }
-
-    try {
-      const template = this._previewPlugin.getTemplate(this.config, this.hass, this._previewEntities);
-      const styles = this._previewPlugin.getStyles(this.config);
-
-      return html`
-        <div>
-          ${this._unsafeHTML(template)}
-        </div>
-        <style>
-          ${styles}
-        </style>
-      `;
-    } catch (error) {
-      return html`
-        <div class="empty-state">
-          <ha-icon icon="mdi:alert-circle-outline" style="color: var(--error-color);"></ha-icon>
-          <div>预览渲染失败</div>
-        </div>
-      `;
-    }
-  }
-
-  _unsafeHTML(html) {
-    const template = document.createElement('template');
-    template.innerHTML = html;
-    return Array.from(template.content.childNodes);
   }
 
   _renderError(message) {
@@ -551,34 +477,6 @@ async _initializePlugins() {
     return filtered;
   }
 
-  async _updatePreview() {
-    if (!this.config.plugin) {
-      this._previewPlugin = null;
-      this.requestUpdate();
-      return;
-    }
-
-    try {
-      this._previewPlugin = PluginRegistry.createPluginInstance(this.config.plugin);
-      
-      // 更新预览实体数据
-      this._previewEntities = {};
-      if (this.config.entities && this.hass) {
-        Object.entries(this.config.entities).forEach(([key, entityId]) => {
-          if (entityId && this.hass.states[entityId]) {
-            this._previewEntities[key] = this.hass.states[entityId];
-          }
-        });
-      }
-      
-      this.requestUpdate();
-    } catch (error) {
-      console.error('更新预览失败:', error);
-      this._previewPlugin = null;
-      this.requestUpdate();
-    }
-  }
-
   _switchTab(tabIndex) {
     this._activeTab = tabIndex;
     this.requestUpdate();
@@ -591,14 +489,12 @@ async _initializePlugins() {
       entities: this._getDefaultEntities(plugin)
     };
     
-    // 立即更新预览
-    await this._updatePreview();
-    
     // 如果有实体需求，切换到实体配置页
     if (plugin.entityRequirements && plugin.entityRequirements.length > 0) {
       this._activeTab = 1;
     }
     
+    // 立即通知配置变更，让系统预览更新
     this._notifyConfigUpdate();
   }
 
@@ -623,23 +519,24 @@ async _initializePlugins() {
     this.requestUpdate();
   }
 
-  async _onEntityChange(key, value) {
+  _onEntityChange(key, value) {
     this.config.entities = {
       ...this.config.entities,
       [key]: value
     };
     
-    await this._updatePreview();
+    // 立即通知配置变更，让系统预览更新
     this._notifyConfigUpdate();
   }
 
-  async _onThemeChange(theme) {
+  _onThemeChange(theme) {
     this.config.theme = theme;
-    await this._updatePreview();
+    // 立即通知配置变更，让系统预览更新
     this._notifyConfigUpdate();
   }
 
   _notifyConfigUpdate() {
+    // 立即触发配置变更事件，Home Assistant 会自动更新预览
     this.dispatchEvent(new CustomEvent('config-changed', {
       detail: { config: this.config }
     }));
