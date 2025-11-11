@@ -46,7 +46,7 @@ class EntityManager {
   }
 
   // 验证实体
-  static validateEntity(hass, entityId, expectedType = null) {
+  static validateEntity(hass, entityId, requirement = {}) {
     if (!entityId || !hass?.states) {
       return { isValid: false, reason: '实体ID为空' };
     }
@@ -57,93 +57,14 @@ class EntityManager {
     }
 
     const domain = entityId.split('.')[0];
-    if (expectedType && domain !== expectedType) {
+    if (requirement.domains && !requirement.domains.includes(domain)) {
       return { 
         isValid: false, 
-        reason: `类型不匹配: 期望 ${expectedType}, 实际 ${domain}` 
+        reason: `实体类型应为 ${requirement.domains.join(' 或 ')}，实际为 ${domain}` 
       };
     }
 
     return { isValid: true, entity };
-  }
-
-  // 过滤实体
-  static filterEntities(hass, filters = {}) {
-    if (!hass?.states) return [];
-
-    return Object.keys(hass.states).filter(entityId => {
-      const domain = entityId.split('.')[0];
-      
-      if (filters.domains) {
-        const domains = Array.isArray(filters.domains) ? filters.domains : [filters.domains];
-        if (!domains.includes(domain)) return false;
-      }
-
-      if (filters.excludeDomains) {
-        const excludeDomains = Array.isArray(filters.excludeDomains) ? 
-          filters.excludeDomains : [filters.excludeDomains];
-        if (excludeDomains.includes(domain)) return false;
-      }
-
-      if (filters.deviceClass && domain === 'sensor') {
-        if (hass.states[entityId].attributes?.device_class !== filters.deviceClass) return false;
-      }
-
-      return true;
-    });
-  }
-
-  // 获取推荐实体
-  static getRecommendedEntities(hass, pluginRequirements) {
-    if (!hass?.states || !pluginRequirements) return {};
-
-    const recommendations = {};
-
-    if (pluginRequirements.required) {
-      pluginRequirements.required.forEach(req => {
-        const suggested = this._suggestEntity(hass, req);
-        if (suggested) recommendations[req.key] = suggested;
-      });
-    }
-
-    return recommendations;
-  }
-
-  static _suggestEntity(hass, requirement) {
-    const filters = { domains: requirement.type };
-
-    // 根据需求类型设置特定过滤器
-    switch (requirement.key) {
-      case 'time':
-        filters.domains = ['sensor'];
-        filters.deviceClass = 'timestamp';
-        break;
-      case 'date':
-        filters.domains = ['sensor'];
-        filters.deviceClass = 'date';
-        break;
-      case 'temperature':
-        filters.domains = ['sensor', 'weather'];
-        filters.deviceClass = 'temperature';
-        break;
-      case 'weather':
-        filters.domains = ['weather'];
-        break;
-    }
-
-    const candidates = this.filterEntities(hass, filters);
-
-    // 优先选择收藏的实体
-    const favorite = candidates.find(entityId => this._favoriteEntities.has(entityId));
-    if (favorite) return favorite;
-
-    // 选择状态正常的实体
-    const valid = candidates.find(entityId => {
-      const validation = this.validateEntity(hass, entityId, requirement.type);
-      return validation.isValid;
-    });
-
-    return valid || candidates[0] || null;
   }
 
   // 收藏管理
@@ -163,38 +84,6 @@ class EntityManager {
 
   static getFavorites() {
     return Array.from(this._favoriteEntities);
-  }
-
-  // 批量验证
-  static validateEntityConfig(hass, entityConfig, pluginRequirements) {
-    const results = {
-      valid: true,
-      errors: [],
-      warnings: [],
-      entities: {}
-    };
-
-    if (!pluginRequirements.required) return results;
-
-    // 验证必需实体
-    pluginRequirements.required.forEach(req => {
-      const entityId = entityConfig[req.key];
-      const validation = this.validateEntity(hass, entityId, req.type);
-
-      if (!validation.isValid) {
-        results.valid = false;
-        results.errors.push({
-          key: req.key,
-          description: req.description,
-          reason: validation.reason,
-          entityId: entityId
-        });
-      } else {
-        results.entities[req.key] = validation.entity;
-      }
-    });
-
-    return results;
   }
 }
 
