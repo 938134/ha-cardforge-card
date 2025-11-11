@@ -1,4 +1,4 @@
-// 备选方案：如果不确定设备类别，显示所有传感器
+// 最终方案：显示所有实体类型
 export const manifest = {
   id: 'time-week',
   name: '时间星期',
@@ -11,14 +11,12 @@ export const manifest = {
     {
       key: 'time',
       description: '时间实体',
-      required: false,
-      domains: ['sensor']  // 只显示传感器，不限制设备类别
+      required: false
     },
     {
       key: 'date', 
       description: '日期实体',
-      required: false,
-      domains: ['sensor']  // 只显示传感器，不限制设备类别
+      required: false
     }
   ],
   themeSupport: true,
