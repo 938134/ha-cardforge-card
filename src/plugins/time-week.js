@@ -1,7 +1,6 @@
 // src/plugins/time-week.js
 import { BasePlugin } from '../core/base-plugin.js';
 
-// 简化版本的时间星期插件
 export const manifest = {
   id: 'time-week',
   name: '时间星期',
@@ -13,15 +12,13 @@ export const manifest = {
   entityRequirements: [
     {
       key: 'time',
-      description: '时间实体（可选）',
+      description: '时间实体',
       required: false
-      // 不指定 domains，允许选择任何实体
     },
     {
-      key: 'date',
-      description: '日期实体（可选）', 
+      key: 'date', 
+      description: '日期实体',
       required: false
-      // 不指定 domains，允许选择任何实体
     }
   ],
   themeSupport: true,
@@ -39,9 +36,18 @@ export default class TimeWeekPlugin extends BasePlugin {
     const weekday = this.getSystemData(hass, config).weekday;
     
     const [hour, minute] = time.split(':');
-    const dateParts = date.split('-');
-    const month = dateParts[1] || '01';
-    const day = dateParts[2] || '01';
+    let month = '01', day = '01';
+    
+    // 尝试解析日期格式
+    if (date.includes('-')) {
+      const dateParts = date.split('-');
+      month = dateParts[1] || '01';
+      day = dateParts[2] || '01';
+    } else if (date.includes('/')) {
+      const dateParts = date.split('/');
+      month = dateParts[1] || '01';
+      day = dateParts[2] || '01';
+    }
 
     return `
       <div class="cardforge-card time-week">
