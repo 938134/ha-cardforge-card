@@ -16,9 +16,7 @@ export const manifest = {
       description: '天气实体',
       required: true,
     }
-  ],
-  themeSupport: true,
-  gradientSupport: true
+  ]
 };
 
 export default class WeatherCardPlugin extends BasePlugin {

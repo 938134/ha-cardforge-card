@@ -1,4 +1,6 @@
 // src/core/base-plugin.js
+import { ThemeManager } from './theme-manager.js';
+
 export class BasePlugin {
   constructor() {
     if (new.target === BasePlugin) {
@@ -15,24 +17,101 @@ export class BasePlugin {
     throw new Error('必须实现 getStyles 方法');
   }
 
-  // === 可选覆盖的接口 ===
-  getEntityRequirements() {
-    return [];
-  }
-  
-  getThemeConfig() {
-    return {
-      useGradient: false,
-      gradientType: 'diagonal',
-      gradientColors: ['var(--primary-color)', 'var(--accent-color)']
-    };
+  // === 主题集成方法 - 所有插件都支持 ===
+  getThemeStyles(config) {
+    const themeId = config.theme || 'default';
+    const theme = ThemeManager.getTheme(themeId);
+    
+    return `
+      .cardforge-card {
+        ${this._getThemeBaseStyles(theme)}
+        ${this._getCardLayoutStyles()}
+      }
+      ${this._getThemeClasses(themeId)}
+      ${this._getCommonStyles(theme)}
+    `;
   }
 
-  // === 实体数据工具 ===
+  _getThemeBaseStyles(theme) {
+    return `
+      background: ${theme.colors.background};
+      color: ${theme.colors.text};
+      border-radius: var(--ha-card-border-radius, 12px);
+      position: relative;
+      overflow: hidden;
+      font-family: var(--ha-font-family, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif);
+    `;
+  }
+
+  _getThemeClasses(themeId) {
+    return `
+      .cardforge-theme-${themeId} {
+        /* 主题特定样式由 ThemeManager 注入 */
+      }
+    `;
+  }
+
+  _getCommonStyles(theme) {
+    return `
+      .cardforge-text-primary { color: ${theme.colors.primary}; }
+      .cardforge-text-accent { color: ${theme.colors.accent}; }
+      .cardforge-text-success { color: ${theme.colors.success}; }
+      .cardforge-text-warning { color: ${theme.colors.warning}; }
+      .cardforge-text-error { color: ${theme.colors.error}; }
+      .cardforge-bg-primary { background: ${theme.colors.primary}; }
+      .cardforge-bg-accent { background: ${theme.colors.accent}; }
+      
+      .cardforge-border {
+        border: 1px solid rgba(255,255,255,0.1);
+      }
+      
+      .cardforge-shadow {
+        box-shadow: 0 2px 12px rgba(0,0,0,0.1);
+      }
+      
+      .cardforge-glass {
+        background: rgba(255,255,255,0.1);
+        backdrop-filter: blur(10px);
+        border: 1px solid rgba(255,255,255,0.2);
+      }
+    `;
+  }
+
+  _getCardLayoutStyles() {
+    return `
+      min-height: 80px;
+      box-sizing: border-box;
+      transition: all 0.3s ease;
+    `;
+  }
+
+  // === 主题工具方法 ===
+  _applyThemeColor(type, theme) {
+    const colorMap = {
+      'primary': theme.colors.primary,
+      'accent': theme.colors.accent,
+      'text': theme.colors.text,
+      'textSecondary': theme.colors.textSecondary,
+      'success': theme.colors.success,
+      'warning': theme.colors.warning,
+      'error': theme.colors.error
+    };
+    return colorMap[type] || theme.colors.primary;
+  }
+
+  _getContrastColor(theme) {
+    return ThemeManager.isGradientTheme(theme.id) ? '#ffffff' : theme.colors.text;
+  }
+
+  // === 数据工具方法 ===
   getSystemData(hass, config) {
     const now = new Date();
     return {
-      time: now.toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit', hour12: false }),
+      time: now.toLocaleTimeString('zh-CN', { 
+        hour: '2-digit', 
+        minute: '2-digit', 
+        hour12: false 
+      }),
       date: now.toLocaleDateString('zh-CN'),
       weekday: '星期' + '日一二三四五六'[now.getDay()],
       user: hass?.user?.name || '家人',
@@ -40,69 +119,43 @@ export class BasePlugin {
       randomMessage: this._getRandomMessage()
     };
   }
-  
-  getDeviceData(entities, config) {
-    const data = {};
-    const requirements = this.getEntityRequirements();
-    
-    requirements.forEach(req => {
-      const entity = entities[req.key];
-      if (entity) {
-        data[req.key] = {
-          state: entity.state,
-          attributes: entity.attributes,
-          isOn: this._isEntityOn(entity),
-          isOff: this._isEntityOff(entity),
-          isUnavailable: this._isEntityUnavailable(entity)
-        };
+
+  // === 响应式工具 ===
+  _responsiveValue(desktop, mobile) {
+    return `
+      ${desktop};
+      @media (max-width: 480px) {
+        ${mobile};
       }
-    });
-    
-    return data;
+    `;
   }
 
-  // === 控制方法 ===
-  callService(hass, domain, service, data = {}) {
-    if (!hass || !hass.callService) {
-      console.error('Home Assistant 服务不可用');
-      return false;
-    }
-    
-    hass.callService(domain, service, data)
-      .then(() => console.log(`服务调用成功: ${domain}.${service}`))
-      .catch(error => console.error(`服务调用失败: ${domain}.${service}`, error));
-    
-    return true;
-  }
-  
-  toggleEntity(hass, entityId) {
-    const entity = hass.states[entityId];
-    if (!entity) return false;
-    
-    const domain = entityId.split('.')[0];
-    const service = entity.state === 'on' ? 'turn_off' : 'turn_on';
-    
-    return this.callService(hass, domain, service, {
-      entity_id: entityId
-    });
+  _responsiveFontSize(desktop, mobile = desktop) {
+    return this._responsiveValue(`font-size: ${desktop}`, `font-size: ${mobile}`);
   }
 
-  // === 工具方法 ===
-  _isEntityOn(entity) { return entity.state === 'on'; }
-  _isEntityOff(entity) { return entity.state === 'off'; }
-  _isEntityUnavailable(entity) { return entity.state === 'unavailable' || entity.state === 'unknown'; }
-  _getEntityState(entities, key, defaultValue = '') { return entities[key]?.state || defaultValue; }
-  _getEntityAttribute(entities, key, attribute, defaultValue = '') { return entities[key]?.attributes?.[attribute] || defaultValue; }
-  
-  _responsiveValue(desktop, mobile) { return `${desktop}; @media (max-width: 480px) { ${mobile}; }`; }
-  _responsiveFontSize(desktopSize, mobileSize = desktopSize) { return this._responsiveValue(`font-size: ${desktopSize}`, `font-size: ${mobileSize}`); }
-  _responsiveHeight(desktopHeight, mobileHeight = desktopHeight) { return this._responsiveValue(`height: ${desktopHeight}`, `height: ${mobileHeight}`); }
-  _responsivePadding(desktopPadding, mobilePadding = desktopPadding) { return this._responsiveValue(`padding: ${desktopPadding}`, `padding: ${mobilePadding}`); }
-  
-  _flexCenter() { return 'display: flex; align-items: center; justify-content: center;'; }
-  _textCenter() { return 'text-align: center;'; }
-  _flexColumn() { return 'display: flex; flex-direction: column;'; }
-  
+  _responsivePadding(desktop, mobile = desktop) {
+    return this._responsiveValue(`padding: ${desktop}`, `padding: ${mobile}`);
+  }
+
+  _responsiveHeight(desktop, mobile = desktop) {
+    return this._responsiveValue(`height: ${desktop}`, `height: ${mobile}`);
+  }
+
+  // === 布局工具 ===
+  _flexCenter() {
+    return 'display: flex; align-items: center; justify-content: center;';
+  }
+
+  _flexColumn() {
+    return 'display: flex; flex-direction: column;';
+  }
+
+  _textCenter() {
+    return 'text-align: center;';
+  }
+
+  // === 辅助方法 ===
   _getGreeting(hour) {
     if (hour < 6) return '深夜好';
     if (hour < 9) return '早上好';
@@ -112,59 +165,15 @@ export class BasePlugin {
     if (hour < 22) return '晚上好';
     return '夜深了';
   }
-  
-  _getRandomMessage() {
-    const messages = ['祝您今天愉快！', '一切准备就绪！', '家，因你而温暖'];
-    return messages[Math.floor(Math.random() * messages.length)];
-  }
 
-  // === 样式系统 ===
-  getBaseStyles(config) {
-    const themeConfig = { ...this.getThemeConfig(), ...config.themeConfig };
-    return `
-      .cardforge-card {
-        position: relative;
-        font-family: var(--paper-font-common-nowrap_-_font-family);
-        border-radius: var(--ha-card-border-radius, 12px);
-        ${this._getThemeStyles(themeConfig)}
-        cursor: default;
-      }
-      ${this._getResponsiveStyles()}
-      
-      .cardforge-interactive { 
-        cursor: pointer; 
-        transition: all 0.2s ease; 
-      }
-      .cardforge-interactive:hover { opacity: 0.8; }
-      .cardforge-interactive:active { transform: scale(0.98); }
-      
-      .cardforge-status-on { color: var(--success-color); }
-      .cardforge-status-off { color: var(--disabled-color); }
-      .cardforge-status-unavailable { color: var(--error-color); opacity: 0.5; }
-    `;
-  }
-  
-  _getThemeStyles(themeConfig) {
-    if (!themeConfig.useGradient) {
-      return 'background: var(--card-background-color); color: var(--primary-text-color);';
-    }
-    
-    const gradientMap = {
-      'diagonal': `linear-gradient(135deg, ${themeConfig.gradientColors.join(', ')})`,
-      'horizontal': `linear-gradient(90deg, ${themeConfig.gradientColors.join(', ')})`,
-      'vertical': `linear-gradient(180deg, ${themeConfig.gradientColors.join(', ')})`,
-      'radial': `radial-gradient(circle, ${themeConfig.gradientColors.join(', ')})`
-    };
-    
-    const gradient = gradientMap[themeConfig.gradientType] || gradientMap.diagonal;
-    return `background: ${gradient}; color: white;`;
-  }
-  
-  _getResponsiveStyles() {
-    return `
-      @media (max-width: 480px) {
-        .cardforge-card { border-radius: var(--ha-card-border-radius, 8px); }
-      }
-    `;
+  _getRandomMessage() {
+    const messages = [
+      '祝您今天愉快！', 
+      '一切准备就绪！', 
+      '家，因你而温暖',
+      '美好的一天开始了',
+      '保持微笑，继续前进'
+    ];
+    return messages[Math.floor(Math.random() * messages.length)];
   }
 }

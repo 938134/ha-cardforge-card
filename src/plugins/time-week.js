@@ -20,9 +20,7 @@ export const manifest = {
       description: '日期实体',
       required: false
     }
-  ],
-  themeSupport: true,
-  gradientSupport: false
+  ]
 };
 
 export default class TimeWeekPlugin extends BasePlugin {

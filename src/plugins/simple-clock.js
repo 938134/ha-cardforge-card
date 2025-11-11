@@ -9,9 +9,7 @@ export const manifest = {
   author: 'CardForge Team',
   category: 'time',
   icon: '⏰',
-  entityRequirements: [], // 无需实体
-  themeSupport: true,
-  gradientSupport: false
+  entityRequirements: []
 };
 
 export default class SimpleClockPlugin extends BasePlugin {
