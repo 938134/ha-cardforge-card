@@ -51,6 +51,11 @@ class ThemeManager {
   }
 
   static applyTheme(element, themeId = null) {
+    if (!element) {
+      console.warn('应用主题失败：元素不存在');
+      return false;
+    }
+
     const theme = this.getTheme(themeId);
     if (!theme) {
       console.warn(`主题 ${themeId} 不存在`);
@@ -68,38 +73,50 @@ class ThemeManager {
   }
 
   static _removeExistingTheme(element) {
-    if (!element) return;
-    
-    const root = element.shadowRoot || element;
-    if (!root) return;
-    
-    const existing = root.querySelector('style[data-cardforge-theme]');
-    if (existing) {
-      existing.remove();
+    try {
+      const root = element.shadowRoot || element;
+      if (!root) return;
+      
+      const existing = root.querySelector('style[data-cardforge-theme]');
+      if (existing) {
+        existing.remove();
+      }
+    } catch (error) {
+      console.warn('移除现有主题失败:', error);
     }
   }
 
   static _injectThemeStyles(element, theme) {
-    if (!element) return;
-    
-    const root = element.shadowRoot || element;
-    if (!root) return;
-    
-    const style = document.createElement('style');
-    style.setAttribute('data-cardforge-theme', theme.id);
-    
-    const css = `
-      .cardforge-card {
-        background: ${theme.variables['--cardforge-bg-color']};
-        color: ${theme.variables['--cardforge-text-color']};
-      }
-      .cardforge-primary {
-        color: ${theme.variables['--cardforge-primary-color']} !important;
-      }
-    `;
-    
-    style.textContent = css;
-    root.appendChild(style);
+    try {
+      const root = element.shadowRoot || element;
+      if (!root) return;
+      
+      const style = document.createElement('style');
+      style.setAttribute('data-cardforge-theme', theme.id);
+      
+      const css = `
+        .cardforge-card {
+          background: ${theme.variables['--cardforge-bg-color']};
+          color: ${theme.variables['--cardforge-text-color']};
+        }
+        .cardforge-primary {
+          color: ${theme.variables['--cardforge-primary-color']} !important;
+        }
+      `;
+      
+      style.textContent = css;
+      root.appendChild(style);
+    } catch (error) {
+      console.error('注入主题样式失败:', error);
+      throw error;
+    }
+  }
+
+  // 安全地应用主题（在下一个动画帧）
+  static safeApplyTheme(element, themeId) {
+    requestAnimationFrame(() => {
+      this.applyTheme(element, themeId);
+    });
   }
 }
 

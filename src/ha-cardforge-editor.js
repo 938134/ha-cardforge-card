@@ -169,11 +169,6 @@ class HaCardForgeEditor extends LitElement {
       border-top: 1px solid var(--divider-color);
       padding-top: 16px;
     }
-
-    /* 确保实体选择器正确显示 */
-    ha-entity-picker {
-      width: 100%;
-    }
   `;
 
   constructor() {
@@ -184,7 +179,6 @@ class HaCardForgeEditor extends LitElement {
     this._selectedCategory = 'all';
     this._activeTab = 0;
     this._initialized = false;
-    this._themeTimeout = null;
     
     this._initializePlugins();
   }
@@ -383,8 +377,6 @@ class HaCardForgeEditor extends LitElement {
               .value=${entityId}
               @value-changed=${e => this._onEntityChange(req.key, e.detail.value)}
               allow-custom-entity
-              .label=${`选择${req.description}`}
-              style="width: 100%;"
             ></ha-entity-picker>
             <ha-icon 
               icon=${isValid.isValid ? 'mdi:check-circle' : 
@@ -559,11 +551,8 @@ class HaCardForgeEditor extends LitElement {
   _onThemeChange(theme) {
     this.config.theme = theme;
     
-    // 延迟通知，避免频繁触发
-    clearTimeout(this._themeTimeout);
-    this._themeTimeout = setTimeout(() => {
-      this._notifyConfigUpdate();
-    }, 100);
+    // 立即通知配置变更，让系统预览更新
+    this._notifyConfigUpdate();
   }
 
   _notifyConfigUpdate() {
@@ -581,14 +570,6 @@ class HaCardForgeEditor extends LitElement {
     this.dispatchEvent(new CustomEvent('config-changed', {
       detail: { config: null }
     }));
-  }
-
-  // 确保 hass 对象正确传递
-  updated(changedProperties) {
-    if (changedProperties.has('hass')) {
-      // hass 对象更新时重新渲染
-      this.requestUpdate();
-    }
   }
 }
 

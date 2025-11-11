@@ -63,50 +63,7 @@ class EntityManager {
       return { isValid: false, reason: '实体不存在' };
     }
 
-    // 简化验证：只要实体存在就认为有效
-    // 不进行类型和域名的严格验证
     return { isValid: true, reason: '实体有效' };
-  }
-
-  // 获取所有实体列表（不进行过滤）
-  static getAllEntities(hass) {
-    if (!hass?.states) return [];
-    
-    return Object.keys(hass.states).map(entityId => {
-      const entity = hass.states[entityId];
-      return {
-        entity_id: entityId,
-        name: entity.attributes?.friendly_name || entityId,
-        domain: entityId.split('.')[0],
-        state: entity.state,
-        icon: entity.attributes?.icon
-      };
-    });
-  }
-
-  // 按域名分组获取实体（用于实体选择器）
-  static getEntitiesByDomain(hass) {
-    if (!hass?.states) return {};
-    
-    const entitiesByDomain = {};
-    
-    Object.keys(hass.states).forEach(entityId => {
-      const domain = entityId.split('.')[0];
-      const entity = hass.states[entityId];
-      
-      if (!entitiesByDomain[domain]) {
-        entitiesByDomain[domain] = [];
-      }
-      
-      entitiesByDomain[domain].push({
-        entity_id: entityId,
-        name: entity.attributes?.friendly_name || entityId,
-        state: entity.state,
-        icon: entity.attributes?.icon
-      });
-    });
-    
-    return entitiesByDomain;
   }
 
   // 收藏管理
@@ -126,11 +83,6 @@ class EntityManager {
 
   static getFavorites() {
     return Array.from(this._favoriteEntities);
-  }
-
-  // 获取推荐实体 - 简化版本，返回空对象
-  static getRecommendedEntities(hass, pluginRequirements) {
-    return {};
   }
 
   // 批量验证 - 简化版本
