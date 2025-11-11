@@ -16,13 +16,24 @@ class PluginRegistry {
   }
 
   static async _discoverPlugins() {
-    // 动态导入所有插件文件
-    const pluginContext = import.meta.glob('../plugins/*.js', { eager: true });
-    
-    for (const [filePath, module] of Object.entries(pluginContext)) {
+    // 静态导入所有插件
+    const pluginModules = [
+      () => import('../plugins/simple-clock.js'),
+      () => import('../plugins/weather-card.js'),
+      () => import('../plugins/welcome-card.js'),
+      () => import('../plugins/time-week.js')
+    ];
+
+    for (const importFn of pluginModules) {
       try {
-        const pluginId = this._extractPluginId(filePath);
+        const module = await importFn();
+        const pluginId = module.manifest?.id;
         
+        if (!pluginId) {
+          console.warn('插件缺少 manifest.id，跳过');
+          continue;
+        }
+
         if (module.manifest && module.default) {
           // 验证插件接口
           const PluginClass = module.default;
@@ -44,13 +55,9 @@ class PluginRegistry {
           console.log(`✅ 注册插件: ${module.manifest.name}`);
         }
       } catch (error) {
-        console.error(`❌ 加载插件 ${filePath} 失败:`, error);
+        console.error(`❌ 加载插件失败:`, error);
       }
     }
-  }
-  
-  static _extractPluginId(filePath) {
-    return filePath.split('/').pop().replace('.js', '');
   }
 
   // === 公共 API ===
@@ -81,6 +88,32 @@ class PluginRegistry {
       categories.add(plugin.category);
     });
     return Array.from(categories);
+  }
+
+  // 手动注册插件的方法（用于动态添加）
+  static registerPlugin(manifest, PluginClass) {
+    try {
+      const pluginId = manifest.id;
+      const instance = new PluginClass();
+      
+      if (typeof instance.getTemplate !== 'function' || 
+          typeof instance.getStyles !== 'function') {
+        throw new Error('插件接口不完整');
+      }
+
+      this._plugins.set(pluginId, {
+        id: pluginId,
+        class: PluginClass,
+        manifest: manifest,
+        instance: instance
+      });
+
+      console.log(`✅ 手动注册插件: ${manifest.name}`);
+      return true;
+    } catch (error) {
+      console.error(`❌ 手动注册插件失败:`, error);
+      return false;
+    }
   }
 }
 
