@@ -197,12 +197,12 @@ class HaCardForgeEditor extends LitElement {
     this._initializePlugins();
   }
 
-  async _initializePlugins() {
-    await PluginRegistry.initialize();
-    this._plugins = PluginRegistry.getAllPlugins();
-    this._initialized = true;
-    this.requestUpdate();
-  }
+async _initializePlugins() {
+  await PluginRegistry.initialize();
+  this._plugins = PluginRegistry.getAllPlugins();
+  this._initialized = true;
+  this.requestUpdate();
+}
 
   setConfig(config) {
     this.config = { 
