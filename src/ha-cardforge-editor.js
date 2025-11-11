@@ -179,6 +179,7 @@ class HaCardForgeEditor extends LitElement {
     this._selectedCategory = 'all';
     this._activeTab = 0;
     this._initialized = false;
+    this._themeTimeout = null; // 添加防抖定时器
     
     this._initializePlugins();
   }
@@ -550,10 +551,19 @@ class HaCardForgeEditor extends LitElement {
   }
 
   _onThemeChange(theme) {
-    this.config.theme = theme;
+    this.config = {
+      ...this.config,
+      theme: theme
+    };
     
-    // 立即通知配置变更，让系统预览更新
-    this._notifyConfigUpdate();
+    // 使用防抖避免频繁更新
+    if (this._themeTimeout) {
+      clearTimeout(this._themeTimeout);
+    }
+    
+    this._themeTimeout = setTimeout(() => {
+      this._notifyConfigUpdate();
+    }, 300);
   }
 
   _notifyConfigUpdate() {
