@@ -169,6 +169,11 @@ class HaCardForgeEditor extends LitElement {
       border-top: 1px solid var(--divider-color);
       padding-top: 16px;
     }
+
+    /* 确保实体选择器正确显示 */
+    ha-entity-picker {
+      width: 100%;
+    }
   `;
 
   constructor() {
@@ -350,55 +355,53 @@ class HaCardForgeEditor extends LitElement {
     `;
   }
 
-_renderEntityConfig(plugin) {
-  const requirements = plugin.entityRequirements || [];
+  _renderEntityConfig(plugin) {
+    const requirements = plugin.entityRequirements || [];
 
-  if (requirements.length === 0) {
+    if (requirements.length === 0) {
+      return html`
+        <div class="empty-state" style="padding: 20px;">
+          <ha-icon icon="mdi:check-circle-outline" style="color: var(--success-color); font-size: 2em;"></ha-icon>
+          <div style="margin-top: 12px; font-size: 1em;">此插件无需配置实体</div>
+        </div>
+      `;
+    }
+
     return html`
-      <div class="empty-state" style="padding: 20px;">
-        <ha-icon icon="mdi:check-circle-outline" style="color: var(--success-color); font-size: 2em;"></ha-icon>
-        <div style="margin-top: 12px; font-size: 1em;">此插件无需配置实体</div>
+      ${requirements.map(req => {
+        const entityId = this.config.entities?.[req.key] || '';
+        const isValid = this._validateEntity(this.hass, entityId, req);
+        
+        return html`
+          <div class="entity-row">
+            <div class="entity-label">
+              ${req.description}
+              ${req.required ? html`<span class="required-star">*</span>` : ''}
+            </div>
+            <ha-entity-picker
+              .hass=${this.hass}
+              .value=${entityId}
+              @value-changed=${e => this._onEntityChange(req.key, e.detail.value)}
+              allow-custom-entity
+              .label=${`选择${req.description}`}
+              style="width: 100%;"
+            ></ha-entity-picker>
+            <ha-icon 
+              icon=${isValid.isValid ? 'mdi:check-circle' : 
+                    req.required ? 'mdi:alert-circle' : 'mdi:information'}
+              style="color: ${isValid.isValid ? 'var(--success-color)' : 
+                      req.required ? 'var(--error-color)' : 'var(--warning-color)'}"
+              .title=${isValid.reason || ''}
+            ></ha-icon>
+          </div>
+        `;
+      })}
+      
+      <div style="color: var(--secondary-text-color); font-size: 0.85em; margin-top: 16px;">
+        💡 提示：带 <span class="required-star">*</span> 的实体为必选
       </div>
     `;
   }
-
-  return html`
-    ${requirements.map(req => {
-      const entityId = this.config.entities?.[req.key] || '';
-      const isValid = this._validateEntity(this.hass, entityId, req);
-      
-      return html`
-        <div class="entity-row">
-          <div class="entity-label">
-            ${req.description}
-            ${req.required ? html`<span class="required-star">*</span>` : ''}
-          </div>
-          <ha-entity-picker
-            .hass=${this.hass}
-            .value=${entityId}
-            @value-changed=${e => this._onEntityChange(req.key, e.detail.value)}
-            allow-custom-entity
-            .label=${`选择${req.description}`}
-            .includeDomains=${req.domains || null}
-            .includeDeviceClasses=${req.deviceClasses || null}
-            style="width: 100%;"
-          ></ha-entity-picker>
-          <ha-icon 
-            icon=${isValid.isValid ? 'mdi:check-circle' : 
-                  req.required ? 'mdi:alert-circle' : 'mdi:information'}
-            style="color: ${isValid.isValid ? 'var(--success-color)' : 
-                    req.required ? 'var(--error-color)' : 'var(--warning-color)'}"
-            .title=${isValid.reason || ''}
-          ></ha-icon>
-        </div>
-      `;
-    })}
-    
-    <div style="color: var(--secondary-text-color); font-size: 0.85em; margin-top: 16px;">
-      💡 提示：带 <span class="required-star">*</span> 的实体为必选
-    </div>
-  `;
-}
 
   _renderThemeTab() {
     const themeOptions = [
@@ -477,14 +480,6 @@ _renderEntityConfig(plugin) {
     const entity = hass.states[entityId];
     if (!entity) {
       return { isValid: false, reason: '实体不存在' };
-    }
-
-    const domain = entityId.split('.')[0];
-    if (requirement.domains && requirement.domains.length > 0 && !requirement.domains.includes(domain)) {
-      return { 
-        isValid: false, 
-        reason: `实体类型应为 ${requirement.domains.join(' 或 ')}，实际为 ${domain}` 
-      };
     }
 
     return { isValid: true, reason: '实体有效' };
@@ -586,6 +581,14 @@ _renderEntityConfig(plugin) {
     this.dispatchEvent(new CustomEvent('config-changed', {
       detail: { config: null }
     }));
+  }
+
+  // 确保 hass 对象正确传递
+  updated(changedProperties) {
+    if (changedProperties.has('hass')) {
+      // hass 对象更新时重新渲染
+      this.requestUpdate();
+    }
   }
 }
 
