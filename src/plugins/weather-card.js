@@ -15,7 +15,7 @@ export const manifest = {
       type: 'weather',
       description: '天气实体',
       required: true,
-      domains: ['weather']
+      domains: ['weather']  // 修正：使用 domains 而不是 type
     }
   ],
   themeSupport: true,
@@ -52,9 +52,10 @@ export default class WeatherCardPlugin extends BasePlugin {
       'rainy': '🌧️',
       'snowy': '❄️',
       'windy': '💨',
-      'fog': '🌫️'
+      'fog': '🌫️',
+      'clear-night': '🌙'
     };
-    return icons[condition] || '🌤️';
+    return icons[condition?.toLowerCase()] || '🌤️';
   }
 
   getStyles(config) {

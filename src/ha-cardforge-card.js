@@ -40,11 +40,6 @@ class HaCardForgeCard extends LitElement {
       // 更新实体数据
       this._updateEntities();
       
-      // 应用主题
-      if (this.config.theme) {
-        ThemeManager.applyTheme(this, this.config.theme);
-      }
-      
     } catch (error) {
       console.error('卡片加载失败:', error);
       this._error = error;
@@ -105,6 +100,13 @@ class HaCardForgeCard extends LitElement {
   }
 
   render() {
+    // 在渲染时应用主题
+    if (this.config.theme && this._plugin && !this._error && !this._loading) {
+      setTimeout(() => {
+        ThemeManager.applyTheme(this, this.config.theme);
+      }, 0);
+    }
+    
     if (this._error) {
       return html`
         <ha-card>

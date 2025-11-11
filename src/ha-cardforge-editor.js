@@ -179,6 +179,7 @@ class HaCardForgeEditor extends LitElement {
     this._selectedCategory = 'all';
     this._activeTab = 0;
     this._initialized = false;
+    this._themeTimeout = null;
     
     this._initializePlugins();
   }
@@ -364,7 +365,7 @@ class HaCardForgeEditor extends LitElement {
     return html`
       ${requirements.map(req => {
         const entityId = this.config.entities?.[req.key] || '';
-        const isValid = EntityManager.validateEntity(this.hass, entityId, req);
+        const isValid = this._validateEntity(this.hass, entityId, req);
         
         return html`
           <div class="entity-row">
@@ -442,7 +443,7 @@ class HaCardForgeEditor extends LitElement {
           ` : ''}
           
           <div style="color: var(--secondary-text-color); font-size: 0.85em;">
-            主题设置将实时影响系统预览区域的外观样式
+            主题更改将实时反映在系统预览区域
           </div>
         </div>
       </ha-card>
@@ -456,6 +457,34 @@ class HaCardForgeEditor extends LitElement {
         <div style="font-size: 1.1em; margin-bottom: 8px;">${message}</div>
       </div>
     `;
+  }
+
+  _validateEntity(hass, entityId, requirement = {}) {
+    if (!entityId) {
+      return { 
+        isValid: !requirement.required, 
+        reason: requirement.required ? '必须选择实体' : '实体可选' 
+      };
+    }
+
+    if (!hass || !hass.states) {
+      return { isValid: false, reason: 'Home Assistant 未连接' };
+    }
+
+    const entity = hass.states[entityId];
+    if (!entity) {
+      return { isValid: false, reason: '实体不存在' };
+    }
+
+    const domain = entityId.split('.')[0];
+    if (requirement.domains && requirement.domains.length > 0 && !requirement.domains.includes(domain)) {
+      return { 
+        isValid: false, 
+        reason: `实体类型应为 ${requirement.domains.join(' 或 ')}，实际为 ${domain}` 
+      };
+    }
+
+    return { isValid: true, reason: '实体有效' };
   }
 
   _getFilteredPlugins() {
@@ -489,13 +518,13 @@ class HaCardForgeEditor extends LitElement {
       entities: this._getDefaultEntities(plugin)
     };
     
+    // 立即通知配置变更，让系统预览更新
+    this._notifyConfigUpdate();
+    
     // 如果有实体需求，切换到实体配置页
     if (plugin.entityRequirements && plugin.entityRequirements.length > 0) {
       this._activeTab = 1;
     }
-    
-    // 立即通知配置变更，让系统预览更新
-    this._notifyConfigUpdate();
   }
 
   _getDefaultEntities(plugin) {
@@ -531,8 +560,12 @@ class HaCardForgeEditor extends LitElement {
 
   _onThemeChange(theme) {
     this.config.theme = theme;
-    // 立即通知配置变更，让系统预览更新
-    this._notifyConfigUpdate();
+    
+    // 延迟通知，避免频繁触发
+    clearTimeout(this._themeTimeout);
+    this._themeTimeout = setTimeout(() => {
+      this._notifyConfigUpdate();
+    }, 100);
   }
 
   _notifyConfigUpdate() {

@@ -68,7 +68,11 @@ class ThemeManager {
   }
 
   static _removeExistingTheme(element) {
+    if (!element) return;
+    
     const root = element.shadowRoot || element;
+    if (!root) return;
+    
     const existing = root.querySelector('style[data-cardforge-theme]');
     if (existing) {
       existing.remove();
@@ -76,7 +80,11 @@ class ThemeManager {
   }
 
   static _injectThemeStyles(element, theme) {
+    if (!element) return;
+    
     const root = element.shadowRoot || element;
+    if (!root) return;
+    
     const style = document.createElement('style');
     style.setAttribute('data-cardforge-theme', theme.id);
     
