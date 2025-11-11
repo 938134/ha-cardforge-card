@@ -34,15 +34,6 @@ class ThemeManager {
           '--cardforge-text-color': '#212121',
           '--cardforge-primary-color': '#6200ee'
         }
-      },
-      'minimal': {
-        id: 'minimal',
-        name: '极简风格',
-        variables: {
-          '--cardforge-bg-color': 'transparent',
-          '--cardforge-text-color': 'var(--primary-text-color)',
-          '--cardforge-primary-color': 'var(--primary-color)'
-        }
       }
     };
 
@@ -59,7 +50,6 @@ class ThemeManager {
     return Array.from(this._themes.values());
   }
 
-  // 修复：添加 applyTheme 方法
   static applyTheme(element, themeId = null) {
     const theme = this.getTheme(themeId);
     if (!theme) {
@@ -68,12 +58,8 @@ class ThemeManager {
     }
 
     try {
-      // 移除现有的主题样式
       this._removeExistingTheme(element);
-      
-      // 注入新的主题样式
       this._injectThemeStyles(element, theme);
-      
       return true;
     } catch (error) {
       console.error('应用主题失败:', error);
