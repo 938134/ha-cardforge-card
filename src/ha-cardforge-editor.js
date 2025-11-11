@@ -350,55 +350,55 @@ class HaCardForgeEditor extends LitElement {
     `;
   }
 
-  _renderEntityConfig(plugin) {
-    const requirements = plugin.entityRequirements || [];
+_renderEntityConfig(plugin) {
+  const requirements = plugin.entityRequirements || [];
 
-    if (requirements.length === 0) {
-      return html`
-        <div class="empty-state" style="padding: 20px;">
-          <ha-icon icon="mdi:check-circle-outline" style="color: var(--success-color); font-size: 2em;"></ha-icon>
-          <div style="margin-top: 12px; font-size: 1em;">此插件无需配置实体</div>
-        </div>
-      `;
-    }
-
+  if (requirements.length === 0) {
     return html`
-      ${requirements.map(req => {
-        const entityId = this.config.entities?.[req.key] || '';
-        const isValid = this._validateEntity(this.hass, entityId, req);
-        
-        return html`
-          <div class="entity-row">
-            <div class="entity-label">
-              ${req.description}
-              ${req.required ? html`<span class="required-star">*</span>` : ''}
-            </div>
-            <ha-entity-picker
-              .hass=${this.hass}
-              .value=${entityId}
-              @value-changed=${e => this._onEntityChange(req.key, e.detail.value)}
-              allow-custom-entity
-              .label=${`选择${req.description}`}
-              .includeDomains=${req.domains || null}  <!-- 如果有域名限制就使用，否则显示所有 -->
-              .includeDeviceClasses=${req.deviceClasses || null}
-              style="width: 100%;"
-            ></ha-entity-picker>
-            <ha-icon 
-              icon=${isValid.isValid ? 'mdi:check-circle' : 
-                    req.required ? 'mdi:alert-circle' : 'mdi:information'}
-              style="color: ${isValid.isValid ? 'var(--success-color)' : 
-                      req.required ? 'var(--error-color)' : 'var(--warning-color)'}"
-              .title=${isValid.reason || ''}
-            ></ha-icon>
-          </div>
-        `;
-      })}
-      
-      <div style="color: var(--secondary-text-color); font-size: 0.85em; margin-top: 16px;">
-        💡 提示：带 <span class="required-star">*</span> 的实体为必选
+      <div class="empty-state" style="padding: 20px;">
+        <ha-icon icon="mdi:check-circle-outline" style="color: var(--success-color); font-size: 2em;"></ha-icon>
+        <div style="margin-top: 12px; font-size: 1em;">此插件无需配置实体</div>
       </div>
     `;
   }
+
+  return html`
+    ${requirements.map(req => {
+      const entityId = this.config.entities?.[req.key] || '';
+      const isValid = this._validateEntity(this.hass, entityId, req);
+      
+      return html`
+        <div class="entity-row">
+          <div class="entity-label">
+            ${req.description}
+            ${req.required ? html`<span class="required-star">*</span>` : ''}
+          </div>
+          <ha-entity-picker
+            .hass=${this.hass}
+            .value=${entityId}
+            @value-changed=${e => this._onEntityChange(req.key, e.detail.value)}
+            allow-custom-entity
+            .label=${`选择${req.description}`}
+            .includeDomains=${req.domains || null}
+            .includeDeviceClasses=${req.deviceClasses || null}
+            style="width: 100%;"
+          ></ha-entity-picker>
+          <ha-icon 
+            icon=${isValid.isValid ? 'mdi:check-circle' : 
+                  req.required ? 'mdi:alert-circle' : 'mdi:information'}
+            style="color: ${isValid.isValid ? 'var(--success-color)' : 
+                    req.required ? 'var(--error-color)' : 'var(--warning-color)'}"
+            .title=${isValid.reason || ''}
+          ></ha-icon>
+        </div>
+      `;
+    })}
+    
+    <div style="color: var(--secondary-text-color); font-size: 0.85em; margin-top: 16px;">
+      💡 提示：带 <span class="required-star">*</span> 的实体为必选
+    </div>
+  `;
+}
 
   _renderThemeTab() {
     const themeOptions = [
