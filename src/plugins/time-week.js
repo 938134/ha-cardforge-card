@@ -1,6 +1,7 @@
 // src/plugins/time-week.js
 import { BasePlugin } from '../core/base-plugin.js';
 
+// 简化版本的时间星期插件
 export const manifest = {
   id: 'time-week',
   name: '时间星期',
@@ -12,17 +13,15 @@ export const manifest = {
   entityRequirements: [
     {
       key: 'time',
-      type: 'sensor',
-      description: '时间传感器',
-      required: false,
-      domains: ['sensor']
+      description: '时间实体（可选）',
+      required: false
+      // 不指定 domains，允许选择任何实体
     },
     {
       key: 'date',
-      type: 'sensor', 
-      description: '日期传感器',
-      required: false,
-      domains: ['sensor']
+      description: '日期实体（可选）', 
+      required: false
+      // 不指定 domains，允许选择任何实体
     }
   ],
   themeSupport: true,
