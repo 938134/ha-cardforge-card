@@ -28,10 +28,11 @@ class HaCardForgeCard extends LitElement {
       this._loading = true;
       this._error = null;
       
-      // 确保插件注册表已初始化
-      await PluginRegistry.initialize();
-      
+      // 验证配置
       this.config = this._validateConfig(config);
+      
+      // 等待插件注册表初始化
+      await PluginRegistry.initialize();
       
       // 加载插件
       this._plugin = await this._loadPlugin(this.config.plugin);
