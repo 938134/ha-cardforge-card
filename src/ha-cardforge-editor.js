@@ -350,6 +350,7 @@ class HaCardForgeEditor extends LitElement {
     `;
   }
 
+// 强制显示实体选择器的版本
 _renderEntityConfig(plugin) {
   const requirements = plugin.entityRequirements || [];
 
@@ -368,28 +369,31 @@ _renderEntityConfig(plugin) {
       const isValid = this._validateEntity(this.hass, entityId, req);
       
       return html`
-        <div style="margin-bottom: 16px; padding: 12px; background: var(--card-background-color); border-radius: 8px;">
-          <div style="display: flex; align-items: center; gap: 12px;">
-            <div style="font-weight: 500; min-width: 120px;">
+        <div style="margin-bottom: 16px; padding: 16px; background: var(--card-background-color); border-radius: 8px; border: 1px solid var(--divider-color);">
+          <div style="display: flex; align-items: center; gap: 16px;">
+            <div style="font-weight: 600; min-width: 140px; font-size: 0.95em;">
               ${req.description}
-              ${req.required ? html`<span style="color: var(--error-color);">*</span>` : ''}
+              ${req.required ? html`<span style="color: var(--error-color); margin-left: 4px;">*</span>` : ''}
             </div>
             
-            <!-- 使用实体选择器 -->
-            <ha-entity-picker
-              .hass=${this.hass}
-              .value=${entityId}
-              @value-changed=${e => this._onEntityChange(req.key, e.detail.value)}
-              allow-custom-entity
-              .label=${`选择${req.description}`}
-              style="flex: 1;"
-            ></ha-entity-picker>
+            <!-- 实体选择器 - 强制显示样式 -->
+            <div style="flex: 1; min-width: 200px;">
+              <ha-entity-picker
+                .hass=${this.hass}
+                .value=${entityId}
+                @value-changed=${e => this._onEntityChange(req.key, e.detail.value)}
+                allow-custom-entity
+                .label=${`选择${req.description}`}
+                style="width: 100%; display: block;"
+              ></ha-entity-picker>
+            </div>
             
             <ha-icon 
               icon=${isValid.isValid ? 'mdi:check-circle' : 
                     req.required ? 'mdi:alert-circle' : 'mdi:information'}
               style="color: ${isValid.isValid ? 'var(--success-color)' : 
-                      req.required ? 'var(--error-color)' : 'var(--warning-color)'}"
+                      req.required ? 'var(--error-color)' : 'var(--warning-color)'};
+                     font-size: 24px;"
               .title=${isValid.reason || ''}
             ></ha-icon>
           </div>
@@ -397,8 +401,14 @@ _renderEntityConfig(plugin) {
       `;
     })}
     
-    <div style="color: var(--secondary-text-color); font-size: 0.85em; margin-top: 16px;">
-      💡 提示：带 <span style="color: var(--error-color);">*</span> 的实体为必选
+    <div style="color: var(--secondary-text-color); font-size: 0.85em; margin-top: 20px; padding: 12px; background: var(--secondary-background-color); border-radius: 8px;">
+      💡 <strong>使用说明：</strong>
+      <ul style="margin: 8px 0 0 0; padding-left: 20px;">
+        <li>带 <span style="color: var(--error-color);">*</span> 的实体为必选</li>
+        <li>点击下拉箭头选择实体</li>
+        <li>绿色勾号表示实体有效</li>
+        <li>如需时间实体，请确保已安装时间日期传感器</li>
+      </ul>
     </div>
   `;
 }
