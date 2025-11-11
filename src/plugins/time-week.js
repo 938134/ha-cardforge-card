@@ -1,4 +1,6 @@
-// 最终方案：显示所有实体类型
+// src/plugins/time-week.js
+import { BasePlugin } from '../core/base-plugin.js';
+
 export const manifest = {
   id: 'time-week',
   name: '时间星期',
@@ -45,6 +47,11 @@ export default class TimeWeekPlugin extends BasePlugin {
       const dateParts = date.split('/');
       month = dateParts[1] || '01';
       day = dateParts[2] || '01';
+    } else {
+      // 使用当前日期作为回退
+      const now = new Date();
+      month = String(now.getMonth() + 1).padStart(2, '0');
+      day = String(now.getDate()).padStart(2, '0');
     }
 
     return `
