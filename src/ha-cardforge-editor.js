@@ -66,6 +66,10 @@ class HaCardForgeEditor extends LitElement {
         border-top: 1px solid var(--divider-color);
         padding-top: 16px;
       }
+      
+      .tab-content {
+        min-height: 300px;
+      }
     `
   ];
 
@@ -81,12 +85,15 @@ class HaCardForgeEditor extends LitElement {
   }
 
   async firstUpdated() {
+    console.log('编辑器首次更新，初始化插件系统...');
     await PluginRegistry.initialize();
     this._loadPlugins();
     this._initialized = true;
+    console.log('编辑器初始化完成');
   }
 
   setConfig(config) {
+    console.log('设置编辑器配置:', config);
     this.config = { 
       plugin: '',
       entities: {},
@@ -110,6 +117,8 @@ class HaCardForgeEditor extends LitElement {
     const activePlugin = this.config.plugin ? 
       PluginRegistry.getPlugin(this.config.plugin) : null;
 
+    console.log('渲染编辑器，活动插件:', activePlugin?.manifest?.name, '当前选项卡:', this._activeTab);
+
     return html`
       <div class="editor-container">
         ${EditorTabs.renderTabs(this._activeTab, (tab) => this._switchTab(tab), !!this.config.plugin)}
@@ -132,6 +141,8 @@ class HaCardForgeEditor extends LitElement {
   }
 
   _renderActiveTab(activePlugin) {
+    console.log('渲染活动选项卡:', this._activeTab, 'hass:', !!this.hass, 'plugin:', activePlugin?.manifest?.name);
+    
     switch (this._activeTab) {
       case 0:
         return PluginMarketplace.render(
@@ -145,6 +156,7 @@ class HaCardForgeEditor extends LitElement {
         );
       
       case 1:
+        console.log('渲染实体配置，hass 状态:', !!this.hass, '插件实体需求:', activePlugin?.manifest?.entityRequirements);
         return EntityConfig.render(
           this.hass,
           this.config,
@@ -169,17 +181,24 @@ class HaCardForgeEditor extends LitElement {
       category: this._selectedCategory,
       searchQuery: this._searchQuery
     });
+    console.log('加载插件完成，数量:', this._filteredPlugins.length);
   }
 
   _switchTab(tabIndex) {
+    console.log('切换选项卡:', tabIndex);
     this._activeTab = tabIndex;
     this.requestUpdate();
   }
 
   _selectPlugin(plugin) {
+    console.log('选择插件:', plugin.name, plugin.id);
+    
     const defaultEntities = {};
     const fullPlugin = PluginRegistry.getPlugin(plugin.id);
+    console.log('完整插件信息:', fullPlugin);
+    
     const requirements = fullPlugin?.manifest.entityRequirements || [];
+    console.log('实体需求:', requirements);
     
     requirements.forEach(req => {
       defaultEntities[req.key] = '';
@@ -191,20 +210,30 @@ class HaCardForgeEditor extends LitElement {
       entities: { ...defaultEntities, ...this.config.entities }
     };
     
+    console.log('更新后的配置:', this.config);
+    
     this._notifyConfigUpdate();
     
     if (requirements.length > 0) {
       this._activeTab = 1;
+      console.log('切换到实体配置选项卡');
     } else {
-      this._activeTab = 2; // 如果没有实体需求，直接跳到主题设置
+      this._activeTab = 2;
+      console.log('切换到主题设置选项卡');
     }
+    
+    this.requestUpdate();
   }
 
   _onEntityChange(key, value) {
+    console.log('实体变更:', key, value);
+    
     this.config.entities = {
       ...this.config.entities,
       [key]: value
     };
+    
+    console.log('更新实体配置:', this.config.entities);
     
     this.requestUpdate();
     
@@ -215,6 +244,7 @@ class HaCardForgeEditor extends LitElement {
   }
 
   _onThemeChange(theme) {
+    console.log('主题变更:', theme);
     if (!theme || theme === '') return;
     
     this.config.theme = theme;
@@ -223,33 +253,47 @@ class HaCardForgeEditor extends LitElement {
   }
 
   _onSearchChange(query) {
+    console.log('搜索变更:', query);
     this._searchQuery = query;
     this._loadPlugins();
     this.requestUpdate();
   }
 
   _onCategoryChange(category) {
+    console.log('分类变更:', category);
     this._selectedCategory = category;
     this._loadPlugins();
     this.requestUpdate();
   }
 
   _notifyConfigUpdate() {
+    console.log('通知配置变更:', this.config);
     this.dispatchEvent(new CustomEvent('config-changed', {
       detail: { config: this.config }
     }));
   }
 
   _save() {
+    console.log('保存配置');
     this._notifyConfigUpdate();
   }
 
   _cancel() {
+    console.log('取消编辑');
     this.dispatchEvent(new CustomEvent('config-changed', {
       detail: { config: null }
     }));
   }
+
+  updated(changedProperties) {
+    if (changedProperties.has('hass')) {
+      console.log('hass 对象已更新');
+    }
+  }
 }
 
-customElements.get('ha-cardforge-editor') || customElements.define('ha-cardforge-editor', HaCardForgeEditor);
+if (!customElements.get('ha-cardforge-editor')) {
+  customElements.define('ha-cardforge-editor', HaCardForgeEditor);
+}
+
 export { HaCardForgeEditor };
