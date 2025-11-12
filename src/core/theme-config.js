@@ -5,11 +5,30 @@ import { PluginRegistry } from './plugin-registry.js';
 export class ThemeConfig {
   static render(config, plugin, onThemeChange) {
     const themes = [
-      { id: 'default', name: '默认主题', icon: 'mdi:palette-outline' },
-      { id: 'dark', name: '深色主题', icon: 'mdi:weather-night' },
-      { id: 'material', name: '材质设计', icon: 'mdi:material-design' },
-      { id: 'minimal', name: '极简风格', icon: 'mdi:image-filter-center-focus' },
-      { id: 'colorful', name: '多彩主题', icon: 'mdi:palette' }
+      { 
+        id: 'auto', 
+        name: '跟随系统', 
+        icon: 'mdi:theme-light-dark',
+        description: '自动根据系统主题切换'
+      },
+      { 
+        id: 'light', 
+        name: '浅色主题', 
+        icon: 'mdi:white-balance-sunny',
+        description: '明亮的浅色风格'
+      },
+      { 
+        id: 'dark', 
+        name: '深色主题', 
+        icon: 'mdi:weather-night',
+        description: '舒适的深色风格'
+      },
+      { 
+        id: 'colorful', 
+        name: '多彩主题', 
+        icon: 'mdi:palette',
+        description: '渐变色背景风格'
+      }
     ];
 
     // 从注册表获取完整的插件信息
@@ -23,21 +42,28 @@ export class ThemeConfig {
             <span>主题设置 ${fullPlugin ? `- ${fullPlugin.manifest.name}` : ''}</span>
           </div>
           
-          <ha-select
-            label="选择主题风格"
-            .value=${config.theme || 'default'}
-            @selected=${e => this._handleThemeChange(e, onThemeChange)}
-            @closed=${e => e.stopPropagation()}
-            style="width: 100%; margin-bottom: 20px;"
-            fixedMenuPosition
-          >
+          <div class="theme-grid">
             ${themes.map(theme => html`
-              <mwc-list-item value=${theme.id} graphic="icon">
-                <ha-icon .icon=${theme.icon} slot="graphic"></ha-icon>
-                ${theme.name}
-              </mwc-list-item>
+              <div 
+                class="theme-card ${config.theme === theme.id ? 'selected' : ''}"
+                @click=${() => this._handleThemeSelect(theme.id, onThemeChange)}
+              >
+                <div class="theme-preview ${theme.id}">
+                  <ha-icon .icon=${theme.icon}></ha-icon>
+                </div>
+                <div class="theme-info">
+                  <div class="theme-name">${theme.name}</div>
+                  <div class="theme-description">${theme.description}</div>
+                </div>
+                ${config.theme === theme.id ? html`
+                  <ha-icon 
+                    icon="mdi:check-circle" 
+                    class="theme-check"
+                  ></ha-icon>
+                ` : ''}
+              </div>
             `)}
-          </ha-select>
+          </div>
           
           ${this._renderPluginThemeInfo(fullPlugin)}
           
@@ -49,10 +75,10 @@ export class ThemeConfig {
     `;
   }
 
-  static _handleThemeChange(event, callback) {
-    const theme = event.target.value;
-    if (theme && theme !== '') {
-      callback(theme);
+  static _handleThemeSelect(themeId, callback) {
+    console.log('选择主题:', themeId);
+    if (themeId && themeId !== '') {
+      callback(themeId);
     }
   }
 
