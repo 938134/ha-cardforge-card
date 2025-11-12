@@ -41,6 +41,45 @@ export const sharedStyles = css`
     --mdc-text-field-ink-color: var(--primary-text-color);
   }
   
+  /* 原生选择器样式 - 与 ha-select 保持一致 */
+  .native-entity-picker {
+    width: 100%;
+  }
+  
+  .entity-select {
+    width: 100%;
+    padding: 12px 16px;
+    border: 1px solid var(--divider-color);
+    border-radius: 4px;
+    background-color: var(--card-background-color);
+    color: var(--primary-text-color);
+    font-size: 0.9em;
+    font-family: inherit;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 12px center;
+    background-size: 16px;
+  }
+  
+  .entity-select:hover {
+    border-color: var(--primary-color);
+  }
+  
+  .entity-select:focus {
+    outline: none;
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 2px rgba(var(--rgb-primary-color), 0.1);
+  }
+  
+  .entity-select option {
+    background-color: var(--card-background-color);
+    color: var(--primary-text-color);
+    padding: 8px;
+  }
+  
   .required-star {
     color: var(--error-color);
     margin-left: 4px;
@@ -83,6 +122,28 @@ export const sharedStyles = css`
     gap: 12px;
     margin-bottom: 20px;
     align-items: center;
+  }
+  
+  /* 搜索输入框样式 */
+  .search-header ha-textfield {
+    --mdc-text-field-fill-color: var(--card-background-color);
+    --mdc-text-field-label-ink-color: var(--secondary-text-color);
+    --mdc-text-field-ink-color: var(--primary-text-color);
+    --mdc-text-field-outlined-idle-border-color: var(--divider-color);
+    --mdc-text-field-outlined-hover-border-color: var(--primary-color);
+  }
+  
+  /* 分类选择器样式 */
+  .search-header ha-select {
+    --mdc-menu-min-width: 120px;
+    --mdc-theme-primary: var(--primary-color);
+  }
+  
+  .search-header ha-select::part(select) {
+    background-color: var(--card-background-color);
+    border: 1px solid var(--divider-color);
+    border-radius: 4px;
+    color: var(--primary-text-color);
   }
   
   .plugin-grid {
