@@ -2,7 +2,6 @@
 import { LitElement, html, css } from 'https://unpkg.com/lit@2.8.0/index.js?module';
 import { PluginRegistry } from './core/plugin-registry.js';
 import { sharedStyles } from './core/shared-styles.js';
-import { unsafeHTML } from 'https://unpkg.com/lit-html/directives/unsafe-html.js?module';
 
 class HaCardForgeEditor extends LitElement {
   static properties = {
@@ -24,18 +23,6 @@ class HaCardForgeEditor extends LitElement {
         margin-bottom: 16px;
       }
       
-      .preview-container {
-        margin: 20px 0;
-        padding: 20px;
-        background: var(--card-background-color);
-        border-radius: 12px;
-        border: 1px solid var(--divider-color);
-        min-height: 120px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-      }
-      
       .card-actions {
         margin-top: 24px;
         text-align: right;
@@ -45,8 +32,6 @@ class HaCardForgeEditor extends LitElement {
       
       ha-select, ha-combo-box {
         width: 100%;
-        --ha-select-background: var(--card-background-color);
-        --ha-combo-box-background: var(--card-background-color);
       }
     `
   ];
@@ -124,10 +109,6 @@ class HaCardForgeEditor extends LitElement {
 
         ${this._renderEntityConfig(activePlugin)}
 
-        <div class="preview-container">
-          ${this._renderPreview(activePlugin)}
-        </div>
-
         <div class="card-actions">
           <mwc-button outlined label="取消" @click=${this._cancel}></mwc-button>
           <mwc-button 
@@ -162,45 +143,6 @@ class HaCardForgeEditor extends LitElement {
     `;
   }
 
-_renderPreview(activePlugin) {
-  if (!activePlugin) {
-    return html`<div style="color: var(--secondary-text-color); text-align: center; padding: 20px;">
-      请选择卡片查看预览
-    </div>`;
-  }
-
-  try {
-    const pluginInstance = PluginRegistry.createPluginInstance(activePlugin.id);
-    const entities = this._getCurrentEntities();
-    
-    // 获取模板和样式
-    const template = pluginInstance.getTemplate(this.config, this.hass, entities);
-    const styles = pluginInstance.getStyles(this.config);
-    
-    // 使用 unsafeHTML 渲染模板，同时注入样式
-    return html`
-      <div class="preview-content">
-        ${unsafeHTML(template)}
-        <style>
-          /* 重置预览区域样式，避免冲突 */
-          .preview-content .cardforge-card {
-            margin: 0;
-            width: 100%;
-            height: auto;
-            min-height: 100px;
-          }
-          ${styles}
-        </style>
-      </div>
-    `;
-  } catch (error) {
-    console.error('预览渲染失败:', error);
-    return html`<div style="color: var(--error-color); text-align: center; padding: 20px;">
-      预览渲染失败: ${error.message}
-    </div>`;
-  }
-}
-
   _loadPlugins() {
     this._plugins = PluginRegistry.getAllPlugins().map(plugin => ({
       id: plugin.id,
@@ -214,7 +156,6 @@ _renderPreview(activePlugin) {
     const entities = Object.keys(hass.states || {});
     let filteredEntities = entities;
 
-    // 根据需求类型过滤实体
     if (requirement.type === 'sensor') {
       filteredEntities = entities.filter(e => e.startsWith('sensor.'));
     } else if (requirement.type === 'input_text') {
@@ -234,14 +175,6 @@ _renderPreview(activePlugin) {
 
     options.unshift({ value: '', label: `选择${requirement.description}` });
     return options;
-  }
-
-  _getCurrentEntities() {
-    const entities = {};
-    if (this.config.entities?.message_entity) {
-      entities.message_entity = this.hass?.states[this.config.entities.message_entity];
-    }
-    return entities;
   }
 
   _onPluginChange(event) {
