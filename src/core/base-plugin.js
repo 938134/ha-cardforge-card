@@ -120,32 +120,58 @@ export class BasePlugin {
     `;
   }
   
-  _getThemeStyles(themeConfig, themeId = 'default') {
+  _getThemeStyles(themeConfig, themeId = 'auto') {
+    // 根据 themeId 和 themeConfig 生成样式
     if (!themeConfig.useGradient) {
       return this._getSolidTheme(themeId);
     }
     
-    return this._getGradientTheme(themeConfig);
+    return this._getGradientTheme(themeConfig, themeId);
   }
   
   _getSolidTheme(themeId) {
     const themes = {
-      'default': 'background: var(--card-background-color); color: var(--primary-text-color);',
-      'dark': 'background: #1e1e1e; color: #ffffff;',
-      'material': 'background: var(--card-background-color); color: var(--primary-text-color); box-shadow: 0 2px 8px rgba(0,0,0,0.1);',
-      'minimal': 'background: transparent; color: var(--primary-text-color); border: 1px solid var(--divider-color);',
-      'colorful': 'background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white;'
+      'auto': `
+        background: var(--card-background-color); 
+        color: var(--primary-text-color);
+      `,
+      'light': `
+        background: #ffffff; 
+        color: #333333;
+        --primary-color: #03a9f4;
+        --accent-color: #ff4081;
+      `,
+      'dark': `
+        background: #1e1e1e; 
+        color: #ffffff;
+        --primary-color: #03a9f4;
+        --accent-color: #ff4081;
+      `,
+      'colorful': `
+        background: linear-gradient(135deg, var(--primary-color) 0%, var(--accent-color) 100%); 
+        color: white;
+      `
     };
     
-    return themes[themeId] || themes.default;
+    return themes[themeId] || themes.auto;
   }
   
-  _getGradientTheme(themeConfig) {
+  _getGradientTheme(themeConfig, themeId) {
+    // 多彩主题使用欢迎卡片的渐变色彩
+    const gradientColors = {
+      'auto': ['var(--primary-color)', 'var(--accent-color)'],
+      'light': ['#4facfe', '#00f2fe'],
+      'dark': ['#667eea', '#764ba2'], 
+      'colorful': ['var(--primary-color)', 'var(--accent-color)']
+    };
+    
+    const colors = gradientColors[themeId] || gradientColors.auto;
+    
     const gradientMap = {
-      'diagonal': `linear-gradient(135deg, ${themeConfig.gradientColors.join(', ')})`,
-      'horizontal': `linear-gradient(90deg, ${themeConfig.gradientColors.join(', ')})`,
-      'vertical': `linear-gradient(180deg, ${themeConfig.gradientColors.join(', ')})`,
-      'radial': `radial-gradient(circle, ${themeConfig.gradientColors.join(', ')})`
+      'diagonal': `linear-gradient(135deg, ${colors.join(', ')})`,
+      'horizontal': `linear-gradient(90deg, ${colors.join(', ')})`,
+      'vertical': `linear-gradient(180deg, ${colors.join(', ')})`,
+      'radial': `radial-gradient(circle, ${colors.join(', ')})`
     };
     
     const gradient = gradientMap[themeConfig.gradientType] || gradientMap.diagonal;
