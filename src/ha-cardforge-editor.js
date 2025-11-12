@@ -103,7 +103,10 @@ class HaCardForgeEditor extends LitElement {
       'ha-icon',
       'ha-select',
       'ha-textfield',
-      'ha-circular-progress'
+      'ha-circular-progress',
+      'ha-combo-box',
+      'mwc-button',
+      'mwc-list-item'
     ];
 
     requiredElements.forEach(elementName => {
@@ -112,6 +115,11 @@ class HaCardForgeEditor extends LitElement {
       
       if (!isAvailable) {
         console.warn(`自定义元素 ${elementName} 未注册，可能需要手动加载`);
+        
+        // 如果 ha-combo-box 不可用，给出提示
+        if (elementName === 'ha-combo-box') {
+          console.log('ha-combo-box 不可用，将使用 ha-textfield 作为备选');
+        }
       }
     });
   }

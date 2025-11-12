@@ -131,7 +131,7 @@ export const sharedStyles = css`
     overflow: hidden;
   }
   
-  /* 更新的毛玻璃预览样式 - 亮灰色背景 */
+  /* 增强的毛玻璃预览样式 */
   .theme-preview.auto {
     background: linear-gradient(135deg, #f0f0f0 0%, #d0d0d0 100%);
     color: #333;
@@ -139,15 +139,15 @@ export const sharedStyles = css`
   
   .theme-preview.glass {
     background: linear-gradient(135deg, 
-      rgba(248, 248, 248, 0.95) 0%, 
-      rgba(240, 240, 240, 0.85) 50%,
-      rgba(232, 232, 232, 0.75) 100%);
+      rgba(255, 255, 255, 0.35) 0%, 
+      rgba(255, 255, 255, 0.2) 50%,
+      rgba(255, 255, 255, 0.1) 100%);
     backdrop-filter: blur(20px) saturate(180%);
     -webkit-backdrop-filter: blur(20px) saturate(180%);
-    border: 1.5px solid rgba(255, 255, 255, 0.5);
+    border: 1.5px solid rgba(255, 255, 255, 0.4);
     box-shadow: 
       0 8px 16px rgba(0, 0, 0, 0.1),
-      inset 0 1px 0 rgba(255, 255, 255, 0.6),
+      inset 0 1px 0 rgba(255, 255, 255, 0.3),
       inset 0 -1px 0 rgba(0, 0, 0, 0.1);
     color: #333;
   }
@@ -162,7 +162,7 @@ export const sharedStyles = css`
     background: linear-gradient(
       90deg,
       transparent,
-      rgba(255, 255, 255, 0.5),
+      rgba(255, 255, 255, 0.4),
       transparent
     );
     animation: glassShine 3s ease-in-out infinite;
@@ -221,17 +221,17 @@ export const sharedStyles = css`
   
   .current-preview.glass {
     background: linear-gradient(135deg, 
-      rgba(248, 248, 248, 0.95) 0%, 
-      rgba(240, 240, 240, 0.85) 50%,
-      rgba(232, 232, 232, 0.75) 100%);
+      rgba(255, 255, 255, 0.25) 0%, 
+      rgba(255, 255, 255, 0.15) 50%,
+      rgba(255, 255, 255, 0.1) 100%);
     backdrop-filter: blur(30px) saturate(180%);
     -webkit-backdrop-filter: blur(30px) saturate(180%);
-    border: 1px solid rgba(255, 255, 255, 0.5);
+    border: 1px solid rgba(255, 255, 255, 0.35);
     box-shadow: 
       0 12px 40px rgba(0, 0, 0, 0.15),
-      inset 0 1px 0 rgba(255, 255, 255, 0.6),
+      inset 0 1px 0 rgba(255, 255, 255, 0.25),
       inset 0 -1px 0 rgba(0, 0, 0, 0.1);
-    color: #333333;
+    color: var(--primary-text-color);
   }
   
   .current-preview.glass::before {
@@ -244,7 +244,7 @@ export const sharedStyles = css`
     background: linear-gradient(
       90deg,
       transparent,
-      rgba(255, 255, 255, 0.4),
+      rgba(255, 255, 255, 0.3),
       transparent
     );
     animation: glassShine 4s ease-in-out infinite;
@@ -335,8 +335,24 @@ export const sharedStyles = css`
     align-items: center;
   }
   
-  /* 搜索输入框样式 */
-  .search-header ha-textfield {
+  .combo-box-container {
+    flex: 1;
+    min-width: 200px;
+  }
+  
+  /* ha-combo-box 样式 */
+  .combo-box-container ha-combo-box {
+    width: 100%;
+    --mdc-text-field-fill-color: var(--card-background-color);
+    --mdc-text-field-label-ink-color: var(--secondary-text-color);
+    --mdc-text-field-ink-color: var(--primary-text-color);
+    --mdc-text-field-outlined-idle-border-color: var(--divider-color);
+    --mdc-text-field-outlined-hover-border-color: var(--primary-color);
+  }
+  
+  /* ha-textfield 备选样式 */
+  .combo-box-container ha-textfield {
+    width: 100%;
     --mdc-text-field-fill-color: var(--card-background-color);
     --mdc-text-field-label-ink-color: var(--secondary-text-color);
     --mdc-text-field-ink-color: var(--primary-text-color);

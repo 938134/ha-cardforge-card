@@ -15,16 +15,23 @@ export class PluginMarketplace {
 
   static _renderSearchHeader(searchQuery, selectedCategory, onSearchChange, onCategoryChange) {
     const categories = PluginRegistry.getMarketplaceCategories();
+    const allPlugins = PluginRegistry.getAllPlugins();
+    
+    // 获取所有插件的名称用于自动完成
+    const pluginNames = allPlugins.map(plugin => plugin.name);
 
     return html`
       <div class="search-header">
-        <ha-textfield
-          style="flex: 1;"
-          label="搜索插件..."
-          .value=${searchQuery}
-          @input=${e => onSearchChange(e.target.value)}
-          icon="mdi:magnify"
-        ></ha-textfield>
+        <div class="combo-box-container">
+          <ha-combo-box
+            .label=${"搜索插件名称..."}
+            .value=${searchQuery}
+            .items=${pluginNames}
+            @value-changed=${e => onSearchChange(e.detail.value)}
+            allow-custom-value
+            style="width: 100%;"
+          ></ha-combo-box>
+        </div>
         
         <ha-select
           label="分类"
