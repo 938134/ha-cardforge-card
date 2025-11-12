@@ -1,4 +1,4 @@
-// src/core/shared-styles.js
+// src/core/shared-styles.js (更新搜索头部相关样式)
 import { css } from 'https://unpkg.com/lit@2.8.0/index.js?module';
 
 export const sharedStyles = css`
@@ -335,35 +335,24 @@ export const sharedStyles = css`
     align-items: center;
   }
   
-  .combo-box-container {
-    flex: 1;
-    min-width: 200px;
+  /* 搜索输入框样式 */
+  .search-header ha-textfield {
+    --mdc-text-field-fill-color: var(--card-background-color);
+    --mdc-text-field-label-ink-color: var(--secondary-text-color);
+    --mdc-text-field-ink-color: var(--primary-text-color);
+    --mdc-text-field-outlined-idle-border-color: var(--divider-color);
+    --mdc-text-field-outlined-hover-border-color: var(--primary-color);
   }
   
   /* ha-combo-box 样式 */
-  .combo-box-container ha-combo-box {
-    width: 100%;
-    --mdc-text-field-fill-color: var(--card-background-color);
-    --mdc-text-field-label-ink-color: var(--secondary-text-color);
-    --mdc-text-field-ink-color: var(--primary-text-color);
-    --mdc-text-field-outlined-idle-border-color: var(--divider-color);
-    --mdc-text-field-outlined-hover-border-color: var(--primary-color);
-  }
-  
-  /* ha-textfield 备选样式 */
-  .combo-box-container ha-textfield {
-    width: 100%;
-    --mdc-text-field-fill-color: var(--card-background-color);
-    --mdc-text-field-label-ink-color: var(--secondary-text-color);
-    --mdc-text-field-ink-color: var(--primary-text-color);
-    --mdc-text-field-outlined-idle-border-color: var(--divider-color);
-    --mdc-text-field-outlined-hover-border-color: var(--primary-color);
-  }
-  
-  /* 分类选择器样式 */
-  .search-header ha-select {
-    --mdc-menu-min-width: 120px;
-    --mdc-theme-primary: var(--primary-color);
+  .search-header ha-combo-box {
+    --ha-combo-box-background: var(--card-background-color);
+    --ha-combo-box-text-color: var(--primary-text-color);
+    --ha-combo-box-icon-color: var(--secondary-text-color);
+    --ha-combo-box-border-color: var(--divider-color);
+    --ha-combo-box-border-radius: 4px;
+    --ha-combo-box-hover-border-color: var(--primary-color);
+    min-width: 140px;
   }
   
   /* 紧凑插件网格样式 */
@@ -515,7 +504,7 @@ export const sharedStyles = css`
     height: 36px;
     overflow: hidden;
     display: -webkit-box;
-    -webkit-line-clamp: 2;
+    -webkit-line-camp: 2;
     -webkit-box-orient: vertical;
     margin-bottom: 8px;
   }
