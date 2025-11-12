@@ -1,24 +1,42 @@
 // src/core/entity-config.js
 import { html } from 'https://unpkg.com/lit@2.8.0/index.js?module';
-import { PluginRegistry } from './plugin-registry.js';  // 添加这行导入
+import { PluginRegistry } from './plugin-registry.js';
 
 export class EntityConfig {
   static render(hass, config, plugin, onEntityChange) {
+    console.log('EntityConfig.render called:', { 
+      hass: !!hass, 
+      plugin: plugin?.manifest?.name,
+      config: config 
+    });
+
     if (!plugin) {
+      console.log('No plugin selected');
       return this._renderEmptyState('请先选择插件');
     }
 
     // 从注册表获取完整的插件信息
     const fullPlugin = PluginRegistry.getPlugin(plugin.id);
     if (!fullPlugin) {
+      console.log('Plugin not found in registry:', plugin.id);
       return this._renderEmptyState('插件加载失败');
     }
 
     const requirements = fullPlugin.manifest.entityRequirements || [];
+    console.log('Plugin requirements:', requirements);
     
     if (requirements.length === 0) {
+      console.log('No entity requirements for plugin');
       return this._renderEmptyState('此插件无需配置实体', 'mdi:check-circle-outline', 'var(--success-color)');
     }
+
+    // 检查 hass 是否可用
+    if (!hass) {
+      console.log('Hass not available');
+      return this._renderEmptyState('Home Assistant 未连接', 'mdi:connection', 'var(--error-color)');
+    }
+
+    console.log('Rendering entity config with requirements:', requirements.length);
 
     return html`
       <ha-card>
@@ -42,6 +60,8 @@ export class EntityConfig {
     const entityId = config.entities?.[requirement.key] || '';
     const isValid = this._simpleValidate(hass, entityId, requirement);
     
+    console.log('Rendering entity row:', requirement.key, 'current value:', entityId);
+
     return html`
       <div class="entity-row">
         <div class="entity-label">
@@ -49,16 +69,25 @@ export class EntityConfig {
           ${requirement.required ? html`<span class="required-star">*</span>` : ''}
         </div>
         
-        <ha-entity-picker
-          .hass=${hass}
-          .value=${entityId}
-          @value-changed=${e => onEntityChange(requirement.key, e.detail.value)}
-          allow-custom-entity
-        ></ha-entity-picker>
+        <div class="entity-picker-container">
+          <ha-entity-picker
+            .hass=${hass}
+            .value=${entityId}
+            @value-changed=${e => this._handleEntityChange(e, requirement.key, onEntityChange)}
+            allow-custom-entity
+            .label=${`选择${requirement.description}`}
+          ></ha-entity-picker>
+        </div>
         
         ${this._renderValidationIcon(isValid, requirement)}
       </div>
     `;
+  }
+
+  static _handleEntityChange(event, key, onEntityChange) {
+    const value = event.detail.value;
+    console.log('实体选择器变更:', key, value);
+    onEntityChange(key, value);
   }
 
   static _simpleValidate(hass, entityId, requirement) {
@@ -84,14 +113,32 @@ export class EntityConfig {
 
   static _renderValidationIcon(validation, requirement) {
     if (validation.isValid) {
-      return html`<ha-icon icon="mdi:check-circle" style="color: var(--success-color)"></ha-icon>`;
+      return html`
+        <ha-icon 
+          icon="mdi:check-circle" 
+          style="color: var(--success-color)"
+          .title=${validation.reason}
+        ></ha-icon>
+      `;
     }
     
     if (requirement.required) {
-      return html`<ha-icon icon="mdi:alert-circle" style="color: var(--error-color)" .title=${validation.reason}></ha-icon>`;
+      return html`
+        <ha-icon 
+          icon="mdi:alert-circle" 
+          style="color: var(--error-color)" 
+          .title=${validation.reason}
+        ></ha-icon>
+      `;
     }
     
-    return html`<ha-icon icon="mdi:information" style="color: var(--warning-color)" .title=${validation.reason}></ha-icon>`;
+    return html`
+      <ha-icon 
+        icon="mdi:information" 
+        style="color: var(--warning-color)" 
+        .title=${validation.reason}
+      ></ha-icon>
+    `;
   }
 
   static _renderEmptyState(message, icon = 'mdi:alert-circle-outline', color = 'var(--secondary-text-color)') {
@@ -99,7 +146,7 @@ export class EntityConfig {
       <ha-card>
         <div class="empty-state">
           <ha-icon .icon=${icon} style="color: ${color}; font-size: 2em;"></ha-icon>
-          <div style="margin-top: 12px;">${message}</div>
+          <div style="margin-top: 12px; font-size: 1em;">${message}</div>
         </div>
       </ha-card>
     `;
