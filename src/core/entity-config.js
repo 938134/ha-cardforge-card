@@ -70,18 +70,59 @@ export class EntityConfig {
         </div>
         
         <div class="entity-picker-container">
-          <ha-entity-picker
-            .hass=${hass}
-            .value=${entityId}
-            @value-changed=${e => this._handleEntityChange(e, requirement.key, onEntityChange)}
-            allow-custom-entity
-            .label=${`选择${requirement.description}`}
-            style="width: 100%;"
-          ></ha-entity-picker>
+          ${this._renderEntityPicker(hass, entityId, requirement, onEntityChange)}
         </div>
         
         ${this._renderValidationIcon(isValid, requirement)}
       </div>
+    `;
+  }
+
+  static _renderEntityPicker(hass, entityId, requirement, onEntityChange) {
+    // 尝试使用 ha-entity-picker，如果不可用则使用备选方案
+    if (this._isEntityPickerAvailable()) {
+      console.log('使用 ha-entity-picker');
+      return html`
+        <ha-entity-picker
+          .hass=${hass}
+          .value=${entityId}
+          @value-changed=${e => this._handleEntityChange(e, requirement.key, onEntityChange)}
+          allow-custom-entity
+          .label=${`选择${requirement.description}`}
+          style="width: 100%;"
+        ></ha-entity-picker>
+      `;
+    } else {
+      console.log('ha-entity-picker 不可用，使用备选方案');
+      return this._renderFallbackEntityPicker(hass, entityId, requirement, onEntityChange);
+    }
+  }
+
+  static _isEntityPickerAvailable() {
+    return customElements.get('ha-entity-picker') !== undefined;
+  }
+
+  static _renderFallbackEntityPicker(hass, entityId, requirement, onEntityChange) {
+    const entities = Object.keys(hass.states || {});
+    const filteredEntities = entities.filter(entityId => {
+      // 简单的实体过滤逻辑
+      if (requirement.type === 'weather') {
+        return entityId.startsWith('weather.');
+      }
+      return true;
+    });
+
+    return html`
+      <select 
+        .value=${entityId}
+        @change=${e => onEntityChange(requirement.key, e.target.value)}
+        style="width: 100%; padding: 8px; border-radius: 4px; border: 1px solid var(--divider-color);"
+      >
+        <option value="">请选择实体</option>
+        ${filteredEntities.map(entity => html`
+          <option value=${entity} ?selected=${entity === entityId}>${entity}</option>
+        `)}
+      </select>
     `;
   }
 
