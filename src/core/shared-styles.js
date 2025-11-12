@@ -120,16 +120,18 @@ export const sharedStyles = css`
   .theme-preview {
     width: 60px;
     height: 60px;
-    border-radius: 8px;
+    border-radius: 12px;
     display: flex;
     align-items: center;
     justify-content: center;
     margin-bottom: 12px;
     font-size: 1.5em;
     transition: all 0.3s ease;
+    position: relative;
+    overflow: hidden;
   }
   
-  /* 新主题预览样式 */
+  /* 增强的毛玻璃预览样式 */
   .theme-preview.auto {
     background: linear-gradient(135deg, #f0f0f0 0%, #d0d0d0 100%);
     color: #333;
@@ -137,11 +139,33 @@ export const sharedStyles = css`
   
   .theme-preview.glass {
     background: linear-gradient(135deg, 
-      rgba(255, 255, 255, 0.2) 0%, 
+      rgba(255, 255, 255, 0.35) 0%, 
+      rgba(255, 255, 255, 0.2) 50%,
       rgba(255, 255, 255, 0.1) 100%);
-    backdrop-filter: blur(10px);
-    border: 1px solid rgba(255, 255, 255, 0.3);
+    backdrop-filter: blur(20px) saturate(180%);
+    -webkit-backdrop-filter: blur(20px) saturate(180%);
+    border: 1.5px solid rgba(255, 255, 255, 0.4);
+    box-shadow: 
+      0 8px 16px rgba(0, 0, 0, 0.1),
+      inset 0 1px 0 rgba(255, 255, 255, 0.3),
+      inset 0 -1px 0 rgba(0, 0, 0, 0.1);
     color: #333;
+  }
+  
+  .theme-preview.glass::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(
+      90deg,
+      transparent,
+      rgba(255, 255, 255, 0.4),
+      transparent
+    );
+    animation: glassShine 3s ease-in-out infinite;
   }
   
   .theme-preview.gradient {
@@ -154,8 +178,8 @@ export const sharedStyles = css`
     background: #1a1a1a;
     color: #00ff88;
     box-shadow: 
-      0 0 5px #00ff88,
-      inset 0 0 10px rgba(0, 255, 136, 0.1);
+      0 0 8px #00ff88,
+      inset 0 0 12px rgba(0, 255, 136, 0.15);
     animation: neonPulse 2s ease-in-out infinite;
   }
   
@@ -164,7 +188,7 @@ export const sharedStyles = css`
     margin: 20px 0;
     padding: 16px;
     background: var(--card-background-color);
-    border-radius: 8px;
+    border-radius: 12px;
     border: 1px solid var(--divider-color);
   }
   
@@ -176,11 +200,17 @@ export const sharedStyles = css`
   }
   
   .current-preview {
-    padding: 20px;
-    border-radius: 8px;
+    padding: 24px;
+    border-radius: 12px;
     text-align: center;
     font-weight: 500;
     transition: all 0.3s ease;
+    position: relative;
+    overflow: hidden;
+    min-height: 80px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
   }
   
   .current-preview.auto {
@@ -191,11 +221,33 @@ export const sharedStyles = css`
   
   .current-preview.glass {
     background: linear-gradient(135deg, 
-      rgba(255, 255, 255, 0.15) 0%, 
-      rgba(255, 255, 255, 0.05) 100%);
-    backdrop-filter: blur(20px);
-    border: 1px solid rgba(255, 255, 255, 0.2);
+      rgba(255, 255, 255, 0.25) 0%, 
+      rgba(255, 255, 255, 0.15) 50%,
+      rgba(255, 255, 255, 0.1) 100%);
+    backdrop-filter: blur(30px) saturate(180%);
+    -webkit-backdrop-filter: blur(30px) saturate(180%);
+    border: 1px solid rgba(255, 255, 255, 0.35);
+    box-shadow: 
+      0 12px 40px rgba(0, 0, 0, 0.15),
+      inset 0 1px 0 rgba(255, 255, 255, 0.25),
+      inset 0 -1px 0 rgba(0, 0, 0, 0.1);
     color: var(--primary-text-color);
+  }
+  
+  .current-preview.glass::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(
+      90deg,
+      transparent,
+      rgba(255, 255, 255, 0.3),
+      transparent
+    );
+    animation: glassShine 4s ease-in-out infinite;
   }
   
   .current-preview.gradient {
@@ -210,8 +262,8 @@ export const sharedStyles = css`
     color: #00ff88;
     border: 1px solid #00ff88;
     box-shadow: 
-      0 0 10px rgba(0, 255, 136, 0.5),
-      inset 0 0 20px rgba(0, 255, 136, 0.1);
+      0 0 15px rgba(0, 255, 136, 0.6),
+      inset 0 0 25px rgba(0, 255, 136, 0.15);
     animation: neonPulse 2s ease-in-out infinite;
   }
   
@@ -231,14 +283,23 @@ export const sharedStyles = css`
   @keyframes neonPulse {
     0%, 100% {
       box-shadow: 
-        0 0 5px #00ff88,
-        inset 0 0 10px rgba(0, 255, 136, 0.1);
+        0 0 8px #00ff88,
+        inset 0 0 15px rgba(0, 255, 136, 0.1);
     }
     50% {
       box-shadow: 
-        0 0 20px #00ff88,
-        0 0 30px rgba(0, 255, 136, 0.3),
-        inset 0 0 15px rgba(0, 255, 136, 0.2);
+        0 0 25px #00ff88,
+        0 0 40px rgba(0, 255, 136, 0.4),
+        inset 0 0 30px rgba(0, 255, 136, 0.2);
+    }
+  }
+  
+  @keyframes glassShine {
+    0% {
+      left: -100%;
+    }
+    100% {
+      left: 200%;
     }
   }
   
@@ -377,4 +438,3 @@ export const sharedStyles = css`
     font-size: 0.75em;
     color: var(--disabled-text-color);
   }
-`;

@@ -104,6 +104,7 @@ export class BasePlugin {
         border-radius: var(--ha-card-border-radius, 12px);
         ${this._getThemeStyles(themeConfig, config.theme)}
         cursor: default;
+        overflow: hidden;
       }
       ${this._getResponsiveStyles()}
       ${this._getAnimationStyles()}
@@ -137,11 +138,18 @@ export class BasePlugin {
         color: var(--primary-text-color);
       `,
       'glass': `
+        position: relative;
         background: linear-gradient(135deg, 
-          rgba(255, 255, 255, 0.1) 0%, 
-          rgba(255, 255, 255, 0.05) 100%);
-        backdrop-filter: blur(20px);
-        border: 1px solid rgba(255, 255, 255, 0.2);
+          rgba(255, 255, 255, 0.25) 0%, 
+          rgba(255, 255, 255, 0.15) 50%,
+          rgba(255, 255, 255, 0.1) 100%);
+        backdrop-filter: blur(25px) saturate(180%);
+        -webkit-backdrop-filter: blur(25px) saturate(180%);
+        border: 1px solid rgba(255, 255, 255, 0.3);
+        box-shadow: 
+          0 8px 32px rgba(0, 0, 0, 0.1),
+          inset 0 1px 0 rgba(255, 255, 255, 0.2),
+          inset 0 -1px 0 rgba(0, 0, 0, 0.05);
         color: var(--primary-text-color);
       `,
       'gradient': this._getRandomGradient(),
@@ -150,8 +158,8 @@ export class BasePlugin {
         color: #00ff88;
         border: 1px solid #00ff88;
         box-shadow: 
-          0 0 10px rgba(0, 255, 136, 0.3),
-          inset 0 0 15px rgba(0, 255, 136, 0.1);
+          0 0 15px rgba(0, 255, 136, 0.4),
+          inset 0 0 20px rgba(0, 255, 136, 0.1);
       `
     };
     
@@ -187,7 +195,7 @@ export class BasePlugin {
   _getGradientTheme(themeConfig, themeId) {
     const gradientColors = {
       'auto': ['var(--primary-color)', 'var(--accent-color)'],
-      'glass': ['rgba(255,255,255,0.2)', 'rgba(255,255,255,0.1)'],
+      'glass': this._getGlassGradientColors(),
       'gradient': this._getRandomGradientColors(),
       'neon': ['#00ff88', '#00cc66']
     };
@@ -212,7 +220,22 @@ export class BasePlugin {
       `;
     }
     
+    if (themeId === 'glass') {
+      return `
+        ${this._getSolidTheme('glass')}
+        background: ${gradient}, ${this._getSolidTheme('glass').split('background:')[1].split(';')[0]};
+        background-blend-mode: overlay, normal;
+      `;
+    }
+    
     return `background: ${gradient}; color: white;`;
+  }
+  
+  _getGlassGradientColors() {
+    return [
+      'rgba(255, 255, 255, 0.3)',
+      'rgba(255, 255, 255, 0.15)'
+    ];
   }
   
   _getRandomGradientColors() {
@@ -248,14 +271,23 @@ export class BasePlugin {
       @keyframes neonPulse {
         0%, 100% {
           box-shadow: 
-            0 0 5px #00ff88,
-            inset 0 0 10px rgba(0, 255, 136, 0.1);
+            0 0 8px #00ff88,
+            inset 0 0 15px rgba(0, 255, 136, 0.1);
         }
         50% {
           box-shadow: 
-            0 0 15px #00ff88,
-            0 0 25px rgba(0, 255, 136, 0.2),
-            inset 0 0 20px rgba(0, 255, 136, 0.15);
+            0 0 20px #00ff88,
+            0 0 35px rgba(0, 255, 136, 0.3),
+            inset 0 0 25px rgba(0, 255, 136, 0.2);
+        }
+      }
+      
+      @keyframes glassShine {
+        0% {
+          background-position: -100% 0;
+        }
+        100% {
+          background-position: 200% 0;
         }
       }
     `;
