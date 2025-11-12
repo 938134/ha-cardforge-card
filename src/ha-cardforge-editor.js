@@ -2,6 +2,7 @@
 import { LitElement, html, css } from 'https://unpkg.com/lit@2.8.0/index.js?module';
 import { PluginRegistry } from './core/plugin-registry.js';
 import { sharedStyles } from './core/shared-styles.js';
+import { unsafeHTML } from 'https://unpkg.com/lit-html/directives/unsafe-html.js?module';
 
 class HaCardForgeEditor extends LitElement {
   static properties = {
@@ -163,23 +164,40 @@ class HaCardForgeEditor extends LitElement {
 
 _renderPreview(activePlugin) {
   if (!activePlugin) {
-    return html`<div style="color: var(--secondary-text-color);">请选择卡片查看预览</div>`;
+    return html`<div style="color: var(--secondary-text-color); text-align: center; padding: 20px;">
+      请选择卡片查看预览
+    </div>`;
   }
 
   try {
     const pluginInstance = PluginRegistry.createPluginInstance(activePlugin.id);
     const entities = this._getCurrentEntities();
+    
+    // 获取模板和样式
     const template = pluginInstance.getTemplate(this.config, this.hass, entities);
     const styles = pluginInstance.getStyles(this.config);
     
+    // 使用 unsafeHTML 渲染模板，同时注入样式
     return html`
       <div class="preview-content">
-        ${template}
-        <style>${styles}</style>
+        ${unsafeHTML(template)}
+        <style>
+          /* 重置预览区域样式，避免冲突 */
+          .preview-content .cardforge-card {
+            margin: 0;
+            width: 100%;
+            height: auto;
+            min-height: 100px;
+          }
+          ${styles}
+        </style>
       </div>
     `;
   } catch (error) {
-    return html`<div style="color: var(--error-color);">预览渲染失败: ${error.message}</div>`;
+    console.error('预览渲染失败:', error);
+    return html`<div style="color: var(--error-color); text-align: center; padding: 20px;">
+      预览渲染失败: ${error.message}
+    </div>`;
   }
 }
 
