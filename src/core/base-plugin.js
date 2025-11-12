@@ -4,10 +4,9 @@ export class BasePlugin {
     if (new.target === BasePlugin) {
       throw new Error('BasePlugin 是抽象类，必须被继承');
     }
-    this._styleCache = new Map();
   }
 
-  // === 核心接口 ===
+  // === 必需实现的接口 ===
   getTemplate(config, hass, entities) {
     throw new Error('必须实现 getTemplate 方法');
   }
@@ -16,127 +15,148 @@ export class BasePlugin {
     throw new Error('必须实现 getStyles 方法');
   }
 
-  // === 生命周期钩子 ===
-  onConfigUpdate(oldConfig, newConfig) {}
-  onEntitiesUpdate(entities) {}
-  onHassUpdate(hass) {}
-  onDestroy() {}
-
-  // === 响应式数据工具 ===
-  createReactiveData(initialValue) {
-    let value = initialValue;
-    const subscribers = new Set();
-
+  // === 可选覆盖的接口 ===
+  getThemeConfig() {
     return {
-      get value() { return value; },
-      set value(newValue) {
-        const oldValue = value;
-        value = newValue;
-        subscribers.forEach(callback => callback(newValue, oldValue));
-      },
-      subscribe(callback) {
-        subscribers.add(callback);
-        return () => subscribers.delete(callback);
-      }
+      useGradient: false,
+      gradientType: 'diagonal',
+      gradientColors: ['var(--primary-color)', 'var(--accent-color)']
     };
   }
 
-  // === 优雅的样式系统 ===
-  getBaseStyles(config) {
-    const cacheKey = JSON.stringify(config);
-    if (this._styleCache.has(cacheKey)) {
-      return this._styleCache.get(cacheKey);
-    }
+  // === 系统数据工具 ===
+  getSystemData(hass, config) {
+    const now = new Date();
+    return {
+      time: now.toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit', hour12: false }),
+      date: now.toLocaleDateString('zh-CN'),
+      weekday: '星期' + '日一二三四五六'[now.getDay()],
+      user: hass?.user?.name || '家人',
+      greeting: this._getGreeting(now.getHours()),
+      randomMessage: this._getRandomMessage()
+    };
+  }
 
+  // === 控制方法 ===
+  callService(hass, domain, service, data = {}) {
+    if (!hass || !hass.callService) {
+      console.error('Home Assistant 服务不可用');
+      return false;
+    }
+    
+    hass.callService(domain, service, data)
+      .then(() => console.log(`服务调用成功: ${domain}.${service}`))
+      .catch(error => console.error(`服务调用失败: ${domain}.${service}`, error));
+    
+    return true;
+  }
+
+  toggleEntity(hass, entityId) {
+    const entity = hass.states[entityId];
+    if (!entity) return false;
+    
+    const domain = entityId.split('.')[0];
+    const service = entity.state === 'on' ? 'turn_off' : 'turn_on';
+    
+    return this.callService(hass, domain, service, {
+      entity_id: entityId
+    });
+  }
+
+  // === 工具方法 ===
+  _isEntityOn(entity) { return entity.state === 'on'; }
+  _isEntityOff(entity) { return entity.state === 'off'; }
+  _isEntityUnavailable(entity) { return entity.state === 'unavailable' || entity.state === 'unknown'; }
+  _getEntityState(entities, key, defaultValue = '') { return entities[key]?.state || defaultValue; }
+  _getEntityAttribute(entities, key, attribute, defaultValue = '') { return entities[key]?.attributes?.[attribute] || defaultValue; }
+  
+  _responsiveValue(desktop, mobile) { return `${desktop}; @media (max-width: 480px) { ${mobile}; }`; }
+  _responsiveFontSize(desktopSize, mobileSize = desktopSize) { return this._responsiveValue(`font-size: ${desktopSize}`, `font-size: ${mobileSize}`); }
+  _responsiveHeight(desktopHeight, mobileHeight = desktopHeight) { return this._responsiveValue(`height: ${desktopHeight}`, `height: ${mobileHeight}`); }
+  _responsivePadding(desktopPadding, mobilePadding = desktopPadding) { return this._responsiveValue(`padding: ${desktopPadding}`, `padding: ${mobilePadding}`); }
+  
+  _flexCenter() { return 'display: flex; align-items: center; justify-content: center;'; }
+  _textCenter() { return 'text-align: center;'; }
+  _flexColumn() { return 'display: flex; flex-direction: column;'; }
+  
+  _getGreeting(hour) {
+    if (hour < 6) return '深夜好';
+    if (hour < 9) return '早上好';
+    if (hour < 12) return '上午好';
+    if (hour < 14) return '中午好';
+    if (hour < 18) return '下午好';
+    if (hour < 22) return '晚上好';
+    return '夜深了';
+  }
+  
+  _getRandomMessage() {
+    const messages = ['祝您今天愉快！', '一切准备就绪！', '家，因你而温暖'];
+    return messages[Math.floor(Math.random() * messages.length)];
+  }
+
+  // === 样式系统 ===
+  getBaseStyles(config) {
     const themeConfig = { ...this.getThemeConfig(), ...config.themeConfig };
-    const styles = `
+    return `
       .cardforge-card {
         position: relative;
         font-family: var(--paper-font-common-nowrap_-_font-family);
         border-radius: var(--ha-card-border-radius, 12px);
-        ${this._applyTheme(themeConfig)}
+        ${this._getThemeStyles(themeConfig, config.theme)}
         cursor: default;
-        transition: all 0.3s ease;
       }
+      ${this._getResponsiveStyles()}
       
       .cardforge-interactive { 
         cursor: pointer; 
         transition: all 0.2s ease; 
       }
+      .cardforge-interactive:hover { opacity: 0.8; }
+      .cardforge-interactive:active { transform: scale(0.98); }
       
-      .cardforge-interactive:hover { 
-        transform: translateY(-1px);
-        box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-      }
-      
-      ${this._getResponsiveBase()}
+      .cardforge-status-on { color: var(--success-color); }
+      .cardforge-status-off { color: var(--disabled-color); }
+      .cardforge-status-unavailable { color: var(--error-color); opacity: 0.5; }
     `;
-
-    this._styleCache.set(cacheKey, styles);
-    return styles;
   }
-
-  _applyTheme(themeConfig) {
+  
+  _getThemeStyles(themeConfig, themeId = 'default') {
+    if (!themeConfig.useGradient) {
+      return this._getSolidTheme(themeId);
+    }
+    
+    return this._getGradientTheme(themeConfig);
+  }
+  
+  _getSolidTheme(themeId) {
     const themes = {
-      default: `
-        background: var(--card-background-color);
-        color: var(--primary-text-color);
-        border: 1px solid var(--divider-color);
-      `,
-      dark: `
-        background: var(--dark-primary-color);
-        color: var(--text-primary-color);
-        border: none;
-      `,
-      material: `
-        background: var(--card-background-color);
-        color: var(--primary-text-color);
-        border: none;
-        box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-      `
+      'default': 'background: var(--card-background-color); color: var(--primary-text-color);',
+      'dark': 'background: #1e1e1e; color: #ffffff;',
+      'material': 'background: var(--card-background-color); color: var(--primary-text-color); box-shadow: 0 2px 8px rgba(0,0,0,0.1);',
+      'minimal': 'background: transparent; color: var(--primary-text-color); border: 1px solid var(--divider-color);',
+      'colorful': 'background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white;'
     };
-
-    return themes[themeConfig.theme] || themes.default;
+    
+    return themes[themeId] || themes.default;
   }
-
-  _getResponsiveBase() {
+  
+  _getGradientTheme(themeConfig) {
+    const gradientMap = {
+      'diagonal': `linear-gradient(135deg, ${themeConfig.gradientColors.join(', ')})`,
+      'horizontal': `linear-gradient(90deg, ${themeConfig.gradientColors.join(', ')})`,
+      'vertical': `linear-gradient(180deg, ${themeConfig.gradientColors.join(', ')})`,
+      'radial': `radial-gradient(circle, ${themeConfig.gradientColors.join(', ')})`
+    };
+    
+    const gradient = gradientMap[themeConfig.gradientType] || gradientMap.diagonal;
+    return `background: ${gradient}; color: white;`;
+  }
+  
+  _getResponsiveStyles() {
     return `
       @media (max-width: 480px) {
-        .cardforge-card {
-          border-radius: var(--ha-card-border-radius, 8px);
-          margin: 4px;
-        }
+        .cardforge-card { border-radius: var(--ha-card-border-radius, 8px); }
       }
     `;
-  }
-
-  // === 现代化的工具方法 ===
-  css = (strings, ...values) => {
-    return String.raw({ raw: strings }, ...values);
-  };
-
-  responsive = (desktop, mobile = desktop) => this.css`
-    ${desktop}
-    @media (max-width: 480px) { ${mobile} }
-  `;
-
-  // === 数据获取工具 ===
-  async fetchEntityHistory(hass, entityId, hours = 24) {
-    if (!hass || !entityId) return [];
-    
-    try {
-      const end = new Date();
-      const start = new Date(end.getTime() - (hours * 60 * 60 * 1000));
-      
-      const response = await hass.callApi('GET', `history/period/${start.toISOString()}`, {
-        filter_entity_id: entityId,
-        end_time: end.toISOString(),
-      });
-      
-      return response[0] || [];
-    } catch (error) {
-      console.warn('获取历史数据失败:', error);
-      return [];
-    }
   }
 }
