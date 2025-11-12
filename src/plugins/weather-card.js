@@ -12,9 +12,8 @@ export const manifest = {
   entityRequirements: [
     {
       key: 'weather',
-      type: 'weather',
       description: '天气实体',
-      required: true,
+      required: true
     }
   ],
   themeSupport: true,
