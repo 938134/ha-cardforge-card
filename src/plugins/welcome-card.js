@@ -4,8 +4,8 @@ import { BasePlugin } from '../core/base-plugin.js';
 export const manifest = {
   id: 'welcome-card',
   name: '欢迎卡片',
-  version: '1.1.0',
-  description: '个性化欢迎信息，支持自定义欢迎词',
+  version: '1.2.0',
+  description: '个性化欢迎信息，支持自定义欢迎词和消息实体',
   author: 'CardForge Team',
   category: 'info',
   icon: '👋',
@@ -13,6 +13,11 @@ export const manifest = {
     {
       key: 'greeting_entity',
       description: '欢迎词实体',
+      required: false
+    },
+    {
+      key: 'message_entity',
+      description: '消息实体',
       required: false
     }
   ],
@@ -26,18 +31,19 @@ export default class WelcomeCardPlugin extends BasePlugin {
     
     // 获取自定义欢迎词，如果实体不存在则使用系统默认
     const customGreeting = entities.greeting_entity?.state;
-    
     const greeting = customGreeting || systemData.greeting;
     const user = systemData.user;
     const time = systemData.time;
-    const randomMessage = systemData.randomMessage;
+    
+    // 获取消息：使用消息实体，如果没有实体则为空
+    const message = entities.message_entity?.state || '';
     
     return `
       <div class="cardforge-card welcome-card">
         <div class="welcome-content">
           <div class="greeting">${greeting}，${user}！</div>
           <div class="time">${time}</div>
-          <div class="message">${randomMessage}</div>
+          ${message ? `<div class="message">${message}</div>` : ''}
           ${this._renderCustomInfo(entities)}
         </div>
         <div class="decoration">
@@ -51,12 +57,22 @@ export default class WelcomeCardPlugin extends BasePlugin {
 
   _renderCustomInfo(entities) {
     const hasCustomGreeting = entities.greeting_entity;
+    const hasCustomMessage = entities.message_entity;
     
-    if (!hasCustomGreeting) {
+    if (!hasCustomGreeting && !hasCustomMessage) {
       return '';
     }
     
-    return `<div class="custom-info">使用自定义欢迎词</div>`;
+    let infoText = '';
+    if (hasCustomGreeting && hasCustomMessage) {
+      infoText = '使用自定义欢迎词和消息';
+    } else if (hasCustomGreeting) {
+      infoText = '使用自定义欢迎词';
+    } else if (hasCustomMessage) {
+      infoText = '使用自定义消息';
+    }
+    
+    return `<div class="custom-info">${infoText}</div>`;
   }
 
   getThemeConfig() {
@@ -100,6 +116,8 @@ export default class WelcomeCardPlugin extends BasePlugin {
         opacity: 0.8;
         font-style: italic;
         margin-bottom: 4px;
+        min-height: 1.2em;
+        transition: opacity 0.3s ease;
       }
       .custom-info {
         ${this._responsiveFontSize('0.7em', '0.65em')}
@@ -124,6 +142,7 @@ export default class WelcomeCardPlugin extends BasePlugin {
         position: absolute;
         border-radius: 50%;
         background: rgba(255, 255, 255, 0.1);
+        transition: all 0.3s ease;
       }
       .circle-1 {
         width: 80px;
@@ -146,12 +165,20 @@ export default class WelcomeCardPlugin extends BasePlugin {
       
       .welcome-card:hover .circle-1 {
         animation: float 3s ease-in-out infinite;
+        background: rgba(255, 255, 255, 0.15);
       }
       .welcome-card:hover .circle-2 {
         animation: float 3s ease-in-out infinite 0.5s;
+        background: rgba(255, 255, 255, 0.12);
       }
       .welcome-card:hover .circle-3 {
         animation: float 3s ease-in-out infinite 1s;
+        background: rgba(255, 255, 255, 0.1);
+      }
+      
+      /* 消息更新动画 */
+      .message-update {
+        animation: messageFade 0.5s ease-in-out;
       }
       
       @keyframes float {
@@ -162,6 +189,22 @@ export default class WelcomeCardPlugin extends BasePlugin {
           transform: translateY(-10px);
         }
       }
+      
+      @keyframes messageFade {
+        0% {
+          opacity: 0;
+          transform: translateY(5px);
+        }
+        100% {
+          opacity: 0.8;
+          transform: translateY(0px);
+        }
+      }
     `;
+  }
+
+  // 移除基类中的随机消息生成
+  _getRandomMessage() {
+    return ''; // 返回空字符串，不显示随机消息
   }
 }
