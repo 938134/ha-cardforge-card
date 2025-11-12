@@ -1,4 +1,4 @@
-// src/core/shared-styles.js (移除原生选择器样式)
+// src/core/shared-styles.js (添加主题相关样式)
 import { css } from 'https://unpkg.com/lit@2.8.0/index.js?module';
 
 export const sharedStyles = css`
@@ -82,6 +82,98 @@ export const sharedStyles = css`
   
   .feature-unsupported {
     color: var(--warning-color);
+  }
+  
+  /* 主题网格样式 */
+  .theme-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+    gap: 16px;
+    margin-bottom: 20px;
+  }
+  
+  .theme-card {
+    cursor: pointer;
+    border: 2px solid var(--divider-color);
+    border-radius: 12px;
+    padding: 16px;
+    background: var(--card-background-color);
+    transition: all 0.2s ease;
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+  }
+  
+  .theme-card:hover {
+    border-color: var(--primary-color);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+  }
+  
+  .theme-card.selected {
+    border-color: var(--primary-color);
+    background: rgba(var(--rgb-primary-color), 0.05);
+  }
+  
+  .theme-preview {
+    width: 60px;
+    height: 60px;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 12px;
+    font-size: 1.5em;
+    transition: all 0.3s ease;
+  }
+  
+  /* 主题预览样式 */
+  .theme-preview.auto {
+    background: linear-gradient(135deg, #f0f0f0 0%, #d0d0d0 100%);
+    color: #333;
+  }
+  
+  .theme-preview.light {
+    background: #ffffff;
+    color: #333;
+    border: 1px solid #e0e0e0;
+  }
+  
+  .theme-preview.dark {
+    background: #1e1e1e;
+    color: #ffffff;
+  }
+  
+  .theme-preview.colorful {
+    background: linear-gradient(135deg, var(--primary-color) 0%, var(--accent-color) 100%);
+    color: white;
+  }
+  
+  .theme-info {
+    flex: 1;
+  }
+  
+  .theme-name {
+    font-weight: 600;
+    font-size: 0.9em;
+    color: var(--primary-text-color);
+    margin-bottom: 4px;
+  }
+  
+  .theme-description {
+    font-size: 0.75em;
+    color: var(--secondary-text-color);
+    line-height: 1.3;
+  }
+  
+  .selected-icon {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    color: var(--success-color);
+    font-size: 1.2em;
   }
   
   .search-header {
