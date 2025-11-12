@@ -7,7 +7,13 @@ export class EntityConfig {
       return this._renderEmptyState('请先选择插件');
     }
 
-    const requirements = plugin.manifest.entityRequirements || [];
+    // 从注册表获取完整的插件信息
+    const fullPlugin = PluginRegistry.getPlugin(plugin.id);
+    if (!fullPlugin) {
+      return this._renderEmptyState('插件加载失败');
+    }
+
+    const requirements = fullPlugin.manifest.entityRequirements || [];
     
     if (requirements.length === 0) {
       return this._renderEmptyState('此插件无需配置实体', 'mdi:check-circle-outline', 'var(--success-color)');
@@ -18,7 +24,7 @@ export class EntityConfig {
         <div class="entity-config-container">
           <div class="config-header">
             <ha-icon icon="mdi:database-cog"></ha-icon>
-            <span>实体配置 - ${plugin.manifest.name}</span>
+            <span>实体配置 - ${fullPlugin.manifest.name}</span>
           </div>
           
           ${requirements.map(req => this._renderEntityRow(hass, config, req, onEntityChange))}
