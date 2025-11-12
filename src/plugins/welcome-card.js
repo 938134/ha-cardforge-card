@@ -1,5 +1,5 @@
 // src/plugins/welcome-card.js
-import { BasePlugin } from '../core/base-plugin.js';
+import { BasePlugin } from '../core/base.js';
 
 export const manifest = {
   id: 'welcome-card',

@@ -1,8 +1,8 @@
-// src/core/plugin-marketplace.js
+// src/core/plugins.js
 import { html } from 'https://unpkg.com/lit@2.8.0/index.js?module';
-import { PluginRegistry } from './plugin-registry.js';
+import { PluginRegistry } from './registry.js';
 
-export class PluginMarketplace {
+export class EditorPlugins {
   static render(searchQuery, selectedCategory, plugins, onPluginSelect, selectedPluginId, onSearchChange, onCategoryChange) {
     return html`
       <div class="marketplace-container">
@@ -44,21 +44,18 @@ export class PluginMarketplace {
 
   static _renderPluginGrid(plugins, onPluginSelect, selectedPluginId) {
     return html`
-      <div class="plugin-grid">
+      <div class="plugin-grid-compact">
         ${plugins.map(plugin => html`
           <ha-card 
-            class="plugin-card ${selectedPluginId === plugin.id ? 'selected' : ''}"
+            class="plugin-card-compact ${selectedPluginId === plugin.id ? 'selected' : ''}"
             @click=${() => onPluginSelect(plugin)}
           >
-            <div class="plugin-content">
+            <div class="plugin-content-compact">
               ${plugin.featured ? html`<div class="featured-badge">推荐</div>` : ''}
-              <div class="plugin-category">${plugin.category}</div>
-              <div class="plugin-icon">${plugin.icon}</div>
-              <div class="plugin-name">${plugin.name}</div>
-              <div class="plugin-description">${plugin.description}</div>
-              <div class="plugin-meta">
-                <span class="plugin-author">${plugin.author}</span>
-                <span class="plugin-version">v${plugin.version}</span>
+              <div class="plugin-icon-compact">${plugin.icon}</div>
+              <div class="plugin-info-compact">
+                <div class="plugin-name-compact">${plugin.name}</div>
+                <div class="plugin-category-compact">${plugin.category}</div>
               </div>
             </div>
           </ha-card>

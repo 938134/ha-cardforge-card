@@ -1,5 +1,5 @@
 // src/plugins/weather-card.js
-import { BasePlugin } from '../core/base-plugin.js';
+import { BasePlugin } from '../core/base.js';
 
 export const manifest = {
   id: 'weather-card',

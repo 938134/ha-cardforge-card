@@ -1,11 +1,11 @@
 // src/ha-cardforge-editor.js
 import { LitElement, html, css } from 'https://unpkg.com/lit@2.8.0/index.js?module';
-import { PluginRegistry } from './core/plugin-registry.js';
-import { EditorTabs } from './core/editor-tabs.js';
-import { PluginMarketplace } from './core/plugin-marketplace.js';
-import { EntityConfig } from './core/entity-config.js';
-import { ThemeConfig } from './core/theme-config.js';
-import { sharedStyles } from './core/shared-styles.js';
+import { PluginRegistry } from './core/registry.js';
+import { EditorTabs } from './core/tabs.js';
+import { PluginMarketplace } from './core/plugin.js';
+import { EntityConfig } from './core/entity.js';
+import { ThemeConfig } from './core/theme.js';
+import { sharedStyles } from './core/styles.js';
 
 class HaCardForgeEditor extends LitElement {
   static properties = {

@@ -1,4 +1,4 @@
-// src/core/shared-styles.js
+// src/core/styles.js
 import { css } from 'https://unpkg.com/lit@2.8.0/index.js?module';
 
 export const sharedStyles = css`
@@ -350,6 +350,90 @@ export const sharedStyles = css`
     --mdc-theme-primary: var(--primary-color);
   }
   
+  /* 紧凑插件网格样式 */
+  .plugin-grid-compact {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+    gap: 12px;
+    margin-bottom: 20px;
+  }
+  
+  .plugin-card-compact {
+    cursor: pointer;
+    transition: all 0.2s ease;
+    border: 2px solid transparent;
+    position: relative;
+    height: 100px;
+  }
+  
+  .plugin-card-compact:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+  }
+  
+  .plugin-card-compact.selected {
+    border-color: var(--primary-color);
+    background: rgba(var(--rgb-primary-color), 0.05);
+  }
+  
+  .plugin-content-compact {
+    padding: 16px 12px;
+    text-align: center;
+    position: relative;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+  }
+  
+  .plugin-icon-compact {
+    font-size: 2em;
+    margin-bottom: 8px;
+    height: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  
+  .plugin-info-compact {
+    flex: 1;
+    width: 100%;
+  }
+  
+  .plugin-name-compact {
+    font-weight: 600;
+    font-size: 0.85em;
+    color: var(--primary-text-color);
+    line-height: 1.2;
+    margin-bottom: 4px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  
+  .plugin-category-compact {
+    font-size: 0.7em;
+    color: var(--secondary-text-color);
+    background: rgba(var(--rgb-primary-color), 0.1);
+    padding: 2px 6px;
+    border-radius: 8px;
+    display: inline-block;
+  }
+  
+  .featured-badge {
+    position: absolute;
+    top: 6px;
+    left: 6px;
+    background: var(--accent-color);
+    color: white;
+    border-radius: 4px;
+    padding: 1px 4px;
+    font-size: 0.6em;
+    font-weight: 500;
+  }
+
+  /* 原有插件网格样式（保留兼容性） */
   .plugin-grid {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
@@ -377,18 +461,6 @@ export const sharedStyles = css`
     padding: 16px;
     text-align: center;
     position: relative;
-  }
-  
-  .featured-badge {
-    position: absolute;
-    top: 8px;
-    left: 8px;
-    background: var(--accent-color);
-    color: white;
-    border-radius: 4px;
-    padding: 2px 6px;
-    font-size: 0.7em;
-    font-weight: 500;
   }
   
   .plugin-category {
@@ -438,3 +510,4 @@ export const sharedStyles = css`
     font-size: 0.75em;
     color: var(--disabled-text-color);
   }
+`;

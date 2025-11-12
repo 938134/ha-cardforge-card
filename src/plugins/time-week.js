@@ -1,5 +1,5 @@
 // src/plugins/time-week.js
-import { BasePlugin } from '../core/base-plugin.js';
+import { BasePlugin } from '../core/base.js';
 
 export const manifest = {
   id: 'time-week',

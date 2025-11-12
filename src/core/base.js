@@ -1,4 +1,4 @@
-// src/core/base-plugin.js
+// src/core/base.js
 export class BasePlugin {
   constructor() {
     if (new.target === BasePlugin) {
@@ -181,7 +181,7 @@ export class BasePlugin {
     
     // 基于时间选择渐变，确保同一卡片每次渲染使用相同的渐变
     const now = new Date();
-    const seed = now.getHours() * 60 + now.getMinutes(); // 每分钟变化一次
+    const seed = now.getHours() * 60 + now.getMinutes();
     const gradientIndex = seed % gradients.length;
     
     return `

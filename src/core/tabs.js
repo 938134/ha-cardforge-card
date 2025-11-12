@@ -1,4 +1,4 @@
-// src/core/editor-tabs.js
+// src/core/tabs.js
 import { html } from 'https://unpkg.com/lit@2.8.0/index.js?module';
 
 export class EditorTabs {
