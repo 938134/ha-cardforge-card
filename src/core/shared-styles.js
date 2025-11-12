@@ -1,4 +1,4 @@
-// src/core/shared-styles.js
+// src/core/shared-styles.js (移除原生选择器样式)
 import { css } from 'https://unpkg.com/lit@2.8.0/index.js?module';
 
 export const sharedStyles = css`
@@ -34,50 +34,17 @@ export const sharedStyles = css`
     width: 100%;
   }
   
+  /* 统一的 ha-select 样式 */
+  .entity-picker-container ha-select {
+    width: 100%;
+    --mdc-theme-primary: var(--primary-color);
+  }
+  
   .entity-picker-container ha-entity-picker {
     width: 100%;
     --mdc-text-field-fill-color: var(--card-background-color);
     --mdc-text-field-label-ink-color: var(--secondary-text-color);
     --mdc-text-field-ink-color: var(--primary-text-color);
-  }
-  
-  /* 原生选择器样式 - 与 ha-select 保持一致 */
-  .native-entity-picker {
-    width: 100%;
-  }
-  
-  .entity-select {
-    width: 100%;
-    padding: 12px 16px;
-    border: 1px solid var(--divider-color);
-    border-radius: 4px;
-    background-color: var(--card-background-color);
-    color: var(--primary-text-color);
-    font-size: 0.9em;
-    font-family: inherit;
-    cursor: pointer;
-    transition: all 0.2s ease;
-    appearance: none;
-    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
-    background-repeat: no-repeat;
-    background-position: right 12px center;
-    background-size: 16px;
-  }
-  
-  .entity-select:hover {
-    border-color: var(--primary-color);
-  }
-  
-  .entity-select:focus {
-    outline: none;
-    border-color: var(--primary-color);
-    box-shadow: 0 0 0 2px rgba(var(--rgb-primary-color), 0.1);
-  }
-  
-  .entity-select option {
-    background-color: var(--card-background-color);
-    color: var(--primary-text-color);
-    padding: 8px;
   }
   
   .required-star {
@@ -137,13 +104,6 @@ export const sharedStyles = css`
   .search-header ha-select {
     --mdc-menu-min-width: 120px;
     --mdc-theme-primary: var(--primary-color);
-  }
-  
-  .search-header ha-select::part(select) {
-    background-color: var(--card-background-color);
-    border: 1px solid var(--divider-color);
-    border-radius: 4px;
-    color: var(--primary-text-color);
   }
   
   .plugin-grid {
