@@ -7,6 +7,27 @@ class EntityManager {
     this._loadFavorites();
   }
 
+  static _loadFavorites() {
+    try {
+      const stored = localStorage.getItem('cardforge-favorite-entities');
+      if (stored) {
+        const favorites = JSON.parse(stored);
+        favorites.forEach(entityId => this._favoriteEntities.add(entityId));
+      }
+    } catch (error) {
+      console.warn('加载收藏实体失败:', error);
+    }
+  }
+
+  static _saveFavorites() {
+    try {
+      const favorites = Array.from(this._favoriteEntities);
+      localStorage.setItem('cardforge-favorite-entities', JSON.stringify(favorites));
+    } catch (error) {
+      console.warn('保存收藏实体失败:', error);
+    }
+  }
+
   // 订阅实体变化
   static subscribe(callback) {
     this._subscribers.add(callback);
@@ -18,7 +39,7 @@ class EntityManager {
     this._subscribers.forEach(callback => callback(event, data));
   }
 
-  // 优雅的实体获取
+  // 获取实体信息
   static getEntityInfo(hass, entityId) {
     if (!entityId || !hass?.states) return null;
     
@@ -38,7 +59,7 @@ class EntityManager {
     };
   }
 
-  // 智能实体验证
+  // 验证实体
   static validateEntity(hass, entityId, requirement = {}) {
     const result = {
       isValid: false,
@@ -60,15 +81,7 @@ class EntityManager {
     const entity = hass.states[entityId];
     if (!entity) {
       result.reason = '实体不存在';
-      // 提供智能建议
       result.suggestions = this._getEntitySuggestions(hass, entityId, requirement);
-      return result;
-    }
-
-    // 可选：基于需求类型进行验证
-    if (requirement.type && !this._validateEntityType(entity, requirement.type)) {
-      result.reason = `实体类型不匹配，期望: ${requirement.type}`;
-      result.suggestions = this._getSimilarEntities(hass, requirement.type);
       return result;
     }
 
@@ -113,4 +126,41 @@ class EntityManager {
   static getFavorites() {
     return Array.from(this._favoriteEntities);
   }
+
+  // 批量验证
+  static validateEntityConfig(hass, entityConfig, pluginRequirements) {
+    const results = {
+      valid: true,
+      errors: [],
+      warnings: [],
+      entities: {}
+    };
+
+    if (!pluginRequirements?.required) return results;
+
+    pluginRequirements.required.forEach(req => {
+      const entityId = entityConfig[req.key];
+      const validation = this.validateEntity(hass, entityId, req);
+
+      if (!validation.isValid) {
+        results.valid = false;
+        results.errors.push({
+          key: req.key,
+          description: req.description,
+          reason: validation.reason,
+          entityId: entityId
+        });
+      } else if (entityId) {
+        results.entities[req.key] = hass.states[entityId];
+      }
+    });
+
+    return results;
+  }
 }
+
+// 初始化
+EntityManager.init();
+
+// 确保正确导出
+export { EntityManager };
