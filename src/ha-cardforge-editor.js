@@ -161,25 +161,27 @@ class HaCardForgeEditor extends LitElement {
     `;
   }
 
-  _renderPreview(activePlugin) {
-    if (!activePlugin) {
-      return html`<div style="color: var(--secondary-text-color);">请选择卡片查看预览</div>`;
-    }
-
-    try {
-      const pluginInstance = PluginRegistry.createPluginInstance(activePlugin.id);
-      const entities = this._getCurrentEntities();
-      const template = pluginInstance.getTemplate(this.config, this.hass, entities);
-      
-      return html`
-        <div class="preview-content">
-          ${template}
-        </div>
-      `;
-    } catch (error) {
-      return html`<div style="color: var(--error-color);">预览渲染失败: ${error.message}</div>`;
-    }
+_renderPreview(activePlugin) {
+  if (!activePlugin) {
+    return html`<div style="color: var(--secondary-text-color);">请选择卡片查看预览</div>`;
   }
+
+  try {
+    const pluginInstance = PluginRegistry.createPluginInstance(activePlugin.id);
+    const entities = this._getCurrentEntities();
+    const template = pluginInstance.getTemplate(this.config, this.hass, entities);
+    const styles = pluginInstance.getStyles(this.config);
+    
+    return html`
+      <div class="preview-content">
+        ${template}
+        <style>${styles}</style>
+      </div>
+    `;
+  } catch (error) {
+    return html`<div style="color: var(--error-color);">预览渲染失败: ${error.message}</div>`;
+  }
+}
 
   _loadPlugins() {
     this._plugins = PluginRegistry.getAllPlugins().map(plugin => ({
