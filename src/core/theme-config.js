@@ -1,5 +1,6 @@
 // src/core/theme-config.js
 import { html } from 'https://unpkg.com/lit@2.8.0/index.js?module';
+import { PluginRegistry } from './plugin-registry.js';
 
 export class ThemeConfig {
   static render(config, plugin, onThemeChange) {
@@ -11,12 +12,15 @@ export class ThemeConfig {
       { id: 'colorful', name: '多彩主题', icon: 'mdi:palette' }
     ];
 
+    // 从注册表获取完整的插件信息
+    const fullPlugin = plugin ? PluginRegistry.getPlugin(plugin.id) : null;
+
     return html`
       <ha-card>
         <div class="theme-config-container">
           <div class="config-header">
             <ha-icon icon="mdi:palette"></ha-icon>
-            <span>主题设置 ${plugin ? `- ${plugin.manifest.name}` : ''}</span>
+            <span>主题设置 ${fullPlugin ? `- ${fullPlugin.manifest.name}` : ''}</span>
           </div>
           
           <ha-select
@@ -35,7 +39,7 @@ export class ThemeConfig {
             `)}
           </ha-select>
           
-          ${this._renderPluginThemeInfo(plugin)}
+          ${this._renderPluginThemeInfo(fullPlugin)}
           
           <div class="config-hint">
             🎨 主题更改将实时反映在预览区域
@@ -53,7 +57,14 @@ export class ThemeConfig {
   }
 
   static _renderPluginThemeInfo(plugin) {
-    if (!plugin) return '';
+    if (!plugin) {
+      return html`
+        <div class="feature-unsupported">
+          <ha-icon icon="mdi:information" style="color: var(--warning-color)"></ha-icon>
+          <span>请先选择插件</span>
+        </div>
+      `;
+    }
 
     const supportsGradient = plugin.manifest.gradientSupport;
     const supportsTheme = plugin.manifest.themeSupport;
