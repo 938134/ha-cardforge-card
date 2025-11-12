@@ -9,25 +9,29 @@ export class ThemeConfig {
         id: 'auto', 
         name: '跟随系统', 
         icon: 'mdi:theme-light-dark',
-        description: '自动根据系统主题切换'
+        description: '自动跟随系统明暗主题',
+        previewClass: 'auto'
       },
       { 
-        id: 'light', 
-        name: '浅色主题', 
-        icon: 'mdi:white-balance-sunny',
-        description: '明亮的浅色风格'
+        id: 'glass', 
+        name: '毛玻璃', 
+        icon: 'mdi:blur',
+        description: '半透明毛玻璃效果',
+        previewClass: 'glass'
       },
       { 
-        id: 'dark', 
-        name: '深色主题', 
-        icon: 'mdi:weather-night',
-        description: '舒适的深色风格'
+        id: 'gradient', 
+        name: '随机渐变', 
+        icon: 'mdi:gradient',
+        description: '动态随机渐变色彩',
+        previewClass: 'gradient'
       },
       { 
-        id: 'colorful', 
-        name: '多彩主题', 
-        icon: 'mdi:palette',
-        description: '渐变色背景风格'
+        id: 'neon', 
+        name: '霓虹光影', 
+        icon: 'mdi:led-outline',
+        description: '霓虹灯发光效果',
+        previewClass: 'neon'
       }
     ];
 
@@ -48,7 +52,7 @@ export class ThemeConfig {
                 class="theme-card ${config.theme === theme.id ? 'selected' : ''}"
                 @click=${() => this._handleThemeSelect(theme.id, onThemeChange)}
               >
-                <div class="theme-preview ${theme.id}">
+                <div class="theme-preview ${theme.previewClass}">
                   <ha-icon .icon=${theme.icon}></ha-icon>
                 </div>
                 <div class="theme-info">
@@ -58,12 +62,14 @@ export class ThemeConfig {
                 ${config.theme === theme.id ? html`
                   <ha-icon 
                     icon="mdi:check-circle" 
-                    class="theme-check"
+                    class="selected-icon"
                   ></ha-icon>
                 ` : ''}
               </div>
             `)}
           </div>
+          
+          ${this._renderCurrentThemePreview(config.theme)}
           
           ${this._renderPluginThemeInfo(fullPlugin)}
           
@@ -75,11 +81,25 @@ export class ThemeConfig {
     `;
   }
 
+  static _renderCurrentThemePreview(themeId) {
+    const previews = {
+      'auto': html`<div class="current-preview auto">跟随系统主题变化</div>`,
+      'glass': html`<div class="current-preview glass">半透明模糊背景效果</div>`,
+      'gradient': html`<div class="current-preview gradient">动态渐变色彩效果</div>`,
+      'neon': html`<div class="current-preview neon">霓虹发光边框效果</div>`
+    };
+    
+    return html`
+      <div class="current-theme-preview">
+        <div class="preview-header">当前主题预览</div>
+        ${previews[themeId] || previews.auto}
+      </div>
+    `;
+  }
+
   static _handleThemeSelect(themeId, callback) {
     console.log('选择主题:', themeId);
-    if (themeId && themeId !== '') {
-      callback(themeId);
-    }
+    callback(themeId);
   }
 
   static _renderPluginThemeInfo(plugin) {

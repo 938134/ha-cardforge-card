@@ -106,6 +106,7 @@ export class BasePlugin {
         cursor: default;
       }
       ${this._getResponsiveStyles()}
+      ${this._getAnimationStyles()}
       
       .cardforge-interactive { 
         cursor: pointer; 
@@ -135,34 +136,60 @@ export class BasePlugin {
         background: var(--card-background-color); 
         color: var(--primary-text-color);
       `,
-      'light': `
-        background: #ffffff; 
-        color: #333333;
-        --primary-color: #03a9f4;
-        --accent-color: #ff4081;
+      'glass': `
+        background: linear-gradient(135deg, 
+          rgba(255, 255, 255, 0.1) 0%, 
+          rgba(255, 255, 255, 0.05) 100%);
+        backdrop-filter: blur(20px);
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        color: var(--primary-text-color);
       `,
-      'dark': `
-        background: #1e1e1e; 
-        color: #ffffff;
-        --primary-color: #03a9f4;
-        --accent-color: #ff4081;
-      `,
-      'colorful': `
-        background: linear-gradient(135deg, var(--primary-color) 0%, var(--accent-color) 100%); 
-        color: white;
+      'gradient': this._getRandomGradient(),
+      'neon': `
+        background: #1a1a1a;
+        color: #00ff88;
+        border: 1px solid #00ff88;
+        box-shadow: 
+          0 0 10px rgba(0, 255, 136, 0.3),
+          inset 0 0 15px rgba(0, 255, 136, 0.1);
       `
     };
     
     return themes[themeId] || themes.auto;
   }
   
+  _getRandomGradient() {
+    // 预定义一些漂亮的渐变组合
+    const gradients = [
+      'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+      'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)',
+      'linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)',
+      'linear-gradient(135deg, #43e97b 0%, #38f9d7 100%)',
+      'linear-gradient(135deg, #fa709a 0%, #fee140 100%)',
+      'linear-gradient(135deg, #a8edea 0%, #fed6e3 100%)',
+      'linear-gradient(135deg, #ff9a9e 0%, #fecfef 100%)',
+      'linear-gradient(135deg, #fad0c4 0%, #ffd1ff 100%)'
+    ];
+    
+    // 基于时间选择渐变，确保同一卡片每次渲染使用相同的渐变
+    const now = new Date();
+    const seed = now.getHours() * 60 + now.getMinutes(); // 每分钟变化一次
+    const gradientIndex = seed % gradients.length;
+    
+    return `
+      background: ${gradients[gradientIndex]};
+      background-size: 200% 200%;
+      animation: gradientShift 8s ease infinite;
+      color: white;
+    `;
+  }
+  
   _getGradientTheme(themeConfig, themeId) {
-    // 多彩主题使用欢迎卡片的渐变色彩
     const gradientColors = {
       'auto': ['var(--primary-color)', 'var(--accent-color)'],
-      'light': ['#4facfe', '#00f2fe'],
-      'dark': ['#667eea', '#764ba2'], 
-      'colorful': ['var(--primary-color)', 'var(--accent-color)']
+      'glass': ['rgba(255,255,255,0.2)', 'rgba(255,255,255,0.1)'],
+      'gradient': this._getRandomGradientColors(),
+      'neon': ['#00ff88', '#00cc66']
     };
     
     const colors = gradientColors[themeId] || gradientColors.auto;
@@ -175,7 +202,63 @@ export class BasePlugin {
     };
     
     const gradient = gradientMap[themeConfig.gradientType] || gradientMap.diagonal;
+    
+    if (themeId === 'gradient') {
+      return `
+        background: ${gradient};
+        background-size: 200% 200%;
+        animation: gradientShift 6s ease infinite;
+        color: white;
+      `;
+    }
+    
     return `background: ${gradient}; color: white;`;
+  }
+  
+  _getRandomGradientColors() {
+    const colorPairs = [
+      ['#667eea', '#764ba2'],
+      ['#f093fb', '#f5576c'],
+      ['#4facfe', '#00f2fe'],
+      ['#43e97b', '#38f9d7'],
+      ['#fa709a', '#fee140']
+    ];
+    
+    const now = new Date();
+    const seed = now.getHours() * 60 + now.getMinutes();
+    const colorIndex = seed % colorPairs.length;
+    
+    return colorPairs[colorIndex];
+  }
+
+  _getAnimationStyles() {
+    return `
+      @keyframes gradientShift {
+        0% {
+          background-position: 0% 50%;
+        }
+        50% {
+          background-position: 100% 50%;
+        }
+        100% {
+          background-position: 0% 50%;
+        }
+      }
+      
+      @keyframes neonPulse {
+        0%, 100% {
+          box-shadow: 
+            0 0 5px #00ff88,
+            inset 0 0 10px rgba(0, 255, 136, 0.1);
+        }
+        50% {
+          box-shadow: 
+            0 0 15px #00ff88,
+            0 0 25px rgba(0, 255, 136, 0.2),
+            inset 0 0 20px rgba(0, 255, 136, 0.15);
+        }
+      }
+    `;
   }
   
   _getResponsiveStyles() {

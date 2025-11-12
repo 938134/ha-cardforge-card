@@ -1,4 +1,4 @@
-// src/core/shared-styles.js (添加主题相关样式)
+// src/core/shared-styles.js
 import { css } from 'https://unpkg.com/lit@2.8.0/index.js?module';
 
 export const sharedStyles = css`
@@ -129,26 +129,117 @@ export const sharedStyles = css`
     transition: all 0.3s ease;
   }
   
-  /* 主题预览样式 */
+  /* 新主题预览样式 */
   .theme-preview.auto {
     background: linear-gradient(135deg, #f0f0f0 0%, #d0d0d0 100%);
     color: #333;
   }
   
-  .theme-preview.light {
-    background: #ffffff;
+  .theme-preview.glass {
+    background: linear-gradient(135deg, 
+      rgba(255, 255, 255, 0.2) 0%, 
+      rgba(255, 255, 255, 0.1) 100%);
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.3);
     color: #333;
-    border: 1px solid #e0e0e0;
   }
   
-  .theme-preview.dark {
-    background: #1e1e1e;
-    color: #ffffff;
-  }
-  
-  .theme-preview.colorful {
-    background: linear-gradient(135deg, var(--primary-color) 0%, var(--accent-color) 100%);
+  .theme-preview.gradient {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
     color: white;
+    animation: gradientShift 3s ease infinite;
+  }
+  
+  .theme-preview.neon {
+    background: #1a1a1a;
+    color: #00ff88;
+    box-shadow: 
+      0 0 5px #00ff88,
+      inset 0 0 10px rgba(0, 255, 136, 0.1);
+    animation: neonPulse 2s ease-in-out infinite;
+  }
+  
+  /* 当前主题预览区域 */
+  .current-theme-preview {
+    margin: 20px 0;
+    padding: 16px;
+    background: var(--card-background-color);
+    border-radius: 8px;
+    border: 1px solid var(--divider-color);
+  }
+  
+  .preview-header {
+    font-weight: 600;
+    margin-bottom: 12px;
+    color: var(--primary-text-color);
+    font-size: 0.9em;
+  }
+  
+  .current-preview {
+    padding: 20px;
+    border-radius: 8px;
+    text-align: center;
+    font-weight: 500;
+    transition: all 0.3s ease;
+  }
+  
+  .current-preview.auto {
+    background: var(--card-background-color);
+    color: var(--primary-text-color);
+    border: 1px solid var(--divider-color);
+  }
+  
+  .current-preview.glass {
+    background: linear-gradient(135deg, 
+      rgba(255, 255, 255, 0.15) 0%, 
+      rgba(255, 255, 255, 0.05) 100%);
+    backdrop-filter: blur(20px);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    color: var(--primary-text-color);
+  }
+  
+  .current-preview.gradient {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 50%, #f093fb 100%);
+    background-size: 200% 200%;
+    color: white;
+    animation: gradientShift 4s ease infinite;
+  }
+  
+  .current-preview.neon {
+    background: #1a1a1a;
+    color: #00ff88;
+    border: 1px solid #00ff88;
+    box-shadow: 
+      0 0 10px rgba(0, 255, 136, 0.5),
+      inset 0 0 20px rgba(0, 255, 136, 0.1);
+    animation: neonPulse 2s ease-in-out infinite;
+  }
+  
+  /* 动画效果 */
+  @keyframes gradientShift {
+    0% {
+      background-position: 0% 50%;
+    }
+    50% {
+      background-position: 100% 50%;
+    }
+    100% {
+      background-position: 0% 50%;
+    }
+  }
+  
+  @keyframes neonPulse {
+    0%, 100% {
+      box-shadow: 
+        0 0 5px #00ff88,
+        inset 0 0 10px rgba(0, 255, 136, 0.1);
+    }
+    50% {
+      box-shadow: 
+        0 0 20px #00ff88,
+        0 0 30px rgba(0, 255, 136, 0.3),
+        inset 0 0 15px rgba(0, 255, 136, 0.2);
+    }
   }
   
   .theme-info {
