@@ -1,211 +1,390 @@
 // src/ha-cardforge-editor.js
 import { LitElement, html, css } from 'https://unpkg.com/lit@2.8.0/index.js?module';
 import { PluginRegistry } from './core/plugin-registry.js';
-import { ConfigManager } from './core/config-manager.js';
+import { EntityManager } from './core/entity-manager.js';
 
 class HaCardForgeEditor extends LitElement {
   static properties = {
     hass: { type: Object },
     config: { type: Object },
-    _plugins: { state: true },
-    _currentPlugin: { state: true }
+    _state: { state: true }
   };
 
   static styles = css`
+    :host {
+      --editor-primary: var(--primary-color);
+      --editor-success: var(--success-color);
+      --editor-warning: var(--warning-color);
+      --editor-error: var(--error-color);
+    }
+
     .editor {
-      padding: 16px;
-      max-width: 600px;
-      margin: 0 auto;
+      padding: 0;
     }
-    
-    .section {
-      background: var(--card-background-color);
-      border-radius: 12px;
-      padding: 20px;
-      margin-bottom: 16px;
-      border: 1px solid var(--divider-color);
-    }
-    
-    .section-title {
-      font-size: 1.1em;
-      font-weight: 600;
-      margin-bottom: 16px;
-      color: var(--primary-text-color);
+
+    .stepper {
       display: flex;
       align-items: center;
-      gap: 8px;
+      justify-content: center;
+      margin-bottom: 24px;
+      position: relative;
     }
-    
-    .plugin-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
-      gap: 12px;
-      margin-bottom: 20px;
+
+    .step {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      position: relative;
+      z-index: 2;
     }
-    
-    .plugin-item {
-      padding: 16px;
-      border: 2px solid var(--divider-color);
-      border-radius: 8px;
-      cursor: pointer;
-      transition: all 0.2s ease;
-      text-align: center;
+
+    .step-circle {
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: var(--divider-color);
+      color: var(--secondary-text-color);
+      font-weight: 600;
+      font-size: 14px;
+      transition: all 0.3s ease;
     }
-    
-    .plugin-item:hover {
-      border-color: var(--primary-color);
-      transform: translateY(-2px);
-    }
-    
-    .plugin-item.selected {
-      border-color: var(--primary-color);
-      background: var(--primary-color);
+
+    .step.active .step-circle {
+      background: var(--editor-primary);
       color: white;
     }
-    
+
+    .step.completed .step-circle {
+      background: var(--editor-success);
+      color: white;
+    }
+
+    .step-label {
+      margin-top: 8px;
+      font-size: 12px;
+      color: var(--secondary-text-color);
+      font-weight: 500;
+    }
+
+    .step.active .step-label {
+      color: var(--editor-primary);
+    }
+
+    .step-connector {
+      position: absolute;
+      top: 16px;
+      height: 2px;
+      background: var(--divider-color);
+      z-index: 1;
+    }
+
+    .tab-content {
+      min-height: 400px;
+      padding: 0 16px;
+    }
+
+    .plugin-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+      gap: 16px;
+      margin: 20px 0;
+    }
+
+    .plugin-card {
+      border: 2px solid transparent;
+      border-radius: 12px;
+      transition: all 0.3s ease;
+      cursor: pointer;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .plugin-card::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 4px;
+      background: var(--editor-primary);
+      transform: scaleX(0);
+      transition: transform 0.3s ease;
+    }
+
+    .plugin-card:hover::before,
+    .plugin-card.selected::before {
+      transform: scaleX(1);
+    }
+
+    .plugin-card:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 24px rgba(0,0,0,0.12);
+    }
+
+    .plugin-card.selected {
+      border-color: var(--editor-primary);
+    }
+
+    .plugin-content {
+      padding: 20px 16px;
+      text-align: center;
+    }
+
     .plugin-icon {
-      font-size: 2em;
-      margin-bottom: 8px;
-      height: 40px;
+      font-size: 2.5em;
+      margin-bottom: 12px;
+      height: 48px;
       display: flex;
       align-items: center;
       justify-content: center;
     }
-    
+
     .plugin-name {
       font-weight: 600;
-      font-size: 0.9em;
-      margin-bottom: 4px;
+      margin-bottom: 6px;
+      font-size: 0.95em;
     }
-    
-    .plugin-desc {
+
+    .plugin-description {
       font-size: 0.8em;
-      opacity: 0.8;
-      line-height: 1.3;
+      color: var(--secondary-text-color);
+      line-height: 1.4;
     }
-    
+
+    .entity-config {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
     .entity-field {
-      margin-bottom: 16px;
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 12px;
+      align-items: start;
     }
-    
+
     .field-label {
-      display: block;
-      margin-bottom: 8px;
       font-weight: 500;
+      font-size: 0.9em;
       color: var(--primary-text-color);
     }
-    
+
+    .field-required {
+      color: var(--editor-error);
+      margin-left: 4px;
+    }
+
+    .field-status {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 0.8em;
+      margin-top: 4px;
+    }
+
+    .status-valid {
+      color: var(--editor-success);
+    }
+
+    .status-invalid {
+      color: var(--editor-error);
+    }
+
+    .status-optional {
+      color: var(--secondary-text-color);
+    }
+
     .actions {
       display: flex;
-      justify-content: flex-end;
-      gap: 12px;
+      justify-content: space-between;
+      align-items: center;
       margin-top: 24px;
-      padding-top: 16px;
+      padding: 16px;
       border-top: 1px solid var(--divider-color);
-    }
-    
-    .empty-state {
-      text-align: center;
-      padding: 40px 20px;
-      color: var(--secondary-text-color);
     }
   `;
 
   constructor() {
     super();
-    this.config = ConfigManager.DEFAULT_CONFIG;
-    this._plugins = [];
-    this._currentPlugin = null;
-    this._init();
+    this.config = { plugin: '', entities: {}, theme: 'default' };
+    this._state = {
+      step: 0,
+      plugins: [],
+      searchQuery: '',
+      selectedCategory: 'all',
+      validation: {}
+    };
+    
+    this._initialize();
   }
 
-  async _init() {
+  async _initialize() {
     await PluginRegistry.initialize();
-    this._plugins = PluginRegistry.getAllPlugins();
+    this._state.plugins = PluginRegistry.getAllPlugins();
     this.requestUpdate();
   }
 
   setConfig(config) {
-    this.config = ConfigManager.validate(config);
-    if (this.config.plugin) {
-      this._currentPlugin = PluginRegistry.getPlugin(this.config.plugin);
-    }
+    this.config = { ...this.config, ...config };
+    this._updateValidation();
   }
 
   render() {
     return html`
       <div class="editor">
-        ${this._renderPluginSelection()}
-        ${this.config.plugin ? this._renderEntityConfig() : ''}
-        ${this.config.plugin ? this._renderThemeConfig() : ''}
+        ${this._renderStepper()}
+        <div class="tab-content">
+          ${this._renderCurrentStep()}
+        </div>
         ${this._renderActions()}
       </div>
     `;
   }
 
-  _renderPluginSelection() {
+  _renderStepper() {
+    const steps = [
+      { label: '选择插件', completed: !!this.config.plugin },
+      { label: '配置实体', completed: this._areEntitiesValid() },
+      { label: '主题设置', completed: false }
+    ];
+
     return html`
-      <div class="section">
-        <div class="section-title">
-          <ha-icon icon="mdi:puzzle"></ha-icon>
-          选择卡片插件
-        </div>
+      <div class="stepper">
+        ${steps.map((step, index) => {
+          const isActive = index === this._state.step;
+          const isCompleted = step.completed;
+          const stepClass = `step ${isActive ? 'active' : ''} ${isCompleted ? 'completed' : ''}`;
+
+          return html`
+            <div class="${stepClass}">
+              <div class="step-circle">
+                ${isCompleted ? '✓' : index + 1}
+              </div>
+              <div class="step-label">${step.label}</div>
+            </div>
+            ${index < steps.length - 1 ? html`
+              <div class="step-connector" style="left: ${(index + 1) * 25}%; right: ${(steps.length - index - 1) * 25}%"></div>
+            ` : ''}
+          `;
+        })}
+      </div>
+    `;
+  }
+
+  _renderCurrentStep() {
+    switch (this._state.step) {
+      case 0: return this._renderPluginSelection();
+      case 1: return this._renderEntityConfiguration();
+      case 2: return this._renderThemeConfiguration();
+      default: return this._renderError('未知步骤');
+    }
+  }
+
+  _renderPluginSelection() {
+    const filteredPlugins = this._getFilteredPlugins();
+
+    return html`
+      <div>
+        <h3 style="margin-bottom: 16px;">选择卡片类型</h3>
         
+        <div style="display: flex; gap: 12px; margin-bottom: 20px;">
+          <ha-textfield
+            style="flex: 1;"
+            label="搜索插件..."
+            .value=${this._state.searchQuery}
+            @input=${e => this._onSearchChange(e.target.value)}
+            icon="mdi:magnify"
+          ></ha-textfield>
+          
+          <ha-select
+            label="分类"
+            .value=${this._state.selectedCategory}
+            @selected=${e => this._onCategoryChange(e.target.value)}
+            style="min-width: 120px;"
+          >
+            ${PluginRegistry.getCategories().map(category => html`
+              <mwc-list-item value=${category}>
+                ${category === 'all' ? '全部分类' : category}
+              </mwc-list-item>
+            `)}
+          </ha-select>
+        </div>
+
         <div class="plugin-grid">
-          ${this._plugins.map(plugin => html`
-            <div 
-              class="plugin-item ${this.config.plugin === plugin.id ? 'selected' : ''}"
+          ${filteredPlugins.map(plugin => html`
+            <ha-card 
+              class="plugin-card ${this.config.plugin === plugin.id ? 'selected' : ''}"
               @click=${() => this._selectPlugin(plugin)}
             >
-              <div class="plugin-icon">${plugin.icon}</div>
-              <div class="plugin-name">${plugin.name}</div>
-              <div class="plugin-desc">${plugin.description}</div>
-            </div>
+              <div class="plugin-content">
+                <div class="plugin-icon">${plugin.icon}</div>
+                <div class="plugin-name">${plugin.name}</div>
+                <div class="plugin-description">${plugin.description}</div>
+              </div>
+            </ha-card>
           `)}
         </div>
-        
-        ${!this.config.plugin ? html`
-          <div class="empty-state">
-            <ha-icon icon="mdi:cursor-default-click" style="font-size: 3em; opacity: 0.5;"></ha-icon>
-            <div style="margin-top: 12px;">请选择一个插件开始配置</div>
+
+        ${filteredPlugins.length === 0 ? html`
+          <div style="text-align: center; padding: 40px; color: var(--secondary-text-color);">
+            <ha-icon icon="mdi:package-variant-closed" style="font-size: 3em; opacity: 0.5; margin-bottom: 16px;"></ha-icon>
+            <div>没有找到匹配的插件</div>
           </div>
         ` : ''}
       </div>
     `;
   }
 
-  _renderEntityConfig() {
-    const plugin = PluginRegistry.getPlugin(this.config.plugin);
-    if (!plugin?.manifest.entityRequirements?.length) return '';
+  _renderEntityConfiguration() {
+    if (!this.config.plugin) {
+      return this._renderError('请先选择插件');
+    }
+
+    const plugin = this._state.plugins.find(p => p.id === this.config.plugin);
+    if (!plugin) return this._renderError('插件不存在');
+
+    const requirements = plugin.entityRequirements || [];
+
+    if (requirements.length === 0) {
+      return html`
+        <div style="text-align: center; padding: 40px;">
+          <ha-icon icon="mdi:check-circle" style="color: var(--editor-success); font-size: 3em; margin-bottom: 16px;"></ha-icon>
+          <h3>无需配置实体</h3>
+          <p style="color: var(--secondary-text-color);">此插件不需要关联任何实体</p>
+        </div>
+      `;
+    }
 
     return html`
-      <div class="section">
-        <div class="section-title">
-          <ha-icon icon="mdi:database-cog"></ha-icon>
-          实体配置
-        </div>
+      <div class="entity-config">
+        <h3 style="margin-bottom: 16px;">配置实体</h3>
         
-        ${plugin.manifest.entityRequirements.map(req => {
+        ${requirements.map(req => {
           const entityId = this.config.entities?.[req.key] || '';
-          const isValid = EntityManager.validateEntity(this.hass, entityId);
-          
+          const validation = this._state.validation[req.key] || { isValid: false, reason: '' };
+
           return html`
             <div class="entity-field">
-              <label class="field-label">
-                ${req.description}
-                ${req.required ? html`<span style="color: var(--error-color)">*</span>` : ''}
-              </label>
-              <ha-entity-picker
-                .hass=${this.hass}
-                .value=${entityId}
-                @value-changed=${e => this._updateEntity(req.key, e.detail.value)}
-                allow-custom-entity
-              ></ha-entity-picker>
-              ${!isValid.isValid ? html`
-                <div style="color: var(--error-color); font-size: 0.8em; margin-top: 4px;">
-                  ${isValid.reason}
+              <div>
+                <div class="field-label">
+                  ${req.description}
+                  ${req.required ? html`<span class="field-required">*</span>` : ''}
                 </div>
-              ` : ''}
+                <ha-entity-picker
+                  .hass=${this.hass}
+                  .value=${entityId}
+                  @value-changed=${e => this._onEntityChange(req.key, e.detail.value)}
+                  allow-custom-entity
+                ></ha-entity-picker>
+                <div class="field-status ${validation.isValid ? 'status-valid' : req.required ? 'status-invalid' : 'status-optional'}">
+                  <ha-icon icon=${validation.isValid ? 'mdi:check-circle' : 'mdi:information'}></ha-icon>
+                  ${validation.reason}
+                </div>
+              </div>
             </div>
           `;
         })}
@@ -213,168 +392,142 @@ class HaCardForgeEditor extends LitElement {
     `;
   }
 
-  // 在 ha-cardforge-editor.js 的 _renderThemeConfig 方法中：
-_renderThemeConfig() {
-  const themes = ThemeManager.getAllThemes();
+  _renderThemeConfiguration() {
+    const themes = [
+      { id: 'default', name: '默认主题', icon: 'mdi:palette' },
+      { id: 'dark', name: '深色主题', icon: 'mdi:weather-night' },
+      { id: 'material', name: '材质设计', icon: 'mdi:material-design' }
+    ];
 
-  return html`
-    <div class="section">
-      <div class="section-title">
-        <ha-icon icon="mdi:palette"></ha-icon>
-        主题设置
-        <span style="color: var(--success-color); font-size: 0.8em; margin-left: auto;">
-          ✅ 所有主题可用
-        </span>
-      </div>
-      
-      <div class="theme-grid">
-        ${themes.map(theme => {
-          const isSelected = this.config.theme === theme.id;
-          
-          return html`
-            <div 
-              class="theme-item ${isSelected ? 'selected' : ''}"
-              @click=${() => this._updateTheme(theme.id)}
-              style="
-                background: ${theme.colors.background};
-                color: ${theme.colors.text};
-                border: 2px solid ${isSelected ? theme.colors.primary : 'transparent'};
-              "
+    return html`
+      <div>
+        <h3 style="margin-bottom: 16px;">选择主题</h3>
+        
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 12px;">
+          ${themes.map(theme => html`
+            <ha-card 
+              class="plugin-card ${this.config.theme === theme.id ? 'selected' : ''}"
+              @click=${() => this._onThemeChange(theme.id)}
             >
-              <div class="theme-preview" style="background: ${theme.colors.primary}"></div>
-              <div class="theme-name">${theme.name}</div>
-              ${ThemeManager.isGradientTheme(theme.id) ? html`
-                <div class="theme-badge gradient">渐变</div>
-              ` : ''}
-            </div>
-          `;
-        })}
+              <div class="plugin-content">
+                <div class="plugin-icon">
+                  <ha-icon .icon=${theme.icon}></ha-icon>
+                </div>
+                <div class="plugin-name">${theme.name}</div>
+              </div>
+            </ha-card>
+          `)}
+        </div>
       </div>
-      
-      <style>
-        .theme-grid {
-          display: grid;
-          grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
-          gap: 12px;
-          margin-top: 12px;
-        }
-        
-        .theme-item {
-          padding: 12px;
-          border-radius: 8px;
-          cursor: pointer;
-          transition: all 0.2s ease;
-          position: relative;
-          min-height: 80px;
-        }
-        
-        .theme-item:hover {
-          transform: translateY(-2px);
-          box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-        }
-        
-        .theme-item.selected {
-          border-width: 3px !important;
-        }
-        
-        .theme-preview {
-          width: 100%;
-          height: 4px;
-          border-radius: 2px;
-          margin-bottom: 8px;
-        }
-        
-        .theme-name {
-          font-size: 0.85em;
-          font-weight: 500;
-        }
-        
-        .theme-badge {
-          position: absolute;
-          top: 4px;
-          right: 4px;
-          background: var(--primary-color);
-          color: white;
-          padding: 2px 6px;
-          border-radius: 4px;
-          font-size: 0.7em;
-        }
-        
-        .theme-badge.gradient {
-          background: linear-gradient(135deg, #667eea, #764ba2);
-        }
-      </style>
-    </div>
-  `;
-}
+    `;
+  }
 
   _renderActions() {
     return html`
       <div class="actions">
-        <mwc-button outlined @click=${this._cancel}>取消</mwc-button>
         <mwc-button 
-          raised 
-          @click=${this._save}
-          ?disabled=${!this._isConfigValid()}
-        >
-          保存
-        </mwc-button>
+          outlined 
+          label="上一步" 
+          @click=${this._previousStep}
+          ?disabled=${this._state.step === 0}
+        ></mwc-button>
+        
+        <div style="display: flex; gap: 8px;">
+          <mwc-button outlined label="取消" @click=${this._cancel}></mwc-button>
+          <mwc-button 
+            raised 
+            label=${this._state.step === 2 ? '完成' : '下一步'}
+            @click=${this._nextStep}
+            ?disabled=${!this._canProceed()}
+          ></mwc-button>
+        </div>
       </div>
     `;
   }
 
-  _selectPlugin(plugin) {
-    this.config = ConfigManager.createPluginConfig(
-      plugin.id, 
-      plugin.entityRequirements || []
-    );
-    this._currentPlugin = plugin;
-    this._notifyConfigChange();
+  // 状态管理方法
+  _canProceed() {
+    switch (this._state.step) {
+      case 0: return !!this.config.plugin;
+      case 1: return this._areEntitiesValid();
+      case 2: return true;
+      default: return false;
+    }
   }
 
-  _updateEntity(key, value) {
-    this.config.entities = { ...this.config.entities, [key]: value };
-    this._notifyConfigChange();
-  }
-
-  _updateTheme(theme) {
-    this.config.theme = theme;
-    this._notifyConfigChange();
-  }
-
-  _isConfigValid() {
-    if (!this.config.plugin) return false;
-    
-    const plugin = PluginRegistry.getPlugin(this.config.plugin);
+  _areEntitiesValid() {
+    const plugin = this._state.plugins.find(p => p.id === this.config.plugin);
     if (!plugin) return false;
 
-    // 检查必填实体
-    const requirements = plugin.manifest.entityRequirements || [];
-    for (const req of requirements) {
-      if (req.required && !this.config.entities?.[req.key]) {
-        return false;
-      }
-    }
-
-    return true;
+    const requirements = plugin.entityRequirements || [];
+    return requirements.every(req => 
+      !req.required || this._state.validation[req.key]?.isValid
+    );
   }
 
-  _notifyConfigChange() {
+  _updateValidation() {
+    const plugin = this._state.plugins.find(p => p.id === this.config.plugin);
+    if (!plugin) return;
+
+    const validation = {};
+    plugin.entityRequirements?.forEach(req => {
+      const entityId = this.config.entities?.[req.key];
+      validation[req.key] = EntityManager.validateEntity(this.hass, entityId, req);
+    });
+
+    this._state.validation = validation;
+    this.requestUpdate();
+  }
+
+  _nextStep() {
+    if (this._state.step < 2) {
+      this._state.step++;
+      this.requestUpdate();
+    } else {
+      this._save();
+    }
+  }
+
+  _previousStep() {
+    if (this._state.step > 0) {
+      this._state.step--;
+      this.requestUpdate();
+    }
+  }
+
+  _selectPlugin(plugin) {
+    this.config = {
+      ...this.config,
+      plugin: plugin.id,
+      entities: this._initializeEntities(plugin)
+    };
+    this._updateValidation();
+    this._notifyConfigUpdate();
+  }
+
+  _onEntityChange(key, value) {
+    this.config.entities = { ...this.config.entities, [key]: value };
+    this._updateValidation();
+    this._notifyConfigUpdate();
+  }
+
+  _onThemeChange(theme) {
+    this.config.theme = theme;
+    this._notifyConfigUpdate();
+  }
+
+  _notifyConfigUpdate() {
     this.dispatchEvent(new CustomEvent('config-changed', {
       detail: { config: this.config }
     }));
   }
 
   _save() {
-    this._notifyConfigChange();
+    this._notifyConfigUpdate();
+    this.dispatchEvent(new CustomEvent('config-saved'));
   }
 
   _cancel() {
-    this.dispatchEvent(new CustomEvent('config-changed', {
-      detail: { config: null }
-    }));
+    this.dispatchEvent(new CustomEvent('config-cancelled'));
   }
 }
-
-customElements.define('ha-cardforge-editor', HaCardForgeEditor);
-export { HaCardForgeEditor };
