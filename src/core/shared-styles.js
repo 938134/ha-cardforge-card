@@ -135,20 +135,20 @@ export const sharedStyles = css`
     color: #333;
   }
   
-  .theme-preview.glass {
-    background: linear-gradient(135deg, 
-      rgba(255, 255, 255, 0.35) 0%, 
-      rgba(255, 255, 255, 0.2) 50%,
-      rgba(255, 255, 255, 0.1) 100%);
-    backdrop-filter: blur(20px) saturate(180%);
-    -webkit-backdrop-filter: blur(20px) saturate(180%);
-    border: 1.5px solid rgba(255, 255, 255, 0.4);
-    box-shadow: 
-      0 8px 16px rgba(0, 0, 0, 0.1),
-      inset 0 1px 0 rgba(255, 255, 255, 0.3),
-      inset 0 -1px 0 rgba(0, 0, 0, 0.1);
-    color: #333;
-  }
+.theme-preview.glass {
+  background: linear-gradient(135deg, 
+    rgba(var(--card-background-color, 255, 255, 255), 0.25) 0%, 
+    rgba(var(--card-background-color, 255, 255, 255), 0.15) 50%,
+    rgba(var(--card-background-color, 255, 255, 255), 0.1) 100%);
+  backdrop-filter: blur(20px) saturate(180%);
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
+  border: 1.5px solid rgba(var(--primary-text-color, 0, 0, 0), 0.15);
+  box-shadow: 
+    0 8px 16px rgba(0, 0, 0, 0.1),
+    inset 0 1px 0 rgba(255, 255, 255, 0.3),
+    inset 0 -1px 0 rgba(0, 0, 0, 0.1);
+  color: var(--primary-text-color);
+}
   
   .theme-preview.glass::before {
     content: '';
@@ -217,20 +217,20 @@ export const sharedStyles = css`
     border: 1px solid var(--divider-color);
   }
   
-  .current-preview.glass {
-    background: linear-gradient(135deg, 
-      rgba(255, 255, 255, 0.25) 0%, 
-      rgba(255, 255, 255, 0.15) 50%,
-      rgba(255, 255, 255, 0.1) 100%);
-    backdrop-filter: blur(30px) saturate(180%);
-    -webkit-backdrop-filter: blur(30px) saturate(180%);
-    border: 1px solid rgba(255, 255, 255, 0.35);
-    box-shadow: 
-      0 12px 40px rgba(0, 0, 0, 0.15),
-      inset 0 1px 0 rgba(255, 255, 255, 0.25),
-      inset 0 -1px 0 rgba(0, 0, 0, 0.1);
-    color: var(--primary-text-color);
-  }
+.current-preview.glass {
+  background: linear-gradient(135deg, 
+    rgba(var(--card-background-color, 255, 255, 255), 0.25) 0%, 
+    rgba(var(--card-background-color, 255, 255, 255), 0.15) 50%,
+    rgba(var(--card-background-color, 255, 255, 255), 0.1) 100%);
+  backdrop-filter: blur(30px) saturate(180%);
+  -webkit-backdrop-filter: blur(30px) saturate(180%);
+  border: 1px solid rgba(var(--primary-text-color, 0, 0, 0), 0.15);
+  box-shadow: 
+    0 12px 40px rgba(0, 0, 0, 0.15),
+    inset 0 1px 0 rgba(255, 255, 255, 0.25),
+    inset 0 -1px 0 rgba(0, 0, 0, 0.1);
+  color: var(--primary-text-color);
+}
   
   .current-preview.glass::before {
     content: '';

@@ -69,7 +69,6 @@ export default class WelcomeCardPlugin extends BasePlugin {
         ${this._responsivePadding('24px', '20px')}
         position: relative;
         overflow: hidden;
-        color: white !important;
       }
       .welcome-content {
         position: relative;
@@ -110,7 +109,7 @@ export default class WelcomeCardPlugin extends BasePlugin {
       .circle {
         position: absolute;
         border-radius: 50%;
-        background: rgba(255, 255, 255, 0.1);
+        background: rgba(var(--rgb-primary-text-color), 0.08);
         transition: all 0.3s ease;
       }
       .circle-1 {
@@ -134,15 +133,15 @@ export default class WelcomeCardPlugin extends BasePlugin {
       
       .welcome-card:hover .circle-1 {
         animation: float 3s ease-in-out infinite;
-        background: rgba(255, 255, 255, 0.15);
+        background: rgba(var(--rgb-primary-text-color), 0.12);
       }
       .welcome-card:hover .circle-2 {
         animation: float 3s ease-in-out infinite 0.5s;
-        background: rgba(255, 255, 255, 0.12);
+        background: rgba(var(--rgb-primary-text-color), 0.1);
       }
       .welcome-card:hover .circle-3 {
         animation: float 3s ease-in-out infinite 1s;
-        background: rgba(255, 255, 255, 0.1);
+        background: rgba(var(--rgb-primary-text-color), 0.08);
       }
       
       /* 消息更新动画 */

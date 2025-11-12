@@ -90,14 +90,18 @@ export class BasePlugin {
   }
   
   _getRandomMessage() {
-    const messages = ['祝您今天愉快！', '一切准备就绪！', '家，因你而温暖'];
-    return messages[Math.floor(Math.random() * messages.length)];
+    return ''; // 返回空字符串，不显示随机消息
   }
 
   // === 样式系统 ===
   getBaseStyles(config) {
     const themeConfig = { ...this.getThemeConfig(), ...config.themeConfig };
     return `
+      :host {
+        --rgb-primary-background-color: var(--card-background-color, 255, 255, 255);
+        --rgb-primary-text-color: var(--primary-text-color, 0, 0, 0);
+      }
+      
       .cardforge-card {
         position: relative;
         font-family: var(--paper-font-common-nowrap_-_font-family);
@@ -140,17 +144,17 @@ export class BasePlugin {
       'glass': `
         position: relative;
         background: linear-gradient(135deg, 
-          rgba(248, 248, 248, 0.9) 0%, 
-          rgba(240, 240, 240, 0.8) 50%,
-          rgba(232, 232, 232, 0.7) 100%);
+          rgba(var(--rgb-primary-background-color), 0.25) 0%, 
+          rgba(var(--rgb-primary-background-color), 0.15) 50%,
+          rgba(var(--rgb-primary-background-color), 0.1) 100%);
         backdrop-filter: blur(25px) saturate(180%);
         -webkit-backdrop-filter: blur(25px) saturate(180%);
-        border: 1px solid rgba(255, 255, 255, 0.4);
+        border: 1px solid rgba(var(--rgb-primary-text-color), 0.15);
         box-shadow: 
           0 8px 32px rgba(0, 0, 0, 0.1),
-          inset 0 1px 0 rgba(255, 255, 255, 0.6),
+          inset 0 1px 0 rgba(255, 255, 255, 0.2),
           inset 0 -1px 0 rgba(0, 0, 0, 0.05);
-        color: #333333;
+        color: var(--primary-text-color);
       `,
       'gradient': this._getRandomGradient(),
       'neon': `
@@ -233,8 +237,8 @@ export class BasePlugin {
   
   _getGlassGradientColors() {
     return [
-      'rgba(248, 248, 248, 0.9)',
-      'rgba(232, 232, 232, 0.7)'
+      'rgba(var(--rgb-primary-background-color), 0.25)',
+      'rgba(var(--rgb-primary-background-color), 0.15)'
     ];
   }
   
