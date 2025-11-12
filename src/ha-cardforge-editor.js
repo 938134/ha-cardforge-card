@@ -86,10 +86,34 @@ class HaCardForgeEditor extends LitElement {
 
   async firstUpdated() {
     console.log('编辑器首次更新，初始化插件系统...');
+    
+    // 检查必要的自定义元素是否可用
+    this._checkCustomElements();
+    
     await PluginRegistry.initialize();
     this._loadPlugins();
     this._initialized = true;
     console.log('编辑器初始化完成，插件数量:', PluginRegistry.getAllPlugins().length);
+  }
+
+  _checkCustomElements() {
+    const requiredElements = [
+      'ha-entity-picker',
+      'ha-card',
+      'ha-icon',
+      'ha-select',
+      'ha-textfield',
+      'ha-circular-progress'
+    ];
+
+    requiredElements.forEach(elementName => {
+      const isAvailable = customElements.get(elementName) !== undefined;
+      console.log(`${elementName} 可用:`, isAvailable);
+      
+      if (!isAvailable) {
+        console.warn(`自定义元素 ${elementName} 未注册，可能需要手动加载`);
+      }
+    });
   }
 
   setConfig(config) {
