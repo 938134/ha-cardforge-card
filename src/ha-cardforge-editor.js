@@ -1,20 +1,14 @@
 // src/ha-cardforge-editor.js
 import { LitElement, html, css } from 'https://unpkg.com/lit@2.8.0/index.js?module';
 import { PluginRegistry } from './core/plugin-registry.js';
-import { EditorTabs } from './core/editor-tabs.js';
-import { PluginMarketplace } from './core/plugin-marketplace.js';
-import { EntityConfig } from './core/entity-config.js';
-import { ThemeConfig } from './core/theme-config.js';
 import { sharedStyles } from './core/shared-styles.js';
 
 class HaCardForgeEditor extends LitElement {
   static properties = {
     hass: { type: Object },
     config: { type: Object },
-    _filteredPlugins: { state: true },
-    _searchQuery: { state: true },
-    _selectedCategory: { state: true },
-    _activeTab: { state: true },
+    _plugins: { state: true },
+    _themes: { state: true },
     _initialized: { state: true }
   };
 
@@ -25,39 +19,20 @@ class HaCardForgeEditor extends LitElement {
         padding: 16px;
       }
       
-      .tabs-container {
-        display: flex;
-        border-bottom: 1px solid var(--divider-color);
-        margin-bottom: 20px;
+      .config-row {
+        margin-bottom: 16px;
       }
       
-      .tab-button {
-        padding: 12px 24px;
-        background: none;
-        border: none;
-        border-bottom: 2px solid transparent;
-        color: var(--secondary-text-color);
-        cursor: pointer;
-        font-size: 0.9em;
-        font-weight: 500;
-        transition: all 0.2s ease;
+      .preview-container {
+        margin: 20px 0;
+        padding: 20px;
+        background: var(--card-background-color);
+        border-radius: 12px;
+        border: 1px solid var(--divider-color);
+        min-height: 120px;
         display: flex;
         align-items: center;
-        gap: 8px;
-      }
-      
-      .tab-button:hover {
-        color: var(--primary-text-color);
-      }
-      
-      .tab-button.active {
-        color: var(--primary-color);
-        border-bottom-color: var(--primary-color);
-      }
-      
-      .tab-button:disabled {
-        opacity: 0.5;
-        cursor: not-allowed;
+        justify-content: center;
       }
       
       .card-actions {
@@ -67,8 +42,10 @@ class HaCardForgeEditor extends LitElement {
         padding-top: 16px;
       }
       
-      .tab-content {
-        min-height: 300px;
+      ha-select, ha-combo-box {
+        width: 100%;
+        --ha-select-background: var(--card-background-color);
+        --ha-combo-box-background: var(--card-background-color);
       }
     `
   ];
@@ -76,39 +53,20 @@ class HaCardForgeEditor extends LitElement {
   constructor() {
     super();
     this.config = { plugin: '', entities: {}, theme: 'auto' };
-    this._filteredPlugins = [];
-    this._searchQuery = '';
-    this._selectedCategory = 'all';
-    this._activeTab = 0;
+    this._plugins = [];
+    this._themes = [
+      { value: 'auto', label: '跟随系统' },
+      { value: 'glass', label: '毛玻璃' },
+      { value: 'gradient', label: '随机渐变' },
+      { value: 'neon', label: '霓虹光影' }
+    ];
     this._initialized = false;
-    this._entityChangeTimeout = null;
   }
 
   async firstUpdated() {
-    // 检查必要的自定义元素是否可用
-    this._checkCustomElements();
-    
     await PluginRegistry.initialize();
     this._loadPlugins();
     this._initialized = true;
-  }
-
-  _checkCustomElements() {
-    const requiredElements = [
-      'ha-entity-picker',
-      'ha-card',
-      'ha-icon',
-      'ha-combo-box',
-      'ha-textfield',
-      'ha-circular-progress'
-    ];
-
-    requiredElements.forEach(elementName => {
-      const isAvailable = customElements.get(elementName) !== undefined;
-      if (!isAvailable) {
-        console.warn(`自定义元素 ${elementName} 未注册，可能需要手动加载`);
-      }
-    });
   }
 
   setConfig(config) {
@@ -132,16 +90,41 @@ class HaCardForgeEditor extends LitElement {
       `;
     }
 
-    // 获取完整的插件对象
     const activePlugin = this.config.plugin ? 
       PluginRegistry.getPlugin(this.config.plugin) : null;
 
     return html`
       <div class="editor-container">
-        ${EditorTabs.renderTabs(this._activeTab, (tab) => this._switchTab(tab), !!this.config.plugin)}
-        
-        <div class="tab-content">
-          ${this._renderActiveTab(activePlugin)}
+        <div class="config-row">
+          <ha-select
+            .label=${"选择卡片"}
+            .value=${this.config.plugin}
+            @selected=${e => this._onPluginChange(e)}
+            @closed=${e => e.stopPropagation()}
+          >
+            ${this._plugins.map(plugin => html`
+              <mwc-list-item value=${plugin.id}>${plugin.name}</mwc-list-item>
+            `)}
+          </ha-select>
+        </div>
+
+        <div class="config-row">
+          <ha-select
+            .label=${"选择主题"}
+            .value=${this.config.theme}
+            @selected=${e => this._onThemeChange(e)}
+            @closed=${e => e.stopPropagation()}
+          >
+            ${this._themes.map(theme => html`
+              <mwc-list-item value=${theme.value}>${theme.label}</mwc-list-item>
+            `)}
+          </ha-select>
+        </div>
+
+        ${this._renderEntityConfig(activePlugin)}
+
+        <div class="preview-container">
+          ${this._renderPreview(activePlugin)}
         </div>
 
         <div class="card-actions">
@@ -157,75 +140,109 @@ class HaCardForgeEditor extends LitElement {
     `;
   }
 
-  _renderActiveTab(activePlugin) {
-    switch (this._activeTab) {
-      case 0:
-        return PluginMarketplace.render(
-          this._searchQuery,
-          this._selectedCategory,
-          this._filteredPlugins,
-          (plugin) => this._selectPlugin(plugin),
-          this.config.plugin,
-          (query) => this._onSearchChange(query),
-          (category) => this._onCategoryChange(category)
-        );
+  _renderEntityConfig(activePlugin) {
+    if (!activePlugin) return '';
+
+    const requirements = activePlugin.manifest.entityRequirements || [];
+    const messageRequirement = requirements.find(req => req.key === 'message_entity');
+
+    if (!messageRequirement) return '';
+
+    return html`
+      <div class="config-row">
+        <ha-combo-box
+          .label=${"关联消息实体"}
+          .value=${this.config.entities?.message_entity || ''}
+          .items=${this._getEntityOptions(this.hass, messageRequirement)}
+          @value-changed=${e => this._onEntityChange('message_entity', e.detail.value)}
+          allow-custom-value
+        ></ha-combo-box>
+      </div>
+    `;
+  }
+
+  _renderPreview(activePlugin) {
+    if (!activePlugin) {
+      return html`<div style="color: var(--secondary-text-color);">请选择卡片查看预览</div>`;
+    }
+
+    try {
+      const pluginInstance = PluginRegistry.createPluginInstance(activePlugin.id);
+      const entities = this._getCurrentEntities();
+      const template = pluginInstance.getTemplate(this.config, this.hass, entities);
       
-      case 1:
-        return EntityConfig.render(
-          this.hass,
-          this.config,
-          activePlugin,
-          (key, value) => this._onEntityChange(key, value)
-        );
-      
-      case 2:
-        return ThemeConfig.render(
-          this.config,
-          activePlugin,
-          (theme) => this._onThemeChange(theme)
-        );
-      
-      default:
-        return html`<div>未知选项卡</div>`;
+      return html`
+        <div class="preview-content">
+          ${template}
+        </div>
+      `;
+    } catch (error) {
+      return html`<div style="color: var(--error-color);">预览渲染失败: ${error.message}</div>`;
     }
   }
 
   _loadPlugins() {
-    this._filteredPlugins = PluginRegistry.getPluginsForMarketplace({
-      category: this._selectedCategory,
-      searchQuery: this._searchQuery
-    });
+    this._plugins = PluginRegistry.getAllPlugins().map(plugin => ({
+      id: plugin.id,
+      name: plugin.name
+    }));
   }
 
-  _switchTab(tabIndex) {
-    this._activeTab = tabIndex;
-    this.requestUpdate();
+  _getEntityOptions(hass, requirement) {
+    if (!hass) return [];
+
+    const entities = Object.keys(hass.states || {});
+    let filteredEntities = entities;
+
+    // 根据需求类型过滤实体
+    if (requirement.type === 'sensor') {
+      filteredEntities = entities.filter(e => e.startsWith('sensor.'));
+    } else if (requirement.type === 'input_text') {
+      filteredEntities = entities.filter(e => e.startsWith('input_text.'));
+    }
+
+    filteredEntities.sort();
+
+    const options = filteredEntities.map(entity => {
+      const stateObj = hass.states[entity];
+      const friendlyName = stateObj?.attributes?.friendly_name;
+      return {
+        value: entity,
+        label: friendlyName ? `${friendlyName} (${entity})` : entity
+      };
+    });
+
+    options.unshift({ value: '', label: `选择${requirement.description}` });
+    return options;
   }
 
-  _selectPlugin(plugin) {
-    const defaultEntities = {};
-    const fullPlugin = PluginRegistry.getPlugin(plugin.id);
-    const requirements = fullPlugin?.manifest.entityRequirements || [];
-    
-    requirements.forEach(req => {
-      defaultEntities[req.key] = '';
-    });
+  _getCurrentEntities() {
+    const entities = {};
+    if (this.config.entities?.message_entity) {
+      entities.message_entity = this.hass?.states[this.config.entities.message_entity];
+    }
+    return entities;
+  }
+
+  _onPluginChange(event) {
+    const pluginId = event.target.value;
+    if (pluginId === this.config.plugin) return;
 
     this.config = {
       ...this.config,
-      plugin: plugin.id,
-      entities: { ...defaultEntities, ...this.config.entities }
+      plugin: pluginId,
+      entities: {} // 切换插件时清空实体配置
     };
-    
+
     this._notifyConfigUpdate();
-    
-    if (requirements.length > 0) {
-      this._activeTab = 1;
-    } else {
-      this._activeTab = 2;
-    }
-    
-    this.requestUpdate();
+  }
+
+  _onThemeChange(event) {
+    const theme = event.target.value;
+    if (theme === this.config.theme) return;
+
+    this.config.theme = theme;
+    this._notifyConfigUpdate();
   }
 
   _onEntityChange(key, value) {
@@ -233,33 +250,7 @@ class HaCardForgeEditor extends LitElement {
       ...this.config.entities,
       [key]: value
     };
-    
-    this.requestUpdate();
-    
-    clearTimeout(this._entityChangeTimeout);
-    this._entityChangeTimeout = setTimeout(() => {
-      this._notifyConfigUpdate();
-    }, 300);
-  }
-
-  _onThemeChange(theme) {
-    if (!theme || theme === '') return;
-    
-    this.config.theme = theme;
-    this.requestUpdate();
     this._notifyConfigUpdate();
-  }
-
-  _onSearchChange(query) {
-    this._searchQuery = query;
-    this._loadPlugins();
-    this.requestUpdate();
-  }
-
-  _onCategoryChange(category) {
-    this._selectedCategory = category;
-    this._loadPlugins();
-    this.requestUpdate();
   }
 
   _notifyConfigUpdate() {
@@ -280,7 +271,7 @@ class HaCardForgeEditor extends LitElement {
 
   updated(changedProperties) {
     if (changedProperties.has('hass')) {
-      // hass 对象更新时的处理
+      this.requestUpdate();
     }
   }
 }
