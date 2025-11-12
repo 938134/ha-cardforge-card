@@ -31,6 +31,14 @@ export const sharedStyles = css`
   
   .entity-picker-container {
     min-width: 200px;
+    width: 100%;
+  }
+  
+  .entity-picker-container ha-entity-picker {
+    width: 100%;
+    --mdc-text-field-fill-color: var(--card-background-color);
+    --mdc-text-field-label-ink-color: var(--secondary-text-color);
+    --mdc-text-field-ink-color: var(--primary-text-color);
   }
   
   .required-star {
