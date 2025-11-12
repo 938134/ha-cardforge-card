@@ -44,7 +44,6 @@ export default class WelcomeCardPlugin extends BasePlugin {
           <div class="greeting">${greeting}，${user}！</div>
           <div class="time">${time}</div>
           ${message ? `<div class="message">${message}</div>` : ''}
-          ${this._renderCustomInfo(entities)}
         </div>
         <div class="decoration">
           <div class="circle circle-1"></div>
@@ -53,26 +52,6 @@ export default class WelcomeCardPlugin extends BasePlugin {
         </div>
       </div>
     `;
-  }
-
-  _renderCustomInfo(entities) {
-    const hasCustomGreeting = entities.greeting_entity;
-    const hasCustomMessage = entities.message_entity;
-    
-    if (!hasCustomGreeting && !hasCustomMessage) {
-      return '';
-    }
-    
-    let infoText = '';
-    if (hasCustomGreeting && hasCustomMessage) {
-      infoText = '使用自定义欢迎词和消息';
-    } else if (hasCustomGreeting) {
-      infoText = '使用自定义欢迎词';
-    } else if (hasCustomMessage) {
-      infoText = '使用自定义消息';
-    }
-    
-    return `<div class="custom-info">${infoText}</div>`;
   }
 
   getThemeConfig() {
@@ -118,16 +97,6 @@ export default class WelcomeCardPlugin extends BasePlugin {
         margin-bottom: 4px;
         min-height: 1.2em;
         transition: opacity 0.3s ease;
-      }
-      .custom-info {
-        ${this._responsiveFontSize('0.7em', '0.65em')}
-        opacity: 0.6;
-        font-style: normal;
-        background: rgba(255, 255, 255, 0.2);
-        padding: 2px 6px;
-        border-radius: 8px;
-        display: inline-block;
-        margin-top: 4px;
       }
       .decoration {
         position: absolute;
