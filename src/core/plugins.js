@@ -74,3 +74,6 @@ export class EditorPlugins {
     `;
   }
 }
+
+// 为了向后兼容，同时导出 PluginMarketplace
+export const PluginMarketplace = EditorPlugins;
