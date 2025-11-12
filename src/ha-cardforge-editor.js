@@ -107,7 +107,8 @@ class HaCardForgeEditor extends LitElement {
       `;
     }
 
-    const activePlugin = this._plugins.find(p => p.id === this.config.plugin);
+    const activePlugin = this.config.plugin ? 
+      PluginRegistry.getPlugin(this.config.plugin) : null;
 
     return html`
       <div class="editor-container">
@@ -138,7 +139,9 @@ class HaCardForgeEditor extends LitElement {
           this._selectedCategory,
           this._filteredPlugins,
           (plugin) => this._selectPlugin(plugin),
-          this.config.plugin
+          this.config.plugin,
+          (query) => this._onSearchChange(query),
+          (category) => this._onCategoryChange(category)
         );
       
       case 1:
@@ -168,10 +171,6 @@ class HaCardForgeEditor extends LitElement {
     });
   }
 
-  get _plugins() {
-    return PluginRegistry.getAllPlugins();
-  }
-
   _switchTab(tabIndex) {
     this._activeTab = tabIndex;
     this.requestUpdate();
@@ -179,7 +178,9 @@ class HaCardForgeEditor extends LitElement {
 
   _selectPlugin(plugin) {
     const defaultEntities = {};
-    const requirements = plugin.entityRequirements || [];
+    const fullPlugin = PluginRegistry.getPlugin(plugin.id);
+    const requirements = fullPlugin?.manifest.entityRequirements || [];
+    
     requirements.forEach(req => {
       defaultEntities[req.key] = '';
     });
@@ -194,6 +195,8 @@ class HaCardForgeEditor extends LitElement {
     
     if (requirements.length > 0) {
       this._activeTab = 1;
+    } else {
+      this._activeTab = 2; // 如果没有实体需求，直接跳到主题设置
     }
   }
 
