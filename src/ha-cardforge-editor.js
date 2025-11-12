@@ -89,7 +89,7 @@ class HaCardForgeEditor extends LitElement {
     await PluginRegistry.initialize();
     this._loadPlugins();
     this._initialized = true;
-    console.log('编辑器初始化完成');
+    console.log('编辑器初始化完成，插件数量:', PluginRegistry.getAllPlugins().length);
   }
 
   setConfig(config) {
@@ -114,10 +114,11 @@ class HaCardForgeEditor extends LitElement {
       `;
     }
 
+    // 获取完整的插件对象，而不仅仅是manifest
     const activePlugin = this.config.plugin ? 
       PluginRegistry.getPlugin(this.config.plugin) : null;
 
-    console.log('渲染编辑器，活动插件:', activePlugin?.manifest?.name, '当前选项卡:', this._activeTab);
+    console.log('渲染编辑器，活动插件:', activePlugin?.manifest?.name, '当前选项卡:', this._activeTab, '插件对象:', activePlugin);
 
     return html`
       <div class="editor-container">
@@ -141,7 +142,7 @@ class HaCardForgeEditor extends LitElement {
   }
 
   _renderActiveTab(activePlugin) {
-    console.log('渲染活动选项卡:', this._activeTab, 'hass:', !!this.hass, 'plugin:', activePlugin?.manifest?.name);
+    console.log('渲染活动选项卡:', this._activeTab, 'hass:', !!this.hass, 'plugin对象:', activePlugin);
     
     switch (this._activeTab) {
       case 0:
@@ -157,10 +158,11 @@ class HaCardForgeEditor extends LitElement {
       
       case 1:
         console.log('渲染实体配置，hass 状态:', !!this.hass, '插件实体需求:', activePlugin?.manifest?.entityRequirements);
+        // 传递完整的插件对象，而不仅仅是manifest
         return EntityConfig.render(
           this.hass,
           this.config,
-          activePlugin,
+          activePlugin, // 传递完整的插件对象
           (key, value) => this._onEntityChange(key, value)
         );
       
@@ -288,6 +290,19 @@ class HaCardForgeEditor extends LitElement {
   updated(changedProperties) {
     if (changedProperties.has('hass')) {
       console.log('hass 对象已更新');
+    }
+    
+    // 检查实体选择器是否渲染
+    if (this._activeTab === 1 && this.config.plugin) {
+      setTimeout(() => {
+        const entityPickers = this.shadowRoot?.querySelectorAll('ha-entity-picker');
+        console.log('实体选择器数量:', entityPickers?.length);
+        if (entityPickers) {
+          entityPickers.forEach((picker, index) => {
+            console.log(`实体选择器 ${index}:`, picker, 'hass:', picker.hass);
+          });
+        }
+      }, 100);
     }
   }
 }
