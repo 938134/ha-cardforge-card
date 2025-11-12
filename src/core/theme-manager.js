@@ -2,254 +2,140 @@
 class ThemeManager {
   static _themes = new Map();
   static _currentTheme = 'default';
+  static _subscribers = new Set();
 
   static init() {
-    this._registerThemes();
+    this._registerBuiltinThemes();
+    this._loadUserPreference();
   }
 
-  static _registerThemes() {
-    // 基础主题
-    const baseThemes = {
+  static _registerBuiltinThemes() {
+    const builtinThemes = {
       'default': {
         id: 'default',
         name: '默认主题',
+        description: '简洁的默认主题',
         colors: {
-          primary: 'var(--primary-color, #03a9f4)',
-          accent: 'var(--accent-color, #ff9800)',
-          background: 'var(--card-background-color, #ffffff)',
-          text: 'var(--primary-text-color, #212121)',
-          textSecondary: 'var(--secondary-text-color, #727272)',
-          success: 'var(--success-color, #4caf50)',
-          warning: 'var(--warning-color, #ff9800)',
-          error: 'var(--error-color, #f44336)'
-        },
-        styles: `
-          .cardforge-theme-default {
-            --cf-primary: var(--primary-color, #03a9f4);
-            --cf-accent: var(--accent-color, #ff9800);
-            --cf-bg: var(--card-background-color, #ffffff);
-            --cf-text: var(--primary-text-color, #212121);
-            --cf-text-secondary: var(--secondary-text-color, #727272);
-            --cf-success: var(--success-color, #4caf50);
-            --cf-warning: var(--warning-color, #ff9800);
-            --cf-error: var(--error-color, #f44336);
-          }
-        `
+          primary: 'var(--primary-color)',
+          accent: 'var(--accent-color)',
+          background: 'var(--card-background-color)',
+          text: 'var(--primary-text-color)'
+        }
       },
       'dark': {
         id: 'dark',
         name: '深色主题',
+        description: '适合暗色环境的主题',
         colors: {
-          primary: '#4fc3f7',
-          accent: '#ffb74d',
-          background: '#1e1e1e',
-          text: '#ffffff',
-          textSecondary: '#b0b0b0',
-          success: '#81c784',
-          warning: '#ffb74d',
-          error: '#e57373'
-        },
-        styles: `
-          .cardforge-theme-dark {
-            --cf-primary: #4fc3f7;
-            --cf-accent: #ffb74d;
-            --cf-bg: #1e1e1e;
-            --cf-text: #ffffff;
-            --cf-text-secondary: #b0b0b0;
-            --cf-success: #81c784;
-            --cf-warning: #ffb74d;
-            --cf-error: #e57373;
-            background: #1e1e1e;
-            color: #ffffff;
-          }
-        `
+          primary: '#BB86FC',
+          accent: '#03DAC6',
+          background: '#1E1E1E',
+          text: '#FFFFFF'
+        }
       },
       'material': {
         id: 'material',
         name: '材质设计',
+        description: 'Material Design 风格主题',
         colors: {
-          primary: '#2196f3',
-          accent: '#ff4081',
-          background: '#ffffff',
-          text: '#212121',
-          textSecondary: '#757575',
-          success: '#4caf50',
-          warning: '#ff9800',
-          error: '#f44336'
-        },
-        styles: `
-          .cardforge-theme-material {
-            --cf-primary: #2196f3;
-            --cf-accent: #ff4081;
-            --cf-bg: #ffffff;
-            --cf-text: #212121;
-            --cf-text-secondary: #757575;
-            --cf-success: #4caf50;
-            --cf-warning: #ff9800;
-            --cf-error: #f44336;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-            border-radius: 8px;
-          }
-        `
-      },
-      'gradient-blue': {
-        id: 'gradient-blue',
-        name: '蓝色渐变',
-        colors: {
-          primary: '#667eea',
-          accent: '#764ba2',
-          background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-          text: '#ffffff',
-          textSecondary: 'rgba(255,255,255,0.8)',
-          success: '#a8e6cf',
-          warning: '#ffd93d',
-          error: '#ff8b94'
-        },
-        styles: `
-          .cardforge-theme-gradient-blue {
-            --cf-primary: #667eea;
-            --cf-accent: #764ba2;
-            --cf-bg: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            --cf-text: #ffffff;
-            --cf-text-secondary: rgba(255,255,255,0.8);
-            --cf-success: #a8e6cf;
-            --cf-warning: #ffd93d;
-            --cf-error: #ff8b94;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: #ffffff;
-          }
-        `
-      },
-      'gradient-sunset': {
-        id: 'gradient-sunset',
-        name: '日落渐变',
-        colors: {
-          primary: '#ff6b6b',
-          accent: '#ffa726',
-          background: 'linear-gradient(135deg, #ff6b6b 0%, #ffa726 100%)',
-          text: '#ffffff',
-          textSecondary: 'rgba(255,255,255,0.9)',
-          success: '#a8e6cf',
-          warning: '#ffd93d',
-          error: '#ff8b94'
-        },
-        styles: `
-          .cardforge-theme-gradient-sunset {
-            --cf-primary: #ff6b6b;
-            --cf-accent: #ffa726;
-            --cf-bg: linear-gradient(135deg, #ff6b6b 0%, #ffa726 100%);
-            --cf-text: #ffffff;
-            --cf-text-secondary: rgba(255,255,255,0.9);
-            --cf-success: #a8e6cf;
-            --cf-warning: #ffd93d;
-            --cf-error: #ff8b94;
-            background: linear-gradient(135deg, #ff6b6b 0%, #ffa726 100%);
-            color: #ffffff;
-          }
-        `
-      },
-      'gradient-ocean': {
-        id: 'gradient-ocean',
-        name: '海洋渐变',
-        colors: {
-          primary: '#4facfe',
-          accent: '#00f2fe',
-          background: 'linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)',
-          text: '#ffffff',
-          textSecondary: 'rgba(255,255,255,0.9)',
-          success: '#a8e6cf',
-          warning: '#ffd93d',
-          error: '#ff8b94'
-        },
-        styles: `
-          .cardforge-theme-gradient-ocean {
-            --cf-primary: #4facfe;
-            --cf-accent: #00f2fe;
-            --cf-bg: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
-            --cf-text: #ffffff;
-            --cf-text-secondary: rgba(255,255,255,0.9);
-            --cf-success: #a8e6cf;
-            --cf-warning: #ffd93d;
-            --cf-error: #ff8b94;
-            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
-            color: #ffffff;
-          }
-        `
+          primary: '#2196F3',
+          accent: '#FF4081',
+          background: '#FFFFFF',
+          text: '#212121'
+        }
       }
     };
 
-    Object.entries(baseThemes).forEach(([id, theme]) => {
+    Object.entries(builtinThemes).forEach(([id, theme]) => {
       this._themes.set(id, theme);
     });
+  }
+
+  static _loadUserPreference() {
+    try {
+      const saved = localStorage.getItem('cardforge-theme');
+      if (saved && this._themes.has(saved)) {
+        this._currentTheme = saved;
+      }
+    } catch (error) {
+      console.warn('加载主题偏好失败:', error);
+    }
+  }
+
+  static subscribe(callback) {
+    this._subscribers.add(callback);
+    return () => this._subscribers.delete(callback);
+  }
+
+  static _notifySubscribers() {
+    this._subscribers.forEach(callback => callback(this._currentTheme));
   }
 
   static getTheme(themeId) {
     return this._themes.get(themeId) || this._themes.get('default');
   }
 
+  static getCurrentTheme() {
+    return this.getTheme(this._currentTheme);
+  }
+
+  static setTheme(themeId) {
+    if (!this._themes.has(themeId)) {
+      console.warn(`主题不存在: ${themeId}`);
+      return false;
+    }
+
+    this._currentTheme = themeId;
+    
+    try {
+      localStorage.setItem('cardforge-theme', themeId);
+    } catch (error) {
+      console.warn('保存主题偏好失败:', error);
+    }
+
+    this._notifySubscribers();
+    return true;
+  }
+
   static getAllThemes() {
     return Array.from(this._themes.values());
   }
 
-  static getThemesByType(type) {
-    return this.getAllThemes().filter(theme => {
-      if (type === 'gradient') return theme.id.startsWith('gradient-');
-      if (type === 'solid') return !theme.id.startsWith('gradient-');
-      return true;
-    });
+  static registerTheme(theme) {
+    if (!theme.id || !theme.name) {
+      throw new Error('主题必须包含 id 和 name');
+    }
+
+    this._themes.set(theme.id, theme);
+    this._notifySubscribers();
   }
 
+  // 应用主题到元素
   static applyTheme(element, themeId) {
     const theme = this.getTheme(themeId);
-    if (!theme) return false;
+    if (!theme || !element) return false;
 
-    // 移除旧主题类
-    Array.from(this._themes.keys()).forEach(id => {
-      element.classList.remove(`cardforge-theme-${id}`);
-    });
+    try {
+      Object.entries(theme.colors || {}).forEach(([key, value]) => {
+        element.style.setProperty(`--theme-${key}`, value);
+      });
 
-    // 添加新主题类
-    element.classList.add(`cardforge-theme-${themeId}`);
-    
-    // 注入主题样式
-    this._injectThemeStyles(theme);
-    
-    this._currentTheme = themeId;
-    return true;
-  }
-
-  static _injectThemeStyles(theme) {
-    const styleId = 'cardforge-theme-styles';
-    let styleElement = document.getElementById(styleId);
-    
-    if (!styleElement) {
-      styleElement = document.createElement('style');
-      styleElement.id = styleId;
-      document.head.appendChild(styleElement);
+      element.setAttribute('data-theme', themeId);
+      return true;
+    } catch (error) {
+      console.error('应用主题失败:', error);
+      return false;
     }
-    
-    styleElement.textContent = theme.styles;
   }
 
-  static getCurrentTheme() {
-    return this._currentTheme;
-  }
+  // 生成主题 CSS 变量
+  static generateThemeCSS(themeId) {
+    const theme = this.getTheme(themeId);
+    if (!theme) return '';
 
-  // 为主题系统添加工具方法
-  static createGradient(colors, type = 'diagonal') {
-    const gradientTypes = {
-      'diagonal': `linear-gradient(135deg, ${colors.join(', ')})`,
-      'horizontal': `linear-gradient(90deg, ${colors.join(', ')})`,
-      'vertical': `linear-gradient(180deg, ${colors.join(', ')})`,
-      'radial': `radial-gradient(circle, ${colors.join(', ')})`
-    };
-    
-    return gradientTypes[type] || gradientTypes.diagonal;
-  }
-
-  // 检查是否为渐变主题
-  static isGradientTheme(themeId) {
-    return themeId.startsWith('gradient-');
+    return Object.entries(theme.colors || {})
+      .map(([key, value]) => `--theme-${key}: ${value};`)
+      .join('\n');
   }
 }
 
