@@ -29,6 +29,10 @@ export const sharedStyles = css`
     color: var(--primary-text-color);
   }
   
+  .entity-picker-container {
+    min-width: 200px;
+  }
+  
   .required-star {
     color: var(--error-color);
     margin-left: 4px;
