@@ -79,7 +79,7 @@ export class EntityConfig {
   }
 
   static _renderEntityPicker(hass, entityId, requirement, onEntityChange) {
-    // 尝试使用 ha-entity-picker，如果不可用则使用备选方案
+    // 优先使用 ha-entity-picker，如果不可用则使用 ha-select
     if (this._isEntityPickerAvailable()) {
       console.log('使用 ha-entity-picker');
       return html`
@@ -93,8 +93,8 @@ export class EntityConfig {
         ></ha-entity-picker>
       `;
     } else {
-      console.log('ha-entity-picker 不可用，使用备选方案');
-      return this._renderFallbackEntityPicker(hass, entityId, requirement, onEntityChange);
+      console.log('ha-entity-picker 不可用，使用 ha-select');
+      return this._renderHaSelectEntityPicker(hass, entityId, requirement, onEntityChange);
     }
   }
 
@@ -102,28 +102,56 @@ export class EntityConfig {
     return customElements.get('ha-entity-picker') !== undefined;
   }
 
-  static _renderFallbackEntityPicker(hass, entityId, requirement, onEntityChange) {
+  static _renderHaSelectEntityPicker(hass, entityId, requirement, onEntityChange) {
     const entities = Object.keys(hass.states || {});
-    const filteredEntities = entities.filter(entityId => {
-      // 简单的实体过滤逻辑
-      if (requirement.type === 'weather') {
-        return entityId.startsWith('weather.');
-      }
-      return true;
-    });
+    
+    // 根据需求类型过滤实体
+    let filteredEntities = entities;
+    if (requirement.type === 'weather') {
+      filteredEntities = entities.filter(e => e.startsWith('weather.'));
+    } else if (requirement.type === 'sensor') {
+      filteredEntities = entities.filter(e => e.startsWith('sensor.'));
+    } else if (requirement.type === 'light') {
+      filteredEntities = entities.filter(e => e.startsWith('light.'));
+    } else if (requirement.type === 'switch') {
+      filteredEntities = entities.filter(e => e.startsWith('switch.'));
+    } else if (requirement.type === 'binary_sensor') {
+      filteredEntities = entities.filter(e => e.startsWith('binary_sensor.'));
+    }
+    
+    // 按字母顺序排序
+    filteredEntities.sort();
+
+    // 获取实体显示名称
+    const getEntityDisplayName = (entity) => {
+      const stateObj = hass.states[entity];
+      const friendlyName = stateObj?.attributes?.friendly_name;
+      return friendlyName ? `${friendlyName} (${entity})` : entity;
+    };
 
     return html`
-      <select 
+      <ha-select
+        .label=${`选择${requirement.description}`}
         .value=${entityId}
-        @change=${e => onEntityChange(requirement.key, e.target.value)}
-        style="width: 100%; padding: 8px; border-radius: 4px; border: 1px solid var(--divider-color);"
+        @selected=${e => this._handleHaSelectChange(e, requirement.key, onEntityChange)}
+        @closed=${e => e.stopPropagation()}
+        style="width: 100%;"
+        fixedMenuPosition
       >
-        <option value="">请选择实体</option>
+        <mwc-list-item value=""></mwc-list-item>
         ${filteredEntities.map(entity => html`
-          <option value=${entity} ?selected=${entity === entityId}>${entity}</option>
+          <mwc-list-item value=${entity} ?selected=${entity === entityId}>
+            ${getEntityDisplayName(entity)}
+          </mwc-list-item>
         `)}
-      </select>
+      </ha-select>
     `;
+  }
+
+  static _handleHaSelectChange(event, key, onEntityChange) {
+    const value = event.target.value;
+    console.log('ha-select 实体选择器变更:', key, value);
+    onEntityChange(key, value);
   }
 
   static _handleEntityChange(event, key, onEntityChange) {
