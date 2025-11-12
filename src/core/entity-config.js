@@ -76,6 +76,7 @@ export class EntityConfig {
             @value-changed=${e => this._handleEntityChange(e, requirement.key, onEntityChange)}
             allow-custom-entity
             .label=${`选择${requirement.description}`}
+            style="width: 100%;"
           ></ha-entity-picker>
         </div>
         
