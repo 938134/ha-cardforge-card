@@ -1,6 +1,6 @@
-// src/core/theme.js
+// src/core/theme-config.js
 import { html } from 'https://unpkg.com/lit@2.8.0/index.js?module';
-import { PluginRegistry } from './registry.js';
+import { PluginRegistry } from './plugin-registry.js';
 
 export class ThemeConfig {
   static render(config, plugin, onThemeChange) {

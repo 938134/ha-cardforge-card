@@ -1,4 +1,4 @@
-// src/core/base.js
+// src/core/base-plugin.js
 export class BasePlugin {
   constructor() {
     if (new.target === BasePlugin) {
@@ -140,17 +140,17 @@ export class BasePlugin {
       'glass': `
         position: relative;
         background: linear-gradient(135deg, 
-          rgba(255, 255, 255, 0.25) 0%, 
-          rgba(255, 255, 255, 0.15) 50%,
-          rgba(255, 255, 255, 0.1) 100%);
+          rgba(248, 248, 248, 0.9) 0%, 
+          rgba(240, 240, 240, 0.8) 50%,
+          rgba(232, 232, 232, 0.7) 100%);
         backdrop-filter: blur(25px) saturate(180%);
         -webkit-backdrop-filter: blur(25px) saturate(180%);
-        border: 1px solid rgba(255, 255, 255, 0.3);
+        border: 1px solid rgba(255, 255, 255, 0.4);
         box-shadow: 
           0 8px 32px rgba(0, 0, 0, 0.1),
-          inset 0 1px 0 rgba(255, 255, 255, 0.2),
+          inset 0 1px 0 rgba(255, 255, 255, 0.6),
           inset 0 -1px 0 rgba(0, 0, 0, 0.05);
-        color: var(--primary-text-color);
+        color: #333333;
       `,
       'gradient': this._getRandomGradient(),
       'neon': `
@@ -181,7 +181,7 @@ export class BasePlugin {
     
     // 基于时间选择渐变，确保同一卡片每次渲染使用相同的渐变
     const now = new Date();
-    const seed = now.getHours() * 60 + now.getMinutes();
+    const seed = now.getHours() * 60 + now.getMinutes(); // 每分钟变化一次
     const gradientIndex = seed % gradients.length;
     
     return `
@@ -233,8 +233,8 @@ export class BasePlugin {
   
   _getGlassGradientColors() {
     return [
-      'rgba(255, 255, 255, 0.3)',
-      'rgba(255, 255, 255, 0.15)'
+      'rgba(248, 248, 248, 0.9)',
+      'rgba(232, 232, 232, 0.7)'
     ];
   }
   

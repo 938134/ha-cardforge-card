@@ -1,7 +1,7 @@
 // src/ha-cardforge-card.js
 import { LitElement, html } from 'https://unpkg.com/lit@2.8.0/index.js?module';
 import { unsafeHTML } from 'https://unpkg.com/lit-html/directives/unsafe-html.js?module';
-import { PluginRegistry } from './core/registry.js';
+import { PluginRegistry } from './core/plugin-registry.js';
 
 class HaCardForgeCard extends LitElement {
   static properties = {
@@ -52,7 +52,7 @@ class HaCardForgeCard extends LitElement {
     return {
       plugin: '',
       entities: {},
-      theme: 'default',
+      theme: 'auto',
       ...config
     };
   }
@@ -194,7 +194,7 @@ class HaCardForgeCard extends LitElement {
     return {
       plugin: 'simple-clock',
       entities: {},
-      theme: 'default'
+      theme: 'auto'
     };
   }
 
@@ -203,5 +203,8 @@ class HaCardForgeCard extends LitElement {
   }
 }
 
-customElements.get('ha-cardforge-card') || customElements.define('ha-cardforge-card', HaCardForgeCard);
+if (!customElements.get('ha-cardforge-card')) {
+  customElements.define('ha-cardforge-card', HaCardForgeCard);
+}
+
 export { HaCardForgeCard };

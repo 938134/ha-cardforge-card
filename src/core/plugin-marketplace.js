@@ -1,8 +1,8 @@
-// src/core/plugins.js
+// src/core/plugin-marketplace.js
 import { html } from 'https://unpkg.com/lit@2.8.0/index.js?module';
-import { PluginRegistry } from './registry.js';
+import { PluginRegistry } from './plugin-registry.js';
 
-export class EditorPlugins {
+export class PluginMarketplace {
   static render(searchQuery, selectedCategory, plugins, onPluginSelect, selectedPluginId, onSearchChange, onCategoryChange) {
     return html`
       <div class="marketplace-container">
@@ -74,6 +74,3 @@ export class EditorPlugins {
     `;
   }
 }
-
-// 为了向后兼容，同时导出 PluginMarketplace
-export const PluginMarketplace = EditorPlugins;

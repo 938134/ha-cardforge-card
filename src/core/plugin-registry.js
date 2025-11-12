@@ -1,4 +1,4 @@
-// src/core/registry.js
+// src/core/plugin-registry.js
 class PluginRegistry {
   static _plugins = new Map();
   static _initialized = false;

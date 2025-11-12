@@ -1,11 +1,11 @@
 // src/ha-cardforge-editor.js
 import { LitElement, html, css } from 'https://unpkg.com/lit@2.8.0/index.js?module';
-import { PluginRegistry } from './core/registry.js';
-import { EditorTabs } from './core/tabs.js';
-import { PluginMarketplace } from './core/plugins.js';
-import { EntityConfig } from './core/entity.js';
-import { ThemeConfig } from './core/theme.js';
-import { sharedStyles } from './core/styles.js';
+import { PluginRegistry } from './core/plugin-registry.js';
+import { EditorTabs } from './core/editor-tabs.js';
+import { PluginMarketplace } from './core/plugin-marketplace.js';
+import { EntityConfig } from './core/entity-config.js';
+import { ThemeConfig } from './core/theme-config.js';
+import { sharedStyles } from './core/shared-styles.js';
 
 class HaCardForgeEditor extends LitElement {
   static properties = {
@@ -75,7 +75,7 @@ class HaCardForgeEditor extends LitElement {
 
   constructor() {
     super();
-    this.config = { plugin: '', entities: {}, theme: 'default' };
+    this.config = { plugin: '', entities: {}, theme: 'auto' };
     this._filteredPlugins = [];
     this._searchQuery = '';
     this._selectedCategory = 'all';
@@ -121,7 +121,7 @@ class HaCardForgeEditor extends LitElement {
     this.config = { 
       plugin: '',
       entities: {},
-      theme: 'default',
+      theme: 'auto',
       ...config 
     };
   }
@@ -323,15 +323,7 @@ class HaCardForgeEditor extends LitElement {
         console.log('实体选择器数量:', entityPickers?.length);
         if (entityPickers) {
           entityPickers.forEach((picker, index) => {
-            console.log(`实体选择器 ${index}:`, picker);
-            console.log(`实体选择器 ${index} hass:`, picker.hass);
-            console.log(`实体选择器 ${index} value:`, picker.value);
-            console.log(`实体选择器 ${index} 样式:`, picker.style.cssText);
-            console.log(`实体选择器 ${index} 可见性:`, picker.offsetParent !== null);
-            
-            // 检查实体选择器的内部结构
-            const input = picker.shadowRoot?.querySelector('input');
-            console.log(`实体选择器 ${index} input:`, input);
+            console.log(`实体选择器 ${index}:`, picker, 'hass:', picker.hass);
           });
         }
       }, 100);

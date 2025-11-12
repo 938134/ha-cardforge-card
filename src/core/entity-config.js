@@ -1,6 +1,6 @@
-// src/core/entity.js
+// src/core/entity-config.js
 import { html } from 'https://unpkg.com/lit@2.8.0/index.js?module';
-import { PluginRegistry } from './registry.js';
+import { PluginRegistry } from './plugin-registry.js';
 
 export class EntityConfig {
   static render(hass, config, plugin, onEntityChange) {
