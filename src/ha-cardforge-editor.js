@@ -2,7 +2,7 @@
 import { LitElement, html, css } from 'https://unpkg.com/lit@2.8.0/index.js?module';
 import { PluginRegistry } from './core/registry.js';
 import { EditorTabs } from './core/tabs.js';
-import { PluginMarketplace } from './core/plugin.js';
+import { PluginMarketplace } from './core/plugins.js';
 import { EntityConfig } from './core/entity.js';
 import { ThemeConfig } from './core/theme.js';
 import { sharedStyles } from './core/styles.js';
