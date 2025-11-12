@@ -34,17 +34,15 @@ export const sharedStyles = css`
     width: 100%;
   }
   
-  /* 统一的 ha-select 样式 */
-  .entity-picker-container ha-select {
+  .entity-picker-container ha-combo-box {
     width: 100%;
-    --mdc-theme-primary: var(--primary-color);
-  }
-  
-  .entity-picker-container ha-entity-picker {
-    width: 100%;
-    --mdc-text-field-fill-color: var(--card-background-color);
-    --mdc-text-field-label-ink-color: var(--secondary-text-color);
-    --mdc-text-field-ink-color: var(--primary-text-color);
+    --ha-combo-box-background: var(--card-background-color);
+    --ha-combo-box-text-color: var(--primary-text-color);
+    --ha-combo-box-icon-color: var(--secondary-text-color);
+    --ha-combo-box-border-color: var(--divider-color);
+    --ha-combo-box-border-radius: 4px;
+    --ha-combo-box-hover-border-color: var(--primary-color);
+    --ha-combo-box-focused-border-color: var(--primary-color);
   }
   
   .required-star {

@@ -79,30 +79,12 @@ export class EntityConfig {
   }
 
   static _renderEntityPicker(hass, entityId, requirement, onEntityChange) {
-    // 优先使用 ha-entity-picker，如果不可用则使用 ha-select
-    if (this._isEntityPickerAvailable()) {
-      console.log('使用 ha-entity-picker');
-      return html`
-        <ha-entity-picker
-          .hass=${hass}
-          .value=${entityId}
-          @value-changed=${e => this._handleEntityChange(e, requirement.key, onEntityChange)}
-          allow-custom-entity
-          .label=${`选择${requirement.description}`}
-          style="width: 100%;"
-        ></ha-entity-picker>
-      `;
-    } else {
-      console.log('ha-entity-picker 不可用，使用 ha-select');
-      return this._renderHaSelectEntityPicker(hass, entityId, requirement, onEntityChange);
-    }
+    // 统一使用 ha-combo-box 作为实体选择器
+    console.log('使用 ha-combo-box 实体选择器');
+    return this._renderHaComboBoxEntityPicker(hass, entityId, requirement, onEntityChange);
   }
 
-  static _isEntityPickerAvailable() {
-    return customElements.get('ha-entity-picker') !== undefined;
-  }
-
-  static _renderHaSelectEntityPicker(hass, entityId, requirement, onEntityChange) {
+  static _renderHaComboBoxEntityPicker(hass, entityId, requirement, onEntityChange) {
     const entities = Object.keys(hass.states || {});
     
     // 根据需求类型过滤实体
@@ -129,29 +111,29 @@ export class EntityConfig {
       return friendlyName ? `${friendlyName} (${entity})` : entity;
     };
 
+    // 创建选项列表
+    const entityOptions = filteredEntities.map(entity => ({
+      value: entity,
+      label: getEntityDisplayName(entity)
+    }));
+
+    // 添加空选项
+    entityOptions.unshift({
+      value: '',
+      label: `选择${requirement.description}`
+    });
+
     return html`
-      <ha-select
+      <ha-combo-box
         .label=${`选择${requirement.description}`}
         .value=${entityId}
-        @selected=${e => this._handleHaSelectChange(e, requirement.key, onEntityChange)}
+        .items=${entityOptions}
+        @value-changed=${e => this._handleEntityChange(e, requirement.key, onEntityChange)}
         @closed=${e => e.stopPropagation()}
         style="width: 100%;"
-        fixedMenuPosition
-      >
-        <mwc-list-item value=""></mwc-list-item>
-        ${filteredEntities.map(entity => html`
-          <mwc-list-item value=${entity} ?selected=${entity === entityId}>
-            ${getEntityDisplayName(entity)}
-          </mwc-list-item>
-        `)}
-      </ha-select>
+        allow-custom-value
+      ></ha-combo-box>
     `;
-  }
-
-  static _handleHaSelectChange(event, key, onEntityChange) {
-    const value = event.target.value;
-    console.log('ha-select 实体选择器变更:', key, value);
-    onEntityChange(key, value);
   }
 
   static _handleEntityChange(event, key, onEntityChange) {
