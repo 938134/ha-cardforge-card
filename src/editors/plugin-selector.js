@@ -14,17 +14,25 @@ export class PluginSelector extends LitElement {
         .value=${this.selectedPlugin}
         @selected=${this._onPluginSelected}
         @closed=${e => e.stopPropagation()}
+        naturalMenuWidth
+        fixedMenuPosition
       >
         ${this.plugins.map(plugin => html`
-          <mwc-list-item value=${plugin.id}>${plugin.name}</mwc-list-item>
+          <mwc-list-item value=${plugin.id}>
+            ${plugin.name} 
+            <span style="opacity: 0.6; font-size: 0.9em; margin-left: 8px;">
+              ${plugin.description}
+            </span>
+          </mwc-list-item>
         `)}
       </ha-select>
     `;
   }
 
   _onPluginSelected(event) {
+    const pluginId = event.target.value;
     this.dispatchEvent(new CustomEvent('plugin-changed', {
-      detail: { pluginId: event.target.value }
+      detail: { pluginId }
     }));
   }
 }

@@ -1,7 +1,9 @@
 // src/main.js
-import { HaCardForgeCard } from './ha-cardforge-card.js';
-import { HaCardForgeEditor } from './editors/ha-cardforge-editor.js';
+import { HaCardForgeCard } from './core/index.js';
+import { HaCardForgeEditor } from './editors/index.js';
+import { PluginRegistry } from './core/plugin-registry.js';
 
+// 注册自定义元素
 if (!customElements.get('ha-cardforge-card')) {
   customElements.define('ha-cardforge-card', HaCardForgeCard);
 }
@@ -10,6 +12,7 @@ if (!customElements.get('ha-cardforge-editor')) {
   customElements.define('ha-cardforge-editor', HaCardForgeEditor);
 }
 
+// 注册到 Home Assistant 自定义卡片
 if (window.customCards) {
   window.customCards.push({
     type: 'ha-cardforge-card',
@@ -19,5 +22,25 @@ if (window.customCards) {
     documentationURL: 'https://github.com/your-repo/ha-cardforge-card'
   });
 }
+
+// 导出公共 API
+window.CardForge = {
+  version: '1.0.0',
+  core: {
+    HaCardForgeCard,
+    PluginRegistry
+  },
+  editors: {
+    HaCardForgeEditor
+  },
+  utils: {
+    createCard: (config) => {
+      const card = document.createElement('ha-cardforge-card');
+      card.setConfig(config);
+      return card;
+    },
+    getAvailablePlugins: () => PluginRegistry.getAllPlugins()
+  }
+};
 
 console.log('🎉 卡片工坊初始化完成');

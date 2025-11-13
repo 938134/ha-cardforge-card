@@ -1,7 +1,8 @@
-// src/ha-cardforge-card.js
+// src/core/ha-cardforge-card.js
 import { LitElement, html } from 'https://unpkg.com/lit@2.8.0/index.js?module';
 import { unsafeHTML } from 'https://unpkg.com/lit-html/directives/unsafe-html.js?module';
-import { PluginRegistry } from './core/plugin-registry.js';
+import { PluginRegistry } from './plugin-registry.js';
+import { cardStyles, stateStyles } from '../styles/index.js';
 
 class HaCardForgeCard extends LitElement {
   static properties = {
@@ -12,6 +13,8 @@ class HaCardForgeCard extends LitElement {
     _error: { state: true },
     _loading: { state: true }
   };
+
+  static styles = [cardStyles, stateStyles];
 
   constructor() {
     super();
@@ -100,26 +103,6 @@ class HaCardForgeCard extends LitElement {
             <div class="error-message">${this._error.message}</div>
           </div>
         </ha-card>
-        
-        <style>
-          .error-container {
-            padding: 20px;
-            text-align: center;
-            color: var(--error-color);
-          }
-          .error-icon {
-            font-size: 2em;
-            margin-bottom: 8px;
-          }
-          .error-title {
-            font-weight: bold;
-            margin-bottom: 8px;
-          }
-          .error-message {
-            font-size: 0.9em;
-            opacity: 0.8;
-          }
-        </style>
       `;
     }
     
@@ -131,17 +114,6 @@ class HaCardForgeCard extends LitElement {
             <div class="loading-text">加载中...</div>
           </div>
         </ha-card>
-        
-        <style>
-          .loading-container {
-            padding: 40px;
-            text-align: center;
-            color: var(--secondary-text-color);
-          }
-          .loading-text {
-            margin-top: 8px;
-          }
-        </style>
       `;
     }
     
@@ -158,11 +130,6 @@ class HaCardForgeCard extends LitElement {
         
         <style>
           ${styles}
-          
-          .cardforge-container {
-            position: relative;
-            min-height: 80px;
-          }
         </style>
       `;
     } catch (error) {

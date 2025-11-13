@@ -1,10 +1,8 @@
 // src/editors/ha-cardforge-editor.js
-import { LitElement, html, css } from 'https://unpkg.com/lit@2.8.0/index.js?module';
+import { LitElement, html } from 'https://unpkg.com/lit@2.8.0/index.js?module';
 import { PluginRegistry } from '../core/plugin-registry.js';
-import { sharedStyles } from '../core/shared-styles.js';
-import './plugin-selector.js';
-import './theme-selector.js';
-import './entity-picker.js';
+import { editorCoreStyles } from '../styles/index.js';
+import { validateEditorConfig, getConfigPreview } from './editor-utils.js';
 
 class HaCardForgeEditor extends LitElement {
   static properties = {
@@ -15,71 +13,7 @@ class HaCardForgeEditor extends LitElement {
     _activePlugin: { state: true }
   };
 
-  static styles = [
-    sharedStyles,
-    css`
-      .editor-container {
-        padding: 16px;
-      }
-      
-      .plugin-info {
-        margin-bottom: 16px;
-        padding: 12px;
-        background: var(--card-background-color);
-        border-radius: 8px;
-        border: 1px solid var(--divider-color);
-      }
-      
-      .plugin-header {
-        display: flex;
-        align-items: center;
-        gap: 8px;
-        margin-bottom: 8px;
-      }
-      
-      .plugin-icon {
-        font-size: 1.2em;
-      }
-      
-      .plugin-name {
-        font-weight: 600;
-        font-size: 1.1em;
-      }
-      
-      .plugin-description {
-        font-size: 0.9em;
-        color: var(--secondary-text-color);
-        line-height: 1.4;
-      }
-      
-      .plugin-version {
-        font-size: 0.8em;
-        color: var(--secondary-text-color);
-        margin-top: 4px;
-      }
-      
-      .config-section {
-        margin-bottom: 24px;
-      }
-      
-      .section-title {
-        font-weight: 600;
-        font-size: 1em;
-        color: var(--primary-text-color);
-        margin-bottom: 12px;
-        display: flex;
-        align-items: center;
-        gap: 8px;
-      }
-      
-      .card-actions {
-        margin-top: 24px;
-        text-align: right;
-        border-top: 1px solid var(--divider-color);
-        padding-top: 16px;
-      }
-    `
-  ];
+  static styles = editorCoreStyles;
 
   constructor() {
     super();
@@ -91,10 +25,9 @@ class HaCardForgeEditor extends LitElement {
 
   async firstUpdated() {
     await PluginRegistry.initialize();
-    this._plugins = PluginRegistry.getAllPlugins().map(p => ({ id: p.id, name: p.name }));
+    this._plugins = PluginRegistry.getAllPlugins();
     this._initialized = true;
     
-    // 如果有配置的插件，加载插件信息
     if (this.config.plugin) {
       this._activePlugin = PluginRegistry.getPlugin(this.config.plugin);
     }
@@ -120,28 +53,93 @@ class HaCardForgeEditor extends LitElement {
 
     return html`
       <div class="editor-container">
-        <div class="config-section">
-          <div class="section-title">📋 选择卡片类型</div>
-          <plugin-selector
-            .plugins=${this._plugins}
-            .selectedPlugin=${this.config.plugin}
-            @plugin-changed=${this._onPluginChanged}
-          ></plugin-selector>
-        </div>
+        <div class="editor-layout">
+          <!-- 左侧：基础配置 -->
+          <div class="config-section basic-config">
+            <div class="section-header">
+              <div class="section-icon">⚙️</div>
+              <div>
+                <div class="section-title">基础配置</div>
+                <div class="section-description">选择卡片类型和主题样式</div>
+              </div>
+            </div>
+            
+            <div class="config-group">
+              <div class="config-item">
+                <label class="entity-label">卡片类型</label>
+                <plugin-selector
+                  .plugins=${this._plugins}
+                  .selectedPlugin=${this.config.plugin}
+                  @plugin-changed=${this._onPluginChanged}
+                ></plugin-selector>
+                <div class="entity-help">选择要使用的卡片插件类型</div>
+              </div>
 
-        ${this.config.plugin ? html`
-          ${this._renderPluginInfo()}
-          
-          <div class="config-section">
-            <div class="section-title">🎨 主题设置</div>
-            <theme-selector
-              .selectedTheme=${this.config.theme}
-              @theme-changed=${this._onThemeChanged}
-            ></theme-selector>
+              ${this.config.plugin ? html`
+                <div class="config-item">
+                  <label class="entity-label">主题样式</label>
+                  <theme-selector
+                    .selectedTheme=${this.config.theme}
+                    @theme-changed=${this._onThemeChanged}
+                  ></theme-selector>
+                  <div class="entity-help">选择卡片的视觉主题风格</div>
+                </div>
+              ` : ''}
+            </div>
           </div>
 
-          ${this._renderEntityConfig()}
-        ` : this._renderEmptyState()}
+          <!-- 右侧：插件信息 -->
+          ${this.config.plugin && this._activePlugin ? html`
+            <div class="config-section plugin-info">
+              <div class="section-header">
+                <div class="section-icon">📋</div>
+                <div>
+                  <div class="section-title">${this._activePlugin.manifest.name}</div>
+                  <div class="section-description">${this._activePlugin.manifest.description}</div>
+                </div>
+              </div>
+              
+              <div class="plugin-meta">
+                <div class="meta-item">
+                  <div class="meta-label">版本</div>
+                  <div class="meta-value">v${this._activePlugin.manifest.version}</div>
+                </div>
+                <div class="meta-item">
+                  <div class="meta-label">分类</div>
+                  <div class="meta-value">${this._getCategoryName(this._activePlugin.manifest.category)}</div>
+                </div>
+                <div class="meta-item">
+                  <div class="meta-label">作者</div>
+                  <div class="meta-value">${this._activePlugin.manifest.author}</div>
+                </div>
+              </div>
+              
+              <div class="feature-tags">
+                <div class="feature-tag ${this._activePlugin.manifest.themeSupport ? 'supported' : 'unsupported'}">
+                  ${this._activePlugin.manifest.themeSupport ? '✅' : '❌'} 主题支持
+                </div>
+                <div class="feature-tag ${this._activePlugin.manifest.gradientSupport ? 'supported' : 'unsupported'}">
+                  ${this._activePlugin.manifest.gradientSupport ? '✅' : '❌'} 渐变支持
+                </div>
+              </div>
+            </div>
+          ` : this._renderPluginInfoPlaceholder()}
+        </div>
+
+        <!-- 底部：实体配置 -->
+        ${this.config.plugin ? html`
+          <div class="config-section plugin-config-section">
+            <div class="section-header">
+              <div class="section-icon">🔗</div>
+              <div>
+                <div class="section-title">数据源配置</div>
+                <div class="section-description">配置卡片显示所需的数据来源</div>
+              </div>
+            </div>
+            
+            ${this._renderEntityConfig()}
+          </div>
+        ` : ''}
 
         <div class="card-actions">
           <mwc-button outlined label="取消" @click=${this._cancel}></mwc-button>
@@ -158,28 +156,25 @@ class HaCardForgeEditor extends LitElement {
 
   _renderLoading() {
     return html`
-      <ha-card>
+      <div class="editor-container">
         <div class="empty-state">
           <ha-circular-progress indeterminate></ha-circular-progress>
           <div style="margin-top: 16px;">初始化插件系统...</div>
         </div>
-      </ha-card>
+      </div>
     `;
   }
 
-  _renderPluginInfo() {
-    if (!this._activePlugin) return '';
-    
-    const manifest = this._activePlugin.manifest;
-    
+  _renderPluginInfoPlaceholder() {
     return html`
-      <div class="plugin-info">
-        <div class="plugin-header">
-          <span class="plugin-icon">${manifest.icon}</span>
-          <span class="plugin-name">${manifest.name}</span>
+      <div class="config-section">
+        <div class="empty-state">
+          <div class="empty-icon">🎨</div>
+          <div class="empty-title">选择卡片类型</div>
+          <div class="empty-description">
+            从左侧选择要配置的卡片类型，查看详细信息和配置选项
+          </div>
         </div>
-        <div class="plugin-description">${manifest.description}</div>
-        <div class="plugin-version">版本: ${manifest.version} | 作者: ${manifest.author}</div>
       </div>
     `;
   }
@@ -191,23 +186,24 @@ class HaCardForgeEditor extends LitElement {
     
     if (requirements.length === 0) {
       return html`
-        <div class="config-section">
-          <div class="section-title">🔧 数据源配置</div>
-          <div class="entity-help">✅ 此插件无需配置数据源</div>
+        <div class="empty-state">
+          <div class="empty-icon">✅</div>
+          <div class="empty-title">无需额外配置</div>
+          <div class="empty-description">
+            此插件无需配置实体数据源，将使用系统默认数据
+          </div>
         </div>
       `;
     }
 
     return html`
-      <div class="config-section">
-        <div class="section-title">🔧 数据源配置</div>
+      <div class="entities-grid">
         ${requirements.map(req => html`
           <entity-picker
             .hass=${this.hass}
             .label=${req.description}
             .value=${this.config.entities?.[req.key] || ''}
             .required=${req.required || false}
-            .placeholder=${`配置 ${req.description}`}
             @value-changed=${e => this._onEntityChanged(req.key, e.detail.value)}
           ></entity-picker>
         `)}
@@ -215,15 +211,15 @@ class HaCardForgeEditor extends LitElement {
     `;
   }
 
-  _renderEmptyState() {
-    return html`
-      <div class="config-section">
-        <div class="section-title">🚀 开始使用</div>
-        <div class="entity-help">
-          💡 请先选择要配置的卡片类型。系统已加载 ${this._plugins.length} 个可用插件。
-        </div>
-      </div>
-    `;
+  _getCategoryName(category) {
+    const categories = {
+      'info': '信息',
+      'time': '时间',
+      'weather': '天气',
+      'sensor': '传感器',
+      'control': '设备控制'
+    };
+    return categories[category] || category;
   }
 
   _onPluginChanged(event) {
@@ -257,9 +253,14 @@ class HaCardForgeEditor extends LitElement {
   }
 
   _notifyConfigUpdate() {
-    this.dispatchEvent(new CustomEvent('config-changed', {
-      detail: { config: this.config }
-    }));
+    try {
+      validateEditorConfig(this.config);
+      this.dispatchEvent(new CustomEvent('config-changed', {
+        detail: { config: this.config }
+      }));
+    } catch (error) {
+      console.warn('配置验证失败:', error.message);
+    }
   }
 
   _save() {

@@ -1,4 +1,13 @@
 // src/core/base-plugin.js
+import { ThemeManager } from '../themes/index.js';
+import { 
+  formatTime, 
+  formatDate, 
+  getWeekday, 
+  isValidEntityId, 
+  isJinjaTemplate 
+} from './utils.js';
+
 export class BasePlugin {
   constructor() {
     if (new.target === BasePlugin) {
@@ -28,9 +37,9 @@ export class BasePlugin {
   getSystemData(hass, config) {
     const now = new Date();
     return {
-      time: now.toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit', hour12: false }),
-      date: now.toLocaleDateString('zh-CN'),
-      weekday: '星期' + '日一二三四五六'[now.getDay()],
+      time: formatTime(now),
+      date: formatDate(now),
+      weekday: getWeekday(now),
       user: hass?.user?.name || '家人',
       greeting: this._getGreeting(now.getHours()),
       randomMessage: this._getRandomMessage()
@@ -45,13 +54,13 @@ export class BasePlugin {
   _getFlexibleValue(hass, source, defaultValue = '') {
     if (!source) return defaultValue;
     
-    // 如果是实体ID格式（包含点号）
-    if (source.includes('.') && hass?.states?.[source]) {
+    // 如果是实体ID
+    if (isValidEntityId(source) && hass?.states?.[source]) {
       return hass.states[source].state || defaultValue;
     }
     
-    // 如果是Jinja2模板（包含花括号）
-    if (source.includes('{{') || source.includes('{%')) {
+    // 如果是Jinja2模板
+    if (isJinjaTemplate(source)) {
       return this._evaluateJinjaTemplate(hass, source, defaultValue);
     }
     
@@ -114,8 +123,8 @@ export class BasePlugin {
       if (template.includes('now()')) {
         const now = new Date();
         const timeFormats = {
-          "strftime('%H:%M')": now.toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit', hour12: false }),
-          "strftime('%Y-%m-%d')": now.toLocaleDateString('zh-CN'),
+          "strftime('%H:%M')": formatTime(now),
+          "strftime('%Y-%m-%d')": formatDate(now),
           "strftime('%m月%d日')": `${now.getMonth() + 1}月${now.getDate()}日`,
           "strftime('%Y年%m月%d日')": `${now.getFullYear()}年${now.getMonth() + 1}月${now.getDate()}日`
         };
@@ -229,231 +238,25 @@ export class BasePlugin {
   }
   
   _getRandomMessage() {
-    return '';
+    const messages = [
+      '今天也是美好的一天！',
+      '保持微笑，继续前进！',
+      '每一天都是新的开始！',
+      '加油，你可以的！',
+      '享受当下的每一刻！'
+    ];
+    return messages[Math.floor(Math.random() * messages.length)];
   }
 
   // === 样式系统 ===
   getBaseStyles(config) {
-    const themeConfig = { ...this.getThemeConfig(), ...config.themeConfig };
+    const themeStyles = ThemeManager.applyTheme(config, this);
+    
     return `
-      :host {
-        --rgb-primary-background-color: var(--card-background-color, 255, 255, 255);
-        --rgb-primary-text-color: var(--primary-text-color, 0, 0, 0);
-      }
+      ${themeStyles}
       
-      .cardforge-card {
-        position: relative;
-        font-family: var(--paper-font-common-nowrap_-_font-family);
-        ${this._borderRadius('12px')}
-        ${this._getThemeStyles(themeConfig, config.theme)}
-        cursor: default;
-        overflow: hidden;
-        transition: all 0.3s ease;
-      }
-      
-      /* 主题突出显示效果 */
-      .cardforge-card:hover {
-        transform: translateY(-2px);
-        ${this._boxShadow('strong')}
-      }
-      
-      .cardforge-card.glass {
-        backdrop-filter: blur(20px);
-        -webkit-backdrop-filter: blur(20px);
-        border: 1px solid rgba(255, 255, 255, 0.3);
-      }
-      
-      .cardforge-card.gradient {
-        background-size: 200% 200%;
-        animation: gradientShift 6s ease infinite;
-      }
-      
-      .cardforge-card.neon {
-        animation: neonPulse 2s ease-in-out infinite;
-      }
-      
+      /* 插件专用样式工具 */
       ${this._getResponsiveStyles()}
-      ${this._getAnimationStyles()}
-      
-      .cardforge-interactive { 
-        cursor: pointer; 
-        transition: all 0.2s ease; 
-      }
-      .cardforge-interactive:hover { opacity: 0.8; }
-      .cardforge-interactive:active { transform: scale(0.98); }
-      
-      .cardforge-status-on { color: var(--success-color); }
-      .cardforge-status-off { color: var(--disabled-color); }
-      .cardforge-status-unavailable { color: var(--error-color); opacity: 0.5; }
-    `;
-  }
-  
-  _getThemeStyles(themeConfig, themeId = 'auto') {
-    if (!themeConfig.useGradient) {
-      return this._getSolidTheme(themeId);
-    }
-    
-    return this._getGradientTheme(themeConfig, themeId);
-  }
-  
-  _getSolidTheme(themeId) {
-    const themes = {
-      'auto': `
-        background: var(--card-background-color); 
-        color: var(--primary-text-color);
-      `,
-      'glass': `
-        position: relative;
-        background: linear-gradient(135deg, 
-          rgba(var(--rgb-primary-background-color), 0.25) 0%, 
-          rgba(var(--rgb-primary-background-color), 0.15) 50%,
-          rgba(var(--rgb-primary-background-color), 0.1) 100%);
-        backdrop-filter: blur(25px) saturate(180%);
-        -webkit-backdrop-filter: blur(25px) saturate(180%);
-        border: 1px solid rgba(var(--rgb-primary-text-color), 0.15);
-        ${this._boxShadow('light')}
-        color: var(--primary-text-color);
-      `,
-      'gradient': this._getRandomGradient(),
-      'neon': `
-        background: #1a1a1a;
-        color: #00ff88;
-        border: 1px solid #00ff88;
-        ${this._boxShadow('neon')}
-      `
-    };
-    
-    return themes[themeId] || themes.auto;
-  }
-  
-  _getRandomGradient() {
-    const gradients = [
-      'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-      'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)',
-      'linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)',
-      'linear-gradient(135deg, #43e97b 0%, #38f9d7 100%)',
-      'linear-gradient(135deg, #fa709a 0%, #fee140 100%)'
-    ];
-    
-    const now = new Date();
-    const seed = now.getHours() * 60 + now.getMinutes();
-    const gradientIndex = seed % gradients.length;
-    
-    return `
-      background: ${gradients[gradientIndex]};
-      background-size: 200% 200%;
-      animation: gradientShift 8s ease infinite;
-      color: white;
-    `;
-  }
-  
-  _getGradientTheme(themeConfig, themeId) {
-    const gradientColors = {
-      'auto': ['var(--primary-color)', 'var(--accent-color)'],
-      'glass': this._getGlassGradientColors(),
-      'gradient': this._getRandomGradientColors(),
-      'neon': ['#00ff88', '#00cc66']
-    };
-    
-    const colors = gradientColors[themeId] || gradientColors.auto;
-    
-    const gradientMap = {
-      'diagonal': `linear-gradient(135deg, ${colors.join(', ')})`,
-      'horizontal': `linear-gradient(90deg, ${colors.join(', ')})`,
-      'vertical': `linear-gradient(180deg, ${colors.join(', ')})`,
-      'radial': `radial-gradient(circle, ${colors.join(', ')})`
-    };
-    
-    const gradient = gradientMap[themeConfig.gradientType] || gradientMap.diagonal;
-    
-    if (themeId === 'gradient') {
-      return `
-        background: ${gradient};
-        background-size: 200% 200%;
-        animation: gradientShift 6s ease infinite;
-        color: white;
-      `;
-    }
-    
-    if (themeId === 'glass') {
-      return `
-        ${this._getSolidTheme('glass')}
-        background: ${gradient}, ${this._getSolidTheme('glass').split('background:')[1].split(';')[0]};
-        background-blend-mode: overlay, normal;
-      `;
-    }
-    
-    return `background: ${gradient}; color: white;`;
-  }
-  
-  _getGlassGradientColors() {
-    return [
-      'rgba(var(--rgb-primary-background-color), 0.25)',
-      'rgba(var(--rgb-primary-background-color), 0.15)'
-    ];
-  }
-  
-  _getRandomGradientColors() {
-    const colorPairs = [
-      ['#667eea', '#764ba2'],
-      ['#f093fb', '#f5576c'],
-      ['#4facfe', '#00f2fe'],
-      ['#43e97b', '#38f9d7'],
-      ['#fa709a', '#fee140']
-    ];
-    
-    const now = new Date();
-    const seed = now.getHours() * 60 + now.getMinutes();
-    const colorIndex = seed % colorPairs.length;
-    
-    return colorPairs[colorIndex];
-  }
-
-  _getAnimationStyles() {
-    return `
-      @keyframes gradientShift {
-        0% {
-          background-position: 0% 50%;
-        }
-        50% {
-          background-position: 100% 50%;
-        }
-        100% {
-          background-position: 0% 50%;
-        }
-      }
-      
-      @keyframes neonPulse {
-        0%, 100% {
-          box-shadow: 
-            0 0 8px #00ff88,
-            inset 0 0 15px rgba(0, 255, 136, 0.1);
-        }
-        50% {
-          box-shadow: 
-            0 0 20px #00ff88,
-            0 0 35px rgba(0, 255, 136, 0.3),
-            inset 0 0 25px rgba(0, 255, 136, 0.2);
-        }
-      }
-      
-      @keyframes glassShine {
-        0% {
-          background-position: -100% 0;
-        }
-        100% {
-          background-position: 200% 0;
-        }
-      }
-      
-      @keyframes float {
-        0%, 100% {
-          transform: translateY(0px);
-        }
-        50% {
-          transform: translateY(-10px);
-        }
-      }
     `;
   }
   
@@ -461,13 +264,13 @@ export class BasePlugin {
     return `
       @media (max-width: 480px) {
         .cardforge-card {
-          ${this._borderRadius('8px')}
+          border-radius: 8px;
         }
       }
       
       @media (max-width: 360px) {
         .cardforge-card {
-          ${this._borderRadius('6px')}
+          border-radius: 6px;
         }
       }
     `;

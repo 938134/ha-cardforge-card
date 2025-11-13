@@ -1,4 +1,6 @@
 // src/core/plugin-registry.js
+import { validatePluginManifest, PluginDeveloperTools } from '../plugins/index.js';
+
 class PluginRegistry {
   static _plugins = new Map();
   static _initialized = false;
@@ -36,27 +38,31 @@ class PluginRegistry {
   }
 
   static _registerPluginModule(module) {
-    const pluginId = module.manifest?.id;
-    if (!pluginId) {
-      console.warn('插件缺少 manifest.id，跳过');
-      return;
-    }
-
-    if (module.manifest && module.default) {
-      const PluginClass = module.default;
-      
-      if (typeof PluginClass.prototype.getTemplate === 'function' && 
-          typeof PluginClass.prototype.getStyles === 'function') {
-        
-        this._plugins.set(pluginId, {
-          id: pluginId,
-          class: PluginClass,
-          manifest: module.manifest
-        });
-        console.log(`✅ 注册插件: ${module.manifest.name}`);
-      } else {
-        console.warn(`插件 ${pluginId} 接口不完整，跳过`);
+    try {
+      if (!module.manifest) {
+        throw new Error('插件缺少 manifest 导出');
       }
+      
+      validatePluginManifest(module.manifest);
+      
+      const pluginId = module.manifest.id;
+      
+      if (!module.default) {
+        throw new Error('插件缺少默认导出');
+      }
+      
+      PluginDeveloperTools.validatePluginClass(module.default);
+      
+      this._plugins.set(pluginId, {
+        id: pluginId,
+        class: module.default,
+        manifest: module.manifest
+      });
+      
+      console.log(`✅ 注册插件: ${module.manifest.name} (v${module.manifest.version})`);
+      
+    } catch (error) {
+      console.error('❌ 插件注册失败:', error.message);
     }
   }
 
@@ -112,8 +118,14 @@ class PluginRegistry {
     const PluginClass = this.getPluginClass(pluginId);
     return PluginClass ? new PluginClass() : null;
   }
+
+  // === 开发工具 ===
+  static getDeveloperTools() {
+    return PluginDeveloperTools;
+  }
 }
 
+// 自动初始化
 PluginRegistry.initialize();
 
 export { PluginRegistry };
