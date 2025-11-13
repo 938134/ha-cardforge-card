@@ -5,19 +5,44 @@ export const manifest = {
   id: 'oil-price-card',
   name: '油价卡片',
   version: '1.0.0',
-  description: '显示各省市实时油价信息',
+  description: '显示各省市实时油价信息，支持完全实体化配置',
   author: 'CardForge Team',
   category: 'info',
   icon: '⛽',
   entityRequirements: [
     {
-      key: 'oil_price_entity',
-      description: '油价数据实体',
+      key: 'province_entity',
+      description: '省份实体',
       required: false
     },
     {
-      key: 'province_entity',
-      description: '省份选择实体',
+      key: 'price_0_entity',
+      description: '0号柴油价格实体',
+      required: false
+    },
+    {
+      key: 'price_92_entity',
+      description: '92号汽油价格实体',
+      required: false
+    },
+    {
+      key: 'price_95_entity',
+      description: '95号汽油价格实体',
+      required: false
+    },
+    {
+      key: 'price_98_entity',
+      description: '98号汽油价格实体',
+      required: false
+    },
+    {
+      key: 'trend_entity',
+      description: '油价趋势实体',
+      required: false
+    },
+    {
+      key: 'next_adjustment_entity',
+      description: '下次调整时间实体',
       required: false
     }
   ],
@@ -27,10 +52,13 @@ export const manifest = {
 
 export default class OilPriceCardPlugin extends BasePlugin {
   getTemplate(config, hass, entities) {
-    const oilPriceData = this._getOilPriceData(entities.oil_price_entity);
-    const province = this._getProvince(entities.province_entity);
-    
-    const { prices, trend, nextAdjustment } = oilPriceData;
+    const province = this._getEntityState(entities.province_entity, '北京市');
+    const price0 = this._getEntityState(entities.price_0_entity, '--');
+    const price92 = this._getEntityState(entities.price_92_entity, '--');
+    const price95 = this._getEntityState(entities.price_95_entity, '--');
+    const price98 = this._getEntityState(entities.price_98_entity, '--');
+    const trend = this._getEntityState(entities.trend_entity, '');
+    const nextAdjustment = this._getEntityState(entities.next_adjustment_entity, '');
     
     return `
       <div class="cardforge-card oil-price-card">
@@ -40,45 +68,19 @@ export default class OilPriceCardPlugin extends BasePlugin {
         </div>
         
         <div class="price-grid">
-          ${this._renderFuelCard('92', prices['92'])}
-          ${this._renderFuelCard('95', prices['95'])}
-          ${this._renderFuelCard('98', prices['98'])}
-          ${this._renderFuelCard('0', prices['0'])}
+          ${this._renderFuelCard('92', price92)}
+          ${this._renderFuelCard('95', price95)}
+          ${this._renderFuelCard('98', price98)}
+          ${this._renderFuelCard('0', price0)}
         </div>
         
-        ${this._renderFooter(trend, nextAdjustment)}
+        <!-- 趋势和调整时间数据保留但不显示 -->
       </div>
     `;
   }
 
-  _getOilPriceData(oilPriceEntity) {
-    // 如果有关联实体，从实体获取数据
-    if (oilPriceEntity) {
-      try {
-        const data = JSON.parse(oilPriceEntity.state);
-        return {
-          prices: data.prices || { '92': '--', '95': '--', '98': '--', '0': '--' },
-          trend: data.trend || { description: '' },
-          nextAdjustment: data.next_adjustment || ''
-        };
-      } catch (e) {
-        console.error('解析油价数据失败:', e);
-      }
-    }
-    
-    // 默认数据
-    return {
-      prices: { '92': '--', '95': '--', '98': '--', '0': '--' },
-      trend: { description: '' },
-      nextAdjustment: ''
-    };
-  }
-
-  _getProvince(provinceEntity) {
-    if (provinceEntity) {
-      return provinceEntity.state || '北京市';
-    }
-    return '北京市';
+  _getEntityState(entity, defaultValue = '') {
+    return entity?.state || defaultValue;
   }
 
   _renderFuelCard(type, price) {
@@ -91,33 +93,11 @@ export default class OilPriceCardPlugin extends BasePlugin {
     `;
   }
 
-  _renderFooter(trend, nextAdjustment) {
-    let footerText = '';
-    
-    if (trend.description && trend.description !== '请稍候...' && trend.description !== '历史数据') {
-      const cleanTrend = trend.description.replace('下次油价', '').replace('调整', '').trim();
-      footerText += cleanTrend;
-    }
-    
-    if (nextAdjustment && nextAdjustment !== '暂无调整信息') {
-      if (!trend.description.includes(nextAdjustment.replace('下次油价', '').replace('调整', '').trim())) {
-        if (footerText) footerText += ' • ';
-        footerText += nextAdjustment;
-      }
-    }
-    
-    if (footerText) {
-      return `<div class="card-footer">${footerText}</div>`;
-    }
-    
-    return '';
-  }
-
   getStyles(config) {
     return this.getBaseStyles(config) + `
       .oil-price-card {
         ${this._responsivePadding('16px', '12px')}
-        ${this._responsiveHeight('200px', '180px')}
+        ${this._responsiveHeight('180px', '160px')}
       }
       
       .card-header {
@@ -141,7 +121,6 @@ export default class OilPriceCardPlugin extends BasePlugin {
         display: grid;
         grid-template-columns: repeat(4, 1fr);
         gap: 8px;
-        margin-bottom: 12px;
       }
       
       .fuel-card {
@@ -183,14 +162,6 @@ export default class OilPriceCardPlugin extends BasePlugin {
         opacity: 0.7;
       }
       
-      .card-footer {
-        font-size: 0.85em;
-        opacity: 0.8;
-        text-align: center;
-        padding-top: 8px;
-        border-top: 1px solid rgba(var(--rgb-primary-text-color), 0.1);
-      }
-      
       /* 响应式设计 */
       @media (max-width: 480px) {
         .price-grid {
@@ -212,10 +183,6 @@ export default class OilPriceCardPlugin extends BasePlugin {
         
         .fuel-unit {
           font-size: 9px;
-        }
-        
-        .card-footer {
-          font-size: 0.8em;
         }
       }
       
