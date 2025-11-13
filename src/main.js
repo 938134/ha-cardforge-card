@@ -1,6 +1,6 @@
 // src/main.js
 import { HaCardForgeCard } from './ha-cardforge-card.js';
-import { HaCardForgeEditor } from './ha-cardforge-editor.js';
+import { HaCardForgeEditor } from './editors/ha-cardforge-editor.js';
 
 if (!customElements.get('ha-cardforge-card')) {
   customElements.define('ha-cardforge-card', HaCardForgeCard);
