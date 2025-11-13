@@ -71,6 +71,59 @@ export const sharedStyles = css`
     --ha-combo-box-focused-border-color: var(--primary-color);
   }
   
+  /* ===== ha-entity-picker 样式 ===== */
+  .entity-picker-container ha-entity-picker,
+  ha-entity-picker {
+    width: 100%;
+    --mdc-theme-primary: var(--primary-color);
+    --mdc-text-field-fill-color: var(--card-background-color);
+    --mdc-text-field-label-ink-color: var(--secondary-text-color);
+    --mdc-text-field-ink-color: var(--primary-text-color);
+  }
+  
+  /* ===== ha-textarea 样式 ===== */
+  .entity-picker-container ha-textarea,
+  ha-textarea {
+    width: 100%;
+    --mdc-text-field-fill-color: var(--card-background-color);
+    --mdc-text-field-label-ink-color: var(--secondary-text-color);
+    --mdc-text-field-ink-color: var(--primary-text-color);
+    --mdc-shape-small: 8px;
+  }
+  
+  /* ===== ha-textfield 样式 ===== */
+  .entity-picker-container ha-textfield,
+  ha-textfield {
+    width: 100%;
+    --mdc-text-field-fill-color: var(--card-background-color);
+    --mdc-text-field-label-ink-color: var(--secondary-text-color);
+    --mdc-text-field-ink-color: var(--primary-text-color);
+    --mdc-shape-small: 8px;
+  }
+  
+  /* ===== ha-button-menu 样式 ===== */
+  ha-button-menu {
+    --mdc-theme-primary: var(--primary-color);
+    --mdc-theme-on-primary: white;
+  }
+  
+  /* ===== ha-button 样式 ===== */
+  ha-button {
+    --mdc-theme-primary: var(--primary-color);
+    --mdc-theme-on-primary: white;
+    --mdc-shape-small: 8px;
+  }
+  
+  /* ===== 模式选择器样式 ===== */
+  .mode-selector {
+    margin-bottom: 8px;
+  }
+  
+  .mode-selector ha-button {
+    --mdc-theme-primary: var(--primary-color);
+    --mdc-theme-on-primary: white;
+  }
+  
   /* ===== 智能输入组件样式 ===== */
   .smart-input-container {
     position: relative;
@@ -279,6 +332,58 @@ export const sharedStyles = css`
     padding: 16px;
   }
   
+  /* ===== 插件信息样式 ===== */
+  .plugin-info {
+    margin-bottom: 16px;
+    padding: 12px;
+    background: var(--card-background-color);
+    border-radius: 8px;
+    border: 1px solid var(--divider-color);
+  }
+  
+  .plugin-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 8px;
+  }
+  
+  .plugin-icon {
+    font-size: 1.2em;
+  }
+  
+  .plugin-name {
+    font-weight: 600;
+    font-size: 1.1em;
+  }
+  
+  .plugin-description {
+    font-size: 0.9em;
+    color: var(--secondary-text-color);
+    line-height: 1.4;
+  }
+  
+  .plugin-version {
+    font-size: 0.8em;
+    color: var(--secondary-text-color);
+    margin-top: 4px;
+  }
+  
+  /* ===== 配置区域样式 ===== */
+  .config-section {
+    margin-bottom: 24px;
+  }
+  
+  .section-title {
+    font-weight: 600;
+    font-size: 1em;
+    color: var(--primary-text-color);
+    margin-bottom: 12px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  
   /* ===== 功能支持提示 ===== */
   .feature-supported, .feature-unsupported {
     display: flex;
@@ -437,6 +542,10 @@ export const sharedStyles = css`
       margin-bottom: 16px;
     }
     
+    .config-section {
+      margin-bottom: 20px;
+    }
+    
     .entity-label {
       font-size: 0.85em;
     }
@@ -453,6 +562,22 @@ export const sharedStyles = css`
       margin-top: 20px;
       padding-top: 12px;
     }
+    
+    .plugin-info {
+      padding: 10px;
+    }
+    
+    .plugin-header {
+      margin-bottom: 6px;
+    }
+    
+    .plugin-name {
+      font-size: 1em;
+    }
+    
+    .plugin-description {
+      font-size: 0.85em;
+    }
   }
   
   @media (max-width: 360px) {
@@ -468,6 +593,14 @@ export const sharedStyles = css`
     
     .type-badge {
       align-self: flex-end;
+    }
+    
+    .config-section {
+      margin-bottom: 16px;
+    }
+    
+    .section-title {
+      font-size: 0.95em;
     }
   }
 `;
