@@ -3,6 +3,9 @@ import { LitElement, html } from 'https://unpkg.com/lit@2.8.0/index.js?module';
 import { PluginRegistry } from '../core/plugin-registry.js';
 import { editorCoreStyles } from '../styles/index.js';
 import { validateEditorConfig, getConfigPreview } from './editor-utils.js';
+import './plugin-selector.js';
+import './theme-selector.js';
+import './entity-picker.js';
 
 class HaCardForgeEditor extends LitElement {
   static properties = {

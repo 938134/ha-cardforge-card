@@ -1,6 +1,6 @@
 // src/main.js
 import { HaCardForgeCard } from './core/index.js';
-import { HaCardForgeEditor } from './editors/index.js';
+import { HaCardForgeEditor } from './editors/ha-cardforge-editor.js';
 import { PluginRegistry } from './core/plugin-registry.js';
 
 // 注册自定义元素
@@ -39,7 +39,9 @@ window.CardForge = {
       card.setConfig(config);
       return card;
     },
-    getAvailablePlugins: () => PluginRegistry.getAllPlugins()
+    getAvailablePlugins: () => PluginRegistry.getAllPlugins(),
+    generatePluginTemplate: (pluginId, pluginName) => 
+      PluginRegistry.generatePluginStub(pluginId, pluginName)
   }
 };
 
