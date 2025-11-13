@@ -4,16 +4,14 @@ import { PluginRegistry } from '../core/plugin-registry.js';
 import { sharedStyles } from '../core/shared-styles.js';
 import './plugin-selector.js';
 import './theme-selector.js';
-import './entity-config.js';
-import './smart-input.js';
+import './entity-picker.js';
 
 class HaCardForgeEditor extends LitElement {
   static properties = {
     hass: { type: Object },
     config: { type: Object },
     _plugins: { state: true },
-    _initialized: { state: true },
-    _focusedInputs: { state: true }
+    _initialized: { state: true }
   };
 
   static styles = [
@@ -21,10 +19,6 @@ class HaCardForgeEditor extends LitElement {
     css`
       .editor-container {
         padding: 16px;
-      }
-      
-      .config-row {
-        margin-bottom: 20px;
       }
       
       .card-actions {
@@ -41,7 +35,6 @@ class HaCardForgeEditor extends LitElement {
     this.config = { plugin: '', entities: {}, theme: 'auto' };
     this._plugins = [];
     this._initialized = false;
-    this._focusedInputs = new Set();
   }
 
   async firstUpdated() {
@@ -82,15 +75,8 @@ class HaCardForgeEditor extends LitElement {
             ></theme-selector>
           </div>
 
-          <entity-config
-            .hass=${this.hass}
-            .activePlugin=${PluginRegistry.getPlugin(this.config.plugin)}
-            .entities=${this.config.entities}
-            .focusedInputs=${this._focusedInputs}
-            @entity-changed=${this._onEntityChanged}
-            @focus-changed=${this._onFocusChanged}
-          ></entity-config>
-        ` : ''}
+          ${this._renderEntityConfig()}
+        ` : this._renderEmptyState()}
 
         <div class="card-actions">
           <mwc-button outlined label="取消" @click=${this._cancel}></mwc-button>
@@ -116,6 +102,39 @@ class HaCardForgeEditor extends LitElement {
     `;
   }
 
+  _renderEntityConfig() {
+    const activePlugin = PluginRegistry.getPlugin(this.config.plugin);
+    if (!activePlugin) return '';
+
+    const requirements = activePlugin.manifest.entityRequirements || [];
+    
+    if (requirements.length === 0) {
+      return html`
+        <div class="config-row">
+          <div class="entity-help">✅ 此插件无需配置实体</div>
+        </div>
+      `;
+    }
+
+    return requirements.map(req => html`
+      <entity-picker
+        .hass=${this.hass}
+        .label=${req.description}
+        .value=${this.config.entities?.[req.key] || ''}
+        .required=${req.required || false}
+        @value-changed=${e => this._onEntityChanged(req.key, e.detail.value)}
+      ></entity-picker>
+    `);
+  }
+
+  _renderEmptyState() {
+    return html`
+      <div class="config-row">
+        <div class="entity-help">💡 请先选择要配置的卡片类型</div>
+      </div>
+    `;
+  }
+
   _onPluginChanged(event) {
     const pluginId = event.detail.pluginId;
     if (pluginId === this.config.plugin) return;
@@ -126,7 +145,6 @@ class HaCardForgeEditor extends LitElement {
       entities: {}
     };
 
-    this._focusedInputs.clear();
     this._notifyConfigUpdate();
   }
 
@@ -138,26 +156,12 @@ class HaCardForgeEditor extends LitElement {
     this._notifyConfigUpdate();
   }
 
-  _onEntityChanged(event) {
+  _onEntityChanged(key, value) {
     this.config.entities = {
       ...this.config.entities,
-      [event.detail.key]: event.detail.value
+      [key]: value
     };
     this._notifyConfigUpdate();
-  }
-
-  _onFocusChanged(event) {
-    const { key, focused } = event.detail;
-    
-    if (focused) {
-      this._focusedInputs.add(key);
-    } else {
-      setTimeout(() => {
-        this._focusedInputs.delete(key);
-        this.requestUpdate();
-      }, 150);
-    }
-    this.requestUpdate();
   }
 
   _notifyConfigUpdate() {
