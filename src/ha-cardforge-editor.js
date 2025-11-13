@@ -124,23 +124,21 @@ class HaCardForgeEditor extends LitElement {
 
   _renderEntityConfig(activePlugin) {
     if (!activePlugin) return '';
-
+  
     const requirements = activePlugin.manifest.entityRequirements || [];
-    const messageRequirement = requirements.find(req => req.key === 'message_entity');
-
-    if (!messageRequirement) return '';
-
-    return html`
+    
+    // 动态渲染所有实体配置
+    return requirements.map(requirement => html`
       <div class="config-row">
         <ha-combo-box
-          .label=${"关联消息实体"}
-          .value=${this.config.entities?.message_entity || ''}
-          .items=${this._getEntityOptions(this.hass, messageRequirement)}
-          @value-changed=${e => this._onEntityChange('message_entity', e.detail.value)}
+          .label=${`关联${requirement.description}`}
+          .value=${this.config.entities?.[requirement.key] || ''}
+          .items=${this._getEntityOptions(this.hass, requirement)}
+          @value-changed=${e => this._onEntityChange(requirement.key, e.detail.value)}
           allow-custom-value
         ></ha-combo-box>
       </div>
-    `;
+    `);
   }
 
   _loadPlugins() {
