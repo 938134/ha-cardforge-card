@@ -4,20 +4,20 @@ import { BasePlugin } from '../core/base-plugin.js';
 export const manifest = {
   id: 'welcome-card',
   name: '欢迎卡片',
-  version: '1.2.0',
-  description: '个性化欢迎信息，支持自定义欢迎词和消息实体',
+  version: '1.3.0',
+  description: '个性化欢迎信息，支持灵活数据源配置',
   author: 'CardForge Team',
   category: 'info',
   icon: '👋',
   entityRequirements: [
     {
-      key: 'greeting_entity',
-      description: '欢迎词实体',
+      key: 'greeting_source',
+      description: '欢迎词来源（实体ID或Jinja2模板）',
       required: false
     },
     {
-      key: 'message_entity',
-      description: '消息实体',
+      key: 'message_source',
+      description: '消息来源（实体ID或Jinja2模板）',
       required: false
     }
   ],
@@ -29,14 +29,12 @@ export default class WelcomeCardPlugin extends BasePlugin {
   getTemplate(config, hass, entities) {
     const systemData = this.getSystemData(hass, config);
     
-    // 获取自定义欢迎词，如果实体不存在则使用系统默认
-    const customGreeting = entities.greeting_entity?.state;
+    // 使用统一数据获取方法
+    const customGreeting = this._getCardValue(hass, entities, 'greeting_source');
     const greeting = customGreeting || systemData.greeting;
     const user = systemData.user;
     const time = systemData.time;
-    
-    // 获取消息：使用消息实体，如果没有实体则为空
-    const message = entities.message_entity?.state || '';
+    const message = this._getCardValue(hass, entities, 'message_source', '');
     
     return `
       <div class="cardforge-card welcome-card">
@@ -67,9 +65,12 @@ export default class WelcomeCardPlugin extends BasePlugin {
       .welcome-card {
         ${this._responsiveHeight('180px', '150px')}
         ${this._responsivePadding('24px', '20px')}
+        ${this._flexColumn()}
         position: relative;
         overflow: hidden;
+        color: white !important;
       }
+      
       .welcome-content {
         position: relative;
         z-index: 2;
@@ -77,26 +78,33 @@ export default class WelcomeCardPlugin extends BasePlugin {
         ${this._flexColumn()}
         justify-content: center;
       }
+      
       .greeting {
         ${this._responsiveFontSize('1.4em', '1.2em')}
         font-weight: 500;
-        margin-bottom: 8px;
+        ${this._responsiveMargin('0 0 8px', '0 0 6px')}
         opacity: 0.95;
+        ${this._textShadow()}
       }
+      
       .time {
         ${this._responsiveFontSize('2.2em', '1.8em')}
         font-weight: bold;
-        margin-bottom: 8px;
+        ${this._responsiveMargin('0 0 8px', '0 0 6px')}
         letter-spacing: 1px;
+        ${this._textShadow()}
       }
+      
       .message {
         ${this._responsiveFontSize('0.95em', '0.85em')}
         opacity: 0.8;
         font-style: italic;
-        margin-bottom: 4px;
+        ${this._responsiveMargin('0 0 4px', '0 0 3px')}
         min-height: 1.2em;
         transition: opacity 0.3s ease;
+        ${this._textShadow()}
       }
+      
       .decoration {
         position: absolute;
         top: 0;
@@ -106,24 +114,28 @@ export default class WelcomeCardPlugin extends BasePlugin {
         pointer-events: none;
         z-index: 1;
       }
+      
       .circle {
         position: absolute;
-        border-radius: 50%;
-        background: rgba(var(--rgb-primary-text-color), 0.08);
+        ${this._borderRadius('50%')}
+        background: rgba(255, 255, 255, 0.1);
         transition: all 0.3s ease;
       }
+      
       .circle-1 {
         width: 80px;
         height: 80px;
         top: -20px;
         right: -20px;
       }
+      
       .circle-2 {
         width: 60px;
         height: 60px;
         bottom: -10px;
         left: 20px;
       }
+      
       .circle-3 {
         width: 40px;
         height: 40px;
@@ -133,29 +145,22 @@ export default class WelcomeCardPlugin extends BasePlugin {
       
       .welcome-card:hover .circle-1 {
         animation: float 3s ease-in-out infinite;
-        background: rgba(var(--rgb-primary-text-color), 0.12);
+        background: rgba(255, 255, 255, 0.15);
       }
+      
       .welcome-card:hover .circle-2 {
         animation: float 3s ease-in-out infinite 0.5s;
-        background: rgba(var(--rgb-primary-text-color), 0.1);
+        background: rgba(255, 255, 255, 0.12);
       }
+      
       .welcome-card:hover .circle-3 {
         animation: float 3s ease-in-out infinite 1s;
-        background: rgba(var(--rgb-primary-text-color), 0.08);
+        background: rgba(255, 255, 255, 0.1);
       }
       
       /* 消息更新动画 */
       .message-update {
         animation: messageFade 0.5s ease-in-out;
-      }
-      
-      @keyframes float {
-        0%, 100% {
-          transform: translateY(0px);
-        }
-        50% {
-          transform: translateY(-10px);
-        }
       }
       
       @keyframes messageFade {
@@ -168,11 +173,15 @@ export default class WelcomeCardPlugin extends BasePlugin {
           transform: translateY(0px);
         }
       }
+      
+      /* 毛玻璃主题优化 */
+      .welcome-card.glass {
+        color: var(--primary-text-color) !important;
+      }
+      
+      .welcome-card.glass .circle {
+        background: rgba(var(--rgb-primary-text-color), 0.08);
+      }
     `;
-  }
-
-  // 移除基类中的随机消息生成
-  _getRandomMessage() {
-    return ''; // 返回空字符串，不显示随机消息
   }
 }

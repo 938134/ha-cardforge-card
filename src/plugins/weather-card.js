@@ -4,16 +4,26 @@ import { BasePlugin } from '../core/base-plugin.js';
 export const manifest = {
   id: 'weather-card',
   name: '天气卡片',
-  version: '1.0.0',
-  description: '显示实时天气信息',
+  version: '1.1.0',
+  description: '显示实时天气信息，支持灵活数据源配置',
   author: 'CardForge Team',
   category: 'weather',
   icon: '🌤️',
   entityRequirements: [
     {
-      key: 'weather',
-      description: '天气实体',
+      key: 'weather_source',
+      description: '天气实体来源',
       required: true
+    },
+    {
+      key: 'temperature_source',
+      description: '温度来源（覆盖天气实体的温度）',
+      required: false
+    },
+    {
+      key: 'humidity_source',
+      description: '湿度来源（覆盖天气实体的湿度）',
+      required: false
     }
   ],
   themeSupport: true,
@@ -22,10 +32,14 @@ export const manifest = {
 
 export default class WeatherCardPlugin extends BasePlugin {
   getTemplate(config, hass, entities) {
-    const weather = entities.weather;
-    const temperature = weather?.attributes?.temperature || '--';
-    const condition = weather?.state || '未知';
-    const humidity = weather?.attributes?.humidity || '--';
+    const weatherEntity = entities.weather_source;
+    
+    // 使用统一数据获取方法
+    const temperature = this._getCardValue(hass, entities, 'temperature_source') || 
+                       weatherEntity?.attributes?.temperature || '--';
+    const condition = weatherEntity?.state || '未知';
+    const humidity = this._getCardValue(hass, entities, 'humidity_source') || 
+                    weatherEntity?.attributes?.humidity || '--';
     
     return `
       <div class="cardforge-card weather-card">
@@ -62,44 +76,60 @@ export default class WeatherCardPlugin extends BasePlugin {
         ${this._responsivePadding('20px', '16px')}
         ${this._responsiveHeight('120px', '100px')}
       }
+      
       .weather-content {
-        display: flex;
-        align-items: center;
-        gap: 16px;
+        ${this._flexRow()}
+        ${this._responsiveGap('16px', '12px')}
         height: 100%;
       }
+      
       .weather-icon {
         font-size: 3em;
         flex-shrink: 0;
       }
+      
       .weather-info {
         flex: 1;
       }
+      
       .temperature {
         ${this._responsiveFontSize('2.2em', '1.8em')}
         font-weight: bold;
         color: var(--primary-color);
         line-height: 1;
-        margin-bottom: 4px;
+        ${this._responsiveMargin('0 0 4px', '0 0 3px')}
       }
+      
       .condition {
         ${this._responsiveFontSize('1em', '0.9em')}
         opacity: 0.8;
-        margin-bottom: 2px;
+        ${this._responsiveMargin('0 0 2px', '0 0 1px')}
       }
+      
       .humidity {
         ${this._responsiveFontSize('0.85em', '0.8em')}
         opacity: 0.6;
       }
       
+      /* 响应式优化 */
       @media (max-width: 480px) {
-        .weather-content {
-          gap: 12px;
-        }
         .weather-icon {
           font-size: 2.5em;
         }
       }
+      
+      /* 主题适配 */
+      .weather-card.glass .temperature {
+        color: var(--primary-text-color);
+      }
     `;
+  }
+
+  getThemeConfig() {
+    return {
+      useGradient: true,
+      gradientType: 'diagonal',
+      gradientColors: ['var(--primary-color)', 'var(--accent-color)']
+    };
   }
 }

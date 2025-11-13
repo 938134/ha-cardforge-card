@@ -4,20 +4,20 @@ import { BasePlugin } from '../core/base-plugin.js';
 export const manifest = {
   id: 'time-week',
   name: '时间星期',
-  version: '1.0.0',
-  description: '垂直布局的时间星期显示',
+  version: '1.1.0',
+  description: '垂直布局的时间星期显示，支持灵活数据源',
   author: 'CardForge Team',
   category: 'time',
   icon: '📅',
   entityRequirements: [
     {
-      key: 'time',
-      description: '时间实体',
+      key: 'time_source',
+      description: '时间来源（实体ID或Jinja2模板）',
       required: false
     },
     {
-      key: 'date', 
-      description: '日期实体',
+      key: 'date_source',
+      description: '日期来源（实体ID或Jinja2模板）',
       required: false
     }
   ],
@@ -27,12 +27,12 @@ export const manifest = {
 
 export default class TimeWeekPlugin extends BasePlugin {
   getTemplate(config, hass, entities) {
-    const timeEntity = entities.time;
-    const dateEntity = entities.date;
+    const systemData = this.getSystemData(hass, config);
     
-    const time = timeEntity?.state || this.getSystemData(hass, config).time;
-    const date = dateEntity?.state || this.getSystemData(hass, config).date;
-    const weekday = this.getSystemData(hass, config).weekday;
+    // 使用统一数据获取方法
+    const time = this._getCardValue(hass, entities, 'time_source') || systemData.time;
+    const date = this._getCardValue(hass, entities, 'date_source') || systemData.date;
+    const weekday = systemData.weekday;
     
     const [hour, minute] = time.split(':');
     let month = '01', day = '01';
@@ -72,40 +72,52 @@ export default class TimeWeekPlugin extends BasePlugin {
         ${this._responsivePadding('20px', '16px')}
         ${this._flexColumn()}
         justify-content: space-between;
-        text-align: center;
+        ${this._textCenter()}
       }
+      
       .time-section {
         ${this._flexColumn()}
-        gap: 4px;
+        ${this._responsiveGap('4px', '3px')}
       }
+      
       .hour, .minute {
         ${this._responsiveFontSize('2.8em', '2.2em')}
         font-weight: bold;
         line-height: 1;
         color: var(--primary-color);
       }
+      
       .date-section {
         ${this._flexColumn()}
-        gap: 8px;
+        ${this._responsiveGap('8px', '6px')}
       }
+      
       .month-day {
         ${this._responsiveFontSize('1.2em', '1em')}
         font-weight: 600;
         opacity: 0.9;
       }
+      
       .weekday {
         ${this._responsiveFontSize('1em', '0.9em')}
         background: var(--primary-color);
         color: white;
-        border-radius: 12px;
+        ${this._borderRadius('12px')}
         padding: 4px 12px;
         display: inline-block;
         opacity: 0.9;
       }
       
+      /* 主题适配 */
+      .time-week.glass .hour,
+      .time-week.glass .minute {
+        color: var(--primary-text-color);
+      }
+      
+      /* 响应式优化 */
       @media (max-width: 480px) {
         .time-week {
-          gap: 12px;
+          ${this._responsiveGap('12px', '10px')}
         }
       }
     `;
