@@ -21,7 +21,8 @@ class PluginRegistry {
       () => import('../plugins/weather-card.js'),
       () => import('../plugins/welcome-card.js'),
       () => import('../plugins/time-week.js'),
-      () => import('../plugins/oilprice-card.js')
+      () => import('../plugins/oilprice-card.js'),
+      () => import('../plugins/poetry-card.js')
     ];
 
     for (const importFn of pluginModules) {

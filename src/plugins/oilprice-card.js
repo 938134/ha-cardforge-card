@@ -4,8 +4,8 @@ import { BasePlugin } from '../core/base-plugin.js';
 export const manifest = {
   id: 'oil-price-card',
   name: '油价卡片',
-  version: '1.4.0',
-  description: '显示各省市实时油价信息，支持灵活数据源配置',
+  version: '1.5.0',
+  description: '紧凑布局的油价显示，支持灵活数据源配置',
   author: 'CardForge Team',
   category: 'info',
   icon: '⛽',
@@ -116,9 +116,9 @@ export default class OilPriceCardPlugin extends BasePlugin {
       if (literMatch) {
         const minPrice = literMatch[1];
         const maxPrice = literMatch[2];
-        return `📉 预计下调 ${amount}元/吨 (${minPrice}-${maxPrice}元/升)`;
+        return `📉 下调 ${amount}元/吨 (${minPrice}-${maxPrice}元/升)`;
       } else {
-        return `📉 预计下调 ${amount}元/吨`;
+        return `📉 下调 ${amount}元/吨`;
       }
     } else if (upMatch) {
       const amount = upMatch[1];
@@ -126,12 +126,12 @@ export default class OilPriceCardPlugin extends BasePlugin {
       if (literMatch) {
         const minPrice = literMatch[1];
         const maxPrice = literMatch[2];
-        return `📈 预计上调 ${amount}元/吨 (${minPrice}-${maxPrice}元/升)`;
+        return `📈 上调 ${amount}元/吨 (${minPrice}-${maxPrice}元/升)`;
       } else {
-        return `📈 预计上调 ${amount}元/吨`;
+        return `📈 上调 ${amount}元/吨`;
       }
     } else if (noChange) {
-      return `➡️ 油价预计搁浅`;
+      return `➡️ 油价搁浅`;
     } else if (cleanTrend.includes('上涨')) {
       return `📈 ${cleanTrend}`;
     } else if (cleanTrend.includes('下跌')) {
@@ -191,108 +191,110 @@ export default class OilPriceCardPlugin extends BasePlugin {
   getStyles(config) {
     return this.getBaseStyles(config) + `
       .oil-price-card {
-        ${this._responsivePadding('16px', '12px')}
-        ${this._responsiveHeight('200px', '180px')}
+        ${this._responsivePadding('12px', '10px')}
+        ${this._responsiveHeight('160px', '140px')}
         ${this._flexColumn()}
       }
       
       .card-header {
         ${this._flexRow()}
-        ${this._responsiveGap('8px', '6px')}
-        ${this._responsiveMargin('0 0 16px', '0 0 12px')}
+        ${this._responsiveGap('6px', '4px')}
+        ${this._responsiveMargin('0 0 12px', '0 0 8px')}
         flex-shrink: 0;
       }
       
       .card-icon {
-        font-size: 1.2em;
+        font-size: 1.1em;
       }
       
       .card-title {
         font-weight: 600;
-        ${this._responsiveFontSize('1.1em', '1em')}
+        ${this._responsiveFontSize('1em', '0.9em')}
         color: var(--primary-text-color);
       }
       
       .price-grid {
         display: grid;
         grid-template-columns: repeat(4, 1fr);
-        ${this._responsiveGap('10px', '8px')}
-        ${this._responsiveMargin('0 0 12px', '0 0 10px')}
+        ${this._responsiveGap('6px', '4px')}
+        ${this._responsiveMargin('0 0 8px', '0 0 6px')}
         flex: 1;
       }
       
       .fuel-card {
-        ${this._borderRadius('12px')}
-        ${this._boxShadow('medium')}
+        ${this._borderRadius('8px')}
+        ${this._boxShadow('light')}
         ${this._flexColumn()}
         ${this._textCenter()}
         ${this._flexCenter()}
-        padding: 12px 8px;
-        min-height: 70px;
-        transition: all 0.3s ease;
+        padding: 8px 4px;
+        min-height: 50px;
+        transition: all 0.2s ease;
         position: relative;
         overflow: hidden;
-        border: 2px solid transparent;
+        border: 1px solid transparent;
         color: white;
       }
       
-      /* 油品颜色主题 */
+      /* 油品颜色主题 - 更鲜明的色彩 */
       .fuel-card.gas-92 {
-        background: linear-gradient(135deg, #3b82f6, #1d4ed8);
-        border-color: rgba(59, 130, 246, 0.3);
+        background: linear-gradient(135deg, #2563eb, #1d4ed8);
+        border-color: rgba(37, 99, 235, 0.4);
       }
       
       .fuel-card.gas-95 {
-        background: linear-gradient(135deg, #10b981, #047857);
-        border-color: rgba(16, 185, 129, 0.3);
+        background: linear-gradient(135deg, #059669, #047857);
+        border-color: rgba(5, 150, 105, 0.4);
       }
       
       .fuel-card.gas-98 {
-        background: linear-gradient(135deg, #8b5cf6, #7c3aed);
-        border-color: rgba(139, 92, 246, 0.3);
+        background: linear-gradient(135deg, #7c3aed, #6d28d9);
+        border-color: rgba(124, 58, 237, 0.4);
       }
       
       .fuel-card.diesel-0 {
-        background: linear-gradient(135deg, #f59e0b, #d97706);
-        border-color: rgba(245, 158, 11, 0.3);
+        background: linear-gradient(135deg, #d97706, #b45309);
+        border-color: rgba(217, 119, 6, 0.4);
       }
       
       .fuel-card.no-data {
-        background: linear-gradient(135deg, #6b7280, #4b5563) !important;
-        opacity: 0.7;
-        border-color: rgba(107, 114, 128, 0.3) !important;
+        background: linear-gradient(135deg, #4b5563, #374151) !important;
+        opacity: 0.6;
+        border-color: rgba(75, 85, 99, 0.3) !important;
       }
       
       .fuel-card:hover {
-        transform: translateY(-3px) scale(1.02);
-        ${this._boxShadow('strong')}
-        border-color: rgba(255, 255, 255, 0.5);
+        transform: translateY(-2px) scale(1.03);
+        ${this._boxShadow('medium')}
+        border-color: rgba(255, 255, 255, 0.6);
       }
       
       .fuel-type {
-        ${this._responsiveFontSize('12px', '11px')}
+        ${this._responsiveFontSize('10px', '9px')}
         opacity: 0.9;
-        ${this._responsiveMargin('0 0 4px', '0 0 3px')}
+        ${this._responsiveMargin('0 0 2px', '0 0 1px')}
         font-weight: 600;
         ${this._textShadow()}
+        letter-spacing: 0.5px;
       }
       
       .fuel-price {
-        ${this._responsiveFontSize('18px', '16px')}
+        ${this._responsiveFontSize('14px', '12px')}
         font-weight: 800;
-        line-height: 1.2;
-        ${this._responsiveMargin('0 0 2px', '0 0 1px')}
-        letter-spacing: 0.5px;
+        line-height: 1.1;
+        ${this._responsiveMargin('0 0 1px', '0')}
+        letter-spacing: 0.3px;
         ${this._textShadow()}
       }
       
       .fuel-unit {
-        ${this._responsiveFontSize('10px', '9px')}
+        ${this._responsiveFontSize('8px', '7px')}
         opacity: 0.9;
         font-weight: 500;
         ${this._textShadow()}
       }
       
+      /* 精简光泽效果 */
       .fuel-card::before {
         content: '';
         position: absolute;
@@ -303,10 +305,10 @@ export default class OilPriceCardPlugin extends BasePlugin {
         background: linear-gradient(
           90deg,
           transparent,
-          rgba(255, 255, 255, 0.2),
+          rgba(255, 255, 255, 0.15),
           transparent
         );
-        transition: left 0.5s ease;
+        transition: left 0.4s ease;
       }
       
       .fuel-card:hover::before {
@@ -315,30 +317,69 @@ export default class OilPriceCardPlugin extends BasePlugin {
       
       .trend-info {
         margin-top: auto;
-        padding-top: 12px;
+        padding-top: 6px;
         border-top: 1px solid rgba(var(--rgb-primary-text-color), 0.1);
         ${this._flexColumn()}
-        ${this._responsiveGap('4px', '3px')}
+        ${this._responsiveGap('2px', '1px')}
         flex-shrink: 0;
       }
       
       .trend, .adjustment {
-        ${this._responsiveFontSize('11px', '10px')}
+        ${this._responsiveFontSize('9px', '8px')}
         opacity: 0.8;
         ${this._flexRow()}
-        ${this._responsiveGap('4px', '3px')}
-        line-height: 1.3;
+        ${this._responsiveGap('3px', '2px')}
+        line-height: 1.2;
       }
       
-      /* 超小屏幕布局 */
+      /* 超小屏幕布局优化 */
       @media (max-width: 360px) {
         .price-grid {
           grid-template-columns: repeat(2, 1fr);
+          ${this._responsiveGap('6px', '4px')}
         }
         
         .fuel-card {
-          min-height: 75px;
+          min-height: 55px;
+          padding: 6px 3px;
         }
+        
+        .trend-info {
+          padding-top: 4px;
+        }
+      }
+      
+      /* 紧凑模式 - 移除趋势信息时的额外优化 */
+      .oil-price-card:not(:has(.trend-info)) {
+        ${this._responsiveHeight('140px', '120px')}
+      }
+      
+      .oil-price-card:not(:has(.trend-info)) .price-grid {
+        ${this._responsiveMargin('0', '0')}
+      }
+      
+      /* 毛玻璃主题优化 */
+      .oil-price-card.glass .fuel-card {
+        backdrop-filter: blur(15px);
+        -webkit-backdrop-filter: blur(15px);
+        border-width: 1px;
+      }
+      
+      /* 霓虹主题优化 */
+      .oil-price-card.neon .fuel-card {
+        ${this._boxShadow('neon')}
+        border-width: 1px;
+      }
+      
+      .oil-price-card.neon .fuel-card:hover {
+        box-shadow: 
+          0 0 8px currentColor,
+          0 0 16px rgba(255, 255, 255, 0.4);
+      }
+      
+      /* 无数据状态的优化 */
+      .fuel-card.no-data .fuel-price {
+        opacity: 0.7;
       }
     `;
   }
