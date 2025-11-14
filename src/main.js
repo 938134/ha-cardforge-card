@@ -2,8 +2,6 @@
 import './ha-cardforge-card.js';
 import './editors/ha-cardforge-editor.js';
 import './core/smart-input.js';
-import './styles/index.js';
-import './themes/index.js';
 
 // 注册组件
 if (!customElements.get('ha-cardforge-card')) {
