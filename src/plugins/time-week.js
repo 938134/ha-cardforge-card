@@ -9,7 +9,7 @@ export const manifest = {
   author: 'CardForge Team',
   category: 'time',
   icon: '📅',
-  entityRequirements: [
+  dataSourceRequirements: [
     {
       key: 'time_source',
       description: '时间来源（实体ID或Jinja2模板）',
@@ -52,7 +52,7 @@ export default class TimeWeekPlugin extends BasePlugin {
     }
 
     return `
-      <div class="cardforge-card time-week">
+      <div class="cardforge-card time-week theme-${config.theme || 'auto'}">
         <div class="time-section">
           <div class="hour">${hour}</div>
           <div class="minute">${minute}</div>
@@ -69,7 +69,7 @@ export default class TimeWeekPlugin extends BasePlugin {
     return this.getBaseStyles(config) + `
       .time-week {
         ${this._responsiveHeight('180px', '160px')}
-        ${this._responsivePadding('20px', '16px')}
+        ${this._responsivePadding('var(--cardforge-spacing-lg)', 'var(--cardforge-spacing-md)')}
         ${this._flexColumn()}
         justify-content: space-between;
         ${this._textCenter()}
@@ -77,7 +77,7 @@ export default class TimeWeekPlugin extends BasePlugin {
       
       .time-section {
         ${this._flexColumn()}
-        ${this._responsiveGap('4px', '3px')}
+        ${this._responsiveGap('var(--cardforge-spacing-xs)', '3px')}
       }
       
       .hour, .minute {
@@ -89,7 +89,7 @@ export default class TimeWeekPlugin extends BasePlugin {
       
       .date-section {
         ${this._flexColumn()}
-        ${this._responsiveGap('8px', '6px')}
+        ${this._responsiveGap('var(--cardforge-spacing-sm)', 'var(--cardforge-spacing-xs)')}
       }
       
       .month-day {
@@ -108,16 +108,10 @@ export default class TimeWeekPlugin extends BasePlugin {
         opacity: 0.9;
       }
       
-      /* 主题适配 */
-      .time-week.glass .hour,
-      .time-week.glass .minute {
-        color: var(--primary-text-color);
-      }
-      
       /* 响应式优化 */
       @media (max-width: 480px) {
         .time-week {
-          ${this._responsiveGap('12px', '10px')}
+          ${this._responsiveGap('var(--cardforge-spacing-sm)', 'var(--cardforge-spacing-xs)')}
         }
       }
     `;
