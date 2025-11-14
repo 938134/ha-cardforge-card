@@ -1,8 +1,8 @@
-// src/core/ha-cardforge-card.js
+// src/ha-cardforge-card.js
 import { LitElement, html } from 'https://unpkg.com/lit@2.8.0/index.js?module';
 import { unsafeHTML } from 'https://unpkg.com/lit-html/directives/unsafe-html.js?module';
-import { PluginRegistry } from './plugin-registry.js';
-import { cardStyles, stateStyles } from '../styles/index.js';
+import { PluginRegistry } from './core/plugin-registry.js';
+import { sharedStyles } from './styles/shared-styles.js';
 
 class HaCardForgeCard extends LitElement {
   static properties = {
@@ -14,7 +14,7 @@ class HaCardForgeCard extends LitElement {
     _loading: { state: true }
   };
 
-  static styles = [cardStyles, stateStyles];
+  static styles = sharedStyles;
 
   constructor() {
     super();
@@ -130,6 +130,11 @@ class HaCardForgeCard extends LitElement {
         
         <style>
           ${styles}
+          
+          .cardforge-container {
+            position: relative;
+            min-height: 80px;
+          }
         </style>
       `;
     } catch (error) {

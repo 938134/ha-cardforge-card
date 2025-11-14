@@ -236,7 +236,7 @@ export default class OilPriceCardPlugin extends BasePlugin {
         color: white;
       }
       
-      /* 油品颜色主题 */
+      /* 油品颜色主题 - 更鲜明的色彩 */
       .fuel-card.gas-92 {
         background: linear-gradient(135deg, #2563eb, #1d4ed8);
         border-color: rgba(37, 99, 235, 0.4);
@@ -349,7 +349,7 @@ export default class OilPriceCardPlugin extends BasePlugin {
         }
       }
       
-      /* 紧凑模式优化 */
+      /* 紧凑模式 - 移除趋势信息时的额外优化 */
       .oil-price-card:not(:has(.trend-info)) {
         ${this._responsiveHeight('140px', '120px')}
       }

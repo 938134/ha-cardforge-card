@@ -1,12 +1,5 @@
 // src/core/base-plugin.js
-import { ThemeManager } from '../themes/index.js';
-import { 
-  formatTime, 
-  formatDate, 
-  getWeekday, 
-  isValidEntityId, 
-  isJinjaTemplate 
-} from './utils.js';
+import { themeManager } from '../themes/index.js';
 
 export class BasePlugin {
   constructor() {
@@ -37,9 +30,9 @@ export class BasePlugin {
   getSystemData(hass, config) {
     const now = new Date();
     return {
-      time: formatTime(now),
-      date: formatDate(now),
-      weekday: getWeekday(now),
+      time: now.toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit', hour12: false }),
+      date: now.toLocaleDateString('zh-CN'),
+      weekday: '星期' + '日一二三四五六'[now.getDay()],
       user: hass?.user?.name || '家人',
       greeting: this._getGreeting(now.getHours()),
       randomMessage: this._getRandomMessage()
@@ -54,13 +47,13 @@ export class BasePlugin {
   _getFlexibleValue(hass, source, defaultValue = '') {
     if (!source) return defaultValue;
     
-    // 如果是实体ID
-    if (isValidEntityId(source) && hass?.states?.[source]) {
+    // 如果是实体ID格式（包含点号）
+    if (source.includes('.') && hass?.states?.[source]) {
       return hass.states[source].state || defaultValue;
     }
     
-    // 如果是Jinja2模板
-    if (isJinjaTemplate(source)) {
+    // 如果是Jinja2模板（包含花括号）
+    if (source.includes('{{') || source.includes('{%')) {
       return this._evaluateJinjaTemplate(hass, source, defaultValue);
     }
     
@@ -123,8 +116,8 @@ export class BasePlugin {
       if (template.includes('now()')) {
         const now = new Date();
         const timeFormats = {
-          "strftime('%H:%M')": formatTime(now),
-          "strftime('%Y-%m-%d')": formatDate(now),
+          "strftime('%H:%M')": now.toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit', hour12: false }),
+          "strftime('%Y-%m-%d')": now.toLocaleDateString('zh-CN'),
           "strftime('%m月%d日')": `${now.getMonth() + 1}月${now.getDate()}日`,
           "strftime('%Y年%m月%d日')": `${now.getFullYear()}年${now.getMonth() + 1}月${now.getDate()}日`
         };
@@ -238,25 +231,98 @@ export class BasePlugin {
   }
   
   _getRandomMessage() {
-    const messages = [
-      '今天也是美好的一天！',
-      '保持微笑，继续前进！',
-      '每一天都是新的开始！',
-      '加油，你可以的！',
-      '享受当下的每一刻！'
-    ];
-    return messages[Math.floor(Math.random() * messages.length)];
+    return '';
   }
 
-  // === 样式系统 ===
+  // === 样式系统 - 集成新主题系统 ===
   getBaseStyles(config) {
-    const themeStyles = ThemeManager.applyTheme(config, this);
+    const themeId = config.theme || 'auto';
+    const themeStyles = themeManager.getThemeStyles(themeId, config);
     
     return `
+      :host {
+        --rgb-primary-background-color: var(--card-background-color, 255, 255, 255);
+        --rgb-primary-text-color: var(--primary-text-color, 0, 0, 0);
+      }
+      
+      .cardforge-card {
+        position: relative;
+        font-family: var(--paper-font-common-nowrap_-_font-family);
+        ${this._borderRadius('12px')}
+        cursor: default;
+        overflow: hidden;
+        transition: all 0.3s ease;
+      }
+      
+      /* 主题突出显示效果 */
+      .cardforge-card:hover {
+        transform: translateY(-2px);
+        ${this._boxShadow('strong')}
+      }
+      
       ${themeStyles}
       
-      /* 插件专用样式工具 */
       ${this._getResponsiveStyles()}
+      ${this._getAnimationStyles()}
+      
+      .cardforge-interactive { 
+        cursor: pointer; 
+        transition: all 0.2s ease; 
+      }
+      .cardforge-interactive:hover { opacity: 0.8; }
+      .cardforge-interactive:active { transform: scale(0.98); }
+      
+      .cardforge-status-on { color: var(--success-color); }
+      .cardforge-status-off { color: var(--disabled-color); }
+      .cardforge-status-unavailable { color: var(--error-color); opacity: 0.5; }
+    `;
+  }
+  
+  _getAnimationStyles() {
+    return `
+      @keyframes gradientShift {
+        0% {
+          background-position: 0% 50%;
+        }
+        50% {
+          background-position: 100% 50%;
+        }
+        100% {
+          background-position: 0% 50%;
+        }
+      }
+      
+      @keyframes neonPulse {
+        0%, 100% {
+          box-shadow: 
+            0 0 8px #00ff88,
+            inset 0 0 15px rgba(0, 255, 136, 0.1);
+        }
+        50% {
+          box-shadow: 
+            0 0 20px #00ff88,
+            0 0 35px rgba(0, 255, 136, 0.3),
+            inset 0 0 25px rgba(0, 255, 136, 0.2);
+        }
+      }
+      
+      @keyframes glassShine {
+        0% {
+          background-position: -100% 0;
+        }
+        100% {
+          background-position: 200% 0;
+        }
+      }
+      
+      @keyframes float {
+        0%, 100% {
+          transform: translateY(0px);
+        }
+        50% {
+          transform: translateY(-10px);
+        }
+      }
     `;
   }
   
@@ -264,13 +330,13 @@ export class BasePlugin {
     return `
       @media (max-width: 480px) {
         .cardforge-card {
-          border-radius: 8px;
+          ${this._borderRadius('8px')}
         }
       }
       
       @media (max-width: 360px) {
         .cardforge-card {
-          border-radius: 6px;
+          ${this._borderRadius('6px')}
         }
       }
     `;

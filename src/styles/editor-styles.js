@@ -2,201 +2,231 @@
 import { css } from 'https://unpkg.com/lit@2.8.0/index.js?module';
 
 export const editorStyles = css`
-  /* 编辑器布局样式 */
-  .editor-container {
-    padding: 16px;
-    max-width: 800px;
+  /* ===== 编辑器布局 ===== */
+  .editor-layout {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    max-width: 600px;
     margin: 0 auto;
   }
   
-  .editor-layout {
-    display: grid;
-    grid-template-columns: 1fr;
-    gap: 24px;
-  }
-  
-  @media (min-width: 768px) {
-    .editor-layout {
-      grid-template-columns: 1fr 1fr;
-      gap: 32px;
-    }
-    
-    .plugin-config-section {
-      grid-column: 1 / -1;
-    }
-  }
-  
-  /* 配置区块样式 */
-  .config-section {
+  .editor-section {
     background: var(--card-background-color);
-    border-radius: 12px;
-    padding: 20px;
+    border-radius: var(--ha-card-border-radius, 12px);
+    padding: 16px;
     border: 1px solid var(--divider-color);
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
   }
   
   .section-header {
     display: flex;
     align-items: center;
     gap: 8px;
-    margin-bottom: 20px;
-    padding-bottom: 12px;
-    border-bottom: 1px solid var(--divider-color);
+    margin-bottom: 16px;
+    font-weight: 600;
+    color: var(--primary-text-color);
   }
   
   .section-icon {
     font-size: 1.2em;
-    width: 24px;
-    text-align: center;
   }
   
-  .section-title {
-    font-weight: 600;
-    font-size: 1.1em;
-    color: var(--primary-text-color);
-    margin: 0;
+  /* ===== 插件选择区域 ===== */
+  .plugin-selector-section {
+    background: linear-gradient(135deg, var(--primary-color) -20%, var(--card-background-color) 120%);
   }
   
-  .section-description {
-    font-size: 0.85em;
-    color: var(--secondary-text-color);
-    margin-top: 4px;
-    line-height: 1.4;
-  }
-  
-  /* 基础配置区块 */
-  .basic-config {
-    display: flex;
-    flex-direction: column;
-    gap: 16px;
-  }
-  
-  .config-group {
-    display: flex;
-    flex-direction: column;
-    gap: 12px;
-  }
-  
-  .config-item {
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
-  }
-  
-  /* 实体配置网格 */
-  .entities-grid {
+  .plugin-grid {
     display: grid;
-    grid-template-columns: 1fr;
-    gap: 16px;
+    grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+    gap: 12px;
+    margin-top: 12px;
   }
   
-  @media (min-width: 480px) {
-    .entities-grid {
-      grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-      gap: 20px;
-    }
-  }
-  
-  /* 插件信息面板 */
-  .plugin-info {
-    background: rgba(var(--rgb-primary-color), 0.05);
+  .plugin-card {
+    padding: 16px 12px;
     border-radius: 8px;
-    padding: 16px;
-    border: 1px solid rgba(var(--rgb-primary-color), 0.1);
+    background: rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.2s ease;
   }
   
-  .plugin-meta {
+  .plugin-card:hover {
+    transform: translateY(-2px);
+    background: rgba(255, 255, 255, 0.15);
+  }
+  
+  .plugin-card.selected {
+    background: var(--primary-color);
+    color: white;
+  }
+  
+  .plugin-icon {
+    font-size: 2em;
+    margin-bottom: 8px;
+  }
+  
+  .plugin-name {
+    font-size: 0.9em;
+    font-weight: 500;
+  }
+  
+  /* ===== 主题选择区域 ===== */
+  .theme-selector-section {
+    background: var(--card-background-color);
+  }
+  
+  .theme-grid {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
     gap: 12px;
     margin-top: 12px;
   }
   
-  .meta-item {
-    display: flex;
-    flex-direction: column;
-    gap: 4px;
+  .theme-card {
+    padding: 16px;
+    border-radius: 8px;
+    border: 2px solid var(--divider-color);
+    cursor: pointer;
+    transition: all 0.2s ease;
+    text-align: center;
   }
   
-  .meta-label {
-    font-size: 0.75em;
-    font-weight: 600;
-    color: var(--secondary-text-color);
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
+  .theme-card:hover {
+    border-color: var(--primary-color);
   }
   
-  .meta-value {
-    font-size: 0.9em;
-    color: var(--primary-text-color);
+  .theme-card.selected {
+    border-color: var(--primary-color);
+    background: rgba(var(--rgb-primary-color), 0.05);
+  }
+  
+  .theme-preview {
+    width: 100%;
+    height: 60px;
+    border-radius: 6px;
+    margin-bottom: 8px;
+    border: 1px solid var(--divider-color);
+  }
+  
+  .theme-name {
+    font-size: 0.85em;
     font-weight: 500;
   }
   
-  /* 功能支持标签 */
-  .feature-tags {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 8px;
-    margin-top: 12px;
+  /* ===== 数据源配置区域 ===== */
+  .datasource-section {
+    background: var(--card-background-color);
   }
   
-  .feature-tag {
-    padding: 4px 8px;
-    border-radius: 12px;
-    font-size: 0.75em;
-    font-weight: 600;
+  .datasource-list {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+  }
+  
+  .datasource-item {
+    padding: 16px;
+    border-radius: 8px;
+    background: var(--secondary-background-color, rgba(0, 0, 0, 0.03));
+    border: 1px solid var(--divider-color);
+  }
+  
+  .datasource-header {
     display: flex;
     align-items: center;
-    gap: 4px;
+    gap: 8px;
+    margin-bottom: 12px;
   }
   
-  .feature-tag.supported {
-    background: rgba(76, 175, 80, 0.15);
-    color: #2e7d32;
-    border: 1px solid rgba(76, 175, 80, 0.3);
+  .datasource-icon {
+    font-size: 1.1em;
   }
   
-  .feature-tag.unsupported {
-    background: rgba(255, 152, 0, 0.15);
-    color: #ef6c00;
-    border: 1px solid rgba(255, 152, 0, 0.3);
+  .datasource-title {
+    font-weight: 500;
+    color: var(--primary-text-color);
   }
   
-  /* 操作按钮区域 */
-  .card-actions {
-    margin-top: 32px;
-    padding-top: 20px;
-    border-top: 1px solid var(--divider-color);
+  .datasource-required {
+    color: var(--error-color);
+    font-size: 0.8em;
+  }
+  
+  .datasource-description {
+    font-size: 0.85em;
+    color: var(--secondary-text-color);
+    margin-bottom: 12px;
+    line-height: 1.4;
+  }
+  
+  /* ===== 预览区域 ===== */
+  .preview-section {
+    background: var(--card-background-color);
+  }
+  
+  .preview-container {
+    padding: 20px;
+    border-radius: 8px;
+    background: var(--secondary-background-color);
+    border: 1px solid var(--divider-color);
+    min-height: 120px;
     display: flex;
-    justify-content: flex-end;
-    gap: 12px;
+    align-items: center;
+    justify-content: center;
   }
   
-  /* 响应式优化 */
-  @media (max-width: 480px) {
-    .editor-container {
+  .preview-placeholder {
+    color: var(--secondary-text-color);
+    text-align: center;
+  }
+  
+  /* ===== 操作按钮 ===== */
+  .action-buttons {
+    display: flex;
+    gap: 12px;
+    justify-content: flex-end;
+    margin-top: 24px;
+  }
+  
+  /* ===== 响应式优化 ===== */
+  @media (max-width: 600px) {
+    .editor-layout {
+      gap: 12px;
+    }
+    
+    .editor-section {
       padding: 12px;
     }
     
-    .config-section {
-      padding: 16px;
-    }
-    
-    .section-header {
-      margin-bottom: 16px;
-    }
-    
-    .plugin-meta {
-      grid-template-columns: 1fr;
+    .plugin-grid {
+      grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
       gap: 8px;
     }
     
-    .card-actions {
+    .theme-grid {
+      grid-template-columns: repeat(2, 1fr);
+      gap: 8px;
+    }
+    
+    .action-buttons {
       flex-direction: column;
     }
     
-    .card-actions mwc-button {
+    .action-buttons mwc-button {
       width: 100%;
+    }
+  }
+  
+  @media (max-width: 400px) {
+    .plugin-grid {
+      grid-template-columns: repeat(2, 1fr);
+    }
+    
+    .theme-grid {
+      grid-template-columns: 1fr;
     }
   }
 `;

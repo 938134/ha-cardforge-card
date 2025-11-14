@@ -1,60 +1,97 @@
 // src/themes/glass-theme.js
-export class GlassTheme {
-  constructor(config = {}) {
-    this.config = config;
-  }
+export const glassTheme = {
+  id: 'glass',
+  name: '毛玻璃',
+  description: '半透明磨砂玻璃效果',
+  icon: '🔮',
+  category: 'effect',
 
-  static themeName = '毛玻璃';
-  static themeDescription = '半透明磨砂玻璃效果';
+  preview: {
+    background: 'linear-gradient(135deg, rgba(255,255,255,0.2) 0%, rgba(255,255,255,0.1) 100%)',
+    color: 'var(--primary-text-color)',
+    border: '1px solid rgba(255,255,255,0.3)',
+    backdropFilter: 'blur(10px)'
+  },
 
-  apply(element) {
+  config: {
+    blurIntensity: 20,
+    opacity: 0.8,
+    saturation: 180,
+    borderOpacity: 0.15
+  },
+
+  getStyles(config = {}) {
+    const blur = config.blurIntensity || 20;
+    const opacity = config.opacity || 0.8;
+    const saturation = config.saturation || 180;
+    const borderOpacity = config.borderOpacity || 0.15;
+
     return `
-      .cardforge-card {
+      .theme-glass {
         position: relative;
         background: linear-gradient(135deg, 
-          rgba(var(--rgb-primary-background-color), 0.25) 0%, 
-          rgba(var(--rgb-primary-background-color), 0.15) 50%,
-          rgba(var(--rgb-primary-background-color), 0.1) 100%);
-        backdrop-filter: blur(25px) saturate(180%);
-        -webkit-backdrop-filter: blur(25px) saturate(180%);
-        border: 1px solid rgba(var(--rgb-primary-text-color), 0.15);
+          rgba(var(--rgb-primary-background-color), ${opacity * 0.3}) 0%, 
+          rgba(var(--rgb-primary-background-color), ${opacity * 0.2}) 50%,
+          rgba(var(--rgb-primary-background-color), ${opacity * 0.15}) 100%);
+        backdrop-filter: blur(${blur}px) saturate(${saturation}%);
+        -webkit-backdrop-filter: blur(${blur}px) saturate(${saturation}%);
+        border: 1px solid rgba(var(--rgb-primary-text-color), ${borderOpacity});
         color: var(--primary-text-color);
-        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        transition: all 0.3s ease;
       }
       
-      .cardforge-card::before {
+      .theme-glass::before {
         content: '';
         position: absolute;
         top: 0;
-        left: -100%;
-        width: 100%;
-        height: 100%;
+        left: 0;
+        right: 0;
+        bottom: 0;
         background: linear-gradient(
-          90deg,
-          transparent,
-          rgba(255, 255, 255, 0.1),
-          transparent
+          135deg,
+          rgba(255, 255, 255, 0.1) 0%,
+          rgba(255, 255, 255, 0.05) 50%,
+          rgba(255, 255, 255, 0) 100%
         );
-        transition: left 0.6s ease;
+        pointer-events: none;
+        z-index: 1;
       }
       
-      .cardforge-card:hover::before {
-        left: 100%;
+      .theme-glass > * {
+        position: relative;
+        z-index: 2;
       }
       
-      .cardforge-card:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+      .theme-glass .cardforge-interactive:hover {
+        background: rgba(255, 255, 255, 0.1);
+      }
+      
+      .theme-glass.gradient-overlay {
+        background: linear-gradient(135deg, 
+          rgba(var(--rgb-primary-color), 0.2) 0%,
+          rgba(var(--rgb-accent-color), 0.1) 100%),
+          linear-gradient(135deg, 
+          rgba(var(--rgb-primary-background-color), ${opacity * 0.3}) 0%, 
+          rgba(var(--rgb-primary-background-color), ${opacity * 0.2}) 50%,
+          rgba(var(--rgb-primary-background-color), ${opacity * 0.15}) 100%);
+      }
+      
+      /* 移动端性能优化 */
+      @media (max-width: 480px) {
+        .theme-glass {
+          backdrop-filter: blur(${Math.min(blur, 15)}px) saturate(${saturation}%);
+          -webkit-backdrop-filter: blur(${Math.min(blur, 15)}px) saturate(${saturation}%);
+        }
       }
     `;
-  }
+  },
 
-  static getThemeConfig() {
-    return {
-      useGradient: false,
-      gradientType: 'diagonal',
-      supportsAnimations: true,
-      blurIntensity: 25
-    };
+  applyTheme(element, config = {}) {
+    // 应用毛玻璃效果配置
+    if (config.useGradientOverlay) {
+      element.classList.add('gradient-overlay');
+    } else {
+      element.classList.remove('gradient-overlay');
+    }
   }
-}
+};
