@@ -1,5 +1,6 @@
 // src/editors/entity-picker.js
 import { LitElement, html } from 'https://unpkg.com/lit@2.8.0/index.js?module';
+import { editorStyles } from '../styles/editor-styles.js';
 
 export class EntityPicker extends LitElement {
   static properties = {
@@ -12,6 +13,8 @@ export class EntityPicker extends LitElement {
     _searchQuery: { state: true }
   };
 
+  static styles = [editorStyles];
+
   constructor() {
     super();
     this._showPicker = false;
@@ -22,22 +25,22 @@ export class EntityPicker extends LitElement {
     const hint = this._getInputHint();
     
     return html`
-      <div class="input-container">
+      <div class="entity-picker-container">
         <label class="input-label">
           ${this.label}
           ${this.required ? html`<span class="required-star">*</span>` : ''}
         </label>
         
-        <div class="input-wrapper">
+        <div class="entity-picker-wrapper">
           <ha-textfield
-            class="input-field"
+            class="entity-picker-field"
             .value=${this.value}
             @input=${this._onInputChange}
             placeholder=${this.placeholder || `输入${this.label}`}
             outlined
           ></ha-textfield>
           
-          <button class="picker-button" @click=${this._togglePicker}>
+          <button class="entity-picker-button" @click=${this._togglePicker}>
             ▾
           </button>
         </div>
@@ -45,8 +48,8 @@ export class EntityPicker extends LitElement {
         ${this._showPicker ? this._renderEntityPicker() : ''}
         
         ${hint ? html`
-          <div class="input-hint">
-            <div class="hint-content">${hint}</div>
+          <div class="entity-picker-hint">
+            <div class="entity-picker-hint-content">${hint}</div>
           </div>
         ` : ''}
       </div>
@@ -57,10 +60,10 @@ export class EntityPicker extends LitElement {
     const entities = this._getFilteredEntities();
     
     return html`
-      <div class="picker-dropdown">
-        <div class="picker-header">选择实体</div>
+      <div class="entity-picker-dropdown">
+        <div class="entity-picker-header">选择实体</div>
         
-        <div class="search-box">
+        <div class="entity-picker-search-box">
           <ha-textfield
             .label=${"搜索实体..."}
             .value=${this._searchQuery}
@@ -70,14 +73,14 @@ export class EntityPicker extends LitElement {
           ></ha-textfield>
         </div>
         
-        <div class="entity-list">
+        <div class="entity-picker-list">
           ${entities.map(entity => html`
-            <div class="entity-item" @click=${() => this._selectEntity(entity.entity_id)}>
+            <div class="entity-picker-item" @click=${() => this._selectEntity(entity.entity_id)}>
               <div>
-                <div class="entity-name">${entity.friendly_name}</div>
-                <div class="entity-id">${entity.entity_id}</div>
+                <div class="entity-picker-name">${entity.friendly_name}</div>
+                <div class="entity-picker-id">${entity.entity_id}</div>
               </div>
-              <div class="entity-state">${entity.state}</div>
+              <div class="entity-picker-state">${entity.state}</div>
             </div>
           `)}
           

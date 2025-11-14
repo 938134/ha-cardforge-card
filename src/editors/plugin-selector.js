@@ -1,5 +1,6 @@
 // src/editors/plugin-selector.js
 import { LitElement, html } from 'https://unpkg.com/lit@2.8.0/index.js?module';
+import { editorStyles } from '../styles/editor-styles.js';
 
 export class PluginSelector extends LitElement {
   static properties = {
@@ -8,6 +9,8 @@ export class PluginSelector extends LitElement {
     _filteredPlugins: { state: true },
     _searchQuery: { state: true }
   };
+
+  static styles = [editorStyles];
 
   constructor() {
     super();
@@ -24,7 +27,7 @@ export class PluginSelector extends LitElement {
   render() {
     return html`
       <div class="plugin-selector">
-        <div class="plugin-search-box">
+        <div class="search-box">
           <ha-textfield
             .label=${"搜索插件..."}
             .value=${this._searchQuery}

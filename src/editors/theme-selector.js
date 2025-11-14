@@ -1,12 +1,15 @@
 // src/editors/theme-selector.js
 import { LitElement, html } from 'https://unpkg.com/lit@2.8.0/index.js?module';
 import { themeManager } from '../themes/index.js';
+import { editorStyles } from '../styles/editor-styles.js';
 
 export class ThemeSelector extends LitElement {
   static properties = {
     selectedTheme: { type: String },
     _themes: { state: true }
   };
+
+  static styles = [editorStyles];
 
   constructor() {
     super();
@@ -26,7 +29,7 @@ export class ThemeSelector extends LitElement {
               class="theme-selector-card ${this.selectedTheme === theme.id ? 'selected' : ''}"
               @click=${() => this._selectTheme(theme.id)}
             >
-              <div class="theme-preview-box ${this._getPreviewClass(theme.id)}"></div>
+              <div class="theme-selector-preview ${this._getPreviewClass(theme.id)}"></div>
               <div class="theme-selector-name">${theme.name}</div>
               <div class="theme-selector-description">${theme.description}</div>
             </div>
@@ -37,7 +40,7 @@ export class ThemeSelector extends LitElement {
   }
 
   _getPreviewClass(themeId) {
-    return `theme-${themeId}-preview`;
+    return `theme-preview-${themeId}`;
   }
 
   _selectTheme(themeId) {

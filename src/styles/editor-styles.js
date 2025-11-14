@@ -127,40 +127,9 @@ export const editorStyles = css`
     gap: 16px;
   }
   
-  /* ===== 配置行布局优化 ===== */
-  .config-row {
-    display: grid;
-    grid-template-columns: 1fr;
-    gap: 12px;
-    margin-bottom: 16px;
-  }
-  
-  @media (min-width: 768px) {
-    .config-row {
-      grid-template-columns: 1fr 2fr;
-      gap: 20px;
-      align-items: start;
-    }
-    
-    /* 当有智能输入组件时调整布局 */
-    .config-row:has(.smart-input-container) {
-      grid-template-columns: 1fr 3fr;
-    }
-  }
-  
-  .config-label {
-    font-weight: 500;
-    font-size: 0.9em;
-    color: var(--primary-text-color);
-    display: flex;
-    align-items: center;
-    gap: 4px;
-    padding-top: 8px;
-  }
-  
-  .required-star {
-    color: var(--error-color);
-    margin-left: 4px;
+  /* ===== 配置提示区域 ===== */
+  .preview-section {
+    background: var(--card-background-color);
   }
   
   /* ===== 操作按钮 ===== */
@@ -171,148 +140,12 @@ export const editorStyles = css`
     margin-top: 24px;
   }
   
-  /* ===== 智能输入组件样式 ===== */
-  .smart-input-container {
-    position: relative;
-    width: 100%;
-  }
-  
-  .smart-input-wrapper {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    width: 100%;
-  }
-  
-  @media (min-width: 480px) {
-    .smart-input-wrapper {
-      gap: 12px;
-    }
-  }
-  
-  .smart-input-field {
-    flex: 1;
-    --mdc-text-field-fill-color: var(--card-background-color);
-  }
-  
-  .entity-button {
-    background: var(--primary-color);
-    color: white;
-    border: none;
-    border-radius: 4px;
-    padding: 0 12px;
-    height: 56px;
-    min-width: 56px;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 1.1em;
-    transition: all 0.2s ease;
-    flex-shrink: 0;
-  }
-  
-  .entity-button:hover {
-    background: var(--accent-color);
-  }
-  
-  /* ===== 实体选择下拉列表样式 ===== */
-  .entity-picker-dropdown {
-    position: absolute;
-    top: 100%;
-    left: 0;
-    right: 0;
-    background: var(--card-background-color);
-    border: 1px solid var(--divider-color);
-    border-radius: 8px;
-    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
-    z-index: 1000;
-    margin-top: 4px;
-    max-height: 400px;
-    overflow: hidden;
-    display: flex;
-    flex-direction: column;
-  }
-  
-  .entity-picker-header {
-    padding: 12px 16px;
-    border-bottom: 1px solid var(--divider-color);
-    font-weight: 600;
-    font-size: 0.9em;
-    background: var(--secondary-background-color, #f5f5f5);
-    color: var(--primary-text-color);
-  }
-  
-  .entity-picker-search {
-    padding: 12px 16px;
-    border-bottom: 1px solid var(--divider-color);
-    background: var(--card-background-color);
-  }
-  
-  .entity-picker-search ha-textfield {
-    width: 100%;
-    --mdc-text-field-fill-color: var(--card-background-color);
-  }
-  
-  .entity-picker-list {
-    flex: 1;
-    max-height: 300px;
-    overflow-y: auto;
-    background: var(--card-background-color);
-  }
-  
-  .entity-picker-item {
-    padding: 12px 16px;
-    cursor: pointer;
-    border-bottom: 1px solid var(--divider-color);
-    transition: all 0.2s ease;
-    display: flex;
-    flex-direction: column;
-    gap: 4px;
-  }
-  
-  .entity-picker-item:hover {
-    background: rgba(var(--rgb-primary-color), 0.08);
-  }
-  
-  .entity-picker-item:last-child {
-    border-bottom: none;
-  }
-  
-  .entity-picker-name {
-    font-weight: 500;
-    font-size: 0.9em;
-    color: var(--primary-text-color);
-  }
-  
-  .entity-picker-id {
-    font-size: 0.8em;
-    color: var(--secondary-text-color);
-    font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
-  }
-  
-  .entity-picker-state {
-    font-size: 0.8em;
-    color: var(--primary-color);
-    margin-top: 2px;
-  }
-  
-  .entity-picker-empty {
-    padding: 20px 16px;
-    text-align: center;
-    color: var(--secondary-text-color);
-    font-size: 0.9em;
-  }
-  
-  /* 移除多余的提示文字 */
-  /* .smart-input-hint 已被移除 */
-  
   /* ===== 插件选择器样式 ===== */
   .plugin-selector {
     width: 100%;
   }
   
-  .plugin-search-box {
+  .search-box {
     margin-bottom: 12px;
   }
   
@@ -360,12 +193,6 @@ export const editorStyles = css`
     margin-top: 2px;
   }
   
-  .plugin-selector-empty {
-    text-align: center;
-    padding: 20px;
-    color: var(--secondary-text-color);
-  }
-  
   /* ===== 主题选择器样式 ===== */
   .theme-selector {
     width: 100%;
@@ -397,7 +224,7 @@ export const editorStyles = css`
     background: rgba(var(--rgb-primary-color), 0.05);
   }
   
-  .theme-preview-box {
+  .theme-selector-preview {
     width: 100%;
     height: 60px;
     border-radius: 6px;
@@ -406,7 +233,7 @@ export const editorStyles = css`
     transition: all 0.3s ease;
   }
   
-  .theme-selector-card.selected .theme-preview-box {
+  .theme-selector-card.selected .theme-selector-preview {
     transform: scale(1.05);
   }
   
@@ -421,44 +248,241 @@ export const editorStyles = css`
     color: var(--secondary-text-color);
   }
   
-  /* 主题预览样式 */
-  .theme-auto-preview {
-    background: var(--card-background-color);
+  /* ===== 智能输入组件样式 ===== */
+  .smart-input-container {
+    position: relative;
+    width: 100%;
   }
   
-  .theme-glass-preview {
-    background: linear-gradient(135deg, rgba(255,255,255,0.3) 0%, rgba(255,255,255,0.1) 100%);
+  .smart-input-wrapper {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    width: 100%;
+  }
+  
+  .smart-input-field {
+    flex: 1;
+    --mdc-text-field-fill-color: var(--card-background-color);
+  }
+  
+  .smart-input-entity-button {
+    background: var(--primary-color);
+    color: white;
+    border: none;
+    border-radius: 4px;
+    padding: 0 12px;
+    height: 56px;
+    min-width: 56px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.1em;
+    transition: all 0.2s ease;
+  }
+  
+  .smart-input-entity-button:hover {
+    background: var(--accent-color);
+  }
+  
+  .smart-input-dropdown {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    background: var(--card-background-color);
+    border: 1px solid var(--divider-color);
+    border-radius: 8px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    z-index: 100;
+    margin-top: 4px;
+    max-height: 200px;
+    overflow-y: auto;
+  }
+  
+  .smart-input-picker-header {
+    padding: 12px;
+    border-bottom: 1px solid var(--divider-color);
+    font-weight: 600;
+    font-size: 0.9em;
+  }
+  
+  .smart-input-search-box {
+    padding: 8px 12px;
+  }
+  
+  .smart-input-entity-list {
+    max-height: 150px;
+    overflow-y: auto;
+  }
+  
+  .smart-input-entity-item {
+    padding: 8px 12px;
+    cursor: pointer;
+    border-bottom: 1px solid var(--divider-color);
+    font-size: 0.85em;
+  }
+  
+  .smart-input-entity-item:hover {
+    background: rgba(var(--rgb-primary-color), 0.1);
+  }
+  
+  .smart-input-entity-name {
+    font-weight: 500;
+    margin-bottom: 2px;
+  }
+  
+  .smart-input-entity-id {
+    font-size: 0.8em;
+    color: var(--secondary-text-color);
+    font-family: monospace;
+  }
+  
+  .smart-input-hint {
+    margin-top: 4px;
+    font-size: 0.8em;
+    color: var(--secondary-text-color);
+    line-height: 1.3;
+  }
+  
+  /* ===== 实体选择器样式 ===== */
+  .entity-picker-container {
+    position: relative;
+  }
+  
+  .entity-picker-wrapper {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+  }
+  
+  .entity-picker-field {
+    flex: 1;
+    --mdc-text-field-fill-color: var(--card-background-color);
+  }
+  
+  .entity-picker-button {
+    background: var(--primary-color);
+    color: white;
+    border: none;
+    border-radius: 4px;
+    padding: 0 12px;
+    height: 56px;
+    min-width: 60px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.9em;
+    font-weight: 500;
+    transition: all 0.2s ease;
+  }
+  
+  .entity-picker-button:hover {
+    background: var(--accent-color);
+  }
+  
+  .entity-picker-dropdown {
+    position: absolute;
+    top: 100%;
+    right: 0;
+    width: 300px;
+    background: var(--card-background-color);
+    border: 1px solid var(--divider-color);
+    border-radius: 8px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    z-index: 100;
+    margin-top: 4px;
+    max-height: 300px;
+    overflow-y: auto;
+  }
+  
+  .entity-picker-header {
+    padding: 12px;
+    border-bottom: 1px solid var(--divider-color);
+    font-weight: 600;
+    font-size: 0.9em;
+  }
+  
+  .entity-picker-search-box {
+    padding: 8px 12px;
+  }
+  
+  .entity-picker-list {
+    max-height: 200px;
+    overflow-y: auto;
+  }
+  
+  .entity-picker-item {
+    padding: 8px 12px;
+    cursor: pointer;
+    border-bottom: 1px solid var(--divider-color);
+    font-size: 0.85em;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  
+  .entity-picker-item:hover {
+    background: rgba(var(--rgb-primary-color), 0.1);
+  }
+  
+  .entity-picker-name {
+    font-weight: 500;
+  }
+  
+  .entity-picker-id {
+    font-size: 0.8em;
+    color: var(--secondary-text-color);
+    font-family: monospace;
+  }
+  
+  .entity-picker-state {
+    font-size: 0.8em;
+    color: var(--primary-color);
+    margin-left: 8px;
+  }
+  
+  .entity-picker-hint {
+    margin-top: 4px;
+    font-size: 0.8em;
+    color: var(--secondary-text-color);
+    line-height: 1.3;
+    min-height: 1.2em;
+  }
+  
+  .entity-picker-hint-content {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+  }
+  
+  /* ===== 主题预览类 ===== */
+  .theme-preview-auto {
+    background: var(--card-background-color);
+    border: 1px solid var(--divider-color);
+  }
+  
+  .theme-preview-glass {
+    background: linear-gradient(135deg, 
+      rgba(255, 255, 255, 0.3) 0%, 
+      rgba(255, 255, 255, 0.1) 100%);
+    border: 1px solid rgba(255, 255, 255, 0.2);
     backdrop-filter: blur(10px);
     -webkit-backdrop-filter: blur(10px);
-    border: 1px solid rgba(255,255,255,0.2);
   }
   
-  .theme-gradient-preview {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  }
+  .theme-preview-gradient-1 { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); }
+  .theme-preview-gradient-2 { background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%); }
+  .theme-preview-gradient-3 { background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%); }
+  .theme-preview-gradient-4 { background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%); }
+  .theme-preview-gradient-5 { background: linear-gradient(135deg, #fa709a 0%, #fee140 100%); }
   
-  .theme-neon-preview {
+  .theme-preview-neon {
     background: #1a1a1a;
     border: 1px solid #00ff88;
     box-shadow: 0 0 8px #00ff88;
-  }
-
-  .theme-poetry-preview {
-    background: linear-gradient(135deg, #fef7ed 0%, #f8f4e9 100%);
-    border: 1px solid #e8dfca;
-    position: relative;
-    overflow: hidden;
-  }
-
-  .theme-poetry-preview::before {
-    content: '詩';
-    position: absolute;
-    bottom: 5px;
-    right: 5px;
-    font-size: 12px;
-    color: #8b4513;
-    font-family: "SimSun", "宋体", serif;
-    opacity: 0.6;
   }
   
   /* ===== 响应式优化 ===== */
@@ -490,29 +514,9 @@ export const editorStyles = css`
     }
     
     .entity-picker-dropdown {
-      position: fixed;
-      top: 50%;
-      left: 16px;
-      right: 16px;
-      transform: translateY(-50%);
-      max-height: 70vh;
-      z-index: 1000;
-    }
-    
-    /* 移动端配置行布局 */
-    .config-row {
-      grid-template-columns: 1fr;
-      gap: 8px;
-    }
-    
-    .smart-input-wrapper {
-      flex-direction: column;
-      gap: 8px;
-    }
-    
-    .entity-button {
       width: 100%;
-      height: 48px;
+      right: auto;
+      left: 0;
     }
   }
   
@@ -525,44 +529,12 @@ export const editorStyles = css`
       grid-template-columns: 1fr;
     }
     
-    .config-row {
-      margin-bottom: 12px;
-    }
-  }
-  
-  /* ===== 大屏优化 ===== */
-  @media (min-width: 1024px) {
-    .editor-layout {
-      max-width: 800px;
+    .plugin-list {
+      grid-template-columns: repeat(2, 1fr);
     }
     
-    .datasource-list {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 20px;
-    }
-    
-    /* 当只有少量配置项时保持单列 */
-    .datasource-list:has(.config-row:nth-child(3)) {
+    .theme-selector-grid {
       grid-template-columns: 1fr;
     }
-  }
-  
-  /* ===== 状态提示 ===== */
-  .config-hint {
-    color: var(--secondary-text-color);
-    font-size: 0.85em;
-    margin-top: 16px;
-    text-align: center;
-    padding: 8px;
-    background: rgba(var(--rgb-primary-color), 0.05);
-    border-radius: 6px;
-  }
-  
-  .entity-help {
-    font-size: 0.8em;
-    color: var(--secondary-text-color);
-    margin-top: 8px;
-    line-height: 1.4;
   }
 `;

@@ -1,5 +1,6 @@
 // src/editors/smart-input.js
 import { LitElement, html } from 'https://unpkg.com/lit@2.8.0/index.js?module';
+import { editorStyles } from '../styles/editor-styles.js';
 
 export class SmartInput extends LitElement {
   static properties = {
@@ -9,6 +10,8 @@ export class SmartInput extends LitElement {
     _showEntityPicker: { state: true },
     _searchQuery: { state: true }
   };
+
+  static styles = [editorStyles];
 
   constructor() {
     super();
@@ -29,12 +32,16 @@ export class SmartInput extends LitElement {
             fullwidth
           ></ha-textfield>
           
-          <button class="entity-button" @click=${this._toggleEntityPicker} title="选择实体">
+          <button class="smart-input-entity-button" @click=${this._toggleEntityPicker} title="选择实体">
             🏷️
           </button>
         </div>
         
         ${this._showEntityPicker ? this._renderEntityPicker() : ''}
+        
+        <div class="smart-input-hint">
+          💡 支持实体ID (sensor.temperature) 或 Jinja2模板 ({{ states('sensor.temp') }})
+        </div>
       </div>
     `;
   }
@@ -43,10 +50,10 @@ export class SmartInput extends LitElement {
     const entities = this._getFilteredEntities();
     
     return html`
-      <div class="entity-picker-dropdown">
-        <div class="entity-picker-header">选择实体</div>
+      <div class="smart-input-dropdown">
+        <div class="smart-input-picker-header">选择实体</div>
         
-        <div class="entity-picker-search">
+        <div class="smart-input-search-box">
           <ha-textfield
             .label=${"搜索实体..."}
             .value=${this._searchQuery}
@@ -56,17 +63,16 @@ export class SmartInput extends LitElement {
           ></ha-textfield>
         </div>
         
-        <div class="entity-picker-list">
+        <div class="smart-input-entity-list">
           ${entities.map(entity => html`
-            <div class="entity-picker-item" @click=${() => this._selectEntity(entity.entity_id)}>
-              <div class="entity-picker-name">${entity.friendly_name}</div>
-              <div class="entity-picker-id">${entity.entity_id}</div>
-              <div class="entity-picker-state">状态: ${entity.state}</div>
+            <div class="smart-input-entity-item" @click=${() => this._selectEntity(entity.entity_id)}>
+              <div class="smart-input-entity-name">${entity.friendly_name}</div>
+              <div class="smart-input-entity-id">${entity.entity_id}</div>
             </div>
           `)}
           
           ${entities.length === 0 ? html`
-            <div class="entity-picker-empty">
+            <div style="padding: 12px; text-align: center; color: var(--secondary-text-color);">
               未找到匹配的实体
             </div>
           ` : ''}
@@ -131,9 +137,7 @@ export class SmartInput extends LitElement {
             this.requestUpdate();
           }
         };
-        setTimeout(() => {
-          document.addEventListener('click', handler);
-        });
+        document.addEventListener('click', handler);
       });
     }
   }
