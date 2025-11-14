@@ -216,4 +216,153 @@ export class SmartInput extends LitElement {
               style="padding: 8px 12px; cursor: pointer; border-bottom: 1px solid var(--divider-color);"
               @click=${() => this._selectEntity(entity.entity_id)}
             >
-              <div style="font-weight: 500;">${entity.f
+              <div style="font-weight: 500;">${entity.friendly_name}</div>
+              <div style="font-size: 0.8em; color: var(--secondary-text-color);">${entity.entity_id}</div>
+            </div>
+          `)}
+        </div>
+      </div>
+    `;
+  }
+
+  _renderPreview() {
+    return html`
+      <div class="preview-section">
+        <div class="preview-label">预览值:</div>
+        <div class="preview-value">${this._previewValue}</div>
+      </div>
+    `;
+  }
+
+  _renderHints() {
+    return html`
+      <div class="hint-section">
+        <div style="font-size: 0.75em; color: var(--secondary-text-color);">
+          💡 支持: 实体ID (sensor.temperature) | Jinja2模板 ({{ states('sensor.temp') }}) | 直接文本
+        </div>
+      </div>
+    `;
+  }
+
+  _updateInputType() {
+    if (!this.value) {
+      this._inputType = 'empty';
+      return;
+    }
+    
+    if (this.value.includes('{{') || this.value.includes('{%')) {
+      this._inputType = 'jinja';
+    } else if (this.value.includes('.') && this.hass?.states[this.value]) {
+      this._inputType = 'entity';
+    } else {
+      this._inputType = 'text';
+    }
+  }
+
+  _updatePreview() {
+    if (!this.value || !this.hass) {
+      this._previewValue = '';
+      return;
+    }
+    
+    try {
+      // 简单预览逻辑
+      if (this._inputType === 'entity') {
+        const entity = this.hass.states[this.value];
+        this._previewValue = entity?.state || '实体不存在';
+      } else if (this._inputType === 'jinja') {
+        this._previewValue = '模板表达式';
+      } else {
+        this._previewValue = this.value;
+      }
+    } catch (error) {
+      this._previewValue = '预览错误';
+    }
+  }
+
+  _getInputIcon() {
+    const icons = {
+      'empty': '📝',
+      'entity': '🏷️',
+      'jinja': '🔧',
+      'text': '📄'
+    };
+    return icons[this._inputType] || '📝';
+  }
+
+  _getTypeLabel() {
+    const labels = {
+      'empty': '空',
+      'entity': '实体',
+      'jinja': '模板',
+      'text': '文本'
+    };
+    return labels[this._inputType] || '未知';
+  }
+
+  _getFilteredEntities() {
+    if (!this.hass) return [];
+    
+    return Object.entries(this.hass.states)
+      .slice(0, 20) // 限制数量
+      .map(([entity_id, stateObj]) => ({
+        entity_id,
+        friendly_name: stateObj.attributes?.friendly_name || entity_id,
+        state: stateObj.state
+      }))
+      .sort((a, b) => a.friendly_name.localeCompare(b.friendly_name));
+  }
+
+  _onInputChange(e) {
+    this.value = e.target.value;
+    this._notifyChange();
+  }
+
+  _toggleEntityPicker() {
+    this._showEntityPicker = !this._showEntityPicker;
+  }
+
+  _selectEntity(entityId) {
+    this.value = entityId;
+    this._showEntityPicker = false;
+    this._notifyChange();
+  }
+
+  _showTemplates() {
+    // 显示模板示例
+    const examples = [
+      "{{ states('sensor.temperature') }}",
+      "{{ states.sensor.humidity.attributes.unit_of_measurement }}",
+      "当前温度: {{ states('sensor.temperature') }}°C"
+    ];
+    
+    // 这里可以显示一个模板选择对话框
+    console.log('模板示例:', examples);
+  }
+
+  _notifyChange() {
+    this.dispatchEvent(new CustomEvent('value-changed', {
+      detail: { value: this.value }
+    }));
+  }
+
+  updated(changedProperties) {
+    // 点击外部关闭实体选择器
+    if (changedProperties.has('_showEntityPicker') && this._showEntityPicker) {
+      setTimeout(() => {
+        const handler = (e) => {
+          if (!this.contains(e.target)) {
+            this._showEntityPicker = false;
+            document.removeEventListener('click', handler);
+            this.requestUpdate();
+          }
+        };
+        document.addEventListener('click', handler);
+      });
+    }
+  }
+}
+
+if (!customElements.get('smart-input')) {
+  customElements.define('smart-input', SmartInput);
+}
