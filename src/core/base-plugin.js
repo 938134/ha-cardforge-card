@@ -232,10 +232,9 @@ export class BasePlugin {
     return '';
   }
 
-  // === 样式系统 ===
+  // === 完整的主题样式系统 ===
   getBaseStyles(config) {
     const themeConfig = { ...this.getThemeConfig(), ...config.themeConfig };
-    const themeClass = config.theme ? `theme-${config.theme}` : 'theme-auto';
     
     return `
       :host {
@@ -250,10 +249,7 @@ export class BasePlugin {
         cursor: default;
         overflow: hidden;
         transition: all var(--cardforge-duration-normal) ease;
-      }
-      
-      .cardforge-card.${themeClass} {
-        /* 主题样式在 theme-styles.js 中定义 */
+        ${this._getThemeStyles(themeConfig, config.theme || 'auto')}
       }
       
       /* 主题突出显示效果 */
@@ -262,8 +258,8 @@ export class BasePlugin {
         ${this._boxShadow('strong')}
       }
       
+      ${this._getThemeAnimations(config.theme || 'auto')}
       ${this._getResponsiveStyles()}
-      ${this._getAnimationStyles()}
       
       .cardforge-interactive { 
         cursor: pointer; 
@@ -278,72 +274,166 @@ export class BasePlugin {
     `;
   }
   
-  _getAnimationStyles() {
+  _getThemeStyles(themeConfig, themeId = 'auto') {
+    if (!themeConfig.useGradient) {
+      return this._getSolidTheme(themeId);
+    }
+    
+    return this._getGradientTheme(themeConfig, themeId);
+  }
+  
+  _getSolidTheme(themeId) {
+    const themes = {
+      'auto': `
+        background: var(--card-background-color); 
+        color: var(--primary-text-color);
+        border: 1px solid var(--divider-color);
+      `,
+      'glass': `
+        position: relative;
+        background: linear-gradient(135deg, 
+          rgba(var(--rgb-primary-background-color), 0.25) 0%, 
+          rgba(var(--rgb-primary-background-color), 0.15) 50%,
+          rgba(var(--rgb-primary-background-color), 0.1) 100%);
+        backdrop-filter: blur(25px) saturate(180%);
+        -webkit-backdrop-filter: blur(25px) saturate(180%);
+        border: 1px solid rgba(var(--rgb-primary-text-color), 0.15);
+        ${this._boxShadow('light')}
+        color: var(--primary-text-color);
+      `,
+      'gradient': this._getRandomGradient(),
+      'neon': `
+        background: #1a1a1a;
+        color: #00ff88;
+        border: 1px solid #00ff88;
+        ${this._boxShadow('neon')}
+      `
+    };
+    
+    return themes[themeId] || themes.auto;
+  }
+  
+  _getRandomGradient() {
+    const gradients = [
+      'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+      'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)',
+      'linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)',
+      'linear-gradient(135deg, #43e97b 0%, #38f9d7 100%)',
+      'linear-gradient(135deg, #fa709a 0%, #fee140 100%)'
+    ];
+    
+    const now = new Date();
+    const seed = now.getHours() * 60 + now.getMinutes();
+    const gradientIndex = seed % gradients.length;
+    
     return `
-      @keyframes gradientShift {
-        0% {
-          background-position: 0% 50%;
-        }
-        50% {
-          background-position: 100% 50%;
-        }
-        100% {
-          background-position: 0% 50%;
-        }
-      }
-      
-      @keyframes neonPulse {
-        0%, 100% {
-          box-shadow: 
-            0 0 8px #00ff88,
-            inset 0 0 15px rgba(0, 255, 136, 0.1);
-        }
-        50% {
-          box-shadow: 
-            0 0 20px #00ff88,
-            0 0 35px rgba(0, 255, 136, 0.3),
-            inset 0 0 25px rgba(0, 255, 136, 0.2);
-        }
-      }
-      
-      @keyframes glassShine {
-        0% {
-          background-position: -100% 0;
-        }
-        100% {
-          background-position: 200% 0;
-        }
-      }
-      
-      @keyframes float {
-        0%, 100% {
-          transform: translateY(0px);
-        }
-        50% {
-          transform: translateY(-10px);
-        }
-      }
-      
-      @keyframes messageFade {
-        0% {
-          opacity: 0;
-          transform: translateY(5px);
-        }
-        100% {
-          opacity: 0.8;
-          transform: translateY(0px);
-        }
-      }
-      
-      @keyframes sealRotate {
-        0%, 100% {
-          transform: rotate(15deg);
-        }
-        50% {
-          transform: rotate(25deg);
-        }
-      }
+      background: ${gradients[gradientIndex]};
+      background-size: 200% 200%;
+      color: white;
+      border: none;
     `;
+  }
+  
+  _getGradientTheme(themeConfig, themeId) {
+    const gradientColors = {
+      'auto': ['var(--primary-color)', 'var(--accent-color)'],
+      'glass': this._getGlassGradientColors(),
+      'gradient': this._getRandomGradientColors(),
+      'neon': ['#00ff88', '#00cc66']
+    };
+    
+    const colors = gradientColors[themeId] || gradientColors.auto;
+    
+    const gradientMap = {
+      'diagonal': `linear-gradient(135deg, ${colors.join(', ')})`,
+      'horizontal': `linear-gradient(90deg, ${colors.join(', ')})`,
+      'vertical': `linear-gradient(180deg, ${colors.join(', ')})`,
+      'radial': `radial-gradient(circle, ${colors.join(', ')})`
+    };
+    
+    const gradient = gradientMap[themeConfig.gradientType] || gradientMap.diagonal;
+    
+    if (themeId === 'gradient') {
+      return `
+        background: ${gradient};
+        background-size: 200% 200%;
+        color: white;
+        border: none;
+      `;
+    }
+    
+    if (themeId === 'glass') {
+      return `
+        ${this._getSolidTheme('glass')}
+        background: ${gradient}, ${this._getSolidTheme('glass').split('background:')[1].split(';')[0]};
+        background-blend-mode: overlay, normal;
+      `;
+    }
+    
+    return `background: ${gradient}; color: white; border: none;`;
+  }
+  
+  _getGlassGradientColors() {
+    return [
+      'rgba(var(--rgb-primary-background-color), 0.25)',
+      'rgba(var(--rgb-primary-background-color), 0.15)'
+    ];
+  }
+  
+  _getRandomGradientColors() {
+    const colorPairs = [
+      ['#667eea', '#764ba2'],
+      ['#f093fb', '#f5576c'],
+      ['#4facfe', '#00f2fe'],
+      ['#43e97b', '#38f9d7'],
+      ['#fa709a', '#fee140']
+    ];
+    
+    const now = new Date();
+    const seed = now.getHours() * 60 + now.getMinutes();
+    const colorIndex = seed % colorPairs.length;
+    
+    return colorPairs[colorIndex];
+  }
+
+  _getThemeAnimations(themeId) {
+    if (themeId === 'gradient') {
+      return `
+        @keyframes gradientShift {
+          0% { background-position: 0% 50%; }
+          50% { background-position: 100% 50%; }
+          100% { background-position: 0% 50%; }
+        }
+        
+        .cardforge-card.theme-gradient {
+          animation: gradientShift 6s ease infinite;
+        }
+      `;
+    }
+    
+    if (themeId === 'neon') {
+      return `
+        @keyframes neonPulse {
+          0%, 100% {
+            box-shadow: 
+              0 0 8px #00ff88,
+              inset 0 0 15px rgba(0, 255, 136, 0.1);
+          }
+          50% {
+            box-shadow: 
+              0 0 20px #00ff88,
+              0 0 35px rgba(0, 255, 136, 0.3),
+              inset 0 0 25px rgba(0, 255, 136, 0.2);
+          }
+        }
+        
+        .cardforge-card.theme-neon {
+          animation: neonPulse 2s ease-in-out infinite;
+        }
+      `;
+    }
+    
+    return '';
   }
   
   _getResponsiveStyles() {
