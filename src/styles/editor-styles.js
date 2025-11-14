@@ -31,76 +31,60 @@ export const editorStyles = css`
     font-size: 1.2em;
   }
   
-  /* ===== 插件选择区域 ===== */
-  .plugin-selector-section {
-    background: linear-gradient(135deg, var(--primary-color) -20%, var(--card-background-color) 120%);
-  }
-  
-  .plugin-grid {
+  /* ===== 统一选择器网格布局 ===== */
+  .selector-grid {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
     gap: 12px;
     margin-top: 12px;
   }
   
-  .plugin-card {
+  .selector-card {
     padding: 16px 12px;
-    border-radius: 8px;
-    background: rgba(255, 255, 255, 0.1);
-    border: 1px solid rgba(255, 255, 255, 0.2);
-    text-align: center;
-    cursor: pointer;
-    transition: all 0.2s ease;
-  }
-  
-  .plugin-card:hover {
-    transform: translateY(-2px);
-    background: rgba(255, 255, 255, 0.15);
-  }
-  
-  .plugin-card.selected {
-    background: var(--primary-color);
-    color: white;
-  }
-  
-  .plugin-icon {
-    font-size: 2em;
-    margin-bottom: 8px;
-  }
-  
-  .plugin-name {
-    font-size: 0.9em;
-    font-weight: 500;
-  }
-  
-  /* ===== 主题选择区域 ===== */
-  .theme-selector-section {
-    background: var(--card-background-color);
-  }
-  
-  .theme-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
-    gap: 12px;
-    margin-top: 12px;
-  }
-  
-  .theme-card {
-    padding: 16px;
     border-radius: 8px;
     border: 2px solid var(--divider-color);
     cursor: pointer;
     transition: all 0.2s ease;
     text-align: center;
+    background: var(--card-background-color);
   }
   
-  .theme-card:hover {
+  .selector-card:hover {
     border-color: var(--primary-color);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
   }
   
-  .theme-card.selected {
+  .selector-card.selected {
     border-color: var(--primary-color);
-    background: rgba(var(--rgb-primary-color), 0.05);
+    background: var(--primary-color);
+    color: white;
+  }
+  
+  .selector-icon {
+    font-size: 2em;
+    margin-bottom: 8px;
+  }
+  
+  .selector-name {
+    font-size: 0.9em;
+    font-weight: 500;
+    margin-bottom: 4px;
+  }
+  
+  .selector-description {
+    font-size: 0.75em;
+    opacity: 0.8;
+  }
+  
+  /* ===== 插件选择区域 ===== */
+  .plugin-selector-section {
+    /* 使用统一样式 */
+  }
+  
+  /* ===== 主题选择区域 ===== */
+  .theme-selector-section {
+    /* 使用统一样式 */
   }
   
   .theme-preview {
@@ -109,11 +93,12 @@ export const editorStyles = css`
     border-radius: 6px;
     margin-bottom: 8px;
     border: 1px solid var(--divider-color);
+    transition: all 0.3s ease;
   }
   
-  .theme-name {
-    font-size: 0.85em;
-    font-weight: 500;
+  .selector-card.selected .theme-preview {
+    transform: scale(1.05);
+    border-color: white;
   }
   
   /* ===== 数据源配置区域 ===== */
@@ -159,16 +144,17 @@ export const editorStyles = css`
   
   .plugin-item {
     padding: 12px 8px;
-    border: 1px solid var(--divider-color);
+    border: 2px solid var(--divider-color);
     border-radius: 8px;
     cursor: pointer;
     text-align: center;
     transition: all 0.2s ease;
+    background: var(--card-background-color);
   }
   
   .plugin-item:hover {
     border-color: var(--primary-color);
-    background: rgba(var(--rgb-primary-color), 0.05);
+    transform: translateY(-2px);
   }
   
   .plugin-item.selected {
@@ -189,8 +175,7 @@ export const editorStyles = css`
   
   .plugin-item-description {
     font-size: 0.75em;
-    opacity: 0.7;
-    margin-top: 2px;
+    opacity: 0.8;
   }
   
   /* ===== 主题选择器样式 ===== */
@@ -200,7 +185,7 @@ export const editorStyles = css`
   
   .theme-selector-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
     gap: 12px;
     margin-top: 8px;
   }
@@ -212,6 +197,7 @@ export const editorStyles = css`
     cursor: pointer;
     transition: all 0.2s ease;
     text-align: center;
+    background: var(--card-background-color);
   }
   
   .theme-selector-card:hover {
@@ -221,7 +207,8 @@ export const editorStyles = css`
   
   .theme-selector-card.selected {
     border-color: var(--primary-color);
-    background: rgba(var(--rgb-primary-color), 0.05);
+    background: var(--primary-color);
+    color: white;
   }
   
   .theme-selector-preview {
@@ -235,6 +222,7 @@ export const editorStyles = css`
   
   .theme-selector-card.selected .theme-selector-preview {
     transform: scale(1.05);
+    border-color: white;
   }
   
   .theme-selector-name {
@@ -245,7 +233,7 @@ export const editorStyles = css`
   
   .theme-selector-description {
     font-size: 0.75em;
-    color: var(--secondary-text-color);
+    opacity: 0.8;
   }
   
   /* ===== 智能输入组件样式 ===== */
@@ -495,13 +483,8 @@ export const editorStyles = css`
       padding: 12px;
     }
     
-    .plugin-grid {
+    .selector-grid {
       grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
-      gap: 8px;
-    }
-    
-    .theme-grid {
-      grid-template-columns: repeat(2, 1fr);
       gap: 8px;
     }
     
@@ -521,12 +504,8 @@ export const editorStyles = css`
   }
   
   @media (max-width: 400px) {
-    .plugin-grid {
+    .selector-grid {
       grid-template-columns: repeat(2, 1fr);
-    }
-    
-    .theme-grid {
-      grid-template-columns: 1fr;
     }
     
     .plugin-list {
