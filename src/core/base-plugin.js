@@ -232,7 +232,7 @@ export class BasePlugin {
     return '';
   }
 
-  // === 简化的基础样式系统 ===
+  // === 简化的基础样式 ===
   getBaseStyles(config) {
     return `
       :host {
