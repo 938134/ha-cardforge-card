@@ -14,7 +14,8 @@ export class SmartInput extends LitElement {
     _showPicker: { state: true },
     _inputType: { state: true },
     _previewValue: { state: true },
-    _searchQuery: { state: true }
+    _searchQuery: { state: true },
+    _filteredEntities: { state: true }
   };
 
   static styles = [
@@ -25,6 +26,10 @@ export class SmartInput extends LitElement {
       :host {
         display: block;
       }
+      
+      .entity-search ha-textfield {
+        width: 100%;
+      }
     `
   ];
 
@@ -34,6 +39,8 @@ export class SmartInput extends LitElement {
     this._inputType = 'empty';
     this._previewValue = '';
     this._searchQuery = '';
+    this._filteredEntities = [];
+    this._searchTimeout = null;
   }
 
   render() {
@@ -65,8 +72,6 @@ export class SmartInput extends LitElement {
         ${this._showPicker ? this._renderEntityPicker() : ''}
         
         ${this._previewValue ? this._renderPreview() : ''}
-        
-        ${this._renderInputHints()}
       </div>
     `;
   }
@@ -103,38 +108,22 @@ export class SmartInput extends LitElement {
     return labels[this._inputType];
   }
 
-  _renderInputHints() {
-    const hints = {
-      entity: '输入实体ID或点击右侧按钮选择',
-      jinja: 'Jinja2模板，支持 {{ states() }} 等函数',
-      text: '静态文本内容',
-      empty: '输入实体ID、Jinja2模板或静态文本'
-    };
-
-    return html`
-      <div class="config-hint">
-        ${hints[this._inputType]}
-      </div>
-    `;
-  }
-
   _renderEntityPicker() {
-    const entities = this._getFilteredEntities();
-    
     return html`
       <div class="entity-picker-dropdown">
         <div class="entity-search">
           <ha-textfield
             label="搜索实体..."
             .value=${this._searchQuery}
-            @input=${e => this._onSearchChange(e.target.value)}
+            @input=${this._onSearchInput}
+            @keyup=${this._onSearchKeyup}
             dense
             fullwidth
           ></ha-textfield>
         </div>
         
         <div class="entity-list">
-          ${entities.map(entity => html`
+          ${this._filteredEntities.map(entity => html`
             <div class="entity-item" @click=${() => this._selectEntity(entity.entity_id)}>
               <div>
                 <div class="entity-name">${entity.friendly_name}</div>
@@ -144,9 +133,9 @@ export class SmartInput extends LitElement {
             </div>
           `)}
           
-          ${entities.length === 0 ? html`
+          ${this._filteredEntities.length === 0 ? html`
             <div style="padding: 12px; text-align: center; color: var(--secondary-text-color);">
-              未找到匹配的实体
+              ${this._searchQuery ? '未找到匹配的实体' : '暂无实体数据'}
             </div>
           ` : ''}
         </div>
@@ -154,24 +143,65 @@ export class SmartInput extends LitElement {
     `;
   }
 
-  _getFilteredEntities() {
-    if (!this.hass) return [];
+  _getAllEntities() {
+    if (!this.hass || !this.hass.states) return [];
     
-    const entities = Object.entries(this.hass.states)
+    return Object.entries(this.hass.states)
       .map(([entity_id, stateObj]) => ({
         entity_id,
         friendly_name: stateObj.attributes?.friendly_name || entity_id,
-        state: stateObj.state
+        state: stateObj.state,
+        domain: entity_id.split('.')[0]
       }))
-      .filter(entity => {
-        if (!this._searchQuery) return true;
-        const query = this._searchQuery.toLowerCase();
-        return entity.entity_id.toLowerCase().includes(query) || 
-               entity.friendly_name.toLowerCase().includes(query);
-      })
       .sort((a, b) => a.friendly_name.localeCompare(b.friendly_name));
+  }
+
+  _filterEntities() {
+    const allEntities = this._getAllEntities();
     
-    return entities.slice(0, 50);
+    if (!this._searchQuery.trim()) {
+      // 没有搜索词时显示前100个常用实体
+      const commonDomains = ['sensor', 'light', 'switch', 'binary_sensor', 'climate'];
+      return allEntities
+        .filter(entity => commonDomains.includes(entity.domain))
+        .slice(0, 100);
+    }
+    
+    const query = this._searchQuery.toLowerCase().trim();
+    return allEntities
+      .filter(entity => {
+        return entity.entity_id.toLowerCase().includes(query) || 
+               entity.friendly_name.toLowerCase().includes(query) ||
+               (entity.attributes?.friendly_name || '').toLowerCase().includes(query);
+      })
+      .slice(0, 100); // 限制搜索结果数量
+  }
+
+  _onSearchInput(e) {
+    this._searchQuery = e.target.value;
+    // 清除之前的定时器
+    if (this._searchTimeout) {
+      clearTimeout(this._searchTimeout);
+    }
+    // 设置新的定时器，300ms后执行搜索
+    this._searchTimeout = setTimeout(() => {
+      this._performSearch();
+    }, 300);
+  }
+
+  _onSearchKeyup(e) {
+    // 如果用户按回车，立即搜索
+    if (e.key === 'Enter') {
+      if (this._searchTimeout) {
+        clearTimeout(this._searchTimeout);
+      }
+      this._performSearch();
+    }
+  }
+
+  _performSearch() {
+    this._filteredEntities = this._filterEntities();
+    this.requestUpdate();
   }
 
   _onInputChange(e) {
@@ -208,7 +238,6 @@ export class SmartInput extends LitElement {
         const unit = entity.attributes?.unit_of_measurement;
         this._previewValue = `${entity.state}${unit ? ` ${unit}` : ''}`;
       } else if (this._inputType === 'jinja') {
-        // 简化的Jinja2预览
         this._previewValue = this._evaluateJinjaPreview(this.value);
       } else {
         this._previewValue = this.value;
@@ -240,7 +269,10 @@ export class SmartInput extends LitElement {
 
   _togglePicker() {
     this._showPicker = !this._showPicker;
-    this._searchQuery = '';
+    if (this._showPicker) {
+      this._searchQuery = '';
+      this._filteredEntities = this._filterEntities();
+    }
   }
 
   _selectEntity(entityId) {
@@ -249,10 +281,6 @@ export class SmartInput extends LitElement {
     this._analyzeInputType();
     this._updatePreview();
     this._notifyChange();
-  }
-
-  _onSearchChange(query) {
-    this._searchQuery = query;
   }
 
   _notifyChange() {
@@ -278,6 +306,14 @@ export class SmartInput extends LitElement {
         };
         document.addEventListener('click', handler);
       });
+    }
+  }
+
+  // 组件卸载时清理定时器
+  disconnectedCallback() {
+    super.disconnectedCallback();
+    if (this._searchTimeout) {
+      clearTimeout(this._searchTimeout);
     }
   }
 }
