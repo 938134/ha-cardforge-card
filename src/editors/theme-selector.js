@@ -2,6 +2,7 @@
 import { LitElement, html } from 'https://unpkg.com/lit@2.8.0/index.js?module';
 import { sharedStyles } from '../styles/shared-styles.js';
 import { componentStyles } from '../styles/component-styles.js';
+import { themeConfigs } from '../themes/index.js'; 
 
 export class ThemeSelector extends LitElement {
   static properties = {
@@ -15,12 +16,7 @@ export class ThemeSelector extends LitElement {
 
   constructor() {
     super();
-    this.themes = [
-      { value: 'auto', label: '跟随系统', icon: '⚙️' },
-      { value: 'glass', label: '毛玻璃', icon: '🔮' },
-      { value: 'gradient', label: '随机渐变', icon: '🌈' },
-      { value: 'neon', label: '霓虹光影', icon: '💫' }
-    ];
+    this.themes = themeConfigs; // 直接使用主题配置
   }
 
   render() {
@@ -34,9 +30,9 @@ export class ThemeSelector extends LitElement {
           fullwidth
         >
           ${this.themes.map(theme => html`
-            <mwc-list-item value=${theme.value}>
+            <mwc-list-item value=${theme.id}>
               <span style="margin-right: 8px;">${theme.icon}</span>
-              ${theme.label}
+              ${theme.name}
             </mwc-list-item>
           `)}
         </ha-select>
