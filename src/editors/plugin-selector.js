@@ -28,11 +28,6 @@ export class PluginSelector extends LitElement {
             <mwc-list-item value=${plugin.id}>${plugin.name}</mwc-list-item>
           `)}
         </ha-select>
-        ${!this.selectedPlugin ? html`
-          <div class="config-hint">
-            💡 选择要使用的卡片插件类型
-          </div>
-        ` : ''}
       </div>
     `;
   }
