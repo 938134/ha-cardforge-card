@@ -2,13 +2,17 @@
 import './ha-cardforge-card.js';
 import './editors/ha-cardforge-editor.js';
 import './core/smart-input.js';
+import './styles/index.js';
+import './themes/index.js';
 
-// 导入样式系统
-import './styles/shared-styles.js';
-import './styles/layout-styles.js'; 
-import './styles/component-styles.js';
-import './styles/theme-styles.js';
-import './styles/responsive-styles.js';
+// 注册组件
+if (!customElements.get('ha-cardforge-card')) {
+  customElements.define('ha-cardforge-card', HaCardForgeCard);
+}
+
+if (!customElements.get('ha-cardforge-editor')) {
+  customElements.define('ha-cardforge-editor', HaCardForgeEditor);
+}
 
 if (window.customCards) {
   window.customCards.push({
@@ -20,4 +24,4 @@ if (window.customCards) {
   });
 }
 
-console.log('🎉 卡片工坊初始化完成 - 增强版');
+console.log('🎉 卡片工坊初始化完成 - 模块化版本');
