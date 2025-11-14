@@ -294,13 +294,13 @@ class HaCardForgeEditor extends LitElement {
 
   _onThemeSelected(themeId) {
     if (themeId === this.config.theme) return;
-
+  
     this.config = {
       ...this.config,
       theme: themeId
     };
     
-    // 强制刷新预览
+    // 强制触发配置更新来刷新系统预览
     this._forcePreviewUpdate();
   }
 
@@ -313,29 +313,26 @@ class HaCardForgeEditor extends LitElement {
   }
 
   _forcePreviewUpdate() {
-    // 增加配置版本号，强制触发更新
-    this._configVersion++;
+    // 增加更新计数器来强制刷新
+    this._previewUpdateCount++;
     
-    // 创建新的配置对象确保引用变化
-    const newConfig = {
-      ...this.config,
-      _version: this._configVersion
-    };
-    
-    // 触发配置更新事件
-    this.dispatchEvent(new CustomEvent('config-changed', {
-      detail: { config: newConfig }
-    }));
+    // 立即通知配置变化
+    this._notifyConfigUpdate();
     
     // 强制组件更新
     this.requestUpdate();
     
-    console.log('🔧 强制刷新预览，配置版本:', this._configVersion);
+    console.log('主题切换，强制刷新预览:', this.config.theme);
   }
 
   _notifyConfigUpdate() {
     this.dispatchEvent(new CustomEvent('config-changed', {
-      detail: { config: this.config }
+      detail: { 
+        config: this.config,
+        // 添加时间戳和更新计数来确保每次都是新的配置对象
+        _timestamp: Date.now(),
+        _updateCount: this._previewUpdateCount
+      }
     }));
   }
 
