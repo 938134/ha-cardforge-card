@@ -2,7 +2,8 @@
 import { LitElement, html } from 'https://unpkg.com/lit@2.8.0/index.js?module';
 import { unsafeHTML } from 'https://unpkg.com/lit-html/directives/unsafe-html.js?module';
 import { PluginRegistry } from './core/plugin-registry.js';
-import { allStyles, allThemes } from './styles/index.js';
+import { allStyles} from './styles/index.js';
+import { allThemes } from './themes/index.js';
 
 class HaCardForgeCard extends LitElement {
   static properties = {
