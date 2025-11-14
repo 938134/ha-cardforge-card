@@ -1,5 +1,4 @@
 // src/main.js
-import { HaCardForgeCard } from './core/index.js';
 import { HaCardForgeEditor } from './editors/ha-cardforge-editor.js';
 import { PluginRegistry } from './core/plugin-registry.js';
 
