@@ -2,119 +2,79 @@
 import { css } from 'https://unpkg.com/lit@2.8.0/index.js?module';
 
 export const sharedStyles = css`
-  /* ===== 基础配置样式 ===== */
-  .config-header {
-    margin-bottom: 16px;
-    font-size: 1em;
+  /* ===== CSS变量定义 ===== */
+  :root {
+    /* 间距系统 */
+    --cardforge-spacing-xs: 4px;
+    --cardforge-spacing-sm: 8px;
+    --cardforge-spacing-md: 16px;
+    --cardforge-spacing-lg: 24px;
+    --cardforge-spacing-xl: 32px;
+    
+    /* 圆角系统 */
+    --cardforge-radius-sm: 4px;
+    --cardforge-radius-md: 8px;
+    --cardforge-radius-lg: 12px;
+    
+    /* 动画时长 */
+    --cardforge-duration-fast: 0.15s;
+    --cardforge-duration-normal: 0.3s;
+    --cardforge-duration-slow: 0.5s;
+  }
+
+  /* ===== 基础工具类 ===== */
+  .cardforge-flex { display: flex; }
+  .cardforge-flex-column { display: flex; flex-direction: column; }
+  .cardforge-flex-center { 
+    display: flex; 
+    align-items: center; 
+    justify-content: center; 
+  }
+  .cardforge-text-center { text-align: center; }
+  .cardforge-full-width { width: 100%; }
+  
+  /* ===== 布局工具 ===== */
+  .cardforge-section {
+    margin-bottom: var(--cardforge-spacing-lg);
+    padding: var(--cardforge-spacing-md);
+    background: var(--card-background-color);
+    border-radius: var(--cardforge-radius-lg);
+    border: 1px solid var(--divider-color);
+  }
+  
+  .cardforge-section-header {
+    display: flex;
+    align-items: center;
+    gap: var(--cardforge-spacing-sm);
+    margin-bottom: var(--cardforge-spacing-md);
     font-weight: 600;
     color: var(--primary-text-color);
-    display: flex;
-    align-items: center;
-    gap: 8px;
+    font-size: 1.1em;
   }
   
-  .config-row {
-    margin-bottom: 20px;
-  }
-  
-  /* ===== 实体标签样式 ===== */
-  .entity-label {
-    font-weight: 500;
-    font-size: 0.9em;
-    color: var(--primary-text-color);
-    margin-bottom: 8px;
-    display: flex;
-    align-items: center;
-    gap: 4px;
-  }
-  
-  .required-star {
-    color: var(--error-color);
-    margin-left: 4px;
-  }
-  
-  .entity-help {
-    font-size: 0.8em;
-    color: var(--secondary-text-color);
-    margin-top: 6px;
-    line-height: 1.3;
-  }
-  
-  /* ===== 表单控件样式 ===== */
-  .entity-picker-container {
-    min-width: 200px;
-    width: 100%;
-  }
-  
-  .entity-picker-container ha-select,
-  ha-select {
-    width: 100%;
-    --mdc-theme-primary: var(--primary-color);
-    --mdc-menu-min-width: 200px;
-  }
-  
-  .entity-picker-container ha-combo-box,
-  ha-combo-box {
-    width: 100%;
-    --ha-combo-box-background: var(--card-background-color);
-    --ha-combo-box-text-color: var(--primary-text-color);
-    --ha-combo-box-icon-color: var(--secondary-text-color);
-    --ha-combo-box-border-color: var(--divider-color);
-    --ha-combo-box-border-radius: 4px;
-    --ha-combo-box-hover-border-color: var(--primary-color);
-    --ha-combo-box-focused-border-color: var(--primary-color);
-  }
-  
-  /* ===== 工具类样式 ===== */
-  .flex-center {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-  }
-  
-  .text-center {
-    text-align: center;
-  }
-  
-  .flex-column {
-    display: flex;
-    flex-direction: column;
-  }
-  
-  .flex-row {
-    display: flex;
-    align-items: center;
-  }
-  
-  .grid-center {
+  .cardforge-grid-2 {
     display: grid;
-    place-items: center;
+    grid-template-columns: 1fr 1fr;
+    gap: var(--cardforge-spacing-md);
   }
   
-  /* ===== 功能支持提示 ===== */
-  .feature-supported, .feature-unsupported {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    margin-bottom: 8px;
-    font-size: 0.9em;
+  /* ===== 响应式工具 ===== */
+  @media (max-width: 768px) {
+    .cardforge-grid-2 {
+      grid-template-columns: 1fr;
+      gap: var(--cardforge-spacing-sm);
+    }
+    
+    .cardforge-section {
+      padding: var(--cardforge-spacing-sm);
+      margin-bottom: var(--cardforge-spacing-md);
+    }
   }
   
-  .feature-supported {
-    color: var(--success-color);
-  }
-  
-  .feature-unsupported {
-    color: var(--warning-color);
-  }
-  
-  .plugin-theme-info {
-    margin-bottom: 16px;
-  }
-  
-  .config-hint {
-    color: var(--secondary-text-color);
-    font-size: 0.85em;
-    margin-top: 16px;
+  @media (max-width: 480px) {
+    :root {
+      --cardforge-spacing-md: 12px;
+      --cardforge-spacing-lg: 20px;
+    }
   }
 `;
