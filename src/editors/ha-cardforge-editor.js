@@ -16,7 +16,7 @@ class HaCardForgeEditor extends LitElement {
     _themes: { state: true },
     _selectedPlugin: { state: true },
     _initialized: { state: true },
-    _configVersion: { state: true }
+    _configVersion: { state: true } // 添加配置版本号用于强制刷新
   };
 
   static styles = [
@@ -52,7 +52,7 @@ class HaCardForgeEditor extends LitElement {
     this._themes = [];
     this._selectedPlugin = null;
     this._initialized = false;
-    this._configVersion = 0;
+    this._configVersion = 0; // 初始化配置版本号
   }
 
   async firstUpdated() {
@@ -73,6 +73,7 @@ class HaCardForgeEditor extends LitElement {
       theme: 'auto',
       ...config 
     };
+    this._configVersion = 0; // 重置版本号
   }
 
   render() {
@@ -174,7 +175,7 @@ class HaCardForgeEditor extends LitElement {
         </div>
         
         <div class="config-hint">
-          💡 主题将改变卡片的外观样式，选择后预览窗口会立即更新
+          💡 主题将改变卡片的外观样式
         </div>
       </div>
     `;
@@ -231,11 +232,11 @@ class HaCardForgeEditor extends LitElement {
       <div class="editor-section preview-section">
         <div class="section-header">
           <span class="section-icon">👀</span>
-          <span>实时预览</span>
+          <span>配置提示</span>
         </div>
         
         <div class="config-hint">
-          💡 所有配置变更都会立即在预览窗口中生效
+          💡 配置完成后，点击保存即可在卡片中看到效果。Home Assistant 会实时预览配置结果。
         </div>
       </div>
     `;
@@ -288,7 +289,7 @@ class HaCardForgeEditor extends LitElement {
       entities: {}
     };
     this._selectedPlugin = plugin;
-    this._forcePreviewUpdate('plugin');
+    this._forcePreviewUpdate();
   }
 
   _onThemeSelected(themeId) {
@@ -298,7 +299,9 @@ class HaCardForgeEditor extends LitElement {
       ...this.config,
       theme: themeId
     };
-    this._forcePreviewUpdate('theme');
+    
+    // 强制刷新预览
+    this._forcePreviewUpdate();
   }
 
   _onDatasourceChanged(key, value) {
@@ -306,59 +309,33 @@ class HaCardForgeEditor extends LitElement {
       ...this.config.entities,
       [key]: value
     };
-    this._forcePreviewUpdate('datasource');
+    this._forcePreviewUpdate();
   }
 
-  _forcePreviewUpdate(source) {
-    // 增加版本号确保配置对象引用变化
+  _forcePreviewUpdate() {
+    // 增加配置版本号，强制触发更新
     this._configVersion++;
     
-    // 创建全新的配置对象
+    // 创建新的配置对象确保引用变化
     const newConfig = {
       ...this.config,
-      _timestamp: Date.now(),
       _version: this._configVersion
     };
     
-    console.log(`🔄 强制预览更新 (${source}):`, newConfig.theme);
+    // 触发配置更新事件
+    this.dispatchEvent(new CustomEvent('config-changed', {
+      detail: { config: newConfig }
+    }));
     
-    // 立即触发配置更新
-    this._notifyConfigUpdate(newConfig);
-    
-    // 强制组件重新渲染
+    // 强制组件更新
     this.requestUpdate();
     
-    // 多重触发确保HA收到更新
-    setTimeout(() => {
-      const refreshedConfig = {
-        ...newConfig,
-        _refreshed: Date.now()
-      };
-      this._notifyConfigUpdate(refreshedConfig);
-    }, 10);
-    
-    // 再次触发确保预览更新
-    setTimeout(() => {
-      const finalConfig = {
-        ...newConfig,
-        _final: true
-      };
-      this._notifyConfigUpdate(finalConfig);
-    }, 50);
+    console.log('🔧 强制刷新预览，配置版本:', this._configVersion);
   }
 
-  _notifyConfigUpdate(config = this.config) {
-    // 深度复制配置对象
-    const configCopy = JSON.parse(JSON.stringify(config));
-    
-    // 移除内部属性
-    delete configCopy._timestamp;
-    delete configCopy._version;
-    delete configCopy._refreshed;
-    delete configCopy._final;
-    
+  _notifyConfigUpdate() {
     this.dispatchEvent(new CustomEvent('config-changed', {
-      detail: { config: configCopy }
+      detail: { config: this.config }
     }));
   }
 
