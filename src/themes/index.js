@@ -1,9 +1,8 @@
-// src/themes/index.js
+// src/themes/index.js - 修复主题样式获取
 import { autoTheme } from './auto-theme.js';
 import { glassTheme } from './glass-theme.js';
 import { gradientTheme } from './gradient-theme.js';
 import { neonTheme } from './neon-theme.js';
-import { poetryTheme } from './poetry-theme.js'; 
 
 class ThemeManager {
   constructor() {
@@ -17,7 +16,6 @@ class ThemeManager {
     this.registerTheme(glassTheme);
     this.registerTheme(gradientTheme);
     this.registerTheme(neonTheme);
-    this.registerTheme(poetryTheme); 
   }
 
   registerTheme(theme) {
@@ -40,8 +38,11 @@ class ThemeManager {
   getThemeStyles(themeId, config = {}) {
     const theme = this.getTheme(themeId);
     if (theme && typeof theme.getStyles === 'function') {
-      return theme.getStyles(config);
+      const styles = theme.getStyles(config);
+      console.log(`🎨 应用主题 ${themeId} 样式:`, styles.substring(0, 100) + '...');
+      return styles;
     }
+    console.warn(`❌ 无法获取主题 ${themeId} 的样式`);
     return '';
   }
 

@@ -237,6 +237,8 @@ export class BasePlugin {
   // === 样式系统 - 集成新主题系统 ===
   getBaseStyles(config) {
     const themeId = config.theme || 'auto';
+    
+    // 获取主题样式
     const themeStyles = themeManager.getThemeStyles(themeId, config);
     
     return `
@@ -252,6 +254,9 @@ export class BasePlugin {
         cursor: default;
         overflow: hidden;
         transition: all 0.3s ease;
+        
+        /* 应用主题样式 */
+        ${themeStyles}
       }
       
       /* 主题突出显示效果 */
@@ -259,8 +264,6 @@ export class BasePlugin {
         transform: translateY(-2px);
         ${this._boxShadow('strong')}
       }
-      
-      ${themeStyles}
       
       ${this._getResponsiveStyles()}
       ${this._getAnimationStyles()}

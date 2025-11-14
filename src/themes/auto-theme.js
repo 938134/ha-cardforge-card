@@ -1,4 +1,4 @@
-// src/themes/auto-theme.js
+// src/themes/auto-theme.js - 修复样式输出
 export const autoTheme = {
   id: 'auto',
   name: '跟随系统',
@@ -20,24 +20,9 @@ export const autoTheme = {
 
   getStyles(config = {}) {
     return `
-      .theme-auto {
-        background: var(--card-background-color);
-        color: var(--primary-text-color);
-        border-color: var(--divider-color);
-        transition: all 0.3s ease;
-      }
-      
-      .theme-auto .cardforge-interactive:hover {
-        background: rgba(var(--rgb-primary-color), 0.05);
-      }
-      
-      .theme-auto .cardforge-status-on {
-        color: var(--success-color);
-      }
-      
-      .theme-auto .cardforge-status-off {
-        color: var(--disabled-color);
-      }
+      background: var(--card-background-color);
+      color: var(--primary-text-color);
+      border-color: var(--divider-color);
     `;
   },
 
