@@ -36,6 +36,12 @@ class PluginRegistry {
   }
 
   static _registerPluginModule(module) {
+    // 检查模块结构
+    if (!module) {
+      console.warn('插件模块为空');
+      return;
+    }
+    
     const pluginId = module.manifest?.id;
     if (!pluginId) {
       console.warn('插件缺少 manifest.id，跳过');
@@ -113,7 +119,5 @@ class PluginRegistry {
     return PluginClass ? new PluginClass() : null;
   }
 }
-
-PluginRegistry.initialize();
 
 export { PluginRegistry };
