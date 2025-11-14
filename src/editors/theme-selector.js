@@ -1,67 +1,55 @@
 // src/editors/theme-selector.js
 import { LitElement, html } from 'https://unpkg.com/lit@2.8.0/index.js?module';
-import { ThemeManager, themeStyles } from '../styles/index.js';
+import { sharedStyles } from '../styles/shared-styles.js';
+import { componentStyles } from '../styles/component-styles.js';
 
 export class ThemeSelector extends LitElement {
   static properties = {
     selectedTheme: { type: String }
   };
 
-  static styles = [themeStyles];
+  static styles = [
+    sharedStyles,
+    componentStyles
+  ];
 
   constructor() {
     super();
-    this.themes = ThemeManager.getAllThemes();
+    this.themes = [
+      { value: 'auto', label: '跟随系统', icon: '⚙️' },
+      { value: 'glass', label: '毛玻璃', icon: '🔮' },
+      { value: 'gradient', label: '随机渐变', icon: '🌈' },
+      { value: 'neon', label: '霓虹光影', icon: '💫' }
+    ];
   }
 
   render() {
     return html`
-      <div class="theme-selector">
-        <div class="theme-previews">
-          ${this.themes.map(theme => html`
-            <div 
-              class="theme-preview ${theme.id} ${this.selectedTheme === theme.id ? 'active' : ''}"
-              @click=${() => this._selectTheme(theme.id)}
-              title="${theme.name}: ${theme.description}"
-            ></div>
-          `)}
-        </div>
-        
+      <div class="form-row">
         <ha-select
-          .label=${"选择主题"}
+          .label=${"选择主题样式"}
           .value=${this.selectedTheme}
           @selected=${this._onThemeSelected}
           @closed=${e => e.stopPropagation()}
-          naturalMenuWidth
-          fixedMenuPosition
+          fullwidth
         >
           ${this.themes.map(theme => html`
-            <mwc-list-item value=${theme.id}>
-              ${theme.name} - ${theme.description}
+            <mwc-list-item value=${theme.value}>
+              <span style="margin-right: 8px;">${theme.icon}</span>
+              ${theme.label}
             </mwc-list-item>
           `)}
         </ha-select>
-        
-        <div class="entity-help">
-          点击预览图或下拉选择主题样式
+        <div class="config-hint">
+          🎨 选择卡片的视觉主题样式
         </div>
       </div>
     `;
   }
 
-  _selectTheme(themeId) {
-    this.selectedTheme = themeId;
-    this._notifyChange();
-  }
-
   _onThemeSelected(event) {
-    this.selectedTheme = event.target.value;
-    this._notifyChange();
-  }
-
-  _notifyChange() {
     this.dispatchEvent(new CustomEvent('theme-changed', {
-      detail: { theme: this.selectedTheme }
+      detail: { theme: event.target.value }
     }));
   }
 }
