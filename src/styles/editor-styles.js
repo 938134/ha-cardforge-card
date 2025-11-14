@@ -127,11 +127,6 @@ export const editorStyles = css`
     gap: 16px;
   }
   
-  /* ===== 配置提示区域 ===== */
-  .preview-section {
-    background: var(--card-background-color);
-  }
-  
   /* ===== 操作按钮 ===== */
   .action-buttons {
     display: flex;
@@ -289,6 +284,12 @@ export const editorStyles = css`
     font-size: 0.75em;
     opacity: 0.7;
     margin-top: 2px;
+  }
+  
+  .plugin-selector-empty {
+    text-align: center;
+    padding: 20px;
+    color: var(--secondary-text-color);
   }
   
   /* ===== 主题选择器样式 ===== */

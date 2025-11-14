@@ -82,23 +82,18 @@ class HaCardForgeEditor extends LitElement {
     return html`
       <div class="editor-container">
         <div class="vertical-layout">
-          <!-- 插件选择区域 -->
+          <!-- 卡片类型选择区域 -->
           ${this._renderPluginSection()}
           
           <div class="section-divider"></div>
           
-          <!-- 主题选择区域 -->
+          <!-- 主题样式选择区域 -->
           ${this.config.plugin ? this._renderThemeSection() : ''}
           
           ${this.config.plugin ? html`<div class="section-divider"></div>` : ''}
           
           <!-- 数据源配置区域 -->
           ${this.config.plugin ? this._renderDatasourceSection() : ''}
-          
-          ${this.config.plugin ? html`<div class="section-divider"></div>` : ''}
-          
-          <!-- 配置提示区域 -->
-          ${this.config.plugin ? this._renderPreviewSection() : ''}
           
           <!-- 操作按钮 -->
           ${this._renderActionButtons()}
@@ -123,44 +118,55 @@ class HaCardForgeEditor extends LitElement {
       <div class="editor-section plugin-selector-section">
         <div class="section-header">
           <span class="section-icon">🎨</span>
-          <span>选择卡片类型</span>
+          <span>卡片类型</span>
         </div>
         
-        <plugin-selector
-          .plugins=${this._plugins}
-          .selectedPlugin=${this.config.plugin}
-          @plugin-changed=${this._onPluginChanged}
-        ></plugin-selector>
+        <div class="plugin-grid">
+          ${this._plugins.map(plugin => html`
+            <div 
+              class="plugin-card ${this.config.plugin === plugin.id ? 'selected' : ''}"
+              @click=${() => this._onPluginSelected(plugin)}
+            >
+              <div class="plugin-icon">${plugin.icon}</div>
+              <div class="plugin-name">${plugin.name}</div>
+            </div>
+          `)}
+        </div>
         
         ${!this.config.plugin ? html`
           <div class="config-hint">
-            💡 选择上方的卡片类型开始配置
+            💡 点击上方的卡片类型开始配置
           </div>
         ` : ''}
       </div>
     `;
   }
 
-// 在 _renderThemeSection() 方法中更新类名：
-_renderThemeSection() {
-  return html`
-    <div class="editor-section theme-selector-section">
-      <div class="section-header">
-        <span class="section-icon">🎭</span>
-        <span>选择主题样式</span>
+  _renderThemeSection() {
+    return html`
+      <div class="editor-section theme-selector-section">
+        <div class="section-header">
+          <span class="section-icon">🎭</span>
+          <span>主题样式</span>
+        </div>
+        
+        <div class="theme-grid">
+          ${this._themes.map(theme => html`
+            <div 
+              class="theme-card ${this.config.theme === theme.id ? 'selected' : ''}"
+              @click=${() => this._onThemeSelected(theme.id)}
+            >
+              <div 
+                class="theme-preview ${this._getThemePreviewClass(theme.id)}"
+                style=${this._getThemePreviewStyle(theme)}
+              ></div>
+              <div class="theme-name">${theme.name}</div>
+            </div>
+          `)}
+        </div>
       </div>
-      
-      <theme-selector
-        .selectedTheme=${this.config.theme}
-        @theme-changed=${this._onThemeSelected}
-      ></theme-selector>
-      
-      <div class="config-hint">
-        💡 主题将改变卡片的外观样式
-      </div>
-    </div>
-  `;
-}
+    `;
+  }
 
   _renderDatasourceSection() {
     const plugin = PluginRegistry.getPlugin(this.config.plugin);
@@ -208,21 +214,6 @@ _renderThemeSection() {
     `;
   }
 
-  _renderPreviewSection() {
-    return html`
-      <div class="editor-section preview-section">
-        <div class="section-header">
-          <span class="section-icon">👀</span>
-          <span>配置提示</span>
-        </div>
-        
-        <div class="config-hint">
-          💡 配置完成后，点击保存即可在卡片中看到效果。Home Assistant 会实时预览配置结果。
-        </div>
-      </div>
-    `;
-  }
-
   _renderActionButtons() {
     return html`
       <div class="editor-section">
@@ -245,12 +236,12 @@ _renderThemeSection() {
 
   _getThemePreviewClass(themeId) {
     const previewClasses = {
-      'auto': 'theme-preview-auto',
-      'glass': 'theme-preview-glass',
-      'gradient': themeManager.getThemePreview('gradient').background ? 'theme-preview-gradient-1' : 'theme-preview-gradient-1',
-      'neon': 'theme-preview-neon'
+      'auto': 'theme-auto-preview',
+      'glass': 'theme-glass-preview',
+      'gradient': 'theme-gradient-preview',
+      'neon': 'theme-neon-preview'
     };
-    return previewClasses[themeId] || 'theme-preview-auto';
+    return previewClasses[themeId] || 'theme-auto-preview';
   }
 
   _getThemePreviewStyle(theme) {
