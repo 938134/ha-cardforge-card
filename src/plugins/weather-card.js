@@ -9,7 +9,7 @@ export const manifest = {
   author: 'CardForge Team',
   category: 'weather',
   icon: '🌤️',
-  entityRequirements: [
+  dataSourceRequirements: [
     {
       key: 'weather_source',
       description: '天气实体来源',
@@ -42,7 +42,7 @@ export default class WeatherCardPlugin extends BasePlugin {
                     weatherEntity?.attributes?.humidity || '--';
     
     return `
-      <div class="cardforge-card weather-card">
+      <div class="cardforge-card weather-card theme-${config.theme || 'auto'}">
         <div class="weather-content">
           <div class="weather-icon">${this._getWeatherIcon(condition)}</div>
           <div class="weather-info">
@@ -73,13 +73,13 @@ export default class WeatherCardPlugin extends BasePlugin {
   getStyles(config) {
     return this.getBaseStyles(config) + `
       .weather-card {
-        ${this._responsivePadding('20px', '16px')}
+        ${this._responsivePadding('var(--cardforge-spacing-lg)', 'var(--cardforge-spacing-md)')}
         ${this._responsiveHeight('120px', '100px')}
       }
       
       .weather-content {
         ${this._flexRow()}
-        ${this._responsiveGap('16px', '12px')}
+        ${this._responsiveGap('var(--cardforge-spacing-md)', 'var(--cardforge-spacing-sm)')}
         height: 100%;
       }
       
@@ -97,13 +97,13 @@ export default class WeatherCardPlugin extends BasePlugin {
         font-weight: bold;
         color: var(--primary-color);
         line-height: 1;
-        ${this._responsiveMargin('0 0 4px', '0 0 3px')}
+        ${this._responsiveMargin('0 0 var(--cardforge-spacing-xs)', '0 0 3px')}
       }
       
       .condition {
         ${this._responsiveFontSize('1em', '0.9em')}
         opacity: 0.8;
-        ${this._responsiveMargin('0 0 2px', '0 0 1px')}
+        ${this._responsiveMargin('0 0 var(--cardforge-spacing-xs)', '0 0 2px')}
       }
       
       .humidity {
@@ -116,11 +116,6 @@ export default class WeatherCardPlugin extends BasePlugin {
         .weather-icon {
           font-size: 2.5em;
         }
-      }
-      
-      /* 主题适配 */
-      .weather-card.glass .temperature {
-        color: var(--primary-text-color);
       }
     `;
   }
