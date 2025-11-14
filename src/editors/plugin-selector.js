@@ -1,5 +1,7 @@
 // src/editors/plugin-selector.js
 import { LitElement, html } from 'https://unpkg.com/lit@2.8.0/index.js?module';
+import { sharedStyles } from '../styles/shared-styles.js';
+import { componentStyles } from '../styles/component-styles.js';
 
 export class PluginSelector extends LitElement {
   static properties = {
@@ -7,32 +9,37 @@ export class PluginSelector extends LitElement {
     selectedPlugin: { type: String }
   };
 
+  static styles = [
+    sharedStyles,
+    componentStyles
+  ];
+
   render() {
     return html`
-      <ha-select
-        .label=${"选择卡片"}
-        .value=${this.selectedPlugin}
-        @selected=${this._onPluginSelected}
-        @closed=${e => e.stopPropagation()}
-        naturalMenuWidth
-        fixedMenuPosition
-      >
-        ${this.plugins.map(plugin => html`
-          <mwc-list-item value=${plugin.id}>
-            ${plugin.name} 
-            <span style="opacity: 0.6; font-size: 0.9em; margin-left: 8px;">
-              ${plugin.description}
-            </span>
-          </mwc-list-item>
-        `)}
-      </ha-select>
+      <div class="form-row">
+        <ha-select
+          .label=${"选择卡片类型"}
+          .value=${this.selectedPlugin}
+          @selected=${this._onPluginSelected}
+          @closed=${e => e.stopPropagation()}
+          fullwidth
+        >
+          ${this.plugins.map(plugin => html`
+            <mwc-list-item value=${plugin.id}>${plugin.name}</mwc-list-item>
+          `)}
+        </ha-select>
+        ${!this.selectedPlugin ? html`
+          <div class="config-hint">
+            💡 选择要使用的卡片插件类型
+          </div>
+        ` : ''}
+      </div>
     `;
   }
 
   _onPluginSelected(event) {
-    const pluginId = event.target.value;
     this.dispatchEvent(new CustomEvent('plugin-changed', {
-      detail: { pluginId }
+      detail: { pluginId: event.target.value }
     }));
   }
 }
