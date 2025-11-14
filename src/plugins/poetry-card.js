@@ -9,7 +9,7 @@ export const manifest = {
   author: 'CardForge Team',
   category: 'info',
   icon: '📜',
-  entityRequirements: [
+  dataSourceRequirements: [
     {
       key: 'title_source',
       description: '标题来源（实体ID或Jinja2模板）',
@@ -44,7 +44,7 @@ export default class PoetryCardPlugin extends BasePlugin {
     const content = this._getCardValue(hass, entities, 'content_source', '');
     
     return `
-      <div class="cardforge-card poetry-card">
+      <div class="cardforge-card poetry-card theme-${config.theme || 'auto'}">
         <div class="poetry-content">
           <!-- 第一行：标题居中 -->
           <div class="poetry-title">${title}</div>
@@ -90,7 +90,7 @@ export default class PoetryCardPlugin extends BasePlugin {
   getStyles(config) {
     return this.getBaseStyles(config) + `
       .poetry-card {
-        ${this._responsivePadding('24px', '20px')}
+        ${this._responsivePadding('var(--cardforge-spacing-lg)', 'var(--cardforge-spacing-md)')}
         ${this._responsiveHeight('280px', '240px')}
         position: relative;
         overflow: hidden;
@@ -111,7 +111,7 @@ export default class PoetryCardPlugin extends BasePlugin {
       .poetry-title {
         ${this._responsiveFontSize('1.4em', '1.2em')}
         font-weight: 700;
-        ${this._responsiveMargin('0 0 8px', '0 0 6px')}
+        ${this._responsiveMargin('0 0 var(--cardforge-spacing-sm)', '0 0 var(--cardforge-spacing-xs)')}
         color: #8b4513;
         font-family: "SimSun", "宋体", serif;
         ${this._textShadow()}
@@ -121,7 +121,7 @@ export default class PoetryCardPlugin extends BasePlugin {
       .poetry-meta {
         ${this._responsiveFontSize('0.9em', '0.8em')}
         color: #a0522d;
-        ${this._responsiveMargin('0 0 24px', '0 0 16px')}
+        ${this._responsiveMargin('0 0 var(--cardforge-spacing-lg)', '0 0 var(--cardforge-spacing-md)')}
         font-family: "SimSun", "宋体", serif;
         opacity: 0.8;
         font-style: italic;
@@ -135,7 +135,7 @@ export default class PoetryCardPlugin extends BasePlugin {
       
       .poetry-line {
         ${this._responsiveFontSize('1.1em', '1em')}
-        ${this._responsiveMargin('0 0 8px', '0 0 6px')}
+        ${this._responsiveMargin('0 0 var(--cardforge-spacing-sm)', '0 0 var(--cardforge-spacing-xs)')}
         color: #654321;
         ${this._textShadow()}
         letter-spacing: 1px;
@@ -170,52 +170,6 @@ export default class PoetryCardPlugin extends BasePlugin {
       .seal::before {
         content: '詩';
         font-family: "SimSun", "宋体", serif;
-      }
-      
-      /* 主题适配 */
-      .poetry-card.glass {
-        background: linear-gradient(135deg, 
-          rgba(254, 247, 237, 0.8) 0%, 
-          rgba(248, 244, 233, 0.7) 100%);
-        backdrop-filter: blur(20px);
-        -webkit-backdrop-filter: blur(20px);
-        border: 1px solid rgba(232, 223, 202, 0.6);
-      }
-      
-      .poetry-card.gradient {
-        background: linear-gradient(135deg, #d4a574 0%, #8b7355 100%);
-        color: #fff8dc;
-      }
-      
-      .poetry-card.gradient .poetry-title {
-        color: #fff8dc;
-      }
-      
-      .poetry-card.gradient .poetry-meta {
-        color: #f5deb3;
-      }
-      
-      .poetry-card.gradient .poetry-line {
-        color: #fff8dc;
-      }
-      
-      .poetry-card.neon {
-        background: #1a1a1a;
-        color: #ffd700;
-        border: 1px solid #ffd700;
-        ${this._boxShadow('neon')}
-      }
-      
-      .poetry-card.neon .poetry-title {
-        color: #ffd700;
-      }
-      
-      .poetry-card.neon .poetry-meta {
-        color: #ffed99;
-      }
-      
-      .poetry-card.neon .poetry-line {
-        color: #ffd700;
       }
       
       /* 悬停效果 */
