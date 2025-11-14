@@ -472,6 +472,11 @@ export const editorStyles = css`
     border: 1px solid #00ff88;
     box-shadow: 0 0 8px #00ff88;
   }
+    
+  .theme-preview-ink-wash {
+    background: linear-gradient(135deg, #2c3e50 0%, #34495e 100%);
+    border: 1px solid #7f8c8d;
+  }  
   
   /* ===== 响应式优化 ===== */
   @media (max-width: 600px) {

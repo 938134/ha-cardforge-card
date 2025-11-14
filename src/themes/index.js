@@ -3,6 +3,7 @@ import { autoTheme } from './auto-theme.js';
 import { glassTheme } from './glass-theme.js';
 import { gradientTheme } from './gradient-theme.js';
 import { neonTheme } from './neon-theme.js';
+import { inkWashTheme } from './ink-wash-theme.js';
 
 class ThemeManager {
   constructor() {
@@ -16,6 +17,7 @@ class ThemeManager {
     this.registerTheme(glassTheme);
     this.registerTheme(gradientTheme);
     this.registerTheme(neonTheme);
+    this.registerTheme(inkWashTheme);
   }
 
   registerTheme(theme) {
