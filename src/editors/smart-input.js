@@ -35,10 +35,6 @@ export class SmartInput extends LitElement {
         </div>
         
         ${this._showEntityPicker ? this._renderEntityPicker() : ''}
-        
-        <div class="smart-input-hint">
-          💡 支持实体ID (sensor.temperature) 或 Jinja2模板 ({{ states('sensor.temp') }})
-        </div>
       </div>
     `;
   }
@@ -135,7 +131,9 @@ export class SmartInput extends LitElement {
             this.requestUpdate();
           }
         };
-        document.addEventListener('click', handler);
+        setTimeout(() => {
+          document.addEventListener('click', handler);
+        });
       });
     }
   }

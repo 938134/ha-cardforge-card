@@ -127,6 +127,42 @@ export const editorStyles = css`
     gap: 16px;
   }
   
+  /* ===== 配置行布局优化 ===== */
+  .config-row {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 12px;
+    margin-bottom: 16px;
+  }
+  
+  @media (min-width: 768px) {
+    .config-row {
+      grid-template-columns: 1fr 2fr;
+      gap: 20px;
+      align-items: start;
+    }
+    
+    /* 当有智能输入组件时调整布局 */
+    .config-row:has(.smart-input-container) {
+      grid-template-columns: 1fr 3fr;
+    }
+  }
+  
+  .config-label {
+    font-weight: 500;
+    font-size: 0.9em;
+    color: var(--primary-text-color);
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    padding-top: 8px;
+  }
+  
+  .required-star {
+    color: var(--error-color);
+    margin-left: 4px;
+  }
+  
   /* ===== 操作按钮 ===== */
   .action-buttons {
     display: flex;
@@ -148,6 +184,12 @@ export const editorStyles = css`
     width: 100%;
   }
   
+  @media (min-width: 480px) {
+    .smart-input-wrapper {
+      gap: 12px;
+    }
+  }
+  
   .smart-input-field {
     flex: 1;
     --mdc-text-field-fill-color: var(--card-background-color);
@@ -167,6 +209,7 @@ export const editorStyles = css`
     justify-content: center;
     font-size: 1.1em;
     transition: all 0.2s ease;
+    flex-shrink: 0;
   }
   
   .entity-button:hover {
@@ -182,10 +225,10 @@ export const editorStyles = css`
     background: var(--card-background-color);
     border: 1px solid var(--divider-color);
     border-radius: 8px;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-    z-index: 100;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+    z-index: 1000;
     margin-top: 4px;
-    max-height: 300px;
+    max-height: 400px;
     overflow: hidden;
     display: flex;
     flex-direction: column;
@@ -213,7 +256,7 @@ export const editorStyles = css`
   
   .entity-picker-list {
     flex: 1;
-    max-height: 200px;
+    max-height: 300px;
     overflow-y: auto;
     background: var(--card-background-color);
   }
@@ -261,12 +304,8 @@ export const editorStyles = css`
     font-size: 0.9em;
   }
   
-  .smart-input-hint {
-    margin-top: 8px;
-    font-size: 0.8em;
-    color: var(--secondary-text-color);
-    line-height: 1.4;
-  }
+  /* 移除多余的提示文字 */
+  /* .smart-input-hint 已被移除 */
   
   /* ===== 插件选择器样式 ===== */
   .plugin-selector {
@@ -404,34 +443,22 @@ export const editorStyles = css`
     box-shadow: 0 0 8px #00ff88;
   }
 
-.theme-poetry-preview {
-  background: linear-gradient(135deg, #fef7ed 0%, #f8f4e9 100%);
-  border: 1px solid #e8dfca;
-  position: relative;
-  overflow: hidden;
-}
+  .theme-poetry-preview {
+    background: linear-gradient(135deg, #fef7ed 0%, #f8f4e9 100%);
+    border: 1px solid #e8dfca;
+    position: relative;
+    overflow: hidden;
+  }
 
-.theme-poetry-preview::before {
-  content: '詩';
-  position: absolute;
-  bottom: 5px;
-  right: 5px;
-  font-size: 12px;
-  color: #8b4513;
-  font-family: "SimSun", "宋体", serif;
-  opacity: 0.6;
-}
-  
-  /* 主题预览提示 */
-  .theme-preview-hint {
-    margin-top: 12px;
-    font-size: 0.8em;
-    color: var(--secondary-text-color);
-    text-align: center;
-    padding: 8px 12px;
-    background: rgba(var(--rgb-primary-color), 0.05);
-    border-radius: 6px;
-    border: 1px solid rgba(var(--rgb-primary-color), 0.1);
+  .theme-poetry-preview::before {
+    content: '詩';
+    position: absolute;
+    bottom: 5px;
+    right: 5px;
+    font-size: 12px;
+    color: #8b4513;
+    font-family: "SimSun", "宋体", serif;
+    opacity: 0.6;
   }
   
   /* ===== 响应式优化 ===== */
@@ -471,6 +498,22 @@ export const editorStyles = css`
       max-height: 70vh;
       z-index: 1000;
     }
+    
+    /* 移动端配置行布局 */
+    .config-row {
+      grid-template-columns: 1fr;
+      gap: 8px;
+    }
+    
+    .smart-input-wrapper {
+      flex-direction: column;
+      gap: 8px;
+    }
+    
+    .entity-button {
+      width: 100%;
+      height: 48px;
+    }
   }
   
   @media (max-width: 400px) {
@@ -481,5 +524,45 @@ export const editorStyles = css`
     .theme-grid {
       grid-template-columns: 1fr;
     }
+    
+    .config-row {
+      margin-bottom: 12px;
+    }
+  }
+  
+  /* ===== 大屏优化 ===== */
+  @media (min-width: 1024px) {
+    .editor-layout {
+      max-width: 800px;
+    }
+    
+    .datasource-list {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 20px;
+    }
+    
+    /* 当只有少量配置项时保持单列 */
+    .datasource-list:has(.config-row:nth-child(3)) {
+      grid-template-columns: 1fr;
+    }
+  }
+  
+  /* ===== 状态提示 ===== */
+  .config-hint {
+    color: var(--secondary-text-color);
+    font-size: 0.85em;
+    margin-top: 16px;
+    text-align: center;
+    padding: 8px;
+    background: rgba(var(--rgb-primary-color), 0.05);
+    border-radius: 6px;
+  }
+  
+  .entity-help {
+    font-size: 0.8em;
+    color: var(--secondary-text-color);
+    margin-top: 8px;
+    line-height: 1.4;
   }
 `;

@@ -177,10 +177,6 @@ class HaCardForgeEditor extends LitElement {
             </div>
           `)}
         </div>
-        
-        <div class="theme-preview-hint">
-          💡 切换主题后，系统预览会自动更新
-        </div>
       </div>
     `;
   }
@@ -188,7 +184,7 @@ class HaCardForgeEditor extends LitElement {
   _renderDatasourceSection() {
     const plugin = PluginRegistry.getPlugin(this.config.plugin);
     if (!plugin) return '';
-
+  
     const requirements = plugin.manifest.entityRequirements || [];
     
     if (requirements.length === 0) {
@@ -202,7 +198,7 @@ class HaCardForgeEditor extends LitElement {
         </div>
       `;
     }
-
+  
     return html`
       <div class="editor-section datasource-section">
         <div class="section-header">
@@ -213,10 +209,10 @@ class HaCardForgeEditor extends LitElement {
         <div class="datasource-list">
           ${requirements.map(req => html`
             <div class="config-row">
-              <label class="entity-label">
+              <div class="config-label">
                 ${req.description}
                 ${req.required ? html`<span class="required-star">*</span>` : ''}
-              </label>
+              </div>
               
               <smart-input
                 .hass=${this.hass}
@@ -289,8 +285,11 @@ class HaCardForgeEditor extends LitElement {
       theme: themeId
     };
     
-    // 强制触发配置更新来刷新系统预览
-    this._forcePreviewUpdate();
+    // 立即通知配置变化，强制刷新预览
+    this._notifyConfigUpdate();
+    
+    // 强制组件重新渲染
+    this.requestUpdate();
   }
 
   _onDatasourceChanged(key, value) {
