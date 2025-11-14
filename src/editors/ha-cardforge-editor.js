@@ -15,7 +15,8 @@ class HaCardForgeEditor extends LitElement {
     _plugins: { state: true },
     _themes: { state: true },
     _selectedPlugin: { state: true },
-    _initialized: { state: true }
+    _initialized: { state: true },
+    _lastConfigUpdate: { state: true }
   };
 
   static styles = [
@@ -51,6 +52,7 @@ class HaCardForgeEditor extends LitElement {
     this._themes = [];
     this._selectedPlugin = null;
     this._initialized = false;
+    this._lastConfigUpdate = 0;
   }
 
   async firstUpdated() {
@@ -286,7 +288,7 @@ class HaCardForgeEditor extends LitElement {
       entities: {}
     };
     this._selectedPlugin = plugin;
-    this._notifyConfigUpdate();
+    this._forceConfigUpdate();
   }
 
   _onThemeSelected(themeId) {
@@ -296,8 +298,7 @@ class HaCardForgeEditor extends LitElement {
       ...this.config,
       theme: themeId
     };
-    this._notifyConfigUpdate();
-    this.requestUpdate();
+    this._forceConfigUpdate();
   }
 
   _onDatasourceChanged(key, value) {
@@ -305,12 +306,37 @@ class HaCardForgeEditor extends LitElement {
       ...this.config.entities,
       [key]: value
     };
+    this._forceConfigUpdate();
+  }
+
+  _forceConfigUpdate() {
+    const now = Date.now();
+    
+    // 防抖处理，避免频繁触发
+    if (now - this._lastConfigUpdate < 100) {
+      return;
+    }
+    
+    this._lastConfigUpdate = now;
+    
+    // 强制触发配置更新
     this._notifyConfigUpdate();
+    
+    // 强制组件更新以反映变化
+    this.requestUpdate();
+    
+    // 额外触发一次延迟更新，确保HA预览窗口刷新
+    setTimeout(() => {
+      this._notifyConfigUpdate();
+    }, 50);
   }
 
   _notifyConfigUpdate() {
+    // 创建一个新的配置对象，确保触发深度更新
+    const configCopy = JSON.parse(JSON.stringify(this.config));
+    
     this.dispatchEvent(new CustomEvent('config-changed', {
-      detail: { config: this.config }
+      detail: { config: configCopy }
     }));
   }
 
