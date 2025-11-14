@@ -97,7 +97,7 @@ class HaCardForgeEditor extends LitElement {
           
           ${this.config.plugin ? html`<div class="section-divider"></div>` : ''}
           
-          <!-- 预览区域 -->
+          <!-- 配置提示区域 -->
           ${this.config.plugin ? this._renderPreviewSection() : ''}
           
           <!-- 操作按钮 -->
@@ -126,56 +126,41 @@ class HaCardForgeEditor extends LitElement {
           <span>选择卡片类型</span>
         </div>
         
-        <div class="plugin-grid">
-          ${this._plugins.map(plugin => html`
-            <div 
-              class="plugin-card ${this.config.plugin === plugin.id ? 'selected' : ''}"
-              @click=${() => this._onPluginSelected(plugin)}
-            >
-              <div class="plugin-icon">${plugin.icon}</div>
-              <div class="plugin-name">${plugin.name}</div>
-            </div>
-          `)}
-        </div>
+        <plugin-selector
+          .plugins=${this._plugins}
+          .selectedPlugin=${this.config.plugin}
+          @plugin-changed=${this._onPluginChanged}
+        ></plugin-selector>
         
         ${!this.config.plugin ? html`
           <div class="config-hint">
-            💡 点击上方的卡片类型开始配置
+            💡 选择上方的卡片类型开始配置
           </div>
         ` : ''}
       </div>
     `;
   }
 
-  _renderThemeSection() {
-    return html`
-      <div class="editor-section theme-selector-section">
-        <div class="section-header">
-          <span class="section-icon">🎭</span>
-          <span>选择主题样式</span>
-        </div>
-        
-        <div class="theme-grid">
-          ${this._themes.map(theme => html`
-            <div 
-              class="theme-card ${this.config.theme === theme.id ? 'selected' : ''}"
-              @click=${() => this._onThemeSelected(theme.id)}
-            >
-              <div 
-                class="theme-preview ${this._getThemePreviewClass(theme.id)}"
-                style=${this._getThemePreviewStyle(theme)}
-              ></div>
-              <div class="theme-name">${theme.name}</div>
-            </div>
-          `)}
-        </div>
-        
-        <div class="config-hint">
-          💡 主题将改变卡片的外观样式
-        </div>
+// 在 _renderThemeSection() 方法中更新类名：
+_renderThemeSection() {
+  return html`
+    <div class="editor-section theme-selector-section">
+      <div class="section-header">
+        <span class="section-icon">🎭</span>
+        <span>选择主题样式</span>
       </div>
-    `;
-  }
+      
+      <theme-selector
+        .selectedTheme=${this.config.theme}
+        @theme-changed=${this._onThemeSelected}
+      ></theme-selector>
+      
+      <div class="config-hint">
+        💡 主题将改变卡片的外观样式
+      </div>
+    </div>
+  `;
+}
 
   _renderDatasourceSection() {
     const plugin = PluginRegistry.getPlugin(this.config.plugin);
@@ -204,16 +189,11 @@ class HaCardForgeEditor extends LitElement {
         
         <div class="datasource-list">
           ${requirements.map(req => html`
-            <div class="datasource-item">
-              <div class="datasource-header">
-                <span class="datasource-icon">📊</span>
-                <span class="datasource-title">${req.description}</span>
-                ${req.required ? html`<span class="datasource-required">* 必填</span>` : ''}
-              </div>
-              
-              <div class="datasource-description">
-                支持实体ID、Jinja2模板或直接文本
-              </div>
+            <div class="config-row">
+              <label class="entity-label">
+                ${req.description}
+                ${req.required ? html`<span class="required-star">*</span>` : ''}
+              </label>
               
               <smart-input
                 .hass=${this.hass}
@@ -224,10 +204,6 @@ class HaCardForgeEditor extends LitElement {
             </div>
           `)}
         </div>
-        
-        <div class="config-hint">
-          💡 数据源支持实体选择、模板表达式或直接文本输入
-        </div>
       </div>
     `;
   }
@@ -237,53 +213,14 @@ class HaCardForgeEditor extends LitElement {
       <div class="editor-section preview-section">
         <div class="section-header">
           <span class="section-icon">👀</span>
-          <span>实时预览</span>
-        </div>
-        
-        <div class="preview-container">
-          ${this._renderCardPreview()}
+          <span>配置提示</span>
         </div>
         
         <div class="config-hint">
-          💡 预览基于当前配置实时生成
+          💡 配置完成后，点击保存即可在卡片中看到效果。Home Assistant 会实时预览配置结果。
         </div>
       </div>
     `;
-  }
-
-  _renderCardPreview() {
-    if (!this.config.plugin) {
-      return html`
-        <div class="preview-placeholder">
-          请先选择卡片类型以查看预览
-        </div>
-      `;
-    }
-
-    try {
-      const plugin = PluginRegistry.createPluginInstance(this.config.plugin);
-      if (!plugin) {
-        return html`
-          <div class="preview-placeholder">
-            无法加载插件预览
-          </div>
-        `;
-      }
-
-      const template = plugin.getTemplate(this.config, this.hass, this._getPreviewEntities());
-      const styles = plugin.getStyles(this.config);
-
-      return html`
-        <style>${styles}</style>
-        ${unsafeHTML(template)}
-      `;
-    } catch (error) {
-      return html`
-        <div class="preview-placeholder error">
-          ⚠️ 预览生成失败: ${error.message}
-        </div>
-      `;
-    }
   }
 
   _renderActionButtons() {
@@ -324,22 +261,6 @@ class HaCardForgeEditor extends LitElement {
     return '';
   }
 
-  _getPreviewEntities() {
-    const entities = {};
-    const plugin = PluginRegistry.getPlugin(this.config.plugin);
-    if (!plugin) return entities;
-
-    const requirements = plugin.manifest.entityRequirements || [];
-    requirements.forEach(req => {
-      const value = this.config.entities?.[req.key];
-      if (value && this.hass?.states[value]) {
-        entities[req.key] = this.hass.states[value];
-      }
-    });
-
-    return entities;
-  }
-
   _onPluginSelected(plugin) {
     if (plugin.id === this.config.plugin) return;
 
@@ -355,8 +276,14 @@ class HaCardForgeEditor extends LitElement {
   _onThemeSelected(themeId) {
     if (themeId === this.config.theme) return;
 
-    this.config.theme = themeId;
+    this.config = {
+      ...this.config,
+      theme: themeId
+    };
     this._notifyConfigUpdate();
+    
+    // 强制更新以立即应用主题
+    this.requestUpdate();
   }
 
   _onDatasourceChanged(key, value) {
@@ -388,9 +315,6 @@ class HaCardForgeEditor extends LitElement {
     }
   }
 }
-
-// 导入 unsafeHTML
-import { unsafeHTML } from 'https://unpkg.com/lit-html/directives/unsafe-html.js?module';
 
 if (!customElements.get('ha-cardforge-editor')) {
   customElements.define('ha-cardforge-editor', HaCardForgeEditor);

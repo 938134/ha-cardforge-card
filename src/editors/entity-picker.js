@@ -1,5 +1,5 @@
 // src/editors/entity-picker.js
-import { LitElement, html, css } from 'https://unpkg.com/lit@2.8.0/index.js?module';
+import { LitElement, html } from 'https://unpkg.com/lit@2.8.0/index.js?module';
 
 export class EntityPicker extends LitElement {
   static properties = {
@@ -11,133 +11,6 @@ export class EntityPicker extends LitElement {
     _showPicker: { state: true },
     _searchQuery: { state: true }
   };
-
-  static styles = css`
-    .input-container {
-      margin-bottom: 16px;
-      position: relative;
-    }
-    
-    .input-label {
-      display: block;
-      font-weight: 500;
-      font-size: 0.9em;
-      color: var(--primary-text-color);
-      margin-bottom: 6px;
-    }
-    
-    .required-star {
-      color: var(--error-color);
-      margin-left: 2px;
-    }
-    
-    .input-wrapper {
-      display: flex;
-      gap: 8px;
-      align-items: center;
-    }
-    
-    .input-field {
-      flex: 1;
-      --mdc-text-field-fill-color: var(--card-background-color);
-    }
-    
-    .picker-button {
-      background: var(--primary-color);
-      color: white;
-      border: none;
-      border-radius: 4px;
-      padding: 0 12px;
-      height: 56px;
-      min-width: 60px;
-      cursor: pointer;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 0.9em;
-      font-weight: 500;
-      transition: all 0.2s ease;
-    }
-    
-    .picker-button:hover {
-      background: var(--accent-color);
-    }
-    
-    .picker-dropdown {
-      position: absolute;
-      top: 100%;
-      right: 0;
-      width: 300px;
-      background: var(--card-background-color);
-      border: 1px solid var(--divider-color);
-      border-radius: 8px;
-      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-      z-index: 100;
-      margin-top: 4px;
-      max-height: 300px;
-      overflow-y: auto;
-    }
-    
-    .picker-header {
-      padding: 12px;
-      border-bottom: 1px solid var(--divider-color);
-      font-weight: 600;
-      font-size: 0.9em;
-    }
-    
-    .search-box {
-      padding: 8px 12px;
-    }
-    
-    .entity-list {
-      max-height: 200px;
-      overflow-y: auto;
-    }
-    
-    .entity-item {
-      padding: 8px 12px;
-      cursor: pointer;
-      border-bottom: 1px solid var(--divider-color);
-      font-size: 0.85em;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-    }
-    
-    .entity-item:hover {
-      background: rgba(var(--rgb-primary-color), 0.1);
-    }
-    
-    .entity-name {
-      font-weight: 500;
-    }
-    
-    .entity-id {
-      font-size: 0.8em;
-      color: var(--secondary-text-color);
-      font-family: monospace;
-    }
-    
-    .entity-state {
-      font-size: 0.8em;
-      color: var(--primary-color);
-      margin-left: 8px;
-    }
-    
-    .input-hint {
-      margin-top: 4px;
-      font-size: 0.8em;
-      color: var(--secondary-text-color);
-      line-height: 1.3;
-      min-height: 1.2em;
-    }
-    
-    .hint-content {
-      display: flex;
-      align-items: center;
-      gap: 4px;
-    }
-  `;
 
   constructor() {
     super();
@@ -253,7 +126,7 @@ export class EntityPicker extends LitElement {
       })
       .sort((a, b) => a.friendly_name.localeCompare(b.friendly_name));
     
-    return entities.slice(0, 50); // 限制数量
+    return entities.slice(0, 50);
   }
 
   _togglePicker() {
@@ -283,7 +156,6 @@ export class EntityPicker extends LitElement {
   }
 
   updated(changedProperties) {
-    // 点击外部关闭选择器
     if (changedProperties.has('_showPicker') && this._showPicker) {
       setTimeout(() => {
         const handler = (e) => {
