@@ -40,9 +40,6 @@ export class ThemeSelector extends LitElement {
             </mwc-list-item>
           `)}
         </ha-select>
-        <div class="config-hint">
-          🎨 选择卡片的视觉主题样式
-        </div>
       </div>
     `;
   }
