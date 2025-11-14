@@ -1,8 +1,16 @@
 // src/themes/index.js
-export { autoTheme } from './auto-theme.js';
-export { glassTheme } from './glass-theme.js';
-export { gradientTheme } from './gradient-theme.js';
-export { neonTheme } from './neon-theme.js';
+import { autoTheme } from './auto-theme.js';
+import { glassTheme } from './glass-theme.js';
+import { gradientTheme } from './gradient-theme.js';
+import { neonTheme } from './neon-theme.js';
+
+// 直接导出所有主题
+export {
+  autoTheme,
+  glassTheme,
+  gradientTheme,
+  neonTheme
+};
 
 // 导出所有主题作为一个集合
 export const allThemes = [
