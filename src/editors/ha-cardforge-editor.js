@@ -15,7 +15,8 @@ class HaCardForgeEditor extends LitElement {
     _plugins: { state: true },
     _themes: { state: true },
     _selectedPlugin: { state: true },
-    _initialized: { state: true }
+    _initialized: { state: true },
+    _previewUpdateCount: { state: true } // 新增：用于强制刷新预览
   };
 
   static styles = [
@@ -37,6 +38,17 @@ class HaCardForgeEditor extends LitElement {
         background: var(--divider-color);
         margin: 0;
       }
+      
+      /* 主题预览区域 */
+      .theme-preview-hint {
+        margin-top: 8px;
+        font-size: 0.8em;
+        color: var(--secondary-text-color);
+        text-align: center;
+        padding: 8px;
+        background: rgba(var(--rgb-primary-color), 0.05);
+        border-radius: 4px;
+      }
     `
   ];
 
@@ -51,6 +63,7 @@ class HaCardForgeEditor extends LitElement {
     this._themes = [];
     this._selectedPlugin = null;
     this._initialized = false;
+    this._previewUpdateCount = 0; // 初始化预览更新计数器
   }
 
   async firstUpdated() {
@@ -164,6 +177,10 @@ class HaCardForgeEditor extends LitElement {
             </div>
           `)}
         </div>
+        
+        <div class="theme-preview-hint">
+          💡 切换主题后，系统预览会自动更新
+        </div>
       </div>
     `;
   }
@@ -271,10 +288,9 @@ class HaCardForgeEditor extends LitElement {
       ...this.config,
       theme: themeId
     };
-    this._notifyConfigUpdate();
     
-    // 强制更新以立即应用主题
-    this.requestUpdate();
+    // 强制触发配置更新来刷新系统预览
+    this._forcePreviewUpdate();
   }
 
   _onDatasourceChanged(key, value) {
@@ -285,9 +301,27 @@ class HaCardForgeEditor extends LitElement {
     this._notifyConfigUpdate();
   }
 
+  _forcePreviewUpdate() {
+    // 增加更新计数器来强制刷新
+    this._previewUpdateCount++;
+    
+    // 立即通知配置变化
+    this._notifyConfigUpdate();
+    
+    // 强制组件更新
+    this.requestUpdate();
+    
+    console.log('主题切换，强制刷新预览:', this.config.theme);
+  }
+
   _notifyConfigUpdate() {
     this.dispatchEvent(new CustomEvent('config-changed', {
-      detail: { config: this.config }
+      detail: { 
+        config: this.config,
+        // 添加时间戳和更新计数来确保每次都是新的配置对象
+        _timestamp: Date.now(),
+        _updateCount: this._previewUpdateCount
+      }
     }));
   }
 

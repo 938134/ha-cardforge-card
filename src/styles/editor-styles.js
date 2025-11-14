@@ -173,6 +173,7 @@ export const editorStyles = css`
     background: var(--accent-color);
   }
   
+  /* ===== 实体选择下拉列表样式 ===== */
   .entity-picker-dropdown {
     position: absolute;
     top: 100%;
@@ -184,53 +185,87 @@ export const editorStyles = css`
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
     z-index: 100;
     margin-top: 4px;
-    max-height: 200px;
-    overflow-y: auto;
+    max-height: 300px;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
   }
   
-  .picker-header {
-    padding: 12px;
+  .entity-picker-header {
+    padding: 12px 16px;
     border-bottom: 1px solid var(--divider-color);
     font-weight: 600;
     font-size: 0.9em;
+    background: var(--secondary-background-color, #f5f5f5);
+    color: var(--primary-text-color);
   }
   
-  .picker-search-box {
-    padding: 8px 12px;
+  .entity-picker-search {
+    padding: 12px 16px;
+    border-bottom: 1px solid var(--divider-color);
+    background: var(--card-background-color);
   }
   
-  .entity-list {
-    max-height: 150px;
+  .entity-picker-search ha-textfield {
+    width: 100%;
+    --mdc-text-field-fill-color: var(--card-background-color);
+  }
+  
+  .entity-picker-list {
+    flex: 1;
+    max-height: 200px;
     overflow-y: auto;
+    background: var(--card-background-color);
   }
   
-  .entity-item {
-    padding: 8px 12px;
+  .entity-picker-item {
+    padding: 12px 16px;
     cursor: pointer;
     border-bottom: 1px solid var(--divider-color);
-    font-size: 0.85em;
+    transition: all 0.2s ease;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
   }
   
-  .entity-item:hover {
-    background: rgba(var(--rgb-primary-color), 0.1);
+  .entity-picker-item:hover {
+    background: rgba(var(--rgb-primary-color), 0.08);
   }
   
-  .entity-name {
+  .entity-picker-item:last-child {
+    border-bottom: none;
+  }
+  
+  .entity-picker-name {
     font-weight: 500;
-    margin-bottom: 2px;
+    font-size: 0.9em;
+    color: var(--primary-text-color);
   }
   
-  .entity-id {
+  .entity-picker-id {
     font-size: 0.8em;
     color: var(--secondary-text-color);
-    font-family: monospace;
+    font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+  }
+  
+  .entity-picker-state {
+    font-size: 0.8em;
+    color: var(--primary-color);
+    margin-top: 2px;
+  }
+  
+  .entity-picker-empty {
+    padding: 20px 16px;
+    text-align: center;
+    color: var(--secondary-text-color);
+    font-size: 0.9em;
   }
   
   .smart-input-hint {
-    margin-top: 4px;
+    margin-top: 8px;
     font-size: 0.8em;
     color: var(--secondary-text-color);
-    line-height: 1.3;
+    line-height: 1.4;
   }
   
   /* ===== 插件选择器样式 ===== */
@@ -368,6 +403,36 @@ export const editorStyles = css`
     border: 1px solid #00ff88;
     box-shadow: 0 0 8px #00ff88;
   }
+
+.theme-poetry-preview {
+  background: linear-gradient(135deg, #fef7ed 0%, #f8f4e9 100%);
+  border: 1px solid #e8dfca;
+  position: relative;
+  overflow: hidden;
+}
+
+.theme-poetry-preview::before {
+  content: '詩';
+  position: absolute;
+  bottom: 5px;
+  right: 5px;
+  font-size: 12px;
+  color: #8b4513;
+  font-family: "SimSun", "宋体", serif;
+  opacity: 0.6;
+}
+  
+  /* 主题预览提示 */
+  .theme-preview-hint {
+    margin-top: 12px;
+    font-size: 0.8em;
+    color: var(--secondary-text-color);
+    text-align: center;
+    padding: 8px 12px;
+    background: rgba(var(--rgb-primary-color), 0.05);
+    border-radius: 6px;
+    border: 1px solid rgba(var(--rgb-primary-color), 0.1);
+  }
   
   /* ===== 响应式优化 ===== */
   @media (max-width: 600px) {
@@ -395,6 +460,16 @@ export const editorStyles = css`
     
     .action-buttons mwc-button {
       width: 100%;
+    }
+    
+    .entity-picker-dropdown {
+      position: fixed;
+      top: 50%;
+      left: 16px;
+      right: 16px;
+      transform: translateY(-50%);
+      max-height: 70vh;
+      z-index: 1000;
     }
   }
   

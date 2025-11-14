@@ -48,9 +48,9 @@ export class SmartInput extends LitElement {
     
     return html`
       <div class="entity-picker-dropdown">
-        <div class="picker-header">选择实体</div>
+        <div class="entity-picker-header">选择实体</div>
         
-        <div class="picker-search-box">
+        <div class="entity-picker-search">
           <ha-textfield
             .label=${"搜索实体..."}
             .value=${this._searchQuery}
@@ -60,16 +60,17 @@ export class SmartInput extends LitElement {
           ></ha-textfield>
         </div>
         
-        <div class="entity-list">
+        <div class="entity-picker-list">
           ${entities.map(entity => html`
-            <div class="entity-item" @click=${() => this._selectEntity(entity.entity_id)}>
-              <div class="entity-name">${entity.friendly_name}</div>
-              <div class="entity-id">${entity.entity_id}</div>
+            <div class="entity-picker-item" @click=${() => this._selectEntity(entity.entity_id)}>
+              <div class="entity-picker-name">${entity.friendly_name}</div>
+              <div class="entity-picker-id">${entity.entity_id}</div>
+              <div class="entity-picker-state">状态: ${entity.state}</div>
             </div>
           `)}
           
           ${entities.length === 0 ? html`
-            <div style="padding: 12px; text-align: center; color: var(--secondary-text-color);">
+            <div class="entity-picker-empty">
               未找到匹配的实体
             </div>
           ` : ''}
