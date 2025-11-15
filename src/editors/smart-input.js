@@ -63,10 +63,7 @@ export class SmartInput extends LitElement {
         
         <div class="smart-input-entity-list">
           ${entities.map(entity => html`
-            <div class="smart-input-entity-item" @click=${(e) => {
-              e.stopPropagation(); <!-- 阻止事件冒泡 -->
-              this._selectEntity(entity.entity_id);
-            }}>
+            <div class="smart-input-entity-item" @click=${() => this._selectEntity(entity.entity_id)}>
               <div class="smart-input-entity-name">${entity.friendly_name}</div>
               <div class="smart-input-entity-id">${entity.entity_id}</div>
             </div>
@@ -112,17 +109,7 @@ export class SmartInput extends LitElement {
     this._searchQuery = '';
     
     if (this._showEntityPicker) {
-      // 延迟绑定点击外部关闭事件
-      setTimeout(() => {
-        this._clickOutsideHandler = (e) => {
-          if (!this.contains(e.target)) {
-            this._showEntityPicker = false;
-            this._removeClickOutsideHandler();
-            this.requestUpdate();
-          }
-        };
-        document.addEventListener('click', this._clickOutsideHandler);
-      });
+      this._setupClickOutsideHandler();
     } else {
       this._removeClickOutsideHandler();
     }
@@ -139,14 +126,30 @@ export class SmartInput extends LitElement {
     this._searchQuery = query;
   }
 
-  // 阻止事件冒泡
+  // 阻止事件冒泡，修复点击搜索框关闭下拉的问题
   _stopPropagation(e) {
     e.stopPropagation();
+  }
+
+  _setupClickOutsideHandler() {
+    // 使用 setTimeout 确保事件处理器在本次事件循环后添加
+    setTimeout(() => {
+      this._clickOutsideHandler = (e) => {
+        if (!this.contains(e.target)) {
+          this._showEntityPicker = false;
+          this._removeClickOutsideHandler();
+          this.requestUpdate();
+        }
+      };
+      document.addEventListener('click', this._clickOutsideHandler);
+      document.addEventListener('touchstart', this._clickOutsideHandler);
+    }, 0);
   }
 
   _removeClickOutsideHandler() {
     if (this._clickOutsideHandler) {
       document.removeEventListener('click', this._clickOutsideHandler);
+      document.removeEventListener('touchstart', this._clickOutsideHandler);
       this._clickOutsideHandler = null;
     }
   }

@@ -8,11 +8,25 @@ export const editorStyles = css`
     border: 1px solid var(--cf-border);
     box-shadow: 
       0 2px 8px rgba(0, 0, 0, 0.1),
-      inset 0 1px 0 rgba(255, 255, 255, 0.1);
+      inset 0 1px 0 rgba(255, 255, 255, 0.05);
     overflow: hidden;
     background-image: 
       radial-gradient(circle at 15% 50%, rgba(var(--cf-rgb-primary), 0.03) 0%, transparent 50%),
       radial-gradient(circle at 85% 30%, rgba(var(--cf-rgb-primary), 0.03) 0%, transparent 50%);
+  }
+
+  /* 深色模式编辑器优化 */
+  @media (prefers-color-scheme: dark) {
+    .editor-container {
+      background: var(--cf-dark-background);
+      border-color: var(--cf-dark-border);
+      box-shadow: 
+        0 2px 12px rgba(0, 0, 0, 0.4),
+        inset 0 1px 0 rgba(255, 255, 255, 0.02);
+      background-image: 
+        radial-gradient(circle at 15% 50%, rgba(var(--cf-rgb-primary), 0.05) 0%, transparent 50%),
+        radial-gradient(circle at 85% 30%, rgba(var(--cf-rgb-primary), 0.05) 0%, transparent 50%);
+    }
   }
 
   .editor-layout {
@@ -26,6 +40,14 @@ export const editorStyles = css`
     padding: var(--cf-spacing-lg);
     border-bottom: 1px solid var(--cf-border);
     position: relative;
+  }
+
+  /* 深色模式编辑器区块 */
+  @media (prefers-color-scheme: dark) {
+    .editor-section {
+      background: var(--cf-dark-surface);
+      border-bottom-color: var(--cf-dark-border);
+    }
   }
 
   .editor-section:last-child {
@@ -57,29 +79,39 @@ export const editorStyles = css`
     border-left: 3px solid var(--cf-primary-color);
   }
 
+  /* 深色模式标题栏 */
+  @media (prefers-color-scheme: dark) {
+    .section-header {
+      background: rgba(var(--cf-rgb-primary), 0.1);
+      color: var(--cf-dark-text);
+    }
+  }
+
   .section-icon {
     font-size: 1.1em;
   }
 
   /* ===== 选择器网格增强样式 ===== */
-.selector-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(90px, 1fr)); /* 同步更新 */
-  gap: var(--cf-spacing-sm);
-  background: rgba(255, 255, 255, 0.5);
-  border-radius: var(--cf-radius-lg);
-  padding: var(--cf-spacing-md); /* 减少容器内边距 */
-  border: 1px solid rgba(0, 0, 0, 0.08);
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
-  position: relative;
-}
+  .selector-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(80px, 1fr)); /* 改为80px */
+    gap: var(--cf-spacing-md);
+    background: rgba(255, 255, 255, 0.5);
+    border-radius: var(--cf-radius-lg);
+    padding: var(--cf-spacing-lg);
+    border: 1px solid rgba(0, 0, 0, 0.08);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    position: relative;
+  }
 
-  /* 暗色主题适配 */
+  /* 深色模式选择器网格 */
   @media (prefers-color-scheme: dark) {
     .selector-grid {
-      background: rgba(0, 0, 0, 0.2);
-      border: 1px solid rgba(255, 255, 255, 0.1);
+      background: rgba(0, 0, 0, 0.3);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
     }
   }
 
@@ -106,14 +138,14 @@ export const editorStyles = css`
 
   .plugin-list {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(110px, 1fr));
+    grid-template-columns: repeat(auto-fill, minmax(80px, 1fr)); /* 改为80px */
     gap: var(--cf-spacing-sm);
-    max-height: 180px;
+    max-height: 200px; /* 增加最大高度 */
     overflow-y: auto;
   }
 
   .plugin-item {
-    padding: var(--cf-spacing-md) var(--cf-spacing-sm);
+    padding: var(--cf-spacing-sm);
     border: 1px solid var(--cf-border);
     border-radius: var(--cf-radius-md);
     cursor: pointer;
@@ -121,10 +153,20 @@ export const editorStyles = css`
     transition: all var(--cf-transition-normal);
     background: var(--cf-surface);
     min-height: 60px;
+    height: 80px; /* 固定高度 */
     display: flex;
     flex-direction: column;
     align-items: center;
     justify-content: center;
+    aspect-ratio: 1; /* 保持正方形 */
+  }
+
+  /* 深色模式插件项 */
+  @media (prefers-color-scheme: dark) {
+    .plugin-item {
+      background: var(--cf-dark-surface);
+      border-color: var(--cf-dark-border);
+    }
   }
 
   .plugin-item:hover {
@@ -145,9 +187,13 @@ export const editorStyles = css`
   }
 
   .plugin-item-name {
-    font-size: 0.75em;
+    font-size: 0.7em;
     font-weight: 500;
     line-height: 1.2;
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
   }
 
   /* ===== 智能输入组件样式 ===== */
@@ -166,6 +212,15 @@ export const editorStyles = css`
   .smart-input-field {
     flex: 1;
     --mdc-text-field-fill-color: var(--cf-surface);
+  }
+
+  /* 深色模式输入框 */
+  @media (prefers-color-scheme: dark) {
+    .smart-input-field {
+      --mdc-text-field-fill-color: var(--cf-dark-surface);
+      --mdc-text-field-ink-color: var(--cf-dark-text);
+      --mdc-text-field-label-ink-color: var(--cf-dark-text-secondary);
+    }
   }
 
   .smart-input-entity-button {
@@ -198,10 +253,19 @@ export const editorStyles = css`
     border: 1px solid var(--cf-border);
     border-radius: var(--cf-radius-md);
     box-shadow: var(--cf-shadow-lg);
-    z-index: 100;
+    z-index: 1000; /* 提高z-index确保在最上层 */
     margin-top: var(--cf-spacing-xs);
-    max-height: 180px;
+    max-height: 250px; /* 增加最大高度 */
     overflow-y: auto;
+  }
+
+  /* 深色模式下拉框 */
+  @media (prefers-color-scheme: dark) {
+    .smart-input-dropdown {
+      background: var(--cf-dark-surface);
+      border-color: var(--cf-dark-border);
+      box-shadow: var(--cf-dark-shadow-lg);
+    }
   }
 
   .smart-input-picker-header {
@@ -209,14 +273,36 @@ export const editorStyles = css`
     border-bottom: 1px solid var(--cf-border);
     font-weight: 600;
     font-size: 0.85em;
+    background: rgba(var(--cf-rgb-primary), 0.03);
+  }
+
+  /* 深色模式下拉标题 */
+  @media (prefers-color-scheme: dark) {
+    .smart-input-picker-header {
+      background: rgba(var(--cf-rgb-primary), 0.1);
+      border-bottom-color: var(--cf-dark-border);
+      color: var(--cf-dark-text);
+    }
   }
 
   .smart-input-search-box {
     padding: var(--cf-spacing-sm) var(--cf-spacing-md);
+    position: sticky;
+    top: 0;
+    background: inherit;
+    z-index: 10;
+    border-bottom: 1px solid var(--cf-border);
+  }
+
+  /* 深色模式搜索框 */
+  @media (prefers-color-scheme: dark) {
+    .smart-input-search-box {
+      border-bottom-color: var(--cf-dark-border);
+    }
   }
 
   .smart-input-entity-list {
-    max-height: 140px;
+    max-height: 180px; /* 增加列表高度 */
     overflow-y: auto;
   }
 
@@ -225,10 +311,23 @@ export const editorStyles = css`
     cursor: pointer;
     border-bottom: 1px solid var(--cf-border);
     font-size: 0.8em;
+    transition: all var(--cf-transition-fast);
+  }
+
+  /* 深色模式实体项 */
+  @media (prefers-color-scheme: dark) {
+    .smart-input-entity-item {
+      border-bottom-color: var(--cf-dark-border);
+      color: var(--cf-dark-text);
+    }
+    
+    .smart-input-entity-item:hover {
+      background: rgba(var(--cf-rgb-primary), 0.15);
+    }
   }
 
   .smart-input-entity-item:hover {
-    background: rgba(var(--cf-rgb-primary), 0.1);
+    background: rgba(var(--cf-rgb-primary), 0.08);
   }
 
   .smart-input-entity-name {
@@ -241,6 +340,13 @@ export const editorStyles = css`
     font-size: 0.75em;
     color: var(--cf-text-secondary);
     font-family: monospace;
+  }
+
+  /* 深色模式实体ID */
+  @media (prefers-color-scheme: dark) {
+    .smart-input-entity-id {
+      color: var(--cf-dark-text-secondary);
+    }
   }
 
   /* ===== 操作按钮区域 ===== */
@@ -258,9 +364,28 @@ export const editorStyles = css`
     }
     
     .selector-grid {
-      grid-template-columns: repeat(auto-fill, minmax(90px, 1fr));
+      grid-template-columns: repeat(3, 1fr);
       gap: var(--cf-spacing-sm);
       padding: var(--cf-spacing-md);
+    }
+    
+    .plugin-list {
+      grid-template-columns: repeat(3, 1fr);
+      gap: var(--cf-spacing-xs);
+    }
+    
+    .plugin-item {
+      height: 70px;
+      min-height: 70px;
+      padding: var(--cf-spacing-xs);
+    }
+    
+    .plugin-item-icon {
+      font-size: 1.2em;
+    }
+    
+    .plugin-item-name {
+      font-size: 0.65em;
     }
     
     .action-buttons {
@@ -270,24 +395,6 @@ export const editorStyles = css`
     
     .action-buttons mwc-button {
       width: 100%;
-    }
-    
-    .plugin-list {
-      grid-template-columns: repeat(auto-fill, minmax(90px, 1fr));
-      gap: var(--cf-spacing-xs);
-    }
-    
-    .plugin-item {
-      padding: var(--cf-spacing-sm) var(--cf-spacing-xs);
-      min-height: 50px;
-    }
-    
-    .plugin-item-icon {
-      font-size: 1.2em;
-    }
-    
-    .plugin-item-name {
-      font-size: 0.7em;
     }
   }
 
@@ -299,6 +406,11 @@ export const editorStyles = css`
     .plugin-list {
       grid-template-columns: repeat(2, 1fr);
     }
+    
+    .plugin-item {
+      height: 65px;
+      min-height: 65px;
+    }
   }
 
   @media (max-width: 320px) {
@@ -308,6 +420,19 @@ export const editorStyles = css`
     
     .plugin-list {
       grid-template-columns: 1fr;
+    }
+    
+    .plugin-item {
+      height: 60px;
+      min-height: 60px;
+    }
+    
+    .plugin-item-icon {
+      font-size: 1.1em;
+    }
+    
+    .plugin-item-name {
+      font-size: 0.6em;
     }
   }
 `;

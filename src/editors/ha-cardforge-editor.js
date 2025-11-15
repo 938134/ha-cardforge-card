@@ -1,7 +1,11 @@
+// src/editors/ha-cardforge-editor.js
 import { LitElement, html, css } from 'https://unpkg.com/lit@2.8.0/index.js?module';
 import { PluginRegistry } from '../core/plugin-registry.js';
 import { themeManager } from '../themes/index.js';
-import { cardForgeStyles, generateThemePreviewStyles } from '../styles/index.js';
+import { 
+  cardForgeStyles,
+  generateThemePreviewStyles 
+} from '../styles/index.js';
 import './plugin-selector.js';
 import './theme-selector.js';
 import './smart-input.js';
@@ -15,7 +19,8 @@ class HaCardForgeEditor extends LitElement {
     _selectedPlugin: { state: true },
     _initialized: { state: true },
     _configVersion: { state: true },
-    _themePreviewStyles: { state: true }
+    _themePreviewStyles: { state: true },
+    _isDarkMode: { state: true }
   };
 
   static styles = [
@@ -24,6 +29,19 @@ class HaCardForgeEditor extends LitElement {
       :host {
         display: block;
         max-width: 100%;
+      }
+      
+      /* 深色模式强制应用 */
+      :host(.dark-mode) .editor-container,
+      :host(.cf-dark-mode) .editor-container {
+        background: var(--cf-dark-background) !important;
+        border-color: var(--cf-dark-border) !important;
+      }
+      
+      :host(.dark-mode) .editor-section,
+      :host(.cf-dark-mode) .editor-section {
+        background: var(--cf-dark-surface) !important;
+        border-bottom-color: var(--cf-dark-border) !important;
       }
     `
   ];
@@ -41,6 +59,7 @@ class HaCardForgeEditor extends LitElement {
     this._initialized = false;
     this._configVersion = 0;
     this._themePreviewStyles = '';
+    this._isDarkMode = false;
   }
 
   async firstUpdated() {
@@ -51,10 +70,29 @@ class HaCardForgeEditor extends LitElement {
     this._themes = themeManager.getAllThemes();
     
     this._themePreviewStyles = generateThemePreviewStyles(this._themes);
+    this._detectDarkMode();
     this._initialized = true;
     
     if (this.config.plugin) {
       this._selectedPlugin = PluginRegistry.getPlugin(this.config.plugin);
+    }
+  }
+
+  _detectDarkMode() {
+    // 检测 Home Assistant 主题
+    const haAppLayout = document.querySelector('ha-app-layout');
+    const haSidebar = document.querySelector('ha-sidebar');
+    
+    // 多种方式检测深色模式
+    this._isDarkMode = 
+      document.body.classList.contains('dark') ||
+      (haAppLayout && haAppLayout.classList.contains('dark')) ||
+      (haSidebar && haSidebar.classList.contains('dark')) ||
+      window.matchMedia('(prefers-color-scheme: dark)').matches;
+    
+    // 应用深色模式类
+    if (this._isDarkMode) {
+      this.classList.add('cf-dark-mode');
     }
   }
 
@@ -74,7 +112,7 @@ class HaCardForgeEditor extends LitElement {
     }
 
     return html`
-      <div class="editor-container">
+      <div class="editor-container ${this._isDarkMode ? 'cf-dark-mode' : ''}">
         <style>${this._themePreviewStyles}</style>
         
         <div class="editor-layout">
@@ -110,10 +148,10 @@ class HaCardForgeEditor extends LitElement {
       <div class="editor-section">
         <div class="section-header">
           <span class="section-icon">🎨</span>
-          <span>卡片类型</span>
+          <span>选择卡片类型</span>
         </div>
         
-        <!-- 使用新的基础样式类 -->
+        <!-- 使用80x80尺寸的卡片 -->
         <div class="cf-grid cf-grid-auto cf-gap-md">
           ${this._plugins.map(plugin => html`
             <div 
@@ -134,7 +172,7 @@ class HaCardForgeEditor extends LitElement {
       <div class="editor-section">
         <div class="section-header">
           <span class="section-icon">🎭</span>
-          <span>主题样式</span>
+          <span>选择主题样式</span>
         </div>
         
         <div class="cf-grid cf-grid-auto cf-gap-md">
@@ -145,7 +183,7 @@ class HaCardForgeEditor extends LitElement {
             >
               <div 
                 class="theme-preview theme-preview-${theme.id}"
-                style="width: 100%; height: 50px; border-radius: var(--cf-radius-sm); margin-bottom: var(--cf-spacing-sm);"
+                style="width: 100%; height: 50px; border-radius: var(--cf-radius-sm); margin-bottom: var(--cf-spacing-xs);"
               ></div>
               <div class="cf-selector-name">${theme.name}</div>
             </div>
