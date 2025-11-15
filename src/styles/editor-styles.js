@@ -195,7 +195,7 @@ export const editorStyles = css`
     white-space: nowrap;
   }
 
-  /* ===== 智能输入组件样式 - 修复搜索框宽度 ===== */
+  /* ===== 智能输入组件样式 - 增强版 ===== */
   .smart-input-container {
     position: relative;
     width: 100%;
@@ -208,9 +208,41 @@ export const editorStyles = css`
     width: 100%;
   }
 
-  .smart-input-field {
+  .smart-input-field-container {
+    position: relative;
     flex: 1;
+  }
+
+  .smart-input-field {
+    width: 100%;
     --mdc-text-field-fill-color: var(--cf-surface);
+  }
+
+  /* 输入类型指示器 */
+  .input-type-badge {
+    position: absolute;
+    right: 8px;
+    top: 50%;
+    transform: translateY(-50%);
+    background: rgba(var(--cf-rgb-primary), 0.1);
+    border-radius: 4px;
+    padding: 2px 6px;
+    font-size: 0.7em;
+    pointer-events: none;
+    z-index: 2;
+  }
+
+  /* 不同类型输入框的视觉提示 */
+  .smart-input-field-container.entity {
+    border-left: 3px solid var(--cf-success-color);
+  }
+
+  .smart-input-field-container.jinja {
+    border-left: 3px solid var(--cf-warning-color);
+  }
+
+  .smart-input-field-container.text {
+    border-left: 3px solid var(--cf-primary-color);
   }
 
   /* 深色模式输入框 */
@@ -222,12 +254,13 @@ export const editorStyles = css`
     }
   }
 
-  .smart-input-entity-button {
+  .smart-input-entity-button,
+  .smart-input-template-button {
     background: var(--cf-primary-color);
     color: white;
     border: none;
     border-radius: var(--cf-radius-sm);
-    padding: 0 var(--cf-spacing-md);
+    padding: 0 var(--cf-spacing-sm);
     height: 40px;
     min-width: 40px;
     cursor: pointer;
@@ -238,9 +271,56 @@ export const editorStyles = css`
     transition: all var(--cf-transition-fast);
   }
 
+  .smart-input-template-button {
+    background: var(--cf-warning-color);
+  }
+
   .smart-input-entity-button:hover {
     background: var(--cf-accent-color);
     transform: translateY(-1px);
+  }
+
+  .smart-input-template-button:hover {
+    background: #e65100;
+    transform: translateY(-1px);
+  }
+
+  /* 值预览 */
+  .value-preview {
+    margin-top: var(--cf-spacing-xs);
+    padding: var(--cf-spacing-sm);
+    background: rgba(var(--cf-rgb-primary), 0.05);
+    border-radius: var(--cf-radius-sm);
+    font-size: 0.8em;
+    display: flex;
+    gap: var(--cf-spacing-sm);
+    align-items: center;
+    border: 1px solid rgba(var(--cf-rgb-primary), 0.1);
+  }
+
+  .preview-label {
+    color: var(--cf-text-secondary);
+    font-weight: 500;
+    font-size: 0.75em;
+    flex-shrink: 0;
+  }
+
+  .preview-value {
+    color: var(--cf-text-primary);
+    font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+    font-size: 0.85em;
+    flex: 1;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  /* 深色模式预览 */
+  @media (prefers-color-scheme: dark) {
+    .value-preview {
+      background: rgba(var(--cf-rgb-primary), 0.1);
+      border-color: rgba(var(--cf-rgb-primary), 0.2);
+    }
   }
 
   /* 智能方向下拉框 */
@@ -253,7 +333,7 @@ export const editorStyles = css`
     border-radius: var(--cf-radius-md);
     box-shadow: var(--cf-shadow-lg);
     z-index: 1000;
-    max-height: min(300px, calc(100vh - 200px));
+    max-height: min(450px, calc(100vh - 200px)); /* 增加高度以容纳模板 */
     min-height: 120px;
     overflow-y: auto;
     width: 100%;
@@ -291,6 +371,15 @@ export const editorStyles = css`
     position: sticky;
     top: 0;
     z-index: 5;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  .smart-input-picker-header small {
+    font-weight: normal;
+    opacity: 0.7;
+    font-size: 0.75em;
   }
 
   /* 深色模式下拉标题 */
@@ -334,34 +423,19 @@ export const editorStyles = css`
   .smart-input-entity-list {
     max-height: 200px;
     overflow-y: auto;
+    border-bottom: 1px solid var(--cf-border);
   }
 
   .smart-input-entity-item {
     padding: var(--cf-spacing-sm) var(--cf-spacing-md);
     cursor: pointer;
-    border-bottom: 1px solid var(--cf-border);
+    border-bottom: 1px solid rgba(var(--cf-border), 0.5);
     font-size: 0.8em;
     transition: all var(--cf-transition-fast);
     min-height: 40px;
     display: flex;
-    flex-direction: column;
-    justify-content: center;
-  }
-
-  /* 深色模式实体项 */
-  @media (prefers-color-scheme: dark) {
-    .smart-input-entity-item {
-      border-bottom-color: var(--cf-dark-border);
-      color: var(--cf-dark-text);
-    }
-    
-    .smart-input-entity-item:hover {
-      background: rgba(var(--cf-rgb-primary), 0.15);
-    }
-  }
-
-  .smart-input-entity-item:hover {
-    background: rgba(var(--cf-rgb-primary), 0.08);
+    justify-content: space-between;
+    align-items: center;
   }
 
   .smart-input-entity-item:last-child {
@@ -370,19 +444,119 @@ export const editorStyles = css`
 
   .smart-input-entity-name {
     font-weight: 500;
-    margin-bottom: 2px;
-    font-size: 0.85em;
+    flex: 1;
   }
 
   .smart-input-entity-id {
     font-size: 0.75em;
     color: var(--cf-text-secondary);
     font-family: monospace;
+    margin-right: var(--cf-spacing-sm);
   }
 
-  /* 深色模式实体ID */
+  .smart-input-entity-state {
+    font-size: 0.75em;
+    color: var(--cf-success-color);
+    font-weight: 500;
+  }
+
+  /* 深色模式实体项 */
   @media (prefers-color-scheme: dark) {
+    .smart-input-entity-item {
+      border-bottom-color: rgba(var(--cf-dark-border), 0.5);
+      color: var(--cf-dark-text);
+    }
+    
+    .smart-input-entity-item:hover {
+      background: rgba(var(--cf-rgb-primary), 0.15);
+    }
+
     .smart-input-entity-id {
+      color: var(--cf-dark-text-secondary);
+    }
+  }
+
+  .smart-input-entity-item:hover {
+    background: rgba(var(--cf-rgb-primary), 0.08);
+  }
+
+  /* 模板示例区域 */
+  .smart-input-templates {
+    padding: var(--cf-spacing-md);
+  }
+
+  .templates-header {
+    font-weight: 600;
+    font-size: 0.85em;
+    margin-bottom: var(--cf-spacing-sm);
+    color: var(--cf-text-primary);
+    display: flex;
+    align-items: center;
+    gap: var(--cf-spacing-xs);
+  }
+
+  .templates-header::before {
+    content: '🔧';
+    font-size: 0.9em;
+  }
+
+  .templates-list {
+    display: flex;
+    flex-direction: column;
+    gap: var(--cf-spacing-xs);
+  }
+
+  .template-item {
+    padding: var(--cf-spacing-sm);
+    border: 1px solid rgba(var(--cf-rgb-primary), 0.2);
+    border-radius: var(--cf-radius-sm);
+    cursor: pointer;
+    transition: all var(--cf-transition-fast);
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+
+  .template-item:hover {
+    background: rgba(var(--cf-rgb-primary), 0.08);
+    border-color: var(--cf-primary-color);
+    transform: translateY(-1px);
+  }
+
+  .template-item code {
+    font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+    font-size: 0.75em;
+    color: var(--cf-primary-color);
+    background: rgba(var(--cf-rgb-primary), 0.1);
+    padding: 2px 4px;
+    border-radius: 2px;
+  }
+
+  .template-item span {
+    font-size: 0.7em;
+    color: var(--cf-text-secondary);
+  }
+
+  /* 深色模式模板 */
+  @media (prefers-color-scheme: dark) {
+    .templates-header {
+      color: var(--cf-dark-text);
+    }
+
+    .template-item {
+      border-color: rgba(var(--cf-rgb-primary), 0.3);
+    }
+
+    .template-item:hover {
+      background: rgba(var(--cf-rgb-primary), 0.15);
+    }
+
+    .template-item code {
+      color: var(--cf-warning-color);
+      background: rgba(var(--cf-rgb-warning), 0.1);
+    }
+
+    .template-item span {
       color: var(--cf-dark-text-secondary);
     }
   }
@@ -428,13 +602,21 @@ export const editorStyles = css`
     
     /* 移动端下拉框优化 */
     .smart-input-dropdown {
-      max-height: min(250px, calc(100vh - 150px));
+      max-height: min(350px, calc(100vh - 150px));
       min-height: 100px;
     }
     
     .smart-input-entity-item {
       padding: var(--cf-spacing-xs) var(--cf-spacing-sm);
       min-height: 36px;
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 2px;
+    }
+
+    .smart-input-entity-state {
+      align-self: flex-end;
+      margin-top: -20px;
     }
     
     .action-buttons {
@@ -459,6 +641,21 @@ export const editorStyles = css`
     .plugin-item {
       height: 52px;
       min-height: 52px;
+    }
+
+    .smart-input-wrapper {
+      flex-wrap: wrap;
+    }
+
+    .smart-input-field-container {
+      order: 1;
+      width: 100%;
+      margin-bottom: var(--cf-spacing-sm);
+    }
+
+    .smart-input-entity-button,
+    .smart-input-template-button {
+      order: 2;
     }
   }
 
