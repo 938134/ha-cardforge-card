@@ -1,9 +1,7 @@
-// src/editors/ha-cardforge-editor.js - 应用紧凑布局
 import { LitElement, html, css } from 'https://unpkg.com/lit@2.8.0/index.js?module';
 import { PluginRegistry } from '../core/plugin-registry.js';
 import { themeManager } from '../themes/index.js';
-import { sharedStyles } from '../styles/shared-styles.js';
-import { editorStyles, generateThemePreviewStyles } from '../styles/editor-styles.js';
+import { cardForgeStyles, generateThemePreviewStyles } from '../styles/index.js';
 import './plugin-selector.js';
 import './theme-selector.js';
 import './smart-input.js';
@@ -21,8 +19,7 @@ class HaCardForgeEditor extends LitElement {
   };
 
   static styles = [
-    sharedStyles,
-    editorStyles,
+    cardForgeStyles,
     css`
       :host {
         display: block;
@@ -100,9 +97,9 @@ class HaCardForgeEditor extends LitElement {
   _renderLoading() {
     return html`
       <div class="editor-section">
-        <div class="loading-container">
+        <div class="cf-flex cf-flex-center cf-p-lg">
           <ha-circular-progress indeterminate></ha-circular-progress>
-          <div class="loading-text">初始化编辑器...</div>
+          <div class="cf-text-md cf-m-sm">初始化编辑器...</div>
         </div>
       </div>
     `;
@@ -116,14 +113,15 @@ class HaCardForgeEditor extends LitElement {
           <span>选择卡片类型</span>
         </div>
         
-        <div class="selector-grid">
+        <!-- 使用新的基础样式类 -->
+        <div class="cf-grid cf-grid-auto cf-gap-md">
           ${this._plugins.map(plugin => html`
             <div 
-              class="selector-card ${this.config.plugin === plugin.id ? 'selected' : ''}"
+              class="cf-card cf-selector-card ${this.config.plugin === plugin.id ? 'selected' : ''}"
               @click=${() => this._onPluginSelected(plugin)}
             >
-              <div class="selector-icon">${plugin.icon}</div>
-              <div class="selector-name">${plugin.name}</div>
+              <div class="cf-selector-icon">${plugin.icon}</div>
+              <div class="cf-selector-name">${plugin.name}</div>
             </div>
           `)}
         </div>
@@ -139,16 +137,17 @@ class HaCardForgeEditor extends LitElement {
           <span>选择主题样式</span>
         </div>
         
-        <div class="selector-grid">
+        <div class="cf-grid cf-grid-auto cf-gap-md">
           ${this._themes.map(theme => html`
             <div 
-              class="selector-card ${this.config.theme === theme.id ? 'selected' : ''}"
+              class="cf-card cf-selector-card ${this.config.theme === theme.id ? 'selected' : ''}"
               @click=${() => this._onThemeSelected(theme.id)}
             >
               <div 
                 class="theme-preview theme-preview-${theme.id}"
+                style="width: 100%; height: 50px; border-radius: var(--cf-radius-sm); margin-bottom: var(--cf-spacing-sm);"
               ></div>
-              <div class="selector-name">${theme.name}</div>
+              <div class="cf-selector-name">${theme.name}</div>
             </div>
           `)}
         </div>
@@ -169,7 +168,7 @@ class HaCardForgeEditor extends LitElement {
             <span class="section-icon">🔧</span>
             <span>数据源配置</span>
           </div>
-          <div class="entity-help">此插件无需配置数据源</div>
+          <div class="cf-text-sm cf-text-secondary">此插件无需配置数据源</div>
         </div>
       `;
     }
@@ -181,12 +180,12 @@ class HaCardForgeEditor extends LitElement {
           <span>数据源配置</span>
         </div>
         
-        <div class="datasource-list">
+        <div class="cf-flex cf-flex-column cf-gap-lg">
           ${requirements.map(req => html`
-            <div class="config-row">
-              <label class="entity-label">
+            <div class="cf-input-container">
+              <label class="cf-text-sm cf-font-medium cf-mb-sm">
                 ${req.description}
-                ${req.required ? html`<span class="required-star">*</span>` : ''}
+                ${req.required ? html`<span class="cf-error">*</span>` : ''}
               </label>
               
               <smart-input
