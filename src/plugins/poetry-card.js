@@ -68,8 +68,8 @@ export default class PoetryCardPlugin extends BasePlugin {
   getStyles(config) {
     return this.getBaseStyles(config) + `
       .poetry-card {
-        ${this._responsivePadding('20px', '16px')}
-        ${this._responsiveHeight('200px', '180px')}
+        ${this._responsivePadding('16px', '12px')} /* 减小内边距 */
+        ${this._responsiveHeight('140px', '120px')} /* 降低高度 */
         position: relative;
         overflow: hidden;
       }
@@ -84,42 +84,42 @@ export default class PoetryCardPlugin extends BasePlugin {
       }
       
       .poetry-title {
-        ${this._responsiveFontSize('1.3em', '1.1em')}
+        ${this._responsiveFontSize('1.1em', '0.95em')} /* 调整字体大小 */
         font-weight: 700;
-        ${this._responsiveMargin('0 0 8px', '0 0 6px')}
+        ${this._responsiveMargin('0 0 6px', '0 0 4px')} /* 减小间距 */
         font-family: "SimSun", "宋体", serif;
         letter-spacing: 2px;
       }
       
       .poetry-author {
-        ${this._responsiveFontSize('0.9em', '0.8em')}
-        ${this._responsiveMargin('0 0 16px', '0 0 12px')}
+        ${this._responsiveFontSize('0.8em', '0.7em')} /* 调整字体大小 */
+        ${this._responsiveMargin('0 0 12px', '0 0 8px')} /* 减小间距 */
         font-family: "SimSun", "宋体", serif;
         opacity: 0.8;
         font-style: italic;
       }
       
       .poetry-text {
-        line-height: 1.6;
+        line-height: 1.5; /* 调整行高 */
       }
       
       .poetry-line {
-        ${this._responsiveFontSize('1em', '0.9em')}
-        ${this._responsiveMargin('0 0 4px', '0 0 3px')}
+        ${this._responsiveFontSize('0.9em', '0.8em')} /* 调整字体大小 */
+        ${this._responsiveMargin('0 0 3px', '0 0 2px')} /* 减小间距 */
         font-family: "SimSun", "宋体", serif;
         letter-spacing: 1px;
       }
       
       .poetry-seal {
         position: absolute;
-        bottom: 12px;
-        right: 12px;
-        width: 40px;
-        height: 40px;
+        bottom: 8px; /* 调整位置 */
+        right: 8px;
+        width: 30px; /* 减小尺寸 */
+        height: 30px;
         border: 2px solid currentColor;
         ${this._borderRadius('4px')}
         ${this._flexCenter()}
-        font-size: 14px;
+        font-size: 12px; /* 减小字体 */
         font-weight: bold;
         opacity: 0.3;
         font-family: "SimSun", "宋体", serif;
@@ -128,8 +128,8 @@ export default class PoetryCardPlugin extends BasePlugin {
       
       /* 主题适配 */
       .poetry-card.glass {
-        backdrop-filter: blur(20px);
-        -webkit-backdrop-filter: blur(20px);
+        backdrop-filter: blur(15px); /* 减小模糊度 */
+        -webkit-backdrop-filter: blur(15px);
       }
       
       .poetry-card.gradient {
@@ -150,18 +150,18 @@ export default class PoetryCardPlugin extends BasePlugin {
           transform: rotate(15deg) scale(1);
         }
         50% {
-          transform: rotate(25deg) scale(1.1);
+          transform: rotate(25deg) scale(1.05); /* 减小缩放 */
         }
       }
       
       /* 响应式优化 */
       @media (max-width: 480px) {
         .poetry-seal {
-          width: 30px;
-          height: 30px;
-          font-size: 12px;
-          bottom: 8px;
-          right: 8px;
+          width: 25px; /* 减小尺寸 */
+          height: 25px;
+          font-size: 10px; /* 减小字体 */
+          bottom: 6px;
+          right: 6px;
         }
       }
     `;

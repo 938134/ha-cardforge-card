@@ -73,18 +73,18 @@ export default class WeatherCardPlugin extends BasePlugin {
   getStyles(config) {
     return this.getBaseStyles(config) + `
       .weather-card {
-        ${this._responsivePadding('20px', '16px')}
-        ${this._responsiveHeight('120px', '100px')}
+        ${this._responsivePadding('16px', '12px')} /* 减小内边距 */
+        ${this._responsiveHeight('100px', '90px')} /* 降低高度 */
       }
       
       .weather-content {
         ${this._flexRow()}
-        ${this._responsiveGap('16px', '12px')}
+        ${this._responsiveGap('12px', '8px')} /* 减小间距 */
         height: 100%;
       }
       
       .weather-icon {
-        font-size: 3em;
+        font-size: 2.5em; /* 调整图标大小 */
         flex-shrink: 0;
       }
       
@@ -93,28 +93,28 @@ export default class WeatherCardPlugin extends BasePlugin {
       }
       
       .temperature {
-        ${this._responsiveFontSize('2.2em', '1.8em')}
+        ${this._responsiveFontSize('1.8em', '1.5em')} /* 调整字体大小 */
         font-weight: bold;
         color: var(--primary-color);
         line-height: 1;
-        ${this._responsiveMargin('0 0 4px', '0 0 3px')}
+        ${this._responsiveMargin('0 0 3px', '0 0 2px')} /* 减小间距 */
       }
       
       .condition {
-        ${this._responsiveFontSize('1em', '0.9em')}
+        ${this._responsiveFontSize('0.9em', '0.8em')} /* 调整字体大小 */
         opacity: 0.8;
-        ${this._responsiveMargin('0 0 2px', '0 0 1px')}
+        ${this._responsiveMargin('0 0 1px', '0 0 0px')} /* 减小间距 */
       }
       
       .humidity {
-        ${this._responsiveFontSize('0.85em', '0.8em')}
+        ${this._responsiveFontSize('0.8em', '0.7em')} /* 调整字体大小 */
         opacity: 0.6;
       }
       
       /* 响应式优化 */
       @media (max-width: 480px) {
         .weather-icon {
-          font-size: 2.5em;
+          font-size: 2em; /* 调整图标大小 */
         }
       }
       

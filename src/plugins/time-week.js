@@ -68,8 +68,8 @@ export default class TimeWeekPlugin extends BasePlugin {
   getStyles(config) {
     return this.getBaseStyles(config) + `
       .time-week {
-        ${this._responsiveHeight('180px', '160px')}
-        ${this._responsivePadding('20px', '16px')}
+        ${this._responsiveHeight('140px', '120px')} /* 降低高度 */
+        ${this._responsivePadding('16px', '12px')} /* 减小内边距 */
         ${this._flexColumn()}
         justify-content: space-between;
         ${this._textCenter()}
@@ -77,11 +77,11 @@ export default class TimeWeekPlugin extends BasePlugin {
       
       .time-section {
         ${this._flexColumn()}
-        ${this._responsiveGap('4px', '3px')}
+        ${this._responsiveGap('3px', '2px')} /* 减小间距 */
       }
       
       .hour, .minute {
-        ${this._responsiveFontSize('2.8em', '2.2em')}
+        ${this._responsiveFontSize('2.2em', '1.8em')} /* 调整字体大小 */
         font-weight: bold;
         line-height: 1;
         color: var(--primary-color);
@@ -89,21 +89,21 @@ export default class TimeWeekPlugin extends BasePlugin {
       
       .date-section {
         ${this._flexColumn()}
-        ${this._responsiveGap('8px', '6px')}
+        ${this._responsiveGap('6px', '4px')} /* 减小间距 */
       }
       
       .month-day {
-        ${this._responsiveFontSize('1.2em', '1em')}
+        ${this._responsiveFontSize('1em', '0.9em')} /* 调整字体大小 */
         font-weight: 600;
         opacity: 0.9;
       }
       
       .weekday {
-        ${this._responsiveFontSize('1em', '0.9em')}
+        ${this._responsiveFontSize('0.9em', '0.8em')} /* 调整字体大小 */
         background: var(--primary-color);
         color: white;
-        ${this._borderRadius('12px')}
-        padding: 4px 12px;
+        ${this._borderRadius('10px')} /* 减小圆角 */
+        padding: 3px 10px; /* 减小内边距 */
         display: inline-block;
         opacity: 0.9;
       }
@@ -117,7 +117,7 @@ export default class TimeWeekPlugin extends BasePlugin {
       /* 响应式优化 */
       @media (max-width: 480px) {
         .time-week {
-          ${this._responsiveGap('12px', '10px')}
+          ${this._responsiveGap('10px', '8px')} /* 减小间距 */
         }
       }
     `;

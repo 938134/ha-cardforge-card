@@ -32,27 +32,27 @@ export default class SimpleClockPlugin extends BasePlugin {
       .simple-clock {
         ${this._textCenter()}
         ${this._flexColumn()}
-        ${this._responsiveHeight('140px', '120px')}
-        ${this._responsivePadding('20px', '16px')}
+        ${this._responsiveHeight('120px', '100px')} /* 降低高度 */
+        ${this._responsivePadding('16px', '12px')} /* 减小内边距 */
         justify-content: center;
       }
       
       .simple-clock .time {
-        ${this._responsiveFontSize('2.5em', '2em')}
+        ${this._responsiveFontSize('2em', '1.6em')} /* 调整字体大小 */
         font-weight: bold;
         color: var(--primary-color);
-        ${this._responsiveMargin('0 0 8px', '0 0 6px')}
+        ${this._responsiveMargin('0 0 6px', '0 0 4px')} /* 减小间距 */
         letter-spacing: 2px;
       }
       
       .simple-clock .date {
-        ${this._responsiveFontSize('1.1em', '1em')}
+        ${this._responsiveFontSize('0.95em', '0.85em')} /* 调整字体大小 */
         opacity: 0.8;
-        ${this._responsiveMargin('0 0 4px', '0 0 3px')}
+        ${this._responsiveMargin('0 0 3px', '0 0 2px')} /* 减小间距 */
       }
       
       .simple-clock .weekday {
-        ${this._responsiveFontSize('1em', '0.9em')}
+        ${this._responsiveFontSize('0.9em', '0.8em')} /* 调整字体大小 */
         opacity: 0.6;
       }
       

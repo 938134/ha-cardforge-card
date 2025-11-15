@@ -94,7 +94,7 @@ export const editorStyles = css`
   /* ===== 选择器网格增强样式 ===== */
   .selector-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(80px, 1fr)); /* 改为80px */
+    grid-template-columns: repeat(auto-fit, minmax(90px, 1fr)); /* 修复：使用auto-fit */
     gap: var(--cf-spacing-md);
     background: rgba(255, 255, 255, 0.5);
     border-radius: var(--cf-radius-lg);
@@ -138,9 +138,9 @@ export const editorStyles = css`
 
   .plugin-list {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(80px, 1fr)); /* 改为80px */
+    grid-template-columns: repeat(auto-fit, minmax(90px, 1fr)); /* 修复：使用auto-fit */
     gap: var(--cf-spacing-sm);
-    max-height: 200px; /* 增加最大高度 */
+    max-height: 300px; /* 增加最大高度 */
     overflow-y: auto;
   }
 
@@ -152,13 +152,12 @@ export const editorStyles = css`
     text-align: center;
     transition: all var(--cf-transition-normal);
     background: var(--cf-surface);
-    min-height: 60px;
+    min-height: 80px; /* 固定最小高度 */
     height: 80px; /* 固定高度 */
     display: flex;
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    aspect-ratio: 1; /* 保持正方形 */
   }
 
   /* 深色模式插件项 */
@@ -181,13 +180,13 @@ export const editorStyles = css`
   }
 
   .plugin-item-icon {
-    font-size: 1.4em;
+    font-size: 1.5em;
     margin-bottom: var(--cf-spacing-xs);
     line-height: 1;
   }
 
   .plugin-item-name {
-    font-size: 0.7em;
+    font-size: 0.75em;
     font-weight: 500;
     line-height: 1.2;
     max-width: 100%;
@@ -196,7 +195,7 @@ export const editorStyles = css`
     white-space: nowrap;
   }
 
-  /* ===== 智能输入组件样式 ===== */
+  /* ===== 智能输入组件样式 - 修复下拉框大小 ===== */
   .smart-input-container {
     position: relative;
     width: 100%;
@@ -244,6 +243,7 @@ export const editorStyles = css`
     transform: translateY(-1px);
   }
 
+  /* 修复：下拉框大小和位置 */
   .smart-input-dropdown {
     position: absolute;
     top: 100%;
@@ -253,10 +253,12 @@ export const editorStyles = css`
     border: 1px solid var(--cf-border);
     border-radius: var(--cf-radius-md);
     box-shadow: var(--cf-shadow-lg);
-    z-index: 1000; /* 提高z-index确保在最上层 */
+    z-index: 1000;
     margin-top: var(--cf-spacing-xs);
-    max-height: 250px; /* 增加最大高度 */
+    max-height: 320px; /* 增加最大高度 */
+    min-height: 120px; /* 设置最小高度 */
     overflow-y: auto;
+    width: 100%; /* 确保宽度100% */
   }
 
   /* 深色模式下拉框 */
@@ -272,8 +274,11 @@ export const editorStyles = css`
     padding: var(--cf-spacing-md);
     border-bottom: 1px solid var(--cf-border);
     font-weight: 600;
-    font-size: 0.85em;
-    background: rgba(var(--cf-rgb-primary), 0.03);
+    font-size: 0.9em; /* 增大字体 */
+    background: rgba(var(--cf-rgb-primary), 0.05);
+    position: sticky;
+    top: 0;
+    z-index: 5;
   }
 
   /* 深色模式下拉标题 */
@@ -298,20 +303,25 @@ export const editorStyles = css`
   @media (prefers-color-scheme: dark) {
     .smart-input-search-box {
       border-bottom-color: var(--cf-dark-border);
+      background: var(--cf-dark-surface);
     }
   }
 
   .smart-input-entity-list {
-    max-height: 180px; /* 增加列表高度 */
+    max-height: 240px; /* 增加列表高度 */
     overflow-y: auto;
   }
 
   .smart-input-entity-item {
-    padding: var(--cf-spacing-sm) var(--cf-spacing-md);
+    padding: var(--cf-spacing-md) var(--cf-spacing-lg); /* 增加内边距 */
     cursor: pointer;
     border-bottom: 1px solid var(--cf-border);
-    font-size: 0.8em;
+    font-size: 0.85em; /* 增大字体 */
     transition: all var(--cf-transition-fast);
+    min-height: 48px; /* 设置最小高度 */
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
   }
 
   /* 深色模式实体项 */
@@ -330,14 +340,18 @@ export const editorStyles = css`
     background: rgba(var(--cf-rgb-primary), 0.08);
   }
 
+  .smart-input-entity-item:last-child {
+    border-bottom: none;
+  }
+
   .smart-input-entity-name {
     font-weight: 500;
-    margin-bottom: 2px;
-    font-size: 0.85em;
+    margin-bottom: 4px; /* 增加间距 */
+    font-size: 0.9em; /* 增大字体 */
   }
 
   .smart-input-entity-id {
-    font-size: 0.75em;
+    font-size: 0.8em; /* 增大字体 */
     color: var(--cf-text-secondary);
     font-family: monospace;
   }
@@ -375,17 +389,28 @@ export const editorStyles = css`
     }
     
     .plugin-item {
-      height: 70px;
-      min-height: 70px;
+      height: 75px;
+      min-height: 75px;
       padding: var(--cf-spacing-xs);
     }
     
     .plugin-item-icon {
-      font-size: 1.2em;
+      font-size: 1.4em;
     }
     
     .plugin-item-name {
-      font-size: 0.65em;
+      font-size: 0.7em;
+    }
+    
+    /* 移动端下拉框优化 */
+    .smart-input-dropdown {
+      max-height: 280px;
+      min-height: 100px;
+    }
+    
+    .smart-input-entity-item {
+      padding: var(--cf-spacing-sm) var(--cf-spacing-md);
+      min-height: 44px;
     }
     
     .action-buttons {
@@ -408,8 +433,8 @@ export const editorStyles = css`
     }
     
     .plugin-item {
-      height: 65px;
-      min-height: 65px;
+      height: 70px;
+      min-height: 70px;
     }
   }
 
@@ -423,16 +448,16 @@ export const editorStyles = css`
     }
     
     .plugin-item {
-      height: 60px;
-      min-height: 60px;
+      height: 65px;
+      min-height: 65px;
     }
     
     .plugin-item-icon {
-      font-size: 1.1em;
+      font-size: 1.3em;
     }
     
     .plugin-item-name {
-      font-size: 0.6em;
+      font-size: 0.65em;
     }
   }
 `;

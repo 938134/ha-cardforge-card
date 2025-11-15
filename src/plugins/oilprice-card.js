@@ -12,37 +12,37 @@ export const manifest = {
   entityRequirements: [
     {
       key: 'province_source',
-      description: '省份',
+      description: '省份来源（实体ID或Jinja2模板）',
       required: false
     },
     {
       key: 'price_0_source',
-      description: '0号柴油价格',
+      description: '0号柴油价格来源',
       required: false
     },
     {
       key: 'price_92_source',
-      description: '92号汽油价格',
+      description: '92号汽油价格来源',
       required: false
     },
     {
       key: 'price_95_source',
-      description: '95号汽油价格',
+      description: '95号汽油价格来源',
       required: false
     },
     {
       key: 'price_98_source',
-      description: '98号汽油价格',
+      description: '98号汽油价格来源',
       required: false
     },
     {
       key: 'trend_source',
-      description: '油价趋势',
+      description: '油价趋势来源',
       required: false
     },
     {
       key: 'next_adjustment_source',
-      description: '下次调整时间',
+      description: '下次调整时间来源',
       required: false
     }
   ],
@@ -191,15 +191,15 @@ export default class OilPriceCardPlugin extends BasePlugin {
   getStyles(config) {
     return this.getBaseStyles(config) + `
       .oil-price-card {
+        ${this._responsiveHeight('140px', '120px')} /* 降低高度 */
         ${this._responsivePadding('12px', '10px')}
-        ${this._responsiveHeight('160px', '140px')}
         ${this._flexColumn()}
       }
       
       .card-header {
         ${this._flexRow()}
         ${this._responsiveGap('6px', '4px')}
-        ${this._responsiveMargin('0 0 12px', '0 0 8px')}
+        ${this._responsiveMargin('0 0 10px', '0 0 8px')} /* 减小间距 */
         flex-shrink: 0;
       }
       
@@ -209,7 +209,7 @@ export default class OilPriceCardPlugin extends BasePlugin {
       
       .card-title {
         font-weight: 600;
-        ${this._responsiveFontSize('1em', '0.9em')}
+        ${this._responsiveFontSize('0.95em', '0.85em')} /* 调整字体大小 */
         color: var(--primary-text-color);
       }
       
@@ -217,18 +217,18 @@ export default class OilPriceCardPlugin extends BasePlugin {
         display: grid;
         grid-template-columns: repeat(4, 1fr);
         ${this._responsiveGap('6px', '4px')}
-        ${this._responsiveMargin('0 0 8px', '0 0 6px')}
+        ${this._responsiveMargin('0 0 6px', '0 0 4px')} /* 减小间距 */
         flex: 1;
       }
       
       .fuel-card {
-        ${this._borderRadius('8px')}
+        ${this._borderRadius('6px')} /* 减小圆角 */
         ${this._boxShadow('light')}
         ${this._flexColumn()}
         ${this._textCenter()}
         ${this._flexCenter()}
-        padding: 8px 4px;
-        min-height: 50px;
+        padding: 6px 3px; /* 减小内边距 */
+        min-height: 45px; /* 减小最小高度 */
         transition: all 0.2s ease;
         position: relative;
         overflow: hidden;
@@ -236,7 +236,7 @@ export default class OilPriceCardPlugin extends BasePlugin {
         color: white;
       }
       
-      /* 油品颜色主题 - 更鲜明的色彩 */
+      /* 油品颜色主题 */
       .fuel-card.gas-92 {
         background: linear-gradient(135deg, #2563eb, #1d4ed8);
         border-color: rgba(37, 99, 235, 0.4);
@@ -264,31 +264,31 @@ export default class OilPriceCardPlugin extends BasePlugin {
       }
       
       .fuel-card:hover {
-        transform: translateY(-2px) scale(1.03);
+        transform: translateY(-1px) scale(1.02); /* 减小悬停效果 */
         ${this._boxShadow('medium')}
         border-color: rgba(255, 255, 255, 0.6);
       }
       
       .fuel-type {
-        ${this._responsiveFontSize('10px', '9px')}
+        ${this._responsiveFontSize('9px', '8px')} /* 调整字体大小 */
         opacity: 0.9;
-        ${this._responsiveMargin('0 0 2px', '0 0 1px')}
+        ${this._responsiveMargin('0 0 1px', '0 0 0px')} /* 减小间距 */
         font-weight: 600;
         ${this._textShadow()}
         letter-spacing: 0.5px;
       }
       
       .fuel-price {
-        ${this._responsiveFontSize('14px', '12px')}
+        ${this._responsiveFontSize('12px', '10px')} /* 调整字体大小 */
         font-weight: 800;
         line-height: 1.1;
-        ${this._responsiveMargin('0 0 1px', '0')}
+        ${this._responsiveMargin('0 0 0px', '0')} /* 移除间距 */
         letter-spacing: 0.3px;
         ${this._textShadow()}
       }
       
       .fuel-unit {
-        ${this._responsiveFontSize('8px', '7px')}
+        ${this._responsiveFontSize('7px', '6px')} /* 调整字体大小 */
         opacity: 0.9;
         font-weight: 500;
         ${this._textShadow()}
@@ -317,7 +317,7 @@ export default class OilPriceCardPlugin extends BasePlugin {
       
       .trend-info {
         margin-top: auto;
-        padding-top: 6px;
+        padding-top: 4px; /* 减小内边距 */
         border-top: 1px solid rgba(var(--rgb-primary-text-color), 0.1);
         ${this._flexColumn()}
         ${this._responsiveGap('2px', '1px')}
@@ -325,7 +325,7 @@ export default class OilPriceCardPlugin extends BasePlugin {
       }
       
       .trend, .adjustment {
-        ${this._responsiveFontSize('9px', '8px')}
+        ${this._responsiveFontSize('8px', '7px')} /* 调整字体大小 */
         opacity: 0.8;
         ${this._flexRow()}
         ${this._responsiveGap('3px', '2px')}
@@ -340,18 +340,18 @@ export default class OilPriceCardPlugin extends BasePlugin {
         }
         
         .fuel-card {
-          min-height: 55px;
-          padding: 6px 3px;
+          min-height: 40px; /* 减小最小高度 */
+          padding: 4px 2px; /* 减小内边距 */
         }
         
         .trend-info {
-          padding-top: 4px;
+          padding-top: 2px; /* 减小内边距 */
         }
       }
       
       /* 紧凑模式 - 移除趋势信息时的额外优化 */
       .oil-price-card:not(:has(.trend-info)) {
-        ${this._responsiveHeight('140px', '120px')}
+        ${this._responsiveHeight('120px', '100px')} /* 进一步降低高度 */
       }
       
       .oil-price-card:not(:has(.trend-info)) .price-grid {
@@ -360,8 +360,8 @@ export default class OilPriceCardPlugin extends BasePlugin {
       
       /* 毛玻璃主题优化 */
       .oil-price-card.glass .fuel-card {
-        backdrop-filter: blur(15px);
-        -webkit-backdrop-filter: blur(15px);
+        backdrop-filter: blur(12px); /* 减小模糊度 */
+        -webkit-backdrop-filter: blur(12px);
         border-width: 1px;
       }
       
@@ -373,8 +373,8 @@ export default class OilPriceCardPlugin extends BasePlugin {
       
       .oil-price-card.neon .fuel-card:hover {
         box-shadow: 
-          0 0 8px currentColor,
-          0 0 16px rgba(255, 255, 255, 0.4);
+          0 0 6px currentColor, /* 减小阴影 */
+          0 0 12px rgba(255, 255, 255, 0.4);
       }
       
       /* 无数据状态的优化 */

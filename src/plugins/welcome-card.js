@@ -58,8 +58,8 @@ export default class WelcomeCardPlugin extends BasePlugin {
   getStyles(config) {
     return this.getBaseStyles(config) + `
       .welcome-card {
-        ${this._responsiveHeight('180px', '150px')}
-        ${this._responsivePadding('24px', '20px')}
+        ${this._responsiveHeight('140px', '120px')} /* 降低高度 */
+        ${this._responsivePadding('20px', '16px')}
         ${this._flexColumn()}
         position: relative;
         overflow: hidden;
@@ -75,26 +75,26 @@ export default class WelcomeCardPlugin extends BasePlugin {
       }
       
       .greeting {
-        ${this._responsiveFontSize('1.4em', '1.2em')}
+        ${this._responsiveFontSize('1.2em', '1em')} /* 调整字体大小 */
         font-weight: 500;
-        ${this._responsiveMargin('0 0 8px', '0 0 6px')}
+        ${this._responsiveMargin('0 0 6px', '0 0 4px')}
         opacity: 0.95;
         ${this._textShadow()}
       }
       
       .time {
-        ${this._responsiveFontSize('2.2em', '1.8em')}
+        ${this._responsiveFontSize('1.8em', '1.5em')} /* 调整字体大小 */
         font-weight: bold;
-        ${this._responsiveMargin('0 0 8px', '0 0 6px')}
+        ${this._responsiveMargin('0 0 6px', '0 0 4px')}
         letter-spacing: 1px;
         ${this._textShadow()}
       }
       
       .message {
-        ${this._responsiveFontSize('0.95em', '0.85em')}
+        ${this._responsiveFontSize('0.85em', '0.75em')} /* 调整字体大小 */
         opacity: 0.8;
         font-style: italic;
-        ${this._responsiveMargin('0 0 4px', '0 0 3px')}
+        ${this._responsiveMargin('0 0 2px', '0 0 1px')}
         min-height: 1.2em;
         transition: opacity 0.3s ease;
         ${this._textShadow()}
@@ -118,39 +118,39 @@ export default class WelcomeCardPlugin extends BasePlugin {
       }
       
       .circle-1 {
-        width: 80px;
-        height: 80px;
-        top: -20px;
-        right: -20px;
+        width: 60px; /* 减小尺寸 */
+        height: 60px;
+        top: -15px;
+        right: -15px;
       }
       
       .circle-2 {
-        width: 60px;
-        height: 60px;
-        bottom: -10px;
-        left: 20px;
+        width: 45px; /* 减小尺寸 */
+        height: 45px;
+        bottom: -8px;
+        left: 15px;
       }
       
       .circle-3 {
-        width: 40px;
-        height: 40px;
-        bottom: 30px;
-        right: 40px;
+        width: 30px; /* 减小尺寸 */
+        height: 30px;
+        bottom: 20px;
+        right: 30px;
       }
       
       .welcome-card:hover .circle-1 {
         animation: float 3s ease-in-out infinite;
-        background: rgba(255, 255, 255, 0.15);
+        background: rgba(255, 255, 255, 0.12);
       }
       
       .welcome-card:hover .circle-2 {
         animation: float 3s ease-in-out infinite 0.5s;
-        background: rgba(255, 255, 255, 0.12);
+        background: rgba(255, 255, 255, 0.1);
       }
       
       .welcome-card:hover .circle-3 {
         animation: float 3s ease-in-out infinite 1s;
-        background: rgba(255, 255, 255, 0.1);
+        background: rgba(255, 255, 255, 0.08);
       }
       
       /* 消息更新动画 */

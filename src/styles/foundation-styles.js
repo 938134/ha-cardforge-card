@@ -99,8 +99,9 @@ export const foundationStyles = css`
     gap: var(--cf-spacing-md);
   }
   
+  /* 修复：使用固定列数避免卡片重叠 */
   .cf-grid-auto {
-    grid-template-columns: repeat(auto-fill, minmax(80px, 1fr)); /* 改为80px最小宽度 */
+    grid-template-columns: repeat(auto-fit, minmax(90px, 1fr)); /* 改为auto-fit和90px最小宽度 */
   }
   
   .cf-grid-2 { grid-template-columns: repeat(2, 1fr); }
@@ -189,12 +190,12 @@ export const foundationStyles = css`
       0 0 0 1px var(--cf-primary-color);
   }
 
-  /* 选择器卡片专用 - 80x80尺寸优化 */
+  /* 选择器卡片专用 - 修复重叠问题 */
   .cf-selector-card {
     padding: var(--cf-spacing-md);
     text-align: center;
     cursor: pointer;
-    min-height: 60px; /* 减小最小高度 */
+    min-height: 80px; /* 恢复合适的最小高度 */
     height: 80px; /* 固定高度80px */
     display: flex;
     flex-direction: column;
@@ -205,7 +206,6 @@ export const foundationStyles = css`
       inset 0 1px 0 rgba(255, 255, 255, 0.1);
     position: relative;
     overflow: hidden;
-    aspect-ratio: 1; /* 保持正方形比例 */
   }
   
   .cf-selector-card::before {
@@ -247,7 +247,7 @@ export const foundationStyles = css`
   }
   
   .cf-selector-icon {
-    font-size: 1.5em; /* 减小图标大小 */
+    font-size: 1.6em; /* 适当增大图标 */
     margin-bottom: var(--cf-spacing-xs);
     line-height: 1;
     filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.2));
@@ -258,7 +258,7 @@ export const foundationStyles = css`
   }
   
   .cf-selector-name {
-    font-size: 0.75em; /* 减小文字大小 */
+    font-size: 0.75em;
     font-weight: 600;
     line-height: 1.2;
     letter-spacing: 0.2px;
@@ -336,17 +336,17 @@ export const foundationStyles = css`
   /* ===== 响应式系统 ===== */
   @media (max-width: 600px) {
     .cf-grid-auto {
-      grid-template-columns: repeat(3, 1fr);
+      grid-template-columns: repeat(3, 1fr); /* 平板端固定3列 */
     }
     
     .cf-selector-card {
-      height: 70px; /* 平板端70px */
-      min-height: 70px;
+      height: 75px; /* 平板端75px */
+      min-height: 75px;
       padding: var(--cf-spacing-sm);
     }
     
     .cf-selector-icon {
-      font-size: 1.3em;
+      font-size: 1.4em;
     }
     
     .cf-selector-name {
@@ -356,28 +356,28 @@ export const foundationStyles = css`
   
   @media (max-width: 400px) {
     .cf-grid-auto {
-      grid-template-columns: repeat(2, 1fr);
+      grid-template-columns: repeat(2, 1fr); /* 手机端2列 */
     }
     
     .cf-selector-card {
-      height: 65px; /* 手机端65px */
-      min-height: 65px;
+      height: 70px; /* 手机端70px */
+      min-height: 70px;
     }
   }
   
   @media (max-width: 320px) {
     .cf-grid-auto {
-      grid-template-columns: 1fr;
+      grid-template-columns: 1fr; /* 小屏手机单列 */
     }
     
     .cf-selector-card {
-      height: 60px; /* 小屏手机60px */
-      min-height: 60px;
+      height: 65px; /* 小屏手机65px */
+      min-height: 65px;
       padding: var(--cf-spacing-xs);
     }
     
     .cf-selector-icon {
-      font-size: 1.2em;
+      font-size: 1.3em;
     }
     
     .cf-selector-name {
