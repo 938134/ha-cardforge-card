@@ -135,8 +135,8 @@ export class SmartInput extends LitElement {
               <code>{{ states('entity_id') }}</code>
               <span>获取实体状态</span>
             </div>
-            <div class="template-item" @click=${() => this._insertTemplateExample("{{ states.sensor.temperature.attributes.unit_of_measurement }}")}>
-              <code>{{ states.entity_id.attributes.attr }}</code>
+            <div class="template-item" @click=${() => this._insertTemplateExample("{{ state_attr('sensor.entity_id', 'attribute_name') }}")}>
+              <code>{{ state_attr('entity_id', 'attr') }}</code>
               <span>获取实体属性</span>
             </div>
             <div class="template-item" @click=${() => this._insertTemplateExample("{{ now().strftime('%H:%M') }}")}>
@@ -147,9 +147,9 @@ export class SmartInput extends LitElement {
               <code>{{ (a + b) / 2 }}</code>
               <span>数学计算</span>
             </div>
-            <div class="template-item" @click=${() => this._insertTemplateExample("{{ states('sensor.temperature') | round(1) }}°C")}>
-              <code>{{ value | round(1) }}°C</code>
-              <span>数值格式化</span>
+            <div class="template-item" @click=${() => this._insertTemplateExample("{{ is_state('sensor.motion', 'on') }}")}>
+              <code>{{ is_state('entity_id', 'state') }}</code>
+              <span>检查状态</span>
             </div>
             <div class="template-item" @click=${() => this._insertTemplateExample("{% if states('sensor.motion') == 'on' %}有人活动{% else %}无人{% endif %}")}>
               <code>{% if ... %}...{% else %}...{% endif %}</code>
@@ -170,7 +170,8 @@ export class SmartInput extends LitElement {
     }
 
     // 检查是否是实体ID格式
-    if (value.includes('.') && this.hass?.states[value]) {
+    if (value.includes('.') && this.hass?.states[value] && 
+        !value.includes('{{') && !value.includes('{%')) {
       this._inputType = 'entity';
       const entity = this.hass.states[value];
       this._previewValue = `${entity.state}${entity.attributes?.unit_of_measurement ? ` ${entity.attributes.unit_of_measurement}` : ''}`;
@@ -196,7 +197,26 @@ export class SmartInput extends LitElement {
       let result = template;
       let hasError = false;
       
-      // 处理实体状态 {{ states('sensor.temperature') }}
+      // 1. 处理 state_attr() 函数 - 新增支持
+      const stateAttrMatches = template.match(/{{\s*state_attr\(['"]([^'"]+)['"]\s*,\s*['"]([^'"]+)['"]\)\s*}}/g);
+      if (stateAttrMatches) {
+        stateAttrMatches.forEach(match => {
+          const attrMatch = match.match(/state_attr\(['"]([^'"]+)['"]\s*,\s*['"]([^'"]+)['"]\)/);
+          if (attrMatch) {
+            const entityId = attrMatch[1];
+            const attribute = attrMatch[2];
+            if (this.hass?.states?.[entityId]?.attributes?.[attribute]) {
+              const attrValue = this.hass.states[entityId].attributes[attribute];
+              result = result.replace(match, attrValue);
+            } else {
+              hasError = true;
+              result = result.replace(match, `[属性未找到: ${entityId}.${attribute}]`);
+            }
+          }
+        });
+      }
+
+      // 2. 处理 states() 函数
       const stateMatches = template.match(/{{\s*states\(['"]([^'"]+)['"]\)\s*}}/g);
       if (stateMatches) {
         stateMatches.forEach(match => {
@@ -210,8 +230,27 @@ export class SmartInput extends LitElement {
           }
         });
       }
+
+      // 3. 处理 is_state() 函数 - 新增支持
+      const isStateMatches = template.match(/{{\s*is_state\(['"]([^'"]+)['"]\s*,\s*['"]([^'"]+)['"]\)\s*}}/g);
+      if (isStateMatches) {
+        isStateMatches.forEach(match => {
+          const stateMatch = match.match(/is_state\(['"]([^'"]+)['"]\s*,\s*['"]([^'"]+)['"]\)/);
+          if (stateMatch) {
+            const entityId = stateMatch[1];
+            const expectedState = stateMatch[2];
+            if (this.hass?.states?.[entityId]) {
+              const isMatch = this.hass.states[entityId].state === expectedState;
+              result = result.replace(match, isMatch ? 'true' : 'false');
+            } else {
+              hasError = true;
+              result = result.replace(match, `[实体未找到: ${entityId}]`);
+            }
+          }
+        });
+      }
       
-      // 处理实体属性 {{ states.sensor.temperature.attributes.unit_of_measurement }}
+      // 4. 处理实体属性语法 {{ states.sensor.temperature.attributes.unit_of_measurement }}
       const attrMatches = template.match(/{{\s*states\.([^.\s]+)\.([^.\s]+)\.attributes\.([^ }]+)\s*}}/g);
       if (attrMatches) {
         attrMatches.forEach(match => {
@@ -229,7 +268,7 @@ export class SmartInput extends LitElement {
         });
       }
 
-      // 处理简化的属性语法 {{ states.sensor.temperature.unit_of_measurement }}
+      // 5. 处理简化的属性语法 {{ states.sensor.temperature.unit_of_measurement }}
       const simpleAttrMatches = template.match(/{{\s*states\.([^.\s]+)\.([^.\s]+)\.([^ }]+)\s*}}/g);
       if (simpleAttrMatches) {
         simpleAttrMatches.forEach(match => {
@@ -249,14 +288,15 @@ export class SmartInput extends LitElement {
         });
       }
       
-      // 处理数学运算
+      // 6. 处理数学运算
       const mathMatches = template.match(/{{\s*([^{}]*[\d\.\s\+\-\*\/\(\)\|][^{}]*)\s*}}/g);
       if (mathMatches) {
         mathMatches.forEach(match => {
           const mathExpr = match.replace(/[{}]/g, '').trim();
           
-          // 跳过已经处理过的实体状态和属性
-          if (mathExpr.includes('states(') || mathExpr.includes('states.')) {
+          // 跳过已经处理过的函数调用
+          if (mathExpr.includes('states(') || mathExpr.includes('state_attr(') || 
+              mathExpr.includes('is_state(') || mathExpr.includes('states.')) {
             return;
           }
 
@@ -305,7 +345,7 @@ export class SmartInput extends LitElement {
         });
       }
       
-      // 处理时间函数
+      // 7. 处理时间函数
       if (template.includes('now()')) {
         const now = new Date();
         const timeFormats = {
@@ -324,7 +364,7 @@ export class SmartInput extends LitElement {
         });
       }
 
-      // 处理条件语句
+      // 8. 处理条件语句
       const ifMatches = template.match(/{%.*?%}/g);
       if (ifMatches) {
         ifMatches.forEach(match => {
@@ -337,15 +377,8 @@ export class SmartInput extends LitElement {
                 const truePart = conditionMatch[2].trim();
                 const falsePart = conditionMatch[3].trim();
                 
-                // 简单的条件评估
-                let conditionResult = false;
-                if (condition.includes("==")) {
-                  const [left, right] = condition.split("==").map(s => s.trim().replace(/'/g, ""));
-                  conditionResult = left === right;
-                } else if (condition.includes("!=")) {
-                  const [left, right] = condition.split("!=").map(s => s.trim().replace(/'/g, ""));
-                  conditionResult = left !== right;
-                }
+                // 评估条件
+                let conditionResult = this._evaluateCondition(condition);
                 
                 result = result.replace(match, conditionResult ? truePart : falsePart);
               }
@@ -357,7 +390,7 @@ export class SmartInput extends LitElement {
         });
       }
       
-      // 清理剩余的模板标记
+      // 9. 清理剩余的模板标记
       const remainingTemplate = result.match(/{{\s*[^}]*\s*}}/g);
       if (remainingTemplate) {
         hasError = true;
@@ -384,9 +417,54 @@ export class SmartInput extends LitElement {
     }
   }
 
+  _evaluateCondition(condition) {
+    try {
+      // 处理 == 操作符
+      if (condition.includes("==")) {
+        const [left, right] = condition.split("==").map(s => s.trim().replace(/'/g, "").replace(/"/g, ""));
+        
+        // 检查是否是实体状态比较
+        if (left.includes("states(")) {
+          const entityMatch = left.match(/states\(['"]([^'"]+)['"]\)/);
+          if (entityMatch && this.hass?.states?.[entityMatch[1]]) {
+            return this.hass.states[entityMatch[1]].state === right;
+          }
+        }
+        
+        return left === right;
+      }
+      
+      // 处理 != 操作符
+      if (condition.includes("!=")) {
+        const [left, right] = condition.split("!=").map(s => s.trim().replace(/'/g, "").replace(/"/g, ""));
+        
+        if (left.includes("states(")) {
+          const entityMatch = left.match(/states\(['"]([^'"]+)['"]\)/);
+          if (entityMatch && this.hass?.states?.[entityMatch[1]]) {
+            return this.hass.states[entityMatch[1]].state !== right;
+          }
+        }
+        
+        return left !== right;
+      }
+      
+      // 处理 is_state() 函数
+      if (condition.includes("is_state(")) {
+        const stateMatch = condition.match(/is_state\(['"]([^'"]+)['"]\s*,\s*['"]([^'"]+)['"]\)/);
+        if (stateMatch && this.hass?.states?.[stateMatch[1]]) {
+          return this.hass.states[stateMatch[1]].state === stateMatch[2];
+        }
+      }
+      
+      return false;
+    } catch (e) {
+      console.warn('条件评估失败:', condition, e);
+      return false;
+    }
+  }
+
   _safeEval(expr) {
     try {
-      // 使用 Function 构造函数而不是 eval，更安全
       return Function(`"use strict"; return (${expr})`)();
     } catch (e) {
       console.warn('表达式计算失败:', expr, e);
@@ -442,7 +520,6 @@ export class SmartInput extends LitElement {
     this._analyzeInputType(this.value);
     this._notifyChange();
     
-    // 聚焦到输入框并将光标移到模板中间
     const input = this.shadowRoot.querySelector('.smart-input-field');
     if (input) {
       input.focus();
