@@ -1,177 +1,205 @@
 // src/plugins/poetry-card.js
 import { BasePlugin } from '../core/base-plugin.js';
 
-export const manifest = {
-  id: 'poetry-card',
-  name: '诗词卡片',
-  version: '1.3.0',
-  description: '精简版古典诗词显示',
-  author: 'CardForge Team',
-  category: 'info',
-  icon: '📜',
-  entityRequirements: [
-    {
-      key: 'title_source',
-      description: '标题来源（实体ID或Jinja2模板）',
-      required: false
-    },
-    {
-      key: 'author_source',
-      description: '作者来源（实体ID或Jinja2模板）',
-      required: false
-    },
-    {
-      key: 'content_source',
-      description: '内容来源（实体ID或Jinja2模板）',
-      required: false
-    }
-  ],
-  themeSupport: true,
-  gradientSupport: false
-};
+class PoetryCard extends BasePlugin {
+  static manifest = {
+    id: 'poetry-card',
+    name: '古诗卡片',
+    version: '1.0.0',
+    description: '显示优美古诗',
+    category: '文化',
+    icon: '📜',
+    entityRequirements: [
+      {
+        key: 'title',
+        description: '诗词标题',
+        required: false
+      },
+      {
+        key: 'dynasty',
+        description: '诗词朝代',
+        required: false
+      },
+      {
+        key: 'famous_line',
+        description: '名句',
+        required: false
+      },
+      {
+        key: 'poet',
+        description: '诗人',
+        required: false
+      }
+    ]
+  };
 
-export default class PoetryCardPlugin extends BasePlugin {
-  getTemplate(config, hass, entities) {
-    // 使用统一数据获取方法
-    const title = this._getCardValue(hass, entities, 'title_source', '无题');
-    const author = this._getCardValue(hass, entities, 'author_source', '佚名');
-    const content = this._getCardValue(hass, entities, 'content_source', '');
+  // 默认诗词数据
+  _getDefaultPoetry() {
+    return {
+      title: '虞美人·春花秋月何时了',
+      dynasty: '五代',
+      famous_line: '小楼昨夜又东风，故国不堪回首月明中。',
+      poet: '李煜'
+    };
+  }
+
+  // 解析诗词数据
+  _parsePoetryData(entities) {
+    const defaultData = this._getDefaultPoetry();
     
+    return {
+      title: this._getEntityValue(entities, 'title', defaultData.title),
+      dynasty: this._getEntityValue(entities, 'dynasty', defaultData.dynasty),
+      famous_line: this._getEntityValue(entities, 'famous_line', defaultData.famous_line),
+      poet: this._getEntityValue(entities, 'poet', defaultData.poet)
+    };
+  }
+
+  // 获取完整的诗词内容
+  _getFullPoetryContent(poetryData) {
+    const lines = [
+      poetryData.title,
+      `朝代：${poetryData.dynasty}`,
+      '',
+      poetryData.famous_line,
+      '',
+      `诗人：${poetryData.poet}`
+    ];
+    
+    return lines.join('\n');
+  }
+
+  getTemplate(config, hass, entities) {
+    const poetryData = this._parsePoetryData(entities);
+    
+    // 检查是否有有效数据
+    const hasData = poetryData.title || poetryData.dynasty || poetryData.famous_line || poetryData.poet;
+    
+    if (!hasData) {
+      return this._renderEmpty('暂无诗词数据', '📜');
+    }
+
     return `
-      <div class="cardforge-card poetry-card">
-        <div class="poetry-content">
-          <div class="poetry-title">${title}</div>
-          <div class="poetry-author">${author}</div>
-          <div class="poetry-text">
-            ${this._formatPoetryContent(content)}
+      <div class="cardforge-card-container cardforge-animate-fadeIn poetry-card">
+        <div class="cardforge-card-content">
+          <div class="cardforge-content-area cardforge-gap-md">
+            ${poetryData.title ? `
+              <div class="cardforge-content-header poetry-title">${this._renderSafeHTML(poetryData.title)}</div>
+            ` : ''}
+            
+            ${poetryData.dynasty ? `
+              <div class="cardforge-content-small poetry-dynasty">${this._renderSafeHTML(poetryData.dynasty)}</div>
+            ` : ''}
+            
+            ${poetryData.famous_line ? `
+              <div class="cardforge-content-body poetry-famous-line cardforge-multiline">
+                ${this._renderSafeHTML(poetryData.famous_line)}
+              </div>
+            ` : ''}
+            
+            ${poetryData.poet ? `
+              <div class="cardforge-content-small poetry-poet">—— ${this._renderSafeHTML(poetryData.poet)}</div>
+            ` : ''}
           </div>
         </div>
-        <div class="poetry-seal">詩</div>
       </div>
     `;
   }
 
-  _formatPoetryContent(content) {
-    if (!content) {
-      return '<div class="poetry-line">暂无诗词内容</div>';
-    }
-    
-    // 精简版：只在句号后换行
-    const lines = content.split('。').filter(line => line.trim());
-    
-    return lines.map(line => {
-      const trimmedLine = line.replace(/^，|^、/, '').trim(); // 去除开头的标点
-      return trimmedLine ? `<div class="poetry-line">${trimmedLine}。</div>` : '';
-    }).join('');
-  }
-
   getStyles(config) {
-    return this.getBaseStyles(config) + `
-      .poetry-card {
-        ${this._responsivePadding('16px', '12px')} /* 减小内边距 */
-        ${this._responsiveHeight('140px', '120px')} /* 降低高度 */
-        position: relative;
-        overflow: hidden;
-      }
+    return `
+      ${this.getBaseStyles(config)}
       
-      .poetry-content {
-        position: relative;
-        z-index: 2;
-        height: 100%;
-        ${this._flexColumn()}
-        justify-content: center;
-        ${this._textCenter()}
+      .poetry-card {
+        text-align: center;
       }
       
       .poetry-title {
-        ${this._responsiveFontSize('1.1em', '0.95em')} /* 调整字体大小 */
-        font-weight: 700;
-        ${this._responsiveMargin('0 0 6px', '0 0 4px')} /* 减小间距 */
-        font-family: "SimSun", "宋体", serif;
-        letter-spacing: 2px;
+        ${this._cfTextSize('lg')}
+        ${this._cfFontWeight('bold')}
+        ${this._cfColor('text')}
+        line-height: 1.3;
+        margin: 0;
       }
       
-      .poetry-author {
-        ${this._responsiveFontSize('0.8em', '0.7em')} /* 调整字体大小 */
-        ${this._responsiveMargin('0 0 12px', '0 0 8px')} /* 减小间距 */
-        font-family: "SimSun", "宋体", serif;
-        opacity: 0.8;
+      .poetry-dynasty {
+        ${this._cfTextSize('sm')}
+        ${this._cfColor('text-secondary')}
+        font-style: italic;
+        margin: 0;
+      }
+      
+      .poetry-famous-line {
+        ${this._cfTextSize('md')}
+        ${this._cfColor('text')}
+        line-height: 1.6;
+        margin: var(--cf-spacing-sm) 0;
         font-style: italic;
       }
       
-      .poetry-text {
-        line-height: 1.5; /* 调整行高 */
+      .poetry-poet {
+        ${this._cfTextSize('sm')}
+        ${this._cfColor('text-secondary')}
+        margin: 0;
+        font-weight: 500;
       }
       
-      .poetry-line {
-        ${this._responsiveFontSize('0.9em', '0.8em')} /* 调整字体大小 */
-        ${this._responsiveMargin('0 0 3px', '0 0 2px')} /* 减小间距 */
-        font-family: "SimSun", "宋体", serif;
-        letter-spacing: 1px;
+      /* 水墨主题特殊样式 */
+      .theme-ink-wash .poetry-card {
+        background: linear-gradient(135deg, #2c3e50 0%, #34495e 100%);
+        color: #ecf0f1;
+        border: 1px solid #7f8c8d;
       }
       
-      .poetry-seal {
-        position: absolute;
-        bottom: 8px; /* 调整位置 */
-        right: 8px;
-        width: 30px; /* 减小尺寸 */
-        height: 30px;
-        border: 2px solid currentColor;
-        ${this._borderRadius('4px')}
-        ${this._flexCenter()}
-        font-size: 12px; /* 减小字体 */
-        font-weight: bold;
-        opacity: 0.3;
-        font-family: "SimSun", "宋体", serif;
-        transform: rotate(15deg);
+      .theme-ink-wash .poetry-title {
+        color: #ffffff;
+        text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
       }
       
-      /* 主题适配 */
-      .poetry-card.glass {
-        backdrop-filter: blur(15px); /* 减小模糊度 */
-        -webkit-backdrop-filter: blur(15px);
+      .theme-ink-wash .poetry-famous-line {
+        color: #ecf0f1;
+        text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
       }
       
-      .poetry-card.gradient {
-        color: white;
-      }
-      
-      .poetry-card.neon {
-        color: #ffd700;
-      }
-      
-      /* 悬停效果 */
-      .poetry-card:hover .poetry-seal {
-        animation: sealRotate 1.5s ease-in-out;
-      }
-      
-      @keyframes sealRotate {
-        0%, 100% {
-          transform: rotate(15deg) scale(1);
-        }
-        50% {
-          transform: rotate(25deg) scale(1.05); /* 减小缩放 */
-        }
+      .theme-ink-wash .poetry-dynasty,
+      .theme-ink-wash .poetry-poet {
+        color: #bdc3c7;
       }
       
       /* 响应式优化 */
-      @media (max-width: 480px) {
-        .poetry-seal {
-          width: 25px; /* 减小尺寸 */
-          height: 25px;
-          font-size: 10px; /* 减小字体 */
-          bottom: 6px;
-          right: 6px;
+      @media (max-width: 600px) {
+        .poetry-title {
+          ${this._cfTextSize('md')}
+        }
+        
+        .poetry-famous-line {
+          ${this._cfTextSize('sm')}
+          line-height: 1.5;
+        }
+        
+        .poetry-dynasty,
+        .poetry-poet {
+          ${this._cfTextSize('xs')}
+        }
+      }
+      
+      @media (max-width: 400px) {
+        .poetry-card {
+          ${this._cfPadding('md')}
+        }
+        
+        .poetry-title {
+          ${this._cfTextSize('sm')}
+        }
+        
+        .poetry-famous-line {
+          ${this._cfTextSize('xs')}
+          line-height: 1.4;
         }
       }
     `;
   }
-
-  getThemeConfig() {
-    return {
-      useGradient: false,
-      gradientType: 'diagonal',
-      gradientColors: ['#fef7ed', '#f8f4e9']
-    };
-  }
 }
+
+export default PoetryCard;
+export const manifest = PoetryCard.manifest;

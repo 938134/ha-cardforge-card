@@ -18,16 +18,388 @@ export class BasePlugin {
     throw new Error('必须实现 getStyles 方法');
   }
 
-  // === 可选覆盖的接口 ===
-  getThemeConfig() {
-    return {
-      useGradient: false,
-      gradientType: 'diagonal',
-      gradientColors: ['var(--primary-color)', 'var(--accent-color)']
-    };
+  // === 通用安全工具函数 ===
+  
+  // 安全的实体状态获取
+  _getEntityStateSafe(hass, entityId, defaultValue = '') {
+    if (!hass || !entityId) return defaultValue;
+    
+    const entity = hass.states[entityId];
+    if (!entity) {
+      console.warn(`实体不存在: ${entityId}`);
+      return defaultValue;
+    }
+    
+    return entity.state || defaultValue;
   }
 
-  // === 系统数据工具 ===
+  // 安全的实体属性获取
+  _getEntityAttribute(hass, entityId, attribute, defaultValue = '') {
+    if (!hass || !entityId) return defaultValue;
+    
+    const entity = hass.states[entityId];
+    if (!entity || !entity.attributes) return defaultValue;
+    
+    return entity.attributes[attribute] || defaultValue;
+  }
+
+  // 批量获取实体状态
+  _getMultipleEntityStates(hass, entityMap) {
+    const result = {};
+    Object.entries(entityMap).forEach(([key, entityId]) => {
+      result[key] = this._getEntityStateSafe(hass, entityId);
+    });
+    return result;
+  }
+
+  // 安全的数值转换
+  _safeParseFloat(value, defaultValue = 0) {
+    if (value === null || value === undefined) return defaultValue;
+    const num = parseFloat(value);
+    return isNaN(num) ? defaultValue : num;
+  }
+
+  // 安全的整数转换
+  _safeParseInt(value, defaultValue = 0) {
+    if (value === null || value === undefined) return defaultValue;
+    const num = parseInt(value);
+    return isNaN(num) ? defaultValue : num;
+  }
+
+  // === 错误处理模板 ===
+  
+  _renderError(message, icon = '❌') {
+    return `
+      <div class="cardforge-error-container">
+        <div class="cardforge-error-icon">${icon}</div>
+        <div class="cardforge-error-message">${this._renderSafeHTML(message)}</div>
+      </div>
+    `;
+  }
+
+  _renderLoading(message = '加载中...') {
+    return `
+      <div class="cardforge-loading-container">
+        <div class="cardforge-loading-spinner"></div>
+        <div class="cardforge-loading-text">${this._renderSafeHTML(message)}</div>
+      </div>
+    `;
+  }
+
+  _renderEmpty(message = '暂无数据', icon = '📭') {
+    return `
+      <div class="cardforge-empty-container">
+        <div class="cardforge-empty-icon">${icon}</div>
+        <div class="cardforge-empty-message">${this._renderSafeHTML(message)}</div>
+      </div>
+    `;
+  }
+
+  // === 安全渲染工具 ===
+  
+  _renderSafeHTML(content) {
+    if (!content) return '';
+    return String(content)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#x27;');
+  }
+
+  _renderIf(condition, template) {
+    return condition ? template : '';
+  }
+
+  _renderList(items, templateFn) {
+    if (!Array.isArray(items) || items.length === 0) return '';
+    return items.map(templateFn).join('');
+  }
+
+  // === 基础样式工具 ===
+  
+  // 统一卡片容器样式（保证上下间距一致）
+  _getCardContainerStyles() {
+    return `
+      .cardforge-card-container {
+        ${this._cfPadding('lg')}
+        ${this._cfBackground('surface')}
+        ${this._cfBorderRadius('lg')}
+        ${this._cfShadow('md')}
+        min-height: auto;
+        height: auto;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        position: relative;
+        overflow: visible;
+        border: 1px solid var(--cf-border);
+        transition: all var(--cf-transition-normal);
+        box-sizing: border-box;
+      }
+      
+      .cardforge-card-container:hover {
+        ${this._cfShadow('lg')}
+        transform: translateY(-2px);
+        border-color: rgba(var(--cf-rgb-primary), 0.3);
+      }
+      
+      /* 保证所有卡片上下间距一致 */
+      .cardforge-card-content {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        min-height: 60px; /* 最小内容高度 */
+        gap: var(--cf-spacing-md);
+      }
+      
+      /* 错误状态样式 */
+      .cardforge-error-container,
+      .cardforge-loading-container,
+      .cardforge-empty-container {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: var(--cf-spacing-md);
+        min-height: 80px;
+        text-align: center;
+      }
+      
+      .cardforge-error-icon,
+      .cardforge-loading-spinner,
+      .cardforge-empty-icon {
+        font-size: 2em;
+        opacity: 0.7;
+      }
+      
+      .cardforge-loading-spinner {
+        width: 24px;
+        height: 24px;
+        border: 2px solid var(--cf-border);
+        border-top: 2px solid var(--cf-primary-color);
+        border-radius: 50%;
+        animation: cardforge-spin 1s linear infinite;
+      }
+      
+      .cardforge-error-message,
+      .cardforge-loading-text,
+      .cardforge-empty-message {
+        ${this._cfTextSize('sm')}
+        ${this._cfColor('text-secondary')}
+        line-height: 1.4;
+      }
+    `;
+  }
+
+  // 统一内容区域样式
+  _getContentAreaStyles() {
+    return `
+      .cardforge-content-area {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        gap: var(--cf-spacing-md);
+      }
+      
+      .cardforge-content-header {
+        ${this._cfTextSize('lg')}
+        ${this._cfFontWeight('bold')}
+        ${this._cfColor('text')}
+        text-align: center;
+        line-height: 1.2;
+        margin: 0;
+      }
+      
+      .cardforge-content-body {
+        ${this._cfTextSize('md')}
+        ${this._cfColor('text')}
+        line-height: 1.4;
+        text-align: center;
+        margin: 0;
+      }
+      
+      .cardforge-content-large {
+        ${this._cfTextSize('xl')}
+        ${this._cfFontWeight('bold')}
+        line-height: 1.2;
+        text-align: center;
+        margin: 0;
+      }
+      
+      .cardforge-content-small {
+        ${this._cfTextSize('sm')}
+        ${this._cfColor('text-secondary')}
+        line-height: 1.3;
+        text-align: center;
+        margin: 0;
+      }
+      
+      /* 多行文本支持 */
+      .cardforge-multiline {
+        white-space: pre-line;
+        word-wrap: break-word;
+        overflow-wrap: break-word;
+      }
+      
+      /* 自动换行 */
+      .cardforge-wrap {
+        white-space: normal;
+        word-break: break-word;
+      }
+    `;
+  }
+
+  // === 响应式工具 ===
+  
+  _getResponsiveStyles() {
+    return `
+      /* 移动端适配 */
+      @media (max-width: 600px) {
+        .cardforge-card-container {
+          ${this._cfPadding('md')}
+        }
+        
+        .cardforge-card-content {
+          gap: var(--cf-spacing-sm);
+          min-height: 50px;
+        }
+        
+        .cardforge-content-header {
+          ${this._cfTextSize('md')}
+        }
+        
+        .cardforge-content-body {
+          ${this._cfTextSize('sm')}
+        }
+        
+        .cardforge-content-large {
+          ${this._cfTextSize('lg')}
+        }
+        
+        .cardforge-content-small {
+          ${this._cfTextSize('xs')}
+        }
+        
+        .cardforge-error-container,
+        .cardforge-loading-container,
+        .cardforge-empty-container {
+          min-height: 60px;
+          gap: var(--cf-spacing-sm);
+        }
+      }
+      
+      @media (max-width: 400px) {
+        .cardforge-card-container {
+          ${this._cfPadding('sm')}
+        }
+        
+        .cardforge-card-content {
+          min-height: 40px;
+        }
+      }
+    `;
+  }
+
+  // === 动画工具 ===
+  
+  _getAnimationStyles() {
+    return `
+      @keyframes cardforge-spin {
+        0% { transform: rotate(0deg); }
+        100% { transform: rotate(360deg); }
+      }
+      
+      @keyframes cardforge-fadeIn {
+        from { opacity: 0; transform: translateY(10px); }
+        to { opacity: 1; transform: translateY(0); }
+      }
+      
+      .cardforge-animate-fadeIn {
+        animation: cardforge-fadeIn 0.5s var(--cf-ease-out);
+      }
+    `;
+  }
+
+  // === 布局工具 ===
+  
+  _getLayoutTools() {
+    return `
+      .cardforge-flex-column {
+        display: flex;
+        flex-direction: column;
+      }
+      
+      .cardforge-flex-row {
+        display: flex;
+        align-items: center;
+      }
+      
+      .cardforge-flex-center {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+      
+      .cardforge-flex-between {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+      }
+      
+      .cardforge-flex-start {
+        display: flex;
+        align-items: center;
+        justify-content: flex-start;
+      }
+      
+      .cardforge-gap-xs { gap: var(--cf-spacing-xs); }
+      .cardforge-gap-sm { gap: var(--cf-spacing-sm); }
+      .cardforge-gap-md { gap: var(--cf-spacing-md); }
+      .cardforge-gap-lg { gap: var(--cf-spacing-lg); }
+      
+      .cardforge-flex-1 { flex: 1; }
+      .cardforge-flex-auto { flex: auto; }
+    `;
+  }
+
+  // === 基础样式系统（必须包含在所有卡片中）===
+  getBaseStyles(config) {
+    const themeId = config.theme || 'auto';
+    const themeStyles = themeManager.getThemeStyles(themeId, config);
+    
+    return `
+      :host {
+        --rgb-primary-background-color: var(--card-background-color, 255, 255, 255);
+        --rgb-primary-text-color: var(--primary-text-color, 0, 0, 0);
+      }
+      
+      /* 包含所有基础工具样式 */
+      ${this._getCardContainerStyles()}
+      ${this._getContentAreaStyles()}
+      ${this._getResponsiveStyles()}
+      ${this._getAnimationStyles()}
+      ${this._getLayoutTools()}
+      
+      /* 主题样式 */
+      .cardforge-card-container {
+        ${themeStyles}
+      }
+      
+      ${this._getAdditionalBaseStyles()}
+    `;
+  }
+
+  // 子类可以覆盖的额外基础样式
+  _getAdditionalBaseStyles() {
+    return '';
+  }
+
+  // === 原有的工具方法（保持兼容）===
+  
   getSystemData(hass, config) {
     const now = new Date();
     return {
@@ -40,7 +412,6 @@ export class BasePlugin {
     };
   }
 
-  // === 统一数据获取方法 ===
   _getEntityValue(entities, key, defaultValue = '') {
     return entities[key]?.state || defaultValue;
   }
@@ -50,17 +421,14 @@ export class BasePlugin {
     
     const parser = getJinjaParser(hass);
 
-    // 如果是实体ID格式（包含点号）
     if (source.includes('.') && hass?.states?.[source]) {
       return hass.states[source].state || defaultValue;
     }
     
-    // 如果是Jinja2模板
     if (parser.isJinjaTemplate(source)) {
       return parser.parse(source, defaultValue);
     }
     
-    // 直接文本
     return source;
   }
 
@@ -69,7 +437,6 @@ export class BasePlugin {
     return this._getFlexibleValue(hass, source, defaultValue);
   }
 
-  // === 控制方法 ===
   callService(hass, domain, service, data = {}) {
     if (!hass || !hass.callService) {
       console.error('Home Assistant 服务不可用');
@@ -96,9 +463,9 @@ export class BasePlugin {
   }
 
   // === 工具方法 ===
-  _isEntityOn(entity) { return entity.state === 'on'; }
-  _isEntityOff(entity) { return entity.state === 'off'; }
-  _isEntityUnavailable(entity) { return entity.state === 'unavailable' || entity.state === 'unknown'; }
+  _isEntityOn(entity) { return entity?.state === 'on'; }
+  _isEntityOff(entity) { return entity?.state === 'off'; }
+  _isEntityUnavailable(entity) { return !entity || entity.state === 'unavailable' || entity.state === 'unknown'; }
   _getEntityState(entities, key, defaultValue = '') { 
     return this._getEntityValue(entities, key, defaultValue);
   }
@@ -162,142 +529,6 @@ export class BasePlugin {
   
   _getRandomMessage() {
     return '';
-  }
-
-  // === 样式系统 ===
-  getBaseStyles(config) {
-    const themeId = config.theme || 'auto';
-    
-    const themeStyles = themeManager.getThemeStyles(themeId, config);
-    
-    return `
-      :host {
-        --rgb-primary-background-color: var(--card-background-color, 255, 255, 255);
-        --rgb-primary-text-color: var(--primary-text-color, 0, 0, 0);
-      }
-      
-      .cardforge-card {
-        position: relative;
-        font-family: var(--paper-font-common-nowrap_-_font-family);
-        ${this._borderRadius('var(--ha-card-border-radius, 12px)')}
-        cursor: default;
-        overflow: hidden;
-        transition: all 0.3s ease;
-        
-        ${themeStyles}
-      }
-      
-      .cardforge-card:hover {
-        transform: translateY(-2px);
-        ${this._boxShadow('strong')}
-      }
-      
-      ${this._getResponsiveStyles()}
-      ${this._getAnimationStyles()}
-      
-      .cardforge-interactive { 
-        cursor: pointer; 
-        transition: all 0.2s ease; 
-      }
-      .cardforge-interactive:hover { opacity: 0.8; }
-      .cardforge-interactive:active { transform: scale(0.98); }
-      
-      .cardforge-status-on { color: var(--success-color); }
-      .cardforge-status-off { color: var(--disabled-color); }
-      .cardforge-status-unavailable { color: var(--error-color); opacity: 0.5; }
-      
-      .cf-flex { display: flex; }
-      .cf-flex-center { display: flex; align-items: center; justify-content: center; }
-      .cf-flex-column { display: flex; flex-direction: column; }
-      .cf-flex-row { display: flex; align-items: center; }
-      .cf-text-center { text-align: center; }
-      .cf-text-left { text-align: left; }
-      .cf-text-right { text-align: right; }
-    `;
-  }
-  
-  _getAnimationStyles() {
-    return `
-      @keyframes gradientShift {
-        0% {
-          background-position: 0% 50%;
-        }
-        50% {
-          background-position: 100% 50%;
-        }
-        100% {
-          background-position: 0% 50%;
-        }
-      }
-      
-      @keyframes neonPulse {
-        0%, 100% {
-          box-shadow: 
-            0 0 8px #00ff88,
-            inset 0 0 15px rgba(0, 255, 136, 0.1);
-        }
-        50% {
-          box-shadow: 
-            0 0 20px #00ff88,
-            0 0 35px rgba(0, 255, 136, 0.3),
-            inset 0 0 25px rgba(0, 255, 136, 0.2);
-        }
-      }
-      
-      @keyframes glassShine {
-        0% {
-          background-position: -100% 0;
-        }
-        100% {
-          background-position: 200% 0;
-        }
-      }
-      
-      @keyframes float {
-        0%, 100% {
-          transform: translateY(0px);
-        }
-        50% {
-          transform: translateY(-10px);
-        }
-      }
-      
-      @keyframes messageFade {
-        0% {
-          opacity: 0;
-          transform: translateY(5px);
-        }
-        100% {
-          opacity: 0.8;
-          transform: translateY(0px);
-        }
-      }
-      
-      @keyframes sealRotate {
-        0%, 100% {
-          transform: rotate(15deg);
-        }
-        50% {
-          transform: rotate(25deg);
-        }
-      }
-    `;
-  }
-  
-  _getResponsiveStyles() {
-    return `
-      @media (max-width: 480px) {
-        .cardforge-card {
-          ${this._borderRadius('8px')}
-        }
-      }
-      
-      @media (max-width: 360px) {
-        .cardforge-card {
-          ${this._borderRadius('6px')}
-        }
-      }
-    `;
   }
 
   // === 新的样式工具方法 ===
@@ -375,7 +606,6 @@ export class BasePlugin {
     return `box-shadow: ${shadows[intensity] || shadows.md};`;
   }
 
-  // === 颜色工具方法 ===
   _cfColor(type = 'primary') {
     const colors = {
       primary: 'var(--cf-primary-color)',

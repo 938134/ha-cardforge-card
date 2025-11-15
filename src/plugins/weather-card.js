@@ -1,135 +1,78 @@
 // src/plugins/weather-card.js
 import { BasePlugin } from '../core/base-plugin.js';
 
-export const manifest = {
-  id: 'weather-card',
-  name: '天气卡片',
-  version: '1.1.0',
-  description: '显示实时天气信息，支持灵活数据源配置',
-  author: 'CardForge Team',
-  category: 'weather',
-  icon: '🌤️',
-  entityRequirements: [
-    {
-      key: 'weather_source',
-      description: '天气实体来源',
-      required: true
-    },
-    {
-      key: 'temperature_source',
-      description: '温度来源（覆盖天气实体的温度）',
-      required: false
-    },
-    {
-      key: 'humidity_source',
-      description: '湿度来源（覆盖天气实体的湿度）',
-      required: false
-    }
-  ],
-  themeSupport: true,
-  gradientSupport: true
-};
+class WeatherCard extends BasePlugin {
+  static manifest = {
+    id: 'weather-card',
+    name: '天气卡片',
+    version: '1.0.0',
+    description: '显示天气信息',
+    category: '环境',
+    icon: '🌤️',
+    entityRequirements: [
+      {
+        key: 'weather',
+        description: '天气实体',
+        required: true
+      }
+    ]
+  };
 
-export default class WeatherCardPlugin extends BasePlugin {
+  _processWeatherData(weatherEntity) {
+    if (!weatherEntity) return null;
+    
+    const attributes = weatherEntity.attributes || {};
+    
+    return {
+      temperature: attributes.temperature || weatherEntity.state,
+      condition: this._mapWeatherCondition(attributes.condition),
+      humidity: attributes.humidity,
+      pressure: attributes.pressure,
+      wind_speed: attributes.wind_speed,
+      forecast: attributes.forecast || []
+    };
+  }
+
+  _mapWeatherCondition(condition) {
+    const conditionMap = {
+      'sunny': '☀️', 'clear': '☀️',
+      'cloudy': '☁️', 'partlycloudy': '⛅',
+      'rainy': '🌧️', 'pouring': '🌧️',
+      'snowy': '❄️', 'snowy-rainy': '🌨️',
+      'windy': '💨', 'fog': '🌫️'
+    };
+    return conditionMap[condition] || '🌈';
+  }
+
   getTemplate(config, hass, entities) {
-    const weatherEntity = entities.weather_source;
+    const weatherData = this._processWeatherData(entities.weather);
     
-    // 使用统一数据获取方法
-    const temperature = this._getCardValue(hass, entities, 'temperature_source') || 
-                       weatherEntity?.attributes?.temperature || '--';
-    const condition = weatherEntity?.state || '未知';
-    const humidity = this._getCardValue(hass, entities, 'humidity_source') || 
-                    weatherEntity?.attributes?.humidity || '--';
-    
+    if (!weatherData) {
+      return this._renderError('天气数据不可用', '🌫️');
+    }
+
     return `
-      <div class="cardforge-card weather-card">
-        <div class="weather-content">
-          <div class="weather-icon">${this._getWeatherIcon(condition)}</div>
-          <div class="weather-info">
-            <div class="temperature">${temperature}°</div>
-            <div class="condition">${condition}</div>
-            <div class="humidity">湿度: ${humidity}%</div>
+      <div class="cardforge-card-container cardforge-animate-fadeIn">
+        <div class="cardforge-card-content">
+          <div class="cardforge-content-area cardforge-gap-md">
+            <div class="cardforge-flex-row cardforge-flex-center cardforge-gap-md">
+              <div class="cardforge-content-large">${weatherData.condition}</div>
+              <div class="cardforge-content-large">${weatherData.temperature}°</div>
+            </div>
+            <div class="cardforge-content-body">
+              <div>湿度: ${weatherData.humidity}%</div>
+              <div>风速: ${weatherData.wind_speed} m/s</div>
+            </div>
           </div>
         </div>
       </div>
     `;
   }
 
-  _getWeatherIcon(condition) {
-    const icons = {
-      'sunny': '☀️',
-      'clear': '☀️',
-      'partlycloudy': '⛅',
-      'cloudy': '☁️',
-      'rainy': '🌧️',
-      'snowy': '❄️',
-      'windy': '💨',
-      'fog': '🌫️',
-      'clear-night': '🌙'
-    };
-    return icons[condition?.toLowerCase()] || '🌤️';
-  }
-
   getStyles(config) {
-    return this.getBaseStyles(config) + `
-      .weather-card {
-        ${this._responsivePadding('16px', '12px')} /* 减小内边距 */
-        ${this._responsiveHeight('100px', '90px')} /* 降低高度 */
-      }
-      
-      .weather-content {
-        ${this._flexRow()}
-        ${this._responsiveGap('12px', '8px')} /* 减小间距 */
-        height: 100%;
-      }
-      
-      .weather-icon {
-        font-size: 2.5em; /* 调整图标大小 */
-        flex-shrink: 0;
-      }
-      
-      .weather-info {
-        flex: 1;
-      }
-      
-      .temperature {
-        ${this._responsiveFontSize('1.8em', '1.5em')} /* 调整字体大小 */
-        font-weight: bold;
-        color: var(--primary-color);
-        line-height: 1;
-        ${this._responsiveMargin('0 0 3px', '0 0 2px')} /* 减小间距 */
-      }
-      
-      .condition {
-        ${this._responsiveFontSize('0.9em', '0.8em')} /* 调整字体大小 */
-        opacity: 0.8;
-        ${this._responsiveMargin('0 0 1px', '0 0 0px')} /* 减小间距 */
-      }
-      
-      .humidity {
-        ${this._responsiveFontSize('0.8em', '0.7em')} /* 调整字体大小 */
-        opacity: 0.6;
-      }
-      
-      /* 响应式优化 */
-      @media (max-width: 480px) {
-        .weather-icon {
-          font-size: 2em; /* 调整图标大小 */
-        }
-      }
-      
-      /* 主题适配 */
-      .weather-card.glass .temperature {
-        color: var(--primary-text-color);
-      }
-    `;
-  }
-
-  getThemeConfig() {
-    return {
-      useGradient: true,
-      gradientType: 'diagonal',
-      gradientColors: ['var(--primary-color)', 'var(--accent-color)']
-    };
+    return this.getBaseStyles(config);
   }
 }
+
+export default WeatherCard;
+export const manifest = WeatherCard.manifest;
