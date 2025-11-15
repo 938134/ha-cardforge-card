@@ -1,6 +1,7 @@
-// src/styles/editor-styles.js
+// src/styles/editor-styles.js - 动态主题预览样式生成器
 import { css } from 'https://unpkg.com/lit@2.8.0/index.js?module';
 
+// 动态主题预览样式将在运行时生成
 export const editorStyles = css`
   /* ===== 编辑器布局 ===== */
   .editor-layout {
@@ -77,16 +78,6 @@ export const editorStyles = css`
     opacity: 0.8;
   }
   
-  /* ===== 插件选择区域 ===== */
-  .plugin-selector-section {
-    /* 使用统一样式 */
-  }
-  
-  /* ===== 主题选择区域 ===== */
-  .theme-selector-section {
-    /* 使用统一样式 */
-  }
-  
   .theme-preview {
     width: 100%;
     height: 60px;
@@ -101,29 +92,8 @@ export const editorStyles = css`
     border-color: white;
   }
   
-  /* ===== 数据源配置区域 ===== */
-  .datasource-section {
-    background: var(--card-background-color);
-  }
-  
-  .datasource-list {
-    display: flex;
-    flex-direction: column;
-    gap: 16px;
-  }
-  
-  /* ===== 配置提示区域 ===== */
-  .preview-section {
-    background: var(--card-background-color);
-  }
-  
-  /* ===== 操作按钮 ===== */
-  .action-buttons {
-    display: flex;
-    gap: 12px;
-    justify-content: flex-end;
-    margin-top: 24px;
-  }
+  /* ===== 动态主题预览样式占位符 ===== */
+  /* 主题预览样式将在运行时通过 generateThemePreviewStyles() 动态生成 */
   
   /* ===== 插件选择器样式 ===== */
   .plugin-selector {
@@ -446,38 +416,6 @@ export const editorStyles = css`
     gap: 4px;
   }
   
-  /* ===== 主题预览类 ===== */
-  .theme-preview-auto {
-    background: var(--card-background-color);
-    border: 1px solid var(--divider-color);
-  }
-  
-  .theme-preview-glass {
-    background: linear-gradient(135deg, 
-      rgba(255, 255, 255, 0.3) 0%, 
-      rgba(255, 255, 255, 0.1) 100%);
-    border: 1px solid rgba(255, 255, 255, 0.2);
-    backdrop-filter: blur(10px);
-    -webkit-backdrop-filter: blur(10px);
-  }
-  
-  .theme-preview-gradient-1 { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); }
-  .theme-preview-gradient-2 { background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%); }
-  .theme-preview-gradient-3 { background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%); }
-  .theme-preview-gradient-4 { background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%); }
-  .theme-preview-gradient-5 { background: linear-gradient(135deg, #fa709a 0%, #fee140 100%); }
-  
-  .theme-preview-neon {
-    background: #1a1a1a;
-    border: 1px solid #00ff88;
-    box-shadow: 0 0 8px #00ff88;
-  }
-    
-  .theme-preview-ink-wash {
-    background: linear-gradient(135deg, #2c3e50 0%, #34495e 100%);
-    border: 1px solid #7f8c8d;
-  }  
-  
   /* ===== 响应式优化 ===== */
   @media (max-width: 600px) {
     .editor-layout {
@@ -522,3 +460,27 @@ export const editorStyles = css`
     }
   }
 `;
+
+// 动态主题预览样式生成器
+export const generateThemePreviewStyles = (themes) => {
+  let styles = '';
+  
+  themes.forEach(theme => {
+    const preview = theme.preview || {
+      background: `linear-gradient(135deg, hsl(${theme.id.length * 50 % 360}, 70%, 50%) 0%, hsl(${(theme.id.length * 50 + 30) % 360}, 70%, 40%) 100%)`,
+      color: '#ffffff',
+      border: 'none'
+    };
+    
+    styles += `
+      .theme-preview-${theme.id} {
+        background: ${preview.background} !important;
+        color: ${preview.color} !important;
+        border: ${preview.border || '1px solid var(--divider-color)'} !important;
+        ${preview.boxShadow ? `box-shadow: ${preview.boxShadow} !important;` : ''}
+      }
+    `;
+  });
+  
+  return styles;
+};

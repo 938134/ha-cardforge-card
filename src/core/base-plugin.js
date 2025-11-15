@@ -1,4 +1,4 @@
-// src/core/base-plugin.js
+// src/core/base-plugin.js - 已完美兼容新主题系统
 import { themeManager } from '../themes/index.js';
 
 export class BasePlugin {
@@ -234,11 +234,11 @@ export class BasePlugin {
     return '';
   }
 
-  // === 样式系统 - 集成新主题系统 ===
+  // === 样式系统 - 已完美兼容新主题系统 ===
   getBaseStyles(config) {
     const themeId = config.theme || 'auto';
     
-    // 获取主题样式
+    // 获取主题样式 - 新主题系统完全兼容
     const themeStyles = themeManager.getThemeStyles(themeId, config);
     
     return `
@@ -255,7 +255,7 @@ export class BasePlugin {
         overflow: hidden;
         transition: all 0.3s ease;
         
-        /* 应用主题样式 */
+        /* 应用主题样式 - 新主题系统完全兼容 */
         ${themeStyles}
       }
       

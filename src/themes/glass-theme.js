@@ -1,5 +1,5 @@
-// src/themes/glass-theme.js - 修复样式输出
-export const glassTheme = {
+// src/themes/glass-theme.js
+export default {
   id: 'glass',
   name: '毛玻璃',
   description: '半透明磨砂玻璃效果',
@@ -7,17 +7,9 @@ export const glassTheme = {
   category: 'effect',
 
   preview: {
-    background: 'linear-gradient(135deg, rgba(255,255,255,0.2) 0%, rgba(255,255,255,0.1) 100%)',
+    background: 'linear-gradient(135deg, rgba(255,255,255,0.3) 0%, rgba(255,255,255,0.1) 100%)',
     color: 'var(--primary-text-color)',
-    border: '1px solid rgba(255,255,255,0.3)',
-    backdropFilter: 'blur(10px)'
-  },
-
-  config: {
-    blurIntensity: 20,
-    opacity: 0.8,
-    saturation: 180,
-    borderOpacity: 0.15
+    border: '1px solid rgba(255,255,255,0.2)'
   },
 
   getStyles(config = {}) {

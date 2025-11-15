@@ -1,5 +1,5 @@
-// src/themes/neon-theme.js - 修复样式输出
-export const neonTheme = {
+// src/themes/neon-theme.js
+export default {
   id: 'neon',
   name: '霓虹光影',
   description: '赛博朋克风格的霓虹灯效果',
@@ -10,14 +10,7 @@ export const neonTheme = {
     background: '#1a1a1a',
     color: '#00ff88',
     border: '1px solid #00ff88',
-    boxShadow: '0 0 10px #00ff88'
-  },
-
-  config: {
-    glowColor: '#00ff88',
-    glowIntensity: 1.0,
-    animationSpeed: 2,
-    useMultipleColors: false
+    boxShadow: '0 0 8px #00ff88'
   },
 
   getStyles(config = {}) {

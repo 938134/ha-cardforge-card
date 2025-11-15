@@ -1,9 +1,9 @@
-// src/editors/ha-cardforge-editor.js
+// src/editors/ha-cardforge-editor.js - 集成动态主题预览
 import { LitElement, html, css } from 'https://unpkg.com/lit@2.8.0/index.js?module';
 import { PluginRegistry } from '../core/plugin-registry.js';
 import { themeManager } from '../themes/index.js';
 import { sharedStyles } from '../styles/shared-styles.js';
-import { editorStyles } from '../styles/editor-styles.js';
+import { editorStyles, generateThemePreviewStyles } from '../styles/editor-styles.js';
 import './plugin-selector.js';
 import './theme-selector.js';
 import './smart-input.js';
@@ -16,7 +16,8 @@ class HaCardForgeEditor extends LitElement {
     _themes: { state: true },
     _selectedPlugin: { state: true },
     _initialized: { state: true },
-    _configVersion: { state: true } // 添加配置版本号用于强制刷新
+    _configVersion: { state: true },
+    _themePreviewStyles: { state: true } // 动态主题预览样式
   };
 
   static styles = [
@@ -52,13 +53,20 @@ class HaCardForgeEditor extends LitElement {
     this._themes = [];
     this._selectedPlugin = null;
     this._initialized = false;
-    this._configVersion = 0; // 初始化配置版本号
+    this._configVersion = 0;
+    this._themePreviewStyles = ''; // 动态样式
   }
 
   async firstUpdated() {
     await PluginRegistry.initialize();
+    await themeManager.initialize(); // 确保主题系统初始化
+    
     this._plugins = PluginRegistry.getAllPlugins();
     this._themes = themeManager.getAllThemes();
+    
+    // 生成动态主题预览样式
+    this._themePreviewStyles = generateThemePreviewStyles(this._themes);
+    
     this._initialized = true;
     
     if (this.config.plugin) {
@@ -73,7 +81,7 @@ class HaCardForgeEditor extends LitElement {
       theme: 'auto',
       ...config 
     };
-    this._configVersion = 0; // 重置版本号
+    this._configVersion = 0;
   }
 
   render() {
@@ -83,6 +91,9 @@ class HaCardForgeEditor extends LitElement {
 
     return html`
       <div class="editor-container">
+        <!-- 动态注入主题预览样式 -->
+        <style>${this._themePreviewStyles}</style>
+        
         <div class="vertical-layout">
           <!-- 插件选择区域 -->
           ${this._renderPluginSection()}
@@ -165,8 +176,7 @@ class HaCardForgeEditor extends LitElement {
               @click=${() => this._onThemeSelected(theme.id)}
             >
               <div 
-                class="theme-preview ${this._getThemePreviewClass(theme.id)}"
-                style=${this._getThemePreviewStyle(theme)}
+                class="theme-preview theme-preview-${theme.id}"
               ></div>
               <div class="selector-name">${theme.name}</div>
               <div class="selector-description">${theme.description}</div>
@@ -262,24 +272,6 @@ class HaCardForgeEditor extends LitElement {
     `;
   }
 
-  _getThemePreviewClass(themeId) {
-    const previewClasses = {
-      'auto': 'theme-preview-auto',
-      'glass': 'theme-preview-glass',
-      'gradient': 'theme-preview-gradient-1',
-      'neon': 'theme-preview-neon'
-    };
-    return previewClasses[themeId] || 'theme-preview-auto';
-  }
-
-  _getThemePreviewStyle(theme) {
-    const preview = themeManager.getThemePreview(theme.id);
-    if (preview.background) {
-      return `background: ${preview.background}; border: ${preview.border || 'none'};`;
-    }
-    return '';
-  }
-
   _onPluginSelected(plugin) {
     if (plugin.id === this.config.plugin) return;
 
@@ -294,13 +286,13 @@ class HaCardForgeEditor extends LitElement {
 
   _onThemeSelected(themeId) {
     if (themeId === this.config.theme) return;
-  
+
     this.config = {
       ...this.config,
       theme: themeId
     };
     
-    // 强制触发配置更新来刷新系统预览
+    // 强制刷新预览
     this._forcePreviewUpdate();
   }
 
@@ -313,26 +305,27 @@ class HaCardForgeEditor extends LitElement {
   }
 
   _forcePreviewUpdate() {
-    // 增加更新计数器来强制刷新
-    this._previewUpdateCount++;
+    // 增加配置版本号，强制触发更新
+    this._configVersion++;
     
-    // 立即通知配置变化
-    this._notifyConfigUpdate();
+    // 创建新的配置对象确保引用变化
+    const newConfig = {
+      ...this.config,
+      _version: this._configVersion
+    };
+    
+    // 触发配置更新事件
+    this.dispatchEvent(new CustomEvent('config-changed', {
+      detail: { config: newConfig }
+    }));
     
     // 强制组件更新
     this.requestUpdate();
-    
-    console.log('主题切换，强制刷新预览:', this.config.theme);
   }
 
   _notifyConfigUpdate() {
     this.dispatchEvent(new CustomEvent('config-changed', {
-      detail: { 
-        config: this.config,
-        // 添加时间戳和更新计数来确保每次都是新的配置对象
-        _timestamp: Date.now(),
-        _updateCount: this._previewUpdateCount
-      }
+      detail: { config: this.config }
     }));
   }
 

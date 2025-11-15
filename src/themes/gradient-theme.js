@@ -1,5 +1,5 @@
-// src/themes/gradient-theme.js - 修复样式输出
-export const gradientTheme = {
+// src/themes/gradient-theme.js
+export default {
   id: 'gradient',
   name: '随机渐变',
   description: '动态变化的渐变背景',
@@ -10,13 +10,6 @@ export const gradientTheme = {
     background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
     color: 'white',
     border: 'none'
-  },
-
-  config: {
-    gradientType: 'diagonal',
-    animationSpeed: 6,
-    useRandomGradients: true,
-    customGradient: ''
   },
 
   getGradients() {
