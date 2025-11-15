@@ -1,4 +1,4 @@
-// src/editors/ha-cardforge-editor.js - 移除无用提示
+// src/editors/ha-cardforge-editor.js - 应用紧凑布局
 import { LitElement, html, css } from 'https://unpkg.com/lit@2.8.0/index.js?module';
 import { PluginRegistry } from '../core/plugin-registry.js';
 import { themeManager } from '../themes/index.js';
@@ -24,20 +24,9 @@ class HaCardForgeEditor extends LitElement {
     sharedStyles,
     editorStyles,
     css`
-      .editor-container {
-        padding: 0;
-      }
-      
-      .vertical-layout {
-        display: flex;
-        flex-direction: column;
-        gap: 0;
-      }
-      
-      .section-divider {
-        height: 1px;
-        background: var(--divider-color);
-        margin: 0;
+      :host {
+        display: block;
+        max-width: 100%;
       }
     `
   ];
@@ -91,16 +80,12 @@ class HaCardForgeEditor extends LitElement {
       <div class="editor-container">
         <style>${this._themePreviewStyles}</style>
         
-        <div class="vertical-layout">
+        <div class="editor-layout">
           <!-- 插件选择区域 -->
           ${this._renderPluginSection()}
           
-          <div class="section-divider"></div>
-          
           <!-- 主题选择区域 -->
           ${this.config.plugin ? this._renderThemeSection() : ''}
-          
-          ${this.config.plugin ? html`<div class="section-divider"></div>` : ''}
           
           <!-- 数据源配置区域 -->
           ${this.config.plugin ? this._renderDatasourceSection() : ''}
@@ -125,10 +110,10 @@ class HaCardForgeEditor extends LitElement {
 
   _renderPluginSection() {
     return html`
-      <div class="editor-section plugin-selector-section">
+      <div class="editor-section">
         <div class="section-header">
           <span class="section-icon">🎨</span>
-          <span>卡片类型</span>
+          <span>选择卡片类型</span>
         </div>
         
         <div class="selector-grid">
@@ -148,10 +133,10 @@ class HaCardForgeEditor extends LitElement {
 
   _renderThemeSection() {
     return html`
-      <div class="editor-section theme-selector-section">
+      <div class="editor-section">
         <div class="section-header">
           <span class="section-icon">🎭</span>
-          <span>主题样式</span>
+          <span>选择主题样式</span>
         </div>
         
         <div class="selector-grid">
@@ -179,7 +164,7 @@ class HaCardForgeEditor extends LitElement {
     
     if (requirements.length === 0) {
       return html`
-        <div class="editor-section datasource-section">
+        <div class="editor-section">
           <div class="section-header">
             <span class="section-icon">🔧</span>
             <span>数据源配置</span>
@@ -190,7 +175,7 @@ class HaCardForgeEditor extends LitElement {
     }
 
     return html`
-      <div class="editor-section datasource-section">
+      <div class="editor-section">
         <div class="section-header">
           <span class="section-icon">🔧</span>
           <span>数据源配置</span>

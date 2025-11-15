@@ -1,4 +1,4 @@
-// src/styles/editor-styles.js - 紧凑布局和容器底色
+// src/styles/editor-styles.js - 优化布局和容器样式
 import { css } from 'https://unpkg.com/lit@2.8.0/index.js?module';
 
 // 动态主题预览样式生成器
@@ -26,30 +26,29 @@ export const generateThemePreviewStyles = (themes) => {
 };
 
 export const editorStyles = css`
-  /* ===== 编辑器容器底色 ===== */
-  :host {
-    --editor-background: var(--secondary-background-color, #f5f5f5);
-    display: block;
-    background: var(--editor-background);
-    min-height: 100%;
+  /* ===== 编辑器容器样式 ===== */
+  .editor-container {
+    background: var(--card-background-color);
+    border-radius: var(--ha-card-border-radius, 12px);
+    border: 1px solid var(--divider-color);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    overflow: hidden;
   }
   
-  /* ===== 编辑器布局 ===== */
   .editor-layout {
     display: flex;
     flex-direction: column;
-    gap: 12px;
-    max-width: 600px;
-    margin: 0 auto;
-    padding: 16px;
+    gap: 0;
   }
   
   .editor-section {
     background: var(--card-background-color);
-    border-radius: var(--ha-card-border-radius, 12px);
-    padding: 16px;
-    border: 1px solid var(--divider-color);
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    padding: 12px 16px;
+    border-bottom: 1px solid var(--divider-color);
+  }
+  
+  .editor-section:last-child {
+    border-bottom: none;
   }
   
   .section-header {
@@ -59,38 +58,39 @@ export const editorStyles = css`
     margin-bottom: 12px;
     font-weight: 600;
     color: var(--primary-text-color);
+    font-size: 0.95em;
   }
   
   .section-icon {
-    font-size: 1.2em;
+    font-size: 1.1em;
   }
   
-  /* ===== 紧凑选择器网格布局 ===== */
+  /* ===== 紧凑的选择器网格布局 ===== */
   .selector-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+    grid-template-columns: repeat(auto-fill, minmax(110px, 1fr));
     gap: 8px;
   }
   
   .selector-card {
     padding: 12px 8px;
-    border-radius: 8px;
-    border: 2px solid var(--divider-color);
+    border-radius: 6px;
+    border: 1px solid var(--divider-color);
     cursor: pointer;
     transition: all 0.2s ease;
     text-align: center;
     background: var(--card-background-color);
-    min-height: 80px;
+    min-height: 70px;
     display: flex;
     flex-direction: column;
-    justify-content: center;
     align-items: center;
+    justify-content: center;
   }
   
   .selector-card:hover {
     border-color: var(--primary-color);
-    transform: translateY(-2px);
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+    transform: translateY(-1px);
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
   }
   
   .selector-card.selected {
@@ -100,30 +100,32 @@ export const editorStyles = css`
   }
   
   .selector-icon {
-    font-size: 1.8em;
+    font-size: 1.6em;
     margin-bottom: 6px;
+    line-height: 1;
   }
   
   .selector-name {
-    font-size: 0.85em;
+    font-size: 0.8em;
     font-weight: 500;
     line-height: 1.2;
   }
   
-  /* ===== 紧凑主题预览 ===== */
   .theme-preview {
     width: 100%;
     height: 50px;
-    border-radius: 6px;
+    border-radius: 4px;
     margin-bottom: 6px;
     border: 1px solid var(--divider-color);
-    transition: all 0.3s ease;
+    transition: all 0.2s ease;
   }
   
   .selector-card.selected .theme-preview {
-    transform: scale(1.03);
+    transform: scale(1.02);
     border-color: white;
   }
+  
+  /* ===== 动态主题预览样式占位符 ===== */
   
   /* ===== 插件选择器样式 ===== */
   .plugin-selector {
@@ -131,35 +133,35 @@ export const editorStyles = css`
   }
   
   .search-box {
-    margin-bottom: 12px;
+    margin-bottom: 8px;
   }
   
   .plugin-list {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
-    gap: 8px;
-    max-height: 200px;
+    grid-template-columns: repeat(auto-fill, minmax(110px, 1fr));
+    gap: 6px;
+    max-height: 180px;
     overflow-y: auto;
   }
   
   .plugin-item {
-    padding: 12px 8px;
-    border: 2px solid var(--divider-color);
-    border-radius: 8px;
+    padding: 10px 6px;
+    border: 1px solid var(--divider-color);
+    border-radius: 6px;
     cursor: pointer;
     text-align: center;
     transition: all 0.2s ease;
     background: var(--card-background-color);
-    min-height: 80px;
+    min-height: 60px;
     display: flex;
     flex-direction: column;
-    justify-content: center;
     align-items: center;
+    justify-content: center;
   }
   
   .plugin-item:hover {
     border-color: var(--primary-color);
-    transform: translateY(-2px);
+    transform: translateY(-1px);
   }
   
   .plugin-item.selected {
@@ -169,12 +171,13 @@ export const editorStyles = css`
   }
   
   .plugin-item-icon {
-    font-size: 1.8em;
-    margin-bottom: 6px;
+    font-size: 1.4em;
+    margin-bottom: 4px;
+    line-height: 1;
   }
   
   .plugin-item-name {
-    font-size: 0.85em;
+    font-size: 0.75em;
     font-weight: 500;
     line-height: 1.2;
   }
@@ -186,28 +189,28 @@ export const editorStyles = css`
   
   .theme-selector-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+    grid-template-columns: repeat(auto-fill, minmax(110px, 1fr));
     gap: 8px;
   }
   
   .theme-selector-card {
     padding: 12px 8px;
-    border: 2px solid var(--divider-color);
-    border-radius: 8px;
+    border: 1px solid var(--divider-color);
+    border-radius: 6px;
     cursor: pointer;
     transition: all 0.2s ease;
     text-align: center;
     background: var(--card-background-color);
-    min-height: 80px;
+    min-height: 70px;
     display: flex;
     flex-direction: column;
-    justify-content: center;
     align-items: center;
+    justify-content: center;
   }
   
   .theme-selector-card:hover {
     border-color: var(--primary-color);
-    transform: translateY(-2px);
+    transform: translateY(-1px);
   }
   
   .theme-selector-card.selected {
@@ -219,19 +222,19 @@ export const editorStyles = css`
   .theme-selector-preview {
     width: 100%;
     height: 50px;
-    border-radius: 6px;
+    border-radius: 4px;
     margin-bottom: 6px;
     border: 1px solid var(--divider-color);
-    transition: all 0.3s ease;
+    transition: all 0.2s ease;
   }
   
   .theme-selector-card.selected .theme-selector-preview {
-    transform: scale(1.03);
+    transform: scale(1.02);
     border-color: white;
   }
   
   .theme-selector-name {
-    font-size: 0.85em;
+    font-size: 0.8em;
     font-weight: 500;
     line-height: 1.2;
   }
@@ -245,7 +248,7 @@ export const editorStyles = css`
   .smart-input-wrapper {
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: 6px;
     width: 100%;
   }
   
@@ -259,14 +262,14 @@ export const editorStyles = css`
     color: white;
     border: none;
     border-radius: 4px;
-    padding: 0 12px;
-    height: 56px;
-    min-width: 56px;
+    padding: 0 10px;
+    height: 48px;
+    min-width: 48px;
     cursor: pointer;
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 1.1em;
+    font-size: 1em;
     transition: all 0.2s ease;
   }
   
@@ -281,35 +284,35 @@ export const editorStyles = css`
     right: 0;
     background: var(--card-background-color);
     border: 1px solid var(--divider-color);
-    border-radius: 8px;
+    border-radius: 6px;
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
     z-index: 100;
     margin-top: 4px;
-    max-height: 200px;
+    max-height: 180px;
     overflow-y: auto;
   }
   
   .smart-input-picker-header {
-    padding: 12px;
+    padding: 10px;
     border-bottom: 1px solid var(--divider-color);
     font-weight: 600;
-    font-size: 0.9em;
+    font-size: 0.85em;
   }
   
   .smart-input-search-box {
-    padding: 8px 12px;
+    padding: 6px 10px;
   }
   
   .smart-input-entity-list {
-    max-height: 150px;
+    max-height: 140px;
     overflow-y: auto;
   }
   
   .smart-input-entity-item {
-    padding: 8px 12px;
+    padding: 6px 10px;
     cursor: pointer;
     border-bottom: 1px solid var(--divider-color);
-    font-size: 0.85em;
+    font-size: 0.8em;
   }
   
   .smart-input-entity-item:hover {
@@ -319,10 +322,11 @@ export const editorStyles = css`
   .smart-input-entity-name {
     font-weight: 500;
     margin-bottom: 2px;
+    font-size: 0.85em;
   }
   
   .smart-input-entity-id {
-    font-size: 0.8em;
+    font-size: 0.75em;
     color: var(--secondary-text-color);
     font-family: monospace;
   }
@@ -334,7 +338,7 @@ export const editorStyles = css`
   
   .entity-picker-wrapper {
     display: flex;
-    gap: 8px;
+    gap: 6px;
     align-items: center;
   }
   
@@ -348,14 +352,14 @@ export const editorStyles = css`
     color: white;
     border: none;
     border-radius: 4px;
-    padding: 0 12px;
-    height: 56px;
-    min-width: 60px;
+    padding: 0 10px;
+    height: 48px;
+    min-width: 50px;
     cursor: pointer;
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 0.9em;
+    font-size: 0.85em;
     font-weight: 500;
     transition: all 0.2s ease;
   }
@@ -368,38 +372,38 @@ export const editorStyles = css`
     position: absolute;
     top: 100%;
     right: 0;
-    width: 300px;
+    width: 280px;
     background: var(--card-background-color);
     border: 1px solid var(--divider-color);
-    border-radius: 8px;
+    border-radius: 6px;
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
     z-index: 100;
     margin-top: 4px;
-    max-height: 300px;
+    max-height: 260px;
     overflow-y: auto;
   }
   
   .entity-picker-header {
-    padding: 12px;
+    padding: 10px;
     border-bottom: 1px solid var(--divider-color);
     font-weight: 600;
-    font-size: 0.9em;
+    font-size: 0.85em;
   }
   
   .entity-picker-search-box {
-    padding: 8px 12px;
+    padding: 6px 10px;
   }
   
   .entity-picker-list {
-    max-height: 200px;
+    max-height: 180px;
     overflow-y: auto;
   }
   
   .entity-picker-item {
-    padding: 8px 12px;
+    padding: 6px 10px;
     cursor: pointer;
     border-bottom: 1px solid var(--divider-color);
-    font-size: 0.85em;
+    font-size: 0.8em;
     display: flex;
     justify-content: space-between;
     align-items: center;
@@ -411,26 +415,27 @@ export const editorStyles = css`
   
   .entity-picker-name {
     font-weight: 500;
+    font-size: 0.85em;
   }
   
   .entity-picker-id {
-    font-size: 0.8em;
+    font-size: 0.75em;
     color: var(--secondary-text-color);
     font-family: monospace;
   }
   
   .entity-picker-state {
-    font-size: 0.8em;
+    font-size: 0.75em;
     color: var(--primary-color);
-    margin-left: 8px;
+    margin-left: 6px;
   }
   
   .entity-picker-hint {
     margin-top: 4px;
-    font-size: 0.8em;
+    font-size: 0.75em;
     color: var(--secondary-text-color);
-    line-height: 1.3;
-    min-height: 1.2em;
+    line-height: 1.2;
+    min-height: 1em;
   }
   
   .entity-picker-hint-content {
@@ -442,29 +447,44 @@ export const editorStyles = css`
   /* ===== 操作按钮 ===== */
   .action-buttons {
     display: flex;
-    gap: 12px;
+    gap: 10px;
     justify-content: flex-end;
     margin-top: 16px;
   }
   
   /* ===== 响应式优化 ===== */
   @media (max-width: 600px) {
-    .editor-layout {
-      gap: 10px;
-      padding: 12px;
-    }
-    
     .editor-section {
-      padding: 14px;
+      padding: 10px 12px;
     }
     
     .selector-grid {
-      grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+      grid-template-columns: repeat(auto-fill, minmax(90px, 1fr));
       gap: 6px;
+    }
+    
+    .selector-card {
+      padding: 10px 6px;
+      min-height: 60px;
+    }
+    
+    .selector-icon {
+      font-size: 1.4em;
+      margin-bottom: 4px;
+    }
+    
+    .selector-name {
+      font-size: 0.75em;
+    }
+    
+    .theme-preview {
+      height: 40px;
+      margin-bottom: 4px;
     }
     
     .action-buttons {
       flex-direction: column;
+      gap: 8px;
     }
     
     .action-buttons mwc-button {
@@ -475,6 +495,24 @@ export const editorStyles = css`
       width: 100%;
       right: auto;
       left: 0;
+    }
+    
+    .plugin-list {
+      grid-template-columns: repeat(auto-fill, minmax(90px, 1fr));
+      gap: 4px;
+    }
+    
+    .plugin-item {
+      padding: 8px 4px;
+      min-height: 50px;
+    }
+    
+    .plugin-item-icon {
+      font-size: 1.2em;
+    }
+    
+    .plugin-item-name {
+      font-size: 0.7em;
     }
   }
   
@@ -489,31 +527,6 @@ export const editorStyles = css`
     
     .theme-selector-grid {
       grid-template-columns: repeat(2, 1fr);
-    }
-    
-    .selector-card,
-    .plugin-item,
-    .theme-selector-card {
-      padding: 10px 6px;
-      min-height: 70px;
-    }
-    
-    .selector-icon,
-    .plugin-item-icon {
-      font-size: 1.6em;
-      margin-bottom: 4px;
-    }
-    
-    .selector-name,
-    .plugin-item-name,
-    .theme-selector-name {
-      font-size: 0.8em;
-    }
-    
-    .theme-preview,
-    .theme-selector-preview {
-      height: 40px;
-      margin-bottom: 4px;
     }
   }
   
