@@ -1,6 +1,6 @@
 // src/editors/entity-picker.js
 import { LitElement, html } from 'https://unpkg.com/lit@2.8.0/index.js?module';
-import { editorStyles } from '../styles/editor-styles.js';
+import { cardForgeStyles } from '../styles/index.js';
 
 export class EntityPicker extends LitElement {
   static properties = {
@@ -13,7 +13,7 @@ export class EntityPicker extends LitElement {
     _searchQuery: { state: true }
   };
 
-  static styles = [editorStyles];
+  static styles = cardForgeStyles;
 
   constructor() {
     super();
@@ -26,9 +26,9 @@ export class EntityPicker extends LitElement {
     
     return html`
       <div class="entity-picker-container">
-        <label class="input-label">
+        <label class="cf-text-sm cf-font-medium cf-mb-sm">
           ${this.label}
-          ${this.required ? html`<span class="required-star">*</span>` : ''}
+          ${this.required ? html`<span class="cf-error">*</span>` : ''}
         </label>
         
         <div class="entity-picker-wrapper">
@@ -48,8 +48,10 @@ export class EntityPicker extends LitElement {
         ${this._showPicker ? this._renderEntityPicker() : ''}
         
         ${hint ? html`
-          <div class="entity-picker-hint">
-            <div class="entity-picker-hint-content">${hint}</div>
+          <div class="cf-text-xs cf-text-secondary cf-mt-xs">
+            <div class="cf-flex cf-flex-start cf-gap-xs">
+              ${hint}
+            </div>
           </div>
         ` : ''}
       </div>
@@ -85,8 +87,8 @@ export class EntityPicker extends LitElement {
           `)}
           
           ${entities.length === 0 ? html`
-            <div style="padding: 12px; text-align: center; color: var(--secondary-text-color);">
-              未找到匹配的实体
+            <div class="cf-flex cf-flex-center cf-p-md">
+              <div class="cf-text-sm cf-text-secondary">未找到匹配的实体</div>
             </div>
           ` : ''}
         </div>

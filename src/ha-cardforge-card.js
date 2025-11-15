@@ -2,7 +2,7 @@
 import { LitElement, html } from 'https://unpkg.com/lit@2.8.0/index.js?module';
 import { unsafeHTML } from 'https://unpkg.com/lit-html/directives/unsafe-html.js?module';
 import { PluginRegistry } from './core/plugin-registry.js';
-import { sharedStyles } from './styles/shared-styles.js';
+import { cardForgeStyles } from './styles/index.js';
 
 class HaCardForgeCard extends LitElement {
   static properties = {
@@ -14,7 +14,7 @@ class HaCardForgeCard extends LitElement {
     _loading: { state: true }
   };
 
-  static styles = sharedStyles;
+  static styles = cardForgeStyles;
 
   constructor() {
     super();
@@ -97,10 +97,10 @@ class HaCardForgeCard extends LitElement {
     if (this._error) {
       return html`
         <ha-card>
-          <div class="error-container">
-            <div class="error-icon">❌</div>
-            <div class="error-title">卡片加载失败</div>
-            <div class="error-message">${this._error.message}</div>
+          <div class="cf-flex cf-flex-center cf-flex-column cf-p-xl">
+            <div class="cf-error cf-text-xl cf-mb-md">❌</div>
+            <div class="cf-text-lg cf-font-bold cf-mb-sm">卡片加载失败</div>
+            <div class="cf-text-sm cf-text-secondary">${this._error.message}</div>
           </div>
         </ha-card>
       `;
@@ -109,9 +109,9 @@ class HaCardForgeCard extends LitElement {
     if (this._loading || !this._plugin) {
       return html`
         <ha-card>
-          <div class="loading-container">
+          <div class="cf-flex cf-flex-center cf-flex-column cf-p-xl">
             <ha-circular-progress indeterminate></ha-circular-progress>
-            <div class="loading-text">加载中...</div>
+            <div class="cf-text-md cf-mt-md">加载中...</div>
           </div>
         </ha-card>
       `;
@@ -141,10 +141,10 @@ class HaCardForgeCard extends LitElement {
       console.error('插件渲染失败:', error);
       return html`
         <ha-card>
-          <div class="error-container">
-            <div class="error-icon">⚠️</div>
-            <div class="error-title">插件渲染错误</div>
-            <div class="error-message">${error.message}</div>
+          <div class="cf-flex cf-flex-center cf-flex-column cf-p-xl">
+            <div class="cf-warning cf-text-xl cf-mb-md">⚠️</div>
+            <div class="cf-text-lg cf-font-bold cf-mb-sm">插件渲染错误</div>
+            <div class="cf-text-sm cf-text-secondary">${error.message}</div>
           </div>
         </ha-card>
       `;

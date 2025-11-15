@@ -1,6 +1,6 @@
 // src/editors/plugin-selector.js
 import { LitElement, html } from 'https://unpkg.com/lit@2.8.0/index.js?module';
-import { editorStyles } from '../styles/editor-styles.js';
+import { cardForgeStyles } from '../styles/index.js';
 
 export class PluginSelector extends LitElement {
   static properties = {
@@ -10,7 +10,7 @@ export class PluginSelector extends LitElement {
     _searchQuery: { state: true }
   };
 
-  static styles = [editorStyles];
+  static styles = cardForgeStyles;
 
   constructor() {
     super();
@@ -45,8 +45,8 @@ export class PluginSelector extends LitElement {
   _renderPluginList() {
     if (this._filteredPlugins.length === 0) {
       return html`
-        <div class="empty-state">
-          未找到匹配的插件
+        <div class="cf-flex cf-flex-center cf-p-lg">
+          <div class="cf-text-sm cf-text-secondary">未找到匹配的插件</div>
         </div>
       `;
     }

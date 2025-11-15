@@ -1,6 +1,6 @@
-// src/editors/smart-input.js - 移除无用提示
+// src/editors/smart-input.js
 import { LitElement, html } from 'https://unpkg.com/lit@2.8.0/index.js?module';
-import { editorStyles } from '../styles/editor-styles.js';
+import { cardForgeStyles } from '../styles/index.js';
 
 export class SmartInput extends LitElement {
   static properties = {
@@ -11,7 +11,7 @@ export class SmartInput extends LitElement {
     _searchQuery: { state: true }
   };
 
-  static styles = [editorStyles];
+  static styles = cardForgeStyles;
 
   constructor() {
     super();
@@ -68,8 +68,8 @@ export class SmartInput extends LitElement {
           `)}
           
           ${entities.length === 0 ? html`
-            <div style="padding: 12px; text-align: center; color: var(--secondary-text-color);">
-              未找到匹配的实体
+            <div class="cf-flex cf-flex-center cf-p-md">
+              <div class="cf-text-sm cf-text-secondary">未找到匹配的实体</div>
             </div>
           ` : ''}
         </div>

@@ -250,7 +250,7 @@ export class BasePlugin {
       .cardforge-card {
         position: relative;
         font-family: var(--paper-font-common-nowrap_-_font-family);
-        ${this._borderRadius('12px')}
+        ${this._borderRadius('var(--ha-card-border-radius, 12px)')}
         cursor: default;
         overflow: hidden;
         transition: all 0.3s ease;
@@ -268,6 +268,7 @@ export class BasePlugin {
       ${this._getResponsiveStyles()}
       ${this._getAnimationStyles()}
       
+      /* 使用新的样式类名 */
       .cardforge-interactive { 
         cursor: pointer; 
         transition: all 0.2s ease; 
@@ -278,6 +279,15 @@ export class BasePlugin {
       .cardforge-status-on { color: var(--success-color); }
       .cardforge-status-off { color: var(--disabled-color); }
       .cardforge-status-unavailable { color: var(--error-color); opacity: 0.5; }
+      
+      /* 兼容新样式系统的工具类 */
+      .cf-flex { display: flex; }
+      .cf-flex-center { display: flex; align-items: center; justify-content: center; }
+      .cf-flex-column { display: flex; flex-direction: column; }
+      .cf-flex-row { display: flex; align-items: center; }
+      .cf-text-center { text-align: center; }
+      .cf-text-left { text-align: left; }
+      .cf-text-right { text-align: right; }
     `;
   }
   
@@ -326,6 +336,26 @@ export class BasePlugin {
           transform: translateY(-10px);
         }
       }
+      
+      @keyframes messageFade {
+        0% {
+          opacity: 0;
+          transform: translateY(5px);
+        }
+        100% {
+          opacity: 0.8;
+          transform: translateY(0px);
+        }
+      }
+      
+      @keyframes sealRotate {
+        0%, 100% {
+          transform: rotate(15deg);
+        }
+        50% {
+          transform: rotate(25deg);
+        }
+      }
     `;
   }
   
@@ -341,6 +371,124 @@ export class BasePlugin {
         .cardforge-card {
           ${this._borderRadius('6px')}
         }
+      }
+    `;
+  }
+
+  // === 新的样式工具方法 - 兼容新样式系统 ===
+  _cfPadding(size = 'md') {
+    const sizes = {
+      xs: 'var(--cf-spacing-xs)',
+      sm: 'var(--cf-spacing-sm)',
+      md: 'var(--cf-spacing-md)',
+      lg: 'var(--cf-spacing-lg)',
+      xl: 'var(--cf-spacing-xl)'
+    };
+    return `padding: ${sizes[size] || sizes.md};`;
+  }
+
+  _cfMargin(size = 'md') {
+    const sizes = {
+      xs: 'var(--cf-spacing-xs)',
+      sm: 'var(--cf-spacing-sm)',
+      md: 'var(--cf-spacing-md)',
+      lg: 'var(--cf-spacing-lg)',
+      xl: 'var(--cf-spacing-xl)'
+    };
+    return `margin: ${sizes[size] || sizes.md};`;
+  }
+
+  _cfGap(size = 'md') {
+    const sizes = {
+      xs: 'var(--cf-spacing-xs)',
+      sm: 'var(--cf-spacing-sm)',
+      md: 'var(--cf-spacing-md)',
+      lg: 'var(--cf-spacing-lg)',
+      xl: 'var(--cf-spacing-xl)'
+    };
+    return `gap: ${sizes[size] || sizes.md};`;
+  }
+
+  _cfTextSize(size = 'md') {
+    const sizes = {
+      xs: '0.75em',
+      sm: '0.85em',
+      md: '1em',
+      lg: '1.2em',
+      xl: '1.4em'
+    };
+    return `font-size: ${sizes[size] || sizes.md};`;
+  }
+
+  _cfFontWeight(weight = 'normal') {
+    const weights = {
+      normal: '400',
+      medium: '500',
+      semibold: '600',
+      bold: '700'
+    };
+    return `font-weight: ${weights[weight] || weights.normal};`;
+  }
+
+  _cfBorderRadius(size = 'lg') {
+    const sizes = {
+      sm: 'var(--cf-radius-sm)',
+      md: 'var(--cf-radius-md)',
+      lg: 'var(--cf-radius-lg)',
+      xl: 'var(--cf-radius-xl)'
+    };
+    return `border-radius: ${sizes[size] || sizes.lg};`;
+  }
+
+  _cfShadow(intensity = 'md') {
+    const shadows = {
+      sm: 'var(--cf-shadow-sm)',
+      md: 'var(--cf-shadow-md)',
+      lg: 'var(--cf-shadow-lg)',
+      xl: 'var(--cf-shadow-xl)'
+    };
+    return `box-shadow: ${shadows[intensity] || shadows.md};`;
+  }
+
+  // === 颜色工具方法 ===
+  _cfColor(type = 'primary') {
+    const colors = {
+      primary: 'var(--cf-primary-color)',
+      accent: 'var(--cf-accent-color)',
+      text: 'var(--cf-text-primary)',
+      'text-secondary': 'var(--cf-text-secondary)',
+      error: 'var(--cf-error-color)',
+      warning: 'var(--cf-warning-color)',
+      success: 'var(--cf-success-color)'
+    };
+    return `color: ${colors[type] || colors.primary};`;
+  }
+
+  _cfBackground(type = 'surface') {
+    const backgrounds = {
+      surface: 'var(--cf-surface)',
+      background: 'var(--cf-background)',
+      primary: 'var(--cf-primary-color)',
+      accent: 'var(--cf-accent-color)'
+    };
+    return `background: ${backgrounds[type] || backgrounds.surface};`;
+  }
+
+  // === 响应式工具方法 - 增强版 ===
+  _cfResponsive(desktop, mobile, breakpoint = '480px') {
+    return `
+      ${desktop}
+      @media (max-width: ${breakpoint}) {
+        ${mobile}
+      }
+    `;
+  }
+
+  _cfMobileFirst(mobile, desktop, breakpoint = '481px') {
+    return `
+      ${mobile}
+      @media (min-width: ${breakpoint}) {
+        ${desktop}
       }
     `;
   }
