@@ -8,7 +8,8 @@ export class SmartInput extends LitElement {
     value: { type: String },
     placeholder: { type: String },
     _showEntityPicker: { state: true },
-    _searchQuery: { state: true }
+    _searchQuery: { state: true },
+    _dropdownDirection: { state: true } // 新增：下拉框方向
   };
 
   static styles = cardForgeStyles;
@@ -18,6 +19,7 @@ export class SmartInput extends LitElement {
     this._showEntityPicker = false;
     this._searchQuery = '';
     this._clickOutsideHandler = null;
+    this._dropdownDirection = 'down'; // 默认向下
   }
 
   render() {
@@ -47,7 +49,7 @@ export class SmartInput extends LitElement {
     const entities = this._getFilteredEntities();
     
     return html`
-      <div class="smart-input-dropdown">
+      <div class="smart-input-dropdown ${this._dropdownDirection === 'up' ? 'dropdown-up' : 'dropdown-down'}">
         <div class="smart-input-picker-header">选择实体</div>
         
         <div class="smart-input-search-box">
@@ -55,7 +57,7 @@ export class SmartInput extends LitElement {
             .label=${"搜索实体..."}
             .value=${this._searchQuery}
             @input=${e => this._onSearchChange(e.target.value)}
-            @click=${this._stopPropagation} <!-- 阻止事件冒泡 -->
+            @click=${this._stopPropagation}
             dense
             fullwidth
           ></ha-textfield>
@@ -109,9 +111,28 @@ export class SmartInput extends LitElement {
     this._searchQuery = '';
     
     if (this._showEntityPicker) {
+      // 计算下拉框方向
+      this._calculateDropdownDirection();
       this._setupClickOutsideHandler();
     } else {
       this._removeClickOutsideHandler();
+    }
+  }
+
+  _calculateDropdownDirection() {
+    // 获取元素位置信息
+    const rect = this.getBoundingClientRect();
+    const viewportHeight = window.innerHeight;
+    
+    // 计算向下展开所需的空间（大约300px）
+    const spaceNeeded = 300;
+    const spaceBelow = viewportHeight - rect.bottom;
+    
+    // 如果下方空间不足，向上展开
+    if (spaceBelow < spaceNeeded && rect.top > spaceNeeded) {
+      this._dropdownDirection = 'up';
+    } else {
+      this._dropdownDirection = 'down';
     }
   }
 

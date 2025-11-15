@@ -7,9 +7,9 @@ export const editorStyles = css`
     border-radius: var(--cf-radius-lg);
     border: 1px solid var(--cf-border);
     box-shadow: 
-      0 2px 6px rgba(0, 0, 0, 0.1), /* 减小阴影 */
+      0 2px 6px rgba(0, 0, 0, 0.1),
       inset 0 1px 0 rgba(255, 255, 255, 0.05);
-    overflow: visible; /* 改为visible允许下拉框溢出 */
+    overflow: visible; /* 允许下拉框溢出 */
     background-image: 
       radial-gradient(circle at 15% 50%, rgba(var(--cf-rgb-primary), 0.03) 0%, transparent 50%),
       radial-gradient(circle at 85% 30%, rgba(var(--cf-rgb-primary), 0.03) 0%, transparent 50%);
@@ -21,7 +21,7 @@ export const editorStyles = css`
       background: var(--cf-dark-background);
       border-color: var(--cf-dark-border);
       box-shadow: 
-        0 2px 8px rgba(0, 0, 0, 0.4), /* 减小阴影 */
+        0 2px 8px rgba(0, 0, 0, 0.4),
         inset 0 1px 0 rgba(255, 255, 255, 0.02);
       background-image: 
         radial-gradient(circle at 15% 50%, rgba(var(--cf-rgb-primary), 0.05) 0%, transparent 50%),
@@ -72,7 +72,7 @@ export const editorStyles = css`
     margin-bottom: var(--cf-spacing-lg);
     font-weight: 600;
     color: var(--cf-text-primary);
-    font-size: 0.9em; /* 减小字体 */
+    font-size: 0.9em;
     padding: var(--cf-spacing-sm) var(--cf-spacing-md);
     background: rgba(var(--cf-rgb-primary), 0.05);
     border-radius: var(--cf-radius-md);
@@ -88,19 +88,19 @@ export const editorStyles = css`
   }
 
   .section-icon {
-    font-size: 1em; /* 减小图标 */
+    font-size: 1em;
   }
 
   /* ===== 选择器网格增强样式 ===== */
   .selector-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(64px, 1fr)); /* 改为64px */
+    grid-template-columns: repeat(auto-fit, minmax(64px, 1fr));
     gap: var(--cf-spacing-md);
     background: rgba(255, 255, 255, 0.5);
     border-radius: var(--cf-radius-lg);
     padding: var(--cf-spacing-lg);
     border: 1px solid rgba(0, 0, 0, 0.08);
-    backdrop-filter: blur(6px); /* 减小模糊 */
+    backdrop-filter: blur(6px);
     -webkit-backdrop-filter: blur(6px);
     position: relative;
   }
@@ -110,7 +110,7 @@ export const editorStyles = css`
     .selector-grid {
       background: rgba(0, 0, 0, 0.3);
       border: 1px solid rgba(255, 255, 255, 0.08);
-      backdrop-filter: blur(8px); /* 减小模糊 */
+      backdrop-filter: blur(8px);
       -webkit-backdrop-filter: blur(8px);
     }
   }
@@ -138,9 +138,9 @@ export const editorStyles = css`
 
   .plugin-list {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(64px, 1fr)); /* 改为64px */
+    grid-template-columns: repeat(auto-fit, minmax(64px, 1fr));
     gap: var(--cf-spacing-sm);
-    max-height: 260px; /* 调整最大高度 */
+    max-height: 260px;
     overflow-y: auto;
   }
 
@@ -152,8 +152,8 @@ export const editorStyles = css`
     text-align: center;
     transition: all var(--cf-transition-normal);
     background: var(--cf-surface);
-    min-height: 56px; /* 减小最小高度 */
-    height: 64px; /* 固定高度64px */
+    min-height: 56px;
+    height: 64px;
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -180,22 +180,22 @@ export const editorStyles = css`
   }
 
   .plugin-item-icon {
-    font-size: 1.2em; /* 减小图标 */
-    margin-bottom: 2px; /* 减小间距 */
+    font-size: 1.2em;
+    margin-bottom: 2px;
     line-height: 1;
   }
 
   .plugin-item-name {
-    font-size: 0.65em; /* 减小字体 */
+    font-size: 0.65em;
     font-weight: 500;
-    line-height: 1.1;  /* 减小行高 */
+    line-height: 1.1;
     max-width: 100%;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
   }
 
-  /* ===== 智能输入组件样式 - 修复下拉框显示问题 ===== */
+  /* ===== 智能输入组件样式 - 智能方向下拉框 ===== */
   .smart-input-container {
     position: relative;
     width: 100%;
@@ -228,13 +228,13 @@ export const editorStyles = css`
     border: none;
     border-radius: var(--cf-radius-sm);
     padding: 0 var(--cf-spacing-md);
-    height: 40px; /* 减小高度 */
-    min-width: 40px; /* 减小宽度 */
+    height: 40px;
+    min-width: 40px;
     cursor: pointer;
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 0.9em; /* 减小字体 */
+    font-size: 0.9em;
     transition: all var(--cf-transition-fast);
   }
 
@@ -243,23 +243,34 @@ export const editorStyles = css`
     transform: translateY(-1px);
   }
 
-  /* 修复：下拉框位置和显示问题 */
+  /* 智能方向下拉框 */
   .smart-input-dropdown {
-    position: fixed; /* 改为fixed定位 */
-    top: auto; /* 取消top */
-    bottom: auto; /* 取消bottom */
+    position: absolute;
     left: 0;
     right: 0;
     background: var(--cf-surface);
     border: 1px solid var(--cf-border);
     border-radius: var(--cf-radius-md);
     box-shadow: var(--cf-shadow-lg);
-    z-index: 10000; /* 大幅提高z-index */
-    margin-top: var(--cf-spacing-xs);
-    max-height: min(300px, calc(100vh - 200px)); /* 动态最大高度 */
+    z-index: 1000;
+    max-height: min(300px, calc(100vh - 200px));
     min-height: 120px;
     overflow-y: auto;
     width: 100%;
+  }
+
+  /* 向下展开 */
+  .smart-input-dropdown.dropdown-down {
+    top: 100%;
+    margin-top: var(--cf-spacing-xs);
+    bottom: auto;
+  }
+
+  /* 向上展开 */
+  .smart-input-dropdown.dropdown-up {
+    bottom: 100%;
+    margin-bottom: var(--cf-spacing-xs);
+    top: auto;
   }
 
   /* 深色模式下拉框 */
@@ -275,7 +286,7 @@ export const editorStyles = css`
     padding: var(--cf-spacing-md);
     border-bottom: 1px solid var(--cf-border);
     font-weight: 600;
-    font-size: 0.85em; /* 调整字体 */
+    font-size: 0.85em;
     background: rgba(var(--cf-rgb-primary), 0.05);
     position: sticky;
     top: 0;
@@ -309,17 +320,17 @@ export const editorStyles = css`
   }
 
   .smart-input-entity-list {
-    max-height: 200px; /* 调整高度 */
+    max-height: 200px;
     overflow-y: auto;
   }
 
   .smart-input-entity-item {
-    padding: var(--cf-spacing-sm) var(--cf-spacing-md); /* 调整内边距 */
+    padding: var(--cf-spacing-sm) var(--cf-spacing-md);
     cursor: pointer;
     border-bottom: 1px solid var(--cf-border);
-    font-size: 0.8em; /* 调整字体 */
+    font-size: 0.8em;
     transition: all var(--cf-transition-fast);
-    min-height: 40px; /* 减小最小高度 */
+    min-height: 40px;
     display: flex;
     flex-direction: column;
     justify-content: center;
@@ -347,12 +358,12 @@ export const editorStyles = css`
 
   .smart-input-entity-name {
     font-weight: 500;
-    margin-bottom: 2px; /* 减小间距 */
-    font-size: 0.85em; /* 调整字体 */
+    margin-bottom: 2px;
+    font-size: 0.85em;
   }
 
   .smart-input-entity-id {
-    font-size: 0.75em; /* 调整字体 */
+    font-size: 0.75em;
     color: var(--cf-text-secondary);
     font-family: monospace;
   }
