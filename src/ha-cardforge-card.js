@@ -3,6 +3,7 @@ import { LitElement, html } from 'https://unpkg.com/lit@2.8.0/index.js?module';
 import { unsafeHTML } from 'https://unpkg.com/lit-html/directives/unsafe-html.js?module';
 import { PluginRegistry } from './core/plugin-registry.js';
 import { cardForgeStyles } from './styles/index.js';
+import { getJinjaParser } from './core/jinja-parser.js';
 
 class HaCardForgeCard extends LitElement {
   static properties = {
@@ -85,10 +86,19 @@ class HaCardForgeCard extends LitElement {
     if (!this.hass || !this.config.entities) {
       return;
     }
+
+    const parser = getJinjaParser(this.hass);
     
-    Object.entries(this.config.entities).forEach(([key, entityId]) => {
-      if (entityId && this.hass.states[entityId]) {
-        this._entities[key] = this.hass.states[entityId];
+    Object.entries(this.config.entities).forEach(([key, entitySource]) => {
+      if (entitySource) {
+        const parsedValue = parser.parse(entitySource, entitySource);
+        
+        this._entities[key] = {
+          state: parsedValue,
+          attributes: {},
+          _source: entitySource,
+          _isTemplate: parser.isJinjaTemplate(entitySource)
+        };
       }
     });
   }
