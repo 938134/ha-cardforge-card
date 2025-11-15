@@ -12,37 +12,37 @@ export const manifest = {
   entityRequirements: [
     {
       key: 'province_source',
-      description: '省份来源（实体ID或Jinja2模板）',
+      description: '省份',
       required: false
     },
     {
       key: 'price_0_source',
-      description: '0号柴油价格来源',
+      description: '0号柴油价格',
       required: false
     },
     {
       key: 'price_92_source',
-      description: '92号汽油价格来源',
+      description: '92号汽油价格',
       required: false
     },
     {
       key: 'price_95_source',
-      description: '95号汽油价格来源',
+      description: '95号汽油价格',
       required: false
     },
     {
       key: 'price_98_source',
-      description: '98号汽油价格来源',
+      description: '98号汽油价格',
       required: false
     },
     {
       key: 'trend_source',
-      description: '油价趋势来源',
+      description: '油价趋势',
       required: false
     },
     {
       key: 'next_adjustment_source',
-      description: '下次调整时间来源',
+      description: '下次调整时间',
       required: false
     }
   ],

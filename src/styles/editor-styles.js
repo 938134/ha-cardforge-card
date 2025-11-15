@@ -62,18 +62,18 @@ export const editorStyles = css`
   }
 
   /* ===== 选择器网格增强样式 ===== */
-  .selector-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(110px, 1fr));
-    gap: var(--cf-spacing-md);
-    background: rgba(255, 255, 255, 0.5);
-    border-radius: var(--cf-radius-lg);
-    padding: var(--cf-spacing-lg);
-    border: 1px solid rgba(0, 0, 0, 0.08);
-    backdrop-filter: blur(10px);
-    -webkit-backdrop-filter: blur(10px);
-    position: relative;
-  }
+.selector-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(90px, 1fr)); /* 同步更新 */
+  gap: var(--cf-spacing-sm);
+  background: rgba(255, 255, 255, 0.5);
+  border-radius: var(--cf-radius-lg);
+  padding: var(--cf-spacing-md); /* 减少容器内边距 */
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  position: relative;
+}
 
   /* 暗色主题适配 */
   @media (prefers-color-scheme: dark) {

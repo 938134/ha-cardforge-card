@@ -110,7 +110,7 @@ class HaCardForgeEditor extends LitElement {
       <div class="editor-section">
         <div class="section-header">
           <span class="section-icon">🎨</span>
-          <span>选择卡片类型</span>
+          <span>卡片类型</span>
         </div>
         
         <!-- 使用新的基础样式类 -->
@@ -134,7 +134,7 @@ class HaCardForgeEditor extends LitElement {
       <div class="editor-section">
         <div class="section-header">
           <span class="section-icon">🎭</span>
-          <span>选择主题样式</span>
+          <span>主题样式</span>
         </div>
         
         <div class="cf-grid cf-grid-auto cf-gap-md">

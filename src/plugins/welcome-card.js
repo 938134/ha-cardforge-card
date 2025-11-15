@@ -11,13 +11,8 @@ export const manifest = {
   icon: '👋',
   entityRequirements: [
     {
-      key: 'greeting_source',
-      description: '欢迎词来源（实体ID或Jinja2模板）',
-      required: false
-    },
-    {
       key: 'message_source',
-      description: '消息来源（实体ID或Jinja2模板）',
+      description: '每日一言',
       required: false
     }
   ],

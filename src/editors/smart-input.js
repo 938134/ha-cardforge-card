@@ -17,6 +17,7 @@ export class SmartInput extends LitElement {
     super();
     this._showEntityPicker = false;
     this._searchQuery = '';
+    this._clickOutsideHandler = null;
   }
 
   render() {
@@ -54,6 +55,7 @@ export class SmartInput extends LitElement {
             .label=${"搜索实体..."}
             .value=${this._searchQuery}
             @input=${e => this._onSearchChange(e.target.value)}
+            @click=${this._stopPropagation} <!-- 阻止事件冒泡 -->
             dense
             fullwidth
           ></ha-textfield>
@@ -61,7 +63,10 @@ export class SmartInput extends LitElement {
         
         <div class="smart-input-entity-list">
           ${entities.map(entity => html`
-            <div class="smart-input-entity-item" @click=${() => this._selectEntity(entity.entity_id)}>
+            <div class="smart-input-entity-item" @click=${(e) => {
+              e.stopPropagation(); <!-- 阻止事件冒泡 -->
+              this._selectEntity(entity.entity_id);
+            }}>
               <div class="smart-input-entity-name">${entity.friendly_name}</div>
               <div class="smart-input-entity-id">${entity.entity_id}</div>
             </div>
@@ -105,16 +110,45 @@ export class SmartInput extends LitElement {
   _toggleEntityPicker() {
     this._showEntityPicker = !this._showEntityPicker;
     this._searchQuery = '';
+    
+    if (this._showEntityPicker) {
+      // 延迟绑定点击外部关闭事件
+      setTimeout(() => {
+        this._clickOutsideHandler = (e) => {
+          if (!this.contains(e.target)) {
+            this._showEntityPicker = false;
+            this._removeClickOutsideHandler();
+            this.requestUpdate();
+          }
+        };
+        document.addEventListener('click', this._clickOutsideHandler);
+      });
+    } else {
+      this._removeClickOutsideHandler();
+    }
   }
 
   _selectEntity(entityId) {
     this.value = entityId;
     this._showEntityPicker = false;
+    this._removeClickOutsideHandler();
     this._notifyChange();
   }
 
   _onSearchChange(query) {
     this._searchQuery = query;
+  }
+
+  // 阻止事件冒泡
+  _stopPropagation(e) {
+    e.stopPropagation();
+  }
+
+  _removeClickOutsideHandler() {
+    if (this._clickOutsideHandler) {
+      document.removeEventListener('click', this._clickOutsideHandler);
+      this._clickOutsideHandler = null;
+    }
   }
 
   _notifyChange() {
@@ -123,19 +157,9 @@ export class SmartInput extends LitElement {
     }));
   }
 
-  updated(changedProperties) {
-    if (changedProperties.has('_showEntityPicker') && this._showEntityPicker) {
-      setTimeout(() => {
-        const handler = (e) => {
-          if (!this.contains(e.target)) {
-            this._showEntityPicker = false;
-            document.removeEventListener('click', handler);
-            this.requestUpdate();
-          }
-        };
-        document.addEventListener('click', handler);
-      });
-    }
+  disconnectedCallback() {
+    this._removeClickOutsideHandler();
+    super.disconnectedCallback();
   }
 }
 
