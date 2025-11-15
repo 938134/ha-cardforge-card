@@ -10,8 +10,9 @@ export class SmartInput extends LitElement {
     _showEntityPicker: { state: true },
     _searchQuery: { state: true },
     _dropdownDirection: { state: true },
-    _inputType: { state: true }, // 新增：输入类型
-    _previewValue: { state: true } // 新增：预览值
+    _inputType: { state: true },
+    _previewValue: { state: true },
+    _previewError: { state: true }
   };
 
   static styles = cardForgeStyles;
@@ -22,12 +23,12 @@ export class SmartInput extends LitElement {
     this._searchQuery = '';
     this._clickOutsideHandler = null;
     this._dropdownDirection = 'down';
-    this._inputType = 'text'; // text, entity, jinja
+    this._inputType = 'text';
     this._previewValue = '';
+    this._previewError = false;
   }
 
   firstUpdated() {
-    // 初始分析输入类型
     this._analyzeInputType(this.value);
   }
 
@@ -75,13 +76,16 @@ export class SmartInput extends LitElement {
   }
 
   _getPreview() {
-    if (!this._previewValue || this._inputType === 'text') {
+    if (!this._previewValue && !this._previewError) {
       return '';
     }
 
+    const previewClass = this._previewError ? 'cf-error' : 'cf-success';
+    const previewIcon = this._previewError ? '❌' : '✅';
+
     return html`
-      <div class="value-preview">
-        <span class="preview-label">预览:</span>
+      <div class="value-preview ${previewClass}">
+        <span class="preview-label">${previewIcon} 预览:</span>
         <span class="preview-value">${this._previewValue}</span>
       </div>
     `;
@@ -125,7 +129,7 @@ export class SmartInput extends LitElement {
         </div>
 
         <div class="smart-input-templates">
-          <div class="templates-header">常用模板</div>
+          <div class="templates-header">常用模板示例</div>
           <div class="templates-list">
             <div class="template-item" @click=${() => this._insertTemplateExample("{{ states('sensor.temperature') }}")}>
               <code>{{ states('entity_id') }}</code>
@@ -143,6 +147,14 @@ export class SmartInput extends LitElement {
               <code>{{ (a + b) / 2 }}</code>
               <span>数学计算</span>
             </div>
+            <div class="template-item" @click=${() => this._insertTemplateExample("{{ states('sensor.temperature') | round(1) }}°C")}>
+              <code>{{ value | round(1) }}°C</code>
+              <span>数值格式化</span>
+            </div>
+            <div class="template-item" @click=${() => this._insertTemplateExample("{% if states('sensor.motion') == 'on' %}有人活动{% else %}无人{% endif %}")}>
+              <code>{% if ... %}...{% else %}...{% endif %}</code>
+              <span>条件判断</span>
+            </div>
           </div>
         </div>
       </div>
@@ -153,6 +165,7 @@ export class SmartInput extends LitElement {
     if (!value) {
       this._inputType = 'text';
       this._previewValue = '';
+      this._previewError = false;
       return;
     }
 
@@ -161,24 +174,27 @@ export class SmartInput extends LitElement {
       this._inputType = 'entity';
       const entity = this.hass.states[value];
       this._previewValue = `${entity.state}${entity.attributes?.unit_of_measurement ? ` ${entity.attributes.unit_of_measurement}` : ''}`;
+      this._previewError = false;
       return;
     }
 
     // 检查是否是Jinja2模板
     if (value.includes('{{') || value.includes('{%')) {
       this._inputType = 'jinja';
-      this._previewValue = this._evaluateJinjaTemplate(value);
+      this._evaluateJinjaTemplate(value);
       return;
     }
 
     // 默认文本类型
     this._inputType = 'text';
-    this._previewValue = '';
+    this._previewValue = value || '文本内容';
+    this._previewError = false;
   }
 
   _evaluateJinjaTemplate(template) {
     try {
       let result = template;
+      let hasError = false;
       
       // 处理实体状态 {{ states('sensor.temperature') }}
       const stateMatches = template.match(/{{\s*states\(['"]([^'"]+)['"]\)\s*}}/g);
@@ -186,34 +202,105 @@ export class SmartInput extends LitElement {
         stateMatches.forEach(match => {
           const entityMatch = match.match(/states\(['"]([^'"]+)['"]\)/);
           if (entityMatch && this.hass?.states?.[entityMatch[1]]) {
-            result = result.replace(match, this.hass.states[entityMatch[1]].state);
+            const entity = this.hass.states[entityMatch[1]];
+            result = result.replace(match, entity.state);
+          } else {
+            hasError = true;
+            result = result.replace(match, `[实体未找到: ${entityMatch?.[1]}]`);
           }
         });
       }
       
-      // 处理实体属性 {{ states.sensor.temperature.attributes.unit }}
-      const attrMatches = template.match(/{{\s*states\.([^ ]+)\.attributes\.([^ }]+)\s*}}/g);
+      // 处理实体属性 {{ states.sensor.temperature.attributes.unit_of_measurement }}
+      const attrMatches = template.match(/{{\s*states\.([^.\s]+)\.([^.\s]+)\.attributes\.([^ }]+)\s*}}/g);
       if (attrMatches) {
         attrMatches.forEach(match => {
-          const attrMatch = match.match(/states\.([^ ]+)\.attributes\.([^ }]+)/);
-          if (attrMatch && this.hass?.states?.[attrMatch[1]]?.attributes?.[attrMatch[2]]) {
-            result = result.replace(match, this.hass.states[attrMatch[1]].attributes[attrMatch[2]]);
+          const attrMatch = match.match(/states\.([^.\s]+)\.([^.\s]+)\.attributes\.([^ }]+)/);
+          if (attrMatch) {
+            const entityId = `${attrMatch[1]}.${attrMatch[2]}`;
+            const attribute = attrMatch[3];
+            if (this.hass?.states?.[entityId]?.attributes?.[attribute]) {
+              result = result.replace(match, this.hass.states[entityId].attributes[attribute]);
+            } else {
+              hasError = true;
+              result = result.replace(match, `[属性未找到: ${entityId}.${attribute}]`);
+            }
+          }
+        });
+      }
+
+      // 处理简化的属性语法 {{ states.sensor.temperature.unit_of_measurement }}
+      const simpleAttrMatches = template.match(/{{\s*states\.([^.\s]+)\.([^.\s]+)\.([^ }]+)\s*}}/g);
+      if (simpleAttrMatches) {
+        simpleAttrMatches.forEach(match => {
+          const attrMatch = match.match(/states\.([^.\s]+)\.([^.\s]+)\.([^ }]+)/);
+          if (attrMatch && attrMatch[3] !== 'attributes') {
+            const entityId = `${attrMatch[1]}.${attrMatch[2]}`;
+            const attribute = attrMatch[3];
+            if (this.hass?.states?.[entityId]?.attributes?.[attribute]) {
+              result = result.replace(match, this.hass.states[entityId].attributes[attribute]);
+            } else if (this.hass?.states?.[entityId]?.state && attribute === 'state') {
+              result = result.replace(match, this.hass.states[entityId].state);
+            } else {
+              hasError = true;
+              result = result.replace(match, `[属性未找到: ${entityId}.${attribute}]`);
+            }
           }
         });
       }
       
       // 处理数学运算
-      const mathMatches = template.match(/{{\s*([\d\.\s\+\-\*\/\(\)]+)\s*}}/g);
+      const mathMatches = template.match(/{{\s*([^{}]*[\d\.\s\+\-\*\/\(\)\|][^{}]*)\s*}}/g);
       if (mathMatches) {
         mathMatches.forEach(match => {
           const mathExpr = match.replace(/[{}]/g, '').trim();
+          
+          // 跳过已经处理过的实体状态和属性
+          if (mathExpr.includes('states(') || mathExpr.includes('states.')) {
+            return;
+          }
+
           try {
-            if (/^[\d\.\s\+\-\*\/\(\)]+$/.test(mathExpr)) {
-              const calcResult = eval(mathExpr);
-              result = result.replace(match, calcResult);
+            // 处理过滤器
+            let evalExpr = mathExpr;
+            
+            // 处理 round 过滤器
+            const roundMatch = evalExpr.match(/(.+)\|\s*round\s*\(\s*(\d+)\s*\)/);
+            if (roundMatch) {
+              const baseExpr = roundMatch[1].trim();
+              const decimals = parseInt(roundMatch[2]);
+              const baseValue = this._safeEval(baseExpr);
+              if (baseValue !== null) {
+                const rounded = Math.round(baseValue * Math.pow(10, decimals)) / Math.pow(10, decimals);
+                result = result.replace(match, rounded.toString());
+                return;
+              }
+            }
+
+            // 处理 float 过滤器
+            if (evalExpr.includes('| float')) {
+              evalExpr = evalExpr.replace(/\|\s*float/g, '');
+            }
+
+            // 处理 int 过滤器
+            if (evalExpr.includes('| int')) {
+              evalExpr = evalExpr.replace(/\|\s*int/g, '');
+            }
+
+            evalExpr = evalExpr.trim();
+
+            // 安全评估数学表达式
+            if (/^[\d\.\s\+\-\*\/\(\)]+$/.test(evalExpr)) {
+              const calcResult = this._safeEval(evalExpr);
+              if (calcResult !== null) {
+                result = result.replace(match, calcResult.toString());
+              } else {
+                hasError = true;
+              }
             }
           } catch (e) {
-            console.warn('数学表达式计算失败:', mathExpr);
+            hasError = true;
+            console.warn('数学表达式计算失败:', mathExpr, e);
           }
         });
       }
@@ -225,7 +312,9 @@ export class SmartInput extends LitElement {
           "strftime('%H:%M')": now.toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit', hour12: false }),
           "strftime('%Y-%m-%d')": now.toLocaleDateString('zh-CN'),
           "strftime('%m月%d日')": `${now.getMonth() + 1}月${now.getDate()}日`,
-          "strftime('%Y年%m月%d日')": `${now.getFullYear()}年${now.getMonth() + 1}月${now.getDate()}日`
+          "strftime('%Y年%m月%d日')": `${now.getFullYear()}年${now.getMonth() + 1}月${now.getDate()}日`,
+          "strftime('%A')": '星期' + '日一二三四五六'[now.getDay()],
+          "strftime('%H:%M:%S')": now.toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false })
         };
         
         Object.entries(timeFormats).forEach(([format, value]) => {
@@ -234,14 +323,74 @@ export class SmartInput extends LitElement {
           }
         });
       }
+
+      // 处理条件语句
+      const ifMatches = template.match(/{%.*?%}/g);
+      if (ifMatches) {
+        ifMatches.forEach(match => {
+          try {
+            // 简单的条件判断处理
+            if (match.includes("if") && match.includes("else")) {
+              const conditionMatch = match.match(/if\s+([^%]+)\s*%}([^%]*){%\s*else\s*%}([^%]*){%\s*endif\s*%}/);
+              if (conditionMatch) {
+                const condition = conditionMatch[1].trim();
+                const truePart = conditionMatch[2].trim();
+                const falsePart = conditionMatch[3].trim();
+                
+                // 简单的条件评估
+                let conditionResult = false;
+                if (condition.includes("==")) {
+                  const [left, right] = condition.split("==").map(s => s.trim().replace(/'/g, ""));
+                  conditionResult = left === right;
+                } else if (condition.includes("!=")) {
+                  const [left, right] = condition.split("!=").map(s => s.trim().replace(/'/g, ""));
+                  conditionResult = left !== right;
+                }
+                
+                result = result.replace(match, conditionResult ? truePart : falsePart);
+              }
+            }
+          } catch (e) {
+            hasError = true;
+            console.warn('条件语句处理失败:', match, e);
+          }
+        });
+      }
       
       // 清理剩余的模板标记
-      result = result.replace(/{{\s*[^}]*\s*}}/g, '???');
+      const remainingTemplate = result.match(/{{\s*[^}]*\s*}}/g);
+      if (remainingTemplate) {
+        hasError = true;
+        remainingTemplate.forEach(tpl => {
+          result = result.replace(tpl, '[无法解析]');
+        });
+      }
+
+      const remainingBlocks = result.match(/{%.*?%}/g);
+      if (remainingBlocks) {
+        hasError = true;
+        remainingBlocks.forEach(block => {
+          result = result.replace(block, '[无法解析]');
+        });
+      }
+
+      this._previewValue = result || '模板解析为空';
+      this._previewError = hasError;
       
-      return result || '无法解析模板';
     } catch (error) {
       console.error('Jinja2模板解析错误:', error);
-      return '模板解析错误';
+      this._previewValue = `模板解析错误: ${error.message}`;
+      this._previewError = true;
+    }
+  }
+
+  _safeEval(expr) {
+    try {
+      // 使用 Function 构造函数而不是 eval，更安全
+      return Function(`"use strict"; return (${expr})`)();
+    } catch (e) {
+      console.warn('表达式计算失败:', expr, e);
+      return null;
     }
   }
 
@@ -252,13 +401,15 @@ export class SmartInput extends LitElement {
       .map(([entity_id, stateObj]) => ({
         entity_id,
         friendly_name: stateObj.attributes?.friendly_name || entity_id,
-        state: stateObj.state
+        state: stateObj.state,
+        domain: entity_id.split('.')[0]
       }))
       .filter(entity => {
         if (!this._searchQuery) return true;
         const query = this._searchQuery.toLowerCase();
         return entity.entity_id.toLowerCase().includes(query) || 
-               entity.friendly_name.toLowerCase().includes(query);
+               entity.friendly_name.toLowerCase().includes(query) ||
+               entity.domain.toLowerCase().includes(query);
       })
       .sort((a, b) => a.friendly_name.localeCompare(b.friendly_name));
     
@@ -288,7 +439,6 @@ export class SmartInput extends LitElement {
     const newValue = currentValue + '{{  }}';
     this.value = newValue;
     
-    // 触发输入事件
     this._analyzeInputType(this.value);
     this._notifyChange();
     
@@ -296,9 +446,8 @@ export class SmartInput extends LitElement {
     const input = this.shadowRoot.querySelector('.smart-input-field');
     if (input) {
       input.focus();
-      // 简单的光标定位（实际实现可能需要更复杂的逻辑）
       setTimeout(() => {
-        const position = currentValue.length + 3; // {{ 的位置
+        const position = currentValue.length + 3;
         input.setSelectionRange(position, position);
       }, 10);
     }
@@ -316,7 +465,7 @@ export class SmartInput extends LitElement {
     const rect = this.getBoundingClientRect();
     const viewportHeight = window.innerHeight;
     
-    const spaceNeeded = 400; // 增加空间以容纳模板示例
+    const spaceNeeded = 450;
     const spaceBelow = viewportHeight - rect.bottom;
     
     if (spaceBelow < spaceNeeded && rect.top > spaceNeeded) {
