@@ -30,33 +30,33 @@ export const foundationStyles = css`
     
     /* 间距系统 */
     --cf-spacing-xs: 4px;
-    --cf-spacing-sm: 8px;
-    --cf-spacing-md: 12px;
-    --cf-spacing-lg: 16px;
-    --cf-spacing-xl: 20px;
-    --cf-spacing-xxl: 24px;
+    --cf-spacing-sm: 6px; /* 减小 */
+    --cf-spacing-md: 8px;  /* 减小 */
+    --cf-spacing-lg: 12px; /* 减小 */
+    --cf-spacing-xl: 16px; /* 减小 */
+    --cf-spacing-xxl: 20px; /* 减小 */
     
     /* 圆角系统 */
     --cf-radius-sm: 4px;
-    --cf-radius-md: 8px;
-    --cf-radius-lg: 12px;
-    --cf-radius-xl: 16px;
+    --cf-radius-md: 6px;  /* 减小 */
+    --cf-radius-lg: 8px;  /* 减小 */
+    --cf-radius-xl: 12px; /* 减小 */
     
     /* 阴影系统 */
-    --cf-shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.1);
-    --cf-shadow-md: 0 4px 12px rgba(0, 0, 0, 0.15);
-    --cf-shadow-lg: 0 8px 25px rgba(0, 0, 0, 0.2);
-    --cf-shadow-xl: 0 12px 35px rgba(0, 0, 0, 0.25);
+    --cf-shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.1); /* 减小 */
+    --cf-shadow-md: 0 2px 8px rgba(0, 0, 0, 0.12); /* 减小 */
+    --cf-shadow-lg: 0 4px 16px rgba(0, 0, 0, 0.15); /* 减小 */
+    --cf-shadow-xl: 0 6px 24px rgba(0, 0, 0, 0.2); /* 减小 */
     
     /* 深色模式阴影 */
-    --cf-dark-shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.3);
-    --cf-dark-shadow-md: 0 4px 12px rgba(0, 0, 0, 0.4);
-    --cf-dark-shadow-lg: 0 8px 25px rgba(0, 0, 0, 0.5);
+    --cf-dark-shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.3);
+    --cf-dark-shadow-md: 0 2px 8px rgba(0, 0, 0, 0.4);
+    --cf-dark-shadow-lg: 0 4px 16px rgba(0, 0, 0, 0.5);
     
     /* 动画系统 */
     --cf-transition-fast: 0.15s ease;
-    --cf-transition-normal: 0.3s ease;
-    --cf-transition-slow: 0.5s ease;
+    --cf-transition-normal: 0.25s ease; /* 减小 */
+    --cf-transition-slow: 0.4s ease;    /* 减小 */
     --cf-ease-out: cubic-bezier(0.4, 0, 0.2, 1);
     --cf-ease-in-out: cubic-bezier(0.4, 0, 0.2, 1);
   }
@@ -101,7 +101,7 @@ export const foundationStyles = css`
   
   /* 修复：使用固定列数避免卡片重叠 */
   .cf-grid-auto {
-    grid-template-columns: repeat(auto-fit, minmax(90px, 1fr)); /* 改为auto-fit和90px最小宽度 */
+    grid-template-columns: repeat(auto-fit, minmax(64px, 1fr)); /* 改为64px最小宽度 */
   }
   
   .cf-grid-2 { grid-template-columns: repeat(2, 1fr); }
@@ -151,11 +151,11 @@ export const foundationStyles = css`
   .cf-m-xl { margin: var(--cf-spacing-xl); }
 
   /* ===== 文本工具类 ===== */
-  .cf-text-xs { font-size: 0.75em; }
-  .cf-text-sm { font-size: 0.85em; }
-  .cf-text-md { font-size: 1em; }
-  .cf-text-lg { font-size: 1.2em; }
-  .cf-text-xl { font-size: 1.4em; }
+  .cf-text-xs { font-size: 0.7em;  /* 减小 */ }
+  .cf-text-sm { font-size: 0.75em; /* 减小 */ }
+  .cf-text-md { font-size: 0.85em; /* 减小 */ }
+  .cf-text-lg { font-size: 1em;    /* 减小 */ }
+  .cf-text-xl { font-size: 1.2em;  /* 减小 */ }
   
   .cf-text-center { text-align: center; }
   .cf-text-left { text-align: left; }
@@ -179,7 +179,7 @@ export const foundationStyles = css`
   
   .cf-card:hover {
     box-shadow: var(--cf-shadow-md);
-    transform: translateY(-2px);
+    transform: translateY(-1px); /* 减小 */
     border-color: rgba(var(--cf-rgb-primary), 0.3);
   }
   
@@ -190,20 +190,20 @@ export const foundationStyles = css`
       0 0 0 1px var(--cf-primary-color);
   }
 
-  /* 选择器卡片专用 - 修复重叠问题 */
+  /* 选择器卡片专用 - 64x64尺寸优化 */
   .cf-selector-card {
-    padding: var(--cf-spacing-md);
+    padding: var(--cf-spacing-sm); /* 减小内边距 */
     text-align: center;
     cursor: pointer;
-    min-height: 80px; /* 恢复合适的最小高度 */
-    height: 80px; /* 固定高度80px */
+    min-height: 56px; /* 减小最小高度 */
+    height: 64px; /* 固定高度64px */
     display: flex;
     flex-direction: column;
     align-items: center;
     justify-content: center;
     box-shadow: 
-      0 2px 6px rgba(0, 0, 0, 0.08),
-      inset 0 1px 0 rgba(255, 255, 255, 0.1);
+      0 1px 3px rgba(0, 0, 0, 0.08), /* 减小阴影 */
+      inset 0 1px 0 rgba(255, 255, 255, 0.05);
     position: relative;
     overflow: hidden;
   }
@@ -218,10 +218,10 @@ export const foundationStyles = css`
     background: linear-gradient(
       90deg,
       transparent,
-      rgba(var(--cf-rgb-primary), 0.08),
+      rgba(var(--cf-rgb-primary), 0.06), /* 减小透明度 */
       transparent
     );
-    transition: left 0.6s ease;
+    transition: left 0.5s ease; /* 减慢 */
   }
   
   .cf-selector-card:hover::before {
@@ -230,10 +230,10 @@ export const foundationStyles = css`
   
   .cf-selector-card:hover {
     border-color: var(--cf-primary-color);
-    transform: translateY(-2px);
+    transform: translateY(-1px); /* 减小 */
     box-shadow: 
-      0 6px 20px rgba(0, 0, 0, 0.15),
-      0 2px 4px rgba(0, 0, 0, 0.1);
+      0 3px 12px rgba(0, 0, 0, 0.12), /* 减小阴影 */
+      0 1px 2px rgba(0, 0, 0, 0.08);
   }
   
   .cf-selector-card.selected {
@@ -241,27 +241,27 @@ export const foundationStyles = css`
     background: linear-gradient(135deg, var(--cf-primary-color), var(--cf-accent-color));
     color: white;
     box-shadow: 
-      0 6px 20px rgba(var(--cf-rgb-primary), 0.3),
-      0 2px 6px rgba(0, 0, 0, 0.2);
-    transform: translateY(-1px);
+      0 3px 12px rgba(var(--cf-rgb-primary), 0.3), /* 减小阴影 */
+      0 1px 3px rgba(0, 0, 0, 0.15);
+    transform: translateY(-1px); /* 减小 */
   }
   
   .cf-selector-icon {
-    font-size: 1.6em; /* 适当增大图标 */
-    margin-bottom: var(--cf-spacing-xs);
+    font-size: 1.3em; /* 减小图标大小 */
+    margin-bottom: 2px; /* 减小间距 */
     line-height: 1;
-    filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.2));
+    filter: drop-shadow(0 1px 1px rgba(0, 0, 0, 0.15)); /* 减小阴影 */
   }
   
   .cf-selector-card.selected .cf-selector-icon {
-    filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.4));
+    filter: drop-shadow(0 1px 1px rgba(0, 0, 0, 0.3)); /* 减小阴影 */
   }
   
   .cf-selector-name {
-    font-size: 0.75em;
+    font-size: 0.65em; /* 减小文字大小 */
     font-weight: 600;
-    line-height: 1.2;
-    letter-spacing: 0.2px;
+    line-height: 1.1;  /* 减小行高 */
+    letter-spacing: 0.1px; /* 减小字间距 */
     max-width: 100%;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -291,13 +291,13 @@ export const foundationStyles = css`
     border: none;
     border-radius: var(--cf-radius-sm);
     padding: 0 var(--cf-spacing-md);
-    height: 48px;
-    min-width: 48px;
+    height: 40px; /* 减小高度 */
+    min-width: 40px; /* 减小宽度 */
     cursor: pointer;
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 1em;
+    font-size: 0.9em; /* 减小字体 */
     transition: all var(--cf-transition-fast);
   }
   
@@ -340,17 +340,17 @@ export const foundationStyles = css`
     }
     
     .cf-selector-card {
-      height: 75px; /* 平板端75px */
-      min-height: 75px;
-      padding: var(--cf-spacing-sm);
+      height: 56px; /* 平板端56px */
+      min-height: 56px;
+      padding: var(--cf-spacing-xs);
     }
     
     .cf-selector-icon {
-      font-size: 1.4em;
+      font-size: 1.1em;
     }
     
     .cf-selector-name {
-      font-size: 0.7em;
+      font-size: 0.6em;
     }
   }
   
@@ -360,8 +360,8 @@ export const foundationStyles = css`
     }
     
     .cf-selector-card {
-      height: 70px; /* 手机端70px */
-      min-height: 70px;
+      height: 52px; /* 手机端52px */
+      min-height: 52px;
     }
   }
   
@@ -371,28 +371,28 @@ export const foundationStyles = css`
     }
     
     .cf-selector-card {
-      height: 65px; /* 小屏手机65px */
-      min-height: 65px;
+      height: 48px; /* 小屏手机48px */
+      min-height: 48px;
       padding: var(--cf-spacing-xs);
     }
     
     .cf-selector-icon {
-      font-size: 1.3em;
+      font-size: 1em;
     }
     
     .cf-selector-name {
-      font-size: 0.65em;
+      font-size: 0.55em;
     }
   }
 
   /* ===== 动画系统 ===== */
   @keyframes cf-fadeIn {
-    from { opacity: 0; transform: translateY(10px); }
+    from { opacity: 0; transform: translateY(8px); } /* 减小 */
     to { opacity: 1; transform: translateY(0); }
   }
   
   @keyframes cf-slideIn {
-    from { transform: translateX(-20px); opacity: 0; }
+    from { transform: translateX(-15px); opacity: 0; } /* 减小 */
     to { transform: translateX(0); opacity: 1; }
   }
   
@@ -401,7 +401,7 @@ export const foundationStyles = css`
     50% { opacity: 0.7; }
   }
   
-  .cf-animate-fadeIn { animation: cf-fadeIn 0.3s var(--cf-ease-out); }
-  .cf-animate-slideIn { animation: cf-slideIn 0.3s var(--cf-ease-out); }
+  .cf-animate-fadeIn { animation: cf-fadeIn 0.25s var(--cf-ease-out); } /* 减小 */
+  .cf-animate-slideIn { animation: cf-slideIn 0.25s var(--cf-ease-out); } /* 减小 */
   .cf-animate-pulse { animation: cf-pulse 2s infinite; }
 `;
