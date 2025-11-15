@@ -9,7 +9,7 @@ export const editorStyles = css`
     box-shadow: 
       0 2px 6px rgba(0, 0, 0, 0.1),
       inset 0 1px 0 rgba(255, 255, 255, 0.05);
-    overflow: visible; /* 允许下拉框溢出 */
+    overflow: visible;
     background-image: 
       radial-gradient(circle at 15% 50%, rgba(var(--cf-rgb-primary), 0.03) 0%, transparent 50%),
       radial-gradient(circle at 85% 30%, rgba(var(--cf-rgb-primary), 0.03) 0%, transparent 50%);
@@ -195,7 +195,7 @@ export const editorStyles = css`
     white-space: nowrap;
   }
 
-  /* ===== 智能输入组件样式 - 智能方向下拉框 ===== */
+  /* ===== 智能输入组件样式 - 修复搜索框宽度 ===== */
   .smart-input-container {
     position: relative;
     width: 100%;
@@ -311,11 +311,23 @@ export const editorStyles = css`
     border-bottom: 1px solid var(--cf-border);
   }
 
+  /* 修复：搜索框宽度100% */
+  .smart-input-search-box ha-textfield {
+    width: 100% !important;
+    --mdc-text-field-fill-color: var(--cf-surface);
+  }
+
   /* 深色模式搜索框 */
   @media (prefers-color-scheme: dark) {
     .smart-input-search-box {
       border-bottom-color: var(--cf-dark-border);
       background: var(--cf-dark-surface);
+    }
+    
+    .smart-input-search-box ha-textfield {
+      --mdc-text-field-fill-color: var(--cf-dark-surface);
+      --mdc-text-field-ink-color: var(--cf-dark-text);
+      --mdc-text-field-label-ink-color: var(--cf-dark-text-secondary);
     }
   }
 
