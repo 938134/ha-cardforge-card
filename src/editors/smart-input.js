@@ -1,4 +1,4 @@
-// src/editors/smart-input.js
+// src/editors/smart-input.js - 移除无用提示
 import { LitElement, html } from 'https://unpkg.com/lit@2.8.0/index.js?module';
 import { editorStyles } from '../styles/editor-styles.js';
 
@@ -38,10 +38,6 @@ export class SmartInput extends LitElement {
         </div>
         
         ${this._showEntityPicker ? this._renderEntityPicker() : ''}
-        
-        <div class="smart-input-hint">
-          💡 支持实体ID (sensor.temperature) 或 Jinja2模板 ({{ states('sensor.temp') }})
-        </div>
       </div>
     `;
   }

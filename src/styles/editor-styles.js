@@ -1,7 +1,30 @@
-// src/styles/editor-styles.js - 动态主题预览样式生成器
+// src/styles/editor-styles.js - 移除无用样式
 import { css } from 'https://unpkg.com/lit@2.8.0/index.js?module';
 
-// 动态主题预览样式将在运行时生成
+// 动态主题预览样式生成器
+export const generateThemePreviewStyles = (themes) => {
+  let styles = '';
+  
+  themes.forEach(theme => {
+    const preview = theme.preview || {
+      background: `linear-gradient(135deg, hsl(${theme.id.length * 50 % 360}, 70%, 50%) 0%, hsl(${(theme.id.length * 50 + 30) % 360}, 70%, 40%) 100%)`,
+      color: '#ffffff',
+      border: 'none'
+    };
+    
+    styles += `
+      .theme-preview-${theme.id} {
+        background: ${preview.background} !important;
+        color: ${preview.color} !important;
+        border: ${preview.border || '1px solid var(--divider-color)'} !important;
+        ${preview.boxShadow ? `box-shadow: ${preview.boxShadow} !important;` : ''}
+      }
+    `;
+  });
+  
+  return styles;
+};
+
 export const editorStyles = css`
   /* ===== 编辑器布局 ===== */
   .editor-layout {
@@ -70,12 +93,6 @@ export const editorStyles = css`
   .selector-name {
     font-size: 0.9em;
     font-weight: 500;
-    margin-bottom: 4px;
-  }
-  
-  .selector-description {
-    font-size: 0.75em;
-    opacity: 0.8;
   }
   
   .theme-preview {
@@ -93,7 +110,6 @@ export const editorStyles = css`
   }
   
   /* ===== 动态主题预览样式占位符 ===== */
-  /* 主题预览样式将在运行时通过 generateThemePreviewStyles() 动态生成 */
   
   /* ===== 插件选择器样式 ===== */
   .plugin-selector {
@@ -141,11 +157,6 @@ export const editorStyles = css`
   .plugin-item-name {
     font-size: 0.85em;
     font-weight: 500;
-  }
-  
-  .plugin-item-description {
-    font-size: 0.75em;
-    opacity: 0.8;
   }
   
   /* ===== 主题选择器样式 ===== */
@@ -198,12 +209,6 @@ export const editorStyles = css`
   .theme-selector-name {
     font-size: 0.85em;
     font-weight: 500;
-    margin-bottom: 4px;
-  }
-  
-  .theme-selector-description {
-    font-size: 0.75em;
-    opacity: 0.8;
   }
   
   /* ===== 智能输入组件样式 ===== */
@@ -295,13 +300,6 @@ export const editorStyles = css`
     font-size: 0.8em;
     color: var(--secondary-text-color);
     font-family: monospace;
-  }
-  
-  .smart-input-hint {
-    margin-top: 4px;
-    font-size: 0.8em;
-    color: var(--secondary-text-color);
-    line-height: 1.3;
   }
   
   /* ===== 实体选择器样式 ===== */
@@ -416,6 +414,14 @@ export const editorStyles = css`
     gap: 4px;
   }
   
+  /* ===== 操作按钮 ===== */
+  .action-buttons {
+    display: flex;
+    gap: 12px;
+    justify-content: flex-end;
+    margin-top: 24px;
+  }
+  
   /* ===== 响应式优化 ===== */
   @media (max-width: 600px) {
     .editor-layout {
@@ -460,27 +466,3 @@ export const editorStyles = css`
     }
   }
 `;
-
-// 动态主题预览样式生成器
-export const generateThemePreviewStyles = (themes) => {
-  let styles = '';
-  
-  themes.forEach(theme => {
-    const preview = theme.preview || {
-      background: `linear-gradient(135deg, hsl(${theme.id.length * 50 % 360}, 70%, 50%) 0%, hsl(${(theme.id.length * 50 + 30) % 360}, 70%, 40%) 100%)`,
-      color: '#ffffff',
-      border: 'none'
-    };
-    
-    styles += `
-      .theme-preview-${theme.id} {
-        background: ${preview.background} !important;
-        color: ${preview.color} !important;
-        border: ${preview.border || '1px solid var(--divider-color)'} !important;
-        ${preview.boxShadow ? `box-shadow: ${preview.boxShadow} !important;` : ''}
-      }
-    `;
-  });
-  
-  return styles;
-};

@@ -1,4 +1,4 @@
-// src/editors/ha-cardforge-editor.js - 集成动态主题预览
+// src/editors/ha-cardforge-editor.js - 移除无用提示
 import { LitElement, html, css } from 'https://unpkg.com/lit@2.8.0/index.js?module';
 import { PluginRegistry } from '../core/plugin-registry.js';
 import { themeManager } from '../themes/index.js';
@@ -17,7 +17,7 @@ class HaCardForgeEditor extends LitElement {
     _selectedPlugin: { state: true },
     _initialized: { state: true },
     _configVersion: { state: true },
-    _themePreviewStyles: { state: true } // 动态主题预览样式
+    _themePreviewStyles: { state: true }
   };
 
   static styles = [
@@ -54,19 +54,17 @@ class HaCardForgeEditor extends LitElement {
     this._selectedPlugin = null;
     this._initialized = false;
     this._configVersion = 0;
-    this._themePreviewStyles = ''; // 动态样式
+    this._themePreviewStyles = '';
   }
 
   async firstUpdated() {
     await PluginRegistry.initialize();
-    await themeManager.initialize(); // 确保主题系统初始化
+    await themeManager.initialize();
     
     this._plugins = PluginRegistry.getAllPlugins();
     this._themes = themeManager.getAllThemes();
     
-    // 生成动态主题预览样式
     this._themePreviewStyles = generateThemePreviewStyles(this._themes);
-    
     this._initialized = true;
     
     if (this.config.plugin) {
@@ -91,7 +89,6 @@ class HaCardForgeEditor extends LitElement {
 
     return html`
       <div class="editor-container">
-        <!-- 动态注入主题预览样式 -->
         <style>${this._themePreviewStyles}</style>
         
         <div class="vertical-layout">
@@ -107,11 +104,6 @@ class HaCardForgeEditor extends LitElement {
           
           <!-- 数据源配置区域 -->
           ${this.config.plugin ? this._renderDatasourceSection() : ''}
-          
-          ${this.config.plugin ? html`<div class="section-divider"></div>` : ''}
-          
-          <!-- 配置提示区域 -->
-          ${this.config.plugin ? this._renderPreviewSection() : ''}
           
           <!-- 操作按钮 -->
           ${this._renderActionButtons()}
@@ -136,7 +128,7 @@ class HaCardForgeEditor extends LitElement {
       <div class="editor-section plugin-selector-section">
         <div class="section-header">
           <span class="section-icon">🎨</span>
-          <span>选择卡片类型</span>
+          <span>卡片类型</span>
         </div>
         
         <div class="selector-grid">
@@ -147,16 +139,9 @@ class HaCardForgeEditor extends LitElement {
             >
               <div class="selector-icon">${plugin.icon}</div>
               <div class="selector-name">${plugin.name}</div>
-              <div class="selector-description">${plugin.version}</div>
             </div>
           `)}
         </div>
-        
-        ${!this.config.plugin ? html`
-          <div class="config-hint">
-            💡 点击上方的卡片类型开始配置
-          </div>
-        ` : ''}
       </div>
     `;
   }
@@ -166,7 +151,7 @@ class HaCardForgeEditor extends LitElement {
       <div class="editor-section theme-selector-section">
         <div class="section-header">
           <span class="section-icon">🎭</span>
-          <span>选择主题样式</span>
+          <span>主题样式</span>
         </div>
         
         <div class="selector-grid">
@@ -179,13 +164,8 @@ class HaCardForgeEditor extends LitElement {
                 class="theme-preview theme-preview-${theme.id}"
               ></div>
               <div class="selector-name">${theme.name}</div>
-              <div class="selector-description">${theme.description}</div>
             </div>
           `)}
-        </div>
-        
-        <div class="config-hint">
-          💡 主题将改变卡片的外观样式
         </div>
       </div>
     `;
@@ -204,7 +184,7 @@ class HaCardForgeEditor extends LitElement {
             <span class="section-icon">🔧</span>
             <span>数据源配置</span>
           </div>
-          <div class="entity-help">✅ 此插件无需配置数据源</div>
+          <div class="entity-help">此插件无需配置数据源</div>
         </div>
       `;
     }
@@ -232,21 +212,6 @@ class HaCardForgeEditor extends LitElement {
               ></smart-input>
             </div>
           `)}
-        </div>
-      </div>
-    `;
-  }
-
-  _renderPreviewSection() {
-    return html`
-      <div class="editor-section preview-section">
-        <div class="section-header">
-          <span class="section-icon">👀</span>
-          <span>配置提示</span>
-        </div>
-        
-        <div class="config-hint">
-          💡 配置完成后，点击保存即可在卡片中看到效果。Home Assistant 会实时预览配置结果。
         </div>
       </div>
     `;
@@ -291,8 +256,6 @@ class HaCardForgeEditor extends LitElement {
       ...this.config,
       theme: themeId
     };
-    
-    // 强制刷新预览
     this._forcePreviewUpdate();
   }
 
@@ -305,21 +268,15 @@ class HaCardForgeEditor extends LitElement {
   }
 
   _forcePreviewUpdate() {
-    // 增加配置版本号，强制触发更新
     this._configVersion++;
-    
-    // 创建新的配置对象确保引用变化
     const newConfig = {
       ...this.config,
       _version: this._configVersion
     };
     
-    // 触发配置更新事件
     this.dispatchEvent(new CustomEvent('config-changed', {
       detail: { config: newConfig }
     }));
-    
-    // 强制组件更新
     this.requestUpdate();
   }
 
