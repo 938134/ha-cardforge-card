@@ -164,43 +164,35 @@ export const editorStyles = css`
     border-color: rgba(255, 255, 255, 0.5);
   }
 
-  /* ===== 紧凑型配置网格 ===== */
+  /* ===== 紧凑配置网格 - 一行两个 ===== */
   .config-grid-compact {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-    gap: var(--cf-spacing-md);
+    grid-template-columns: repeat(2, 1fr);
+    gap: var(--cf-spacing-lg);
     width: 100%;
   }
 
-  .config-item {
+  .config-field-compact {
     display: flex;
     flex-direction: column;
     gap: var(--cf-spacing-sm);
-    padding: var(--cf-spacing-md);
-    border: 1px solid var(--cf-border);
-    border-radius: var(--cf-radius-md);
-    background: var(--cf-surface);
-    transition: all var(--cf-transition-fast);
   }
 
-  .config-item:hover {
-    border-color: var(--cf-primary-color);
-  }
-
-  .config-label {
+  .config-label-compact {
     font-weight: 500;
-    font-size: 0.95em;
+    font-size: 0.9em;
     color: var(--cf-text-primary);
     display: flex;
     align-items: center;
     gap: var(--cf-spacing-xs);
+    margin-bottom: var(--cf-spacing-xs);
   }
 
   .required-star {
     color: var(--cf-error-color);
   }
 
-  /* ===== 彻底修复下拉菜单超出问题 ===== */
+  /* ===== 修复下拉菜单超出问题 ===== */
   ha-select {
     --mdc-menu-min-width: 100%;
     --mdc-menu-max-width: 100%;
@@ -209,37 +201,36 @@ export const editorStyles = css`
     position: relative;
   }
 
-  /* 强制限制下拉菜单在视口内 */
+  /* 重要：修复下拉菜单位置和高度 */
+  ha-select {
+    --mdc-menu-max-height: 250px;
+  }
+
   .mdc-menu-surface {
-    max-height: min(300px, 50vh) !important;
+    max-height: 250px !important;
     overflow-y: auto !important;
     position: fixed !important;
     z-index: 10000 !important;
-    transform-origin: top center !important;
   }
 
-  /* 确保下拉菜单不会超出视口 */
-  .mdc-menu-surface--open {
-    max-height: min(300px, calc(100vh - 100px)) !important;
-    top: auto !important;
-    bottom: auto !important;
-    left: 0 !important;
-    right: 0 !important;
-    margin: 0 auto !important;
+  /* 确保下拉菜单在编辑器内部 */
+  .editor-container {
+    position: relative;
+    z-index: 1;
   }
 
   /* ===== 紧凑型开关组 ===== */
-  .switch-group {
+  .switch-group-compact {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-    gap: var(--cf-spacing-sm);
+    grid-template-columns: repeat(2, 1fr);
+    gap: var(--cf-spacing-md);
   }
 
-  .switch-item {
+  .switch-item-compact {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: var(--cf-spacing-sm);
+    padding: var(--cf-spacing-sm) var(--cf-spacing-md);
     border: 1px solid var(--cf-border);
     border-radius: var(--cf-radius-md);
     background: var(--cf-surface);
@@ -247,11 +238,12 @@ export const editorStyles = css`
     min-height: 52px;
   }
 
-  .switch-item:hover {
+  .switch-item-compact:hover {
     border-color: var(--cf-primary-color);
+    background: rgba(var(--cf-rgb-primary), 0.03);
   }
 
-  .switch-label {
+  .switch-label-compact {
     font-size: 0.9em;
     color: var(--cf-text-primary);
     flex: 1;
@@ -260,7 +252,7 @@ export const editorStyles = css`
   /* ===== 紧凑型单选按钮组 ===== */
   .radio-group-compact {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+    grid-template-columns: repeat(2, 1fr);
     gap: var(--cf-spacing-sm);
   }
 
@@ -282,6 +274,7 @@ export const editorStyles = css`
 
   .radio-option-compact:hover {
     border-color: var(--cf-primary-color);
+    background: rgba(var(--cf-rgb-primary), 0.03);
   }
 
   .radio-option-compact.selected {
@@ -291,7 +284,7 @@ export const editorStyles = css`
   }
 
   /* ===== 数字输入框 ===== */
-  .number-input {
+  .number-input-compact {
     width: 100%;
   }
 
@@ -328,7 +321,7 @@ export const editorStyles = css`
     border-radius: var(--cf-radius-md);
     box-shadow: var(--cf-shadow-lg);
     z-index: 1001;
-    max-height: min(400px, 60vh);
+    max-height: min(350px, 50vh);
     overflow-y: auto;
   }
 
@@ -371,12 +364,22 @@ export const editorStyles = css`
   }
 
   /* ===== 响应式优化 ===== */
-  @media (max-width: 768px) {
+  @media (max-width: 1024px) {
     .config-grid-compact {
       grid-template-columns: 1fr;
       gap: var(--cf-spacing-md);
     }
     
+    .switch-group-compact {
+      grid-template-columns: 1fr;
+    }
+    
+    .radio-group-compact {
+      grid-template-columns: repeat(2, 1fr);
+    }
+  }
+
+  @media (max-width: 768px) {
     .editor-section {
       padding: var(--cf-spacing-md);
     }
@@ -399,12 +402,8 @@ export const editorStyles = css`
       font-size: 0.85em;
     }
     
-    .switch-group {
-      grid-template-columns: 1fr;
-    }
-    
     .radio-group-compact {
-      grid-template-columns: repeat(2, 1fr);
+      grid-template-columns: 1fr;
     }
   }
 
@@ -419,10 +418,6 @@ export const editorStyles = css`
     
     .selector-item {
       min-height: 85px;
-    }
-    
-    .radio-group-compact {
-      grid-template-columns: 1fr;
     }
     
     .action-buttons {

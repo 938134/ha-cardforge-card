@@ -31,13 +31,13 @@ class HaCardForgeEditor extends LitElement {
 
       /* 强制修复下拉菜单样式 */
       ha-select {
-        --mdc-menu-max-height: 300px;
+        --mdc-menu-max-height: 250px;
         --mdc-menu-min-width: 100%;
         --mdc-menu-max-width: 100%;
       }
 
       .mdc-menu-surface {
-        max-height: 300px !important;
+        max-height: 250px !important;
         overflow-y: auto !important;
         position: fixed !important;
         z-index: 10000 !important;
@@ -193,7 +193,7 @@ class HaCardForgeEditor extends LitElement {
     
     const schema = this._pluginManifest.config_schema;
     
-    // 按类型分组配置项
+    // 分组处理配置项
     const booleanFields = Object.entries(schema).filter(([_, field]) => field.type === 'boolean');
     const otherFields = Object.entries(schema).filter(([_, field]) => field.type !== 'boolean');
     
@@ -204,16 +204,16 @@ class HaCardForgeEditor extends LitElement {
           <span>卡片配置</span>
         </div>
         
-        <!-- 布尔类型配置项 - 紧凑网格布局 -->
+        <!-- 布尔类型配置 - 紧凑网格布局 -->
         ${booleanFields.length > 0 ? html`
-          <div class="config-grid-compact">
+          <div class="switch-group-compact">
             ${booleanFields.map(([key, field]) => this._renderBooleanField(key, field))}
           </div>
         ` : ''}
         
-        <!-- 其他类型配置项 - 紧凑网格布局 -->
+        <!-- 其他类型配置 - 紧凑网格布局 -->
         ${otherFields.length > 0 ? html`
-          <div class="config-grid-compact" style="margin-top: ${booleanFields.length > 0 ? 'var(--cf-spacing-lg)' : '0'}">
+          <div class="config-grid-compact">
             ${otherFields.map(([key, field]) => this._renderOtherField(key, field))}
           </div>
         ` : ''}
@@ -223,13 +223,13 @@ class HaCardForgeEditor extends LitElement {
 
   _renderBooleanField(key, field) {
     const currentValue = this.config[key] !== undefined ? this.config[key] : field.default;
-
+    
     return html`
-      <div class="config-item">
-        <label class="config-label">
+      <div class="switch-item-compact">
+        <span class="switch-label-compact">
           ${field.label}
           ${field.required ? html`<span class="required-star">*</span>` : ''}
-        </label>
+        </span>
         <ha-switch
           .checked=${!!currentValue}
           @change=${e => this._onConfigChanged(key, e.target.checked)}
@@ -241,70 +241,70 @@ class HaCardForgeEditor extends LitElement {
   _renderOtherField(key, field) {
     const currentValue = this.config[key] !== undefined ? this.config[key] : field.default;
 
-    if (field.type === 'select') {
-      return html`
-        <div class="config-item">
-          <label class="config-label">
-            ${field.label}
-            ${field.required ? html`<span class="required-star">*</span>` : ''}
-          </label>
-          <ha-select
-            .value=${currentValue}
-            @selected=${e => {
-              this._onConfigChanged(key, e.target.value);
-              // 延迟关闭下拉菜单
-              setTimeout(() => {
-                const select = e.target;
-                if (select && select.menu) {
-                  select.menu.open = false;
-                }
-              }, 100);
-            }}
-            fixedMenuPosition
-            naturalMenuWidth
-          >
-            ${field.options.map(option => html`
-              <mwc-list-item value="${option}">${option}</mwc-list-item>
-            `)}
-          </ha-select>
-        </div>
-      `;
+    switch (field.type) {
+      case 'select':
+        return html`
+          <div class="config-field-compact">
+            <label class="config-label-compact">
+              ${field.label}
+              ${field.required ? html`<span class="required-star">*</span>` : ''}
+            </label>
+            <ha-select
+              .value=${currentValue}
+              @selected=${e => {
+                this._onConfigChanged(key, e.target.value);
+                // 延迟关闭下拉菜单
+                setTimeout(() => {
+                  const select = e.target;
+                  if (select && select.menu) {
+                    select.menu.open = false;
+                  }
+                }, 100);
+              }}
+              fixedMenuPosition
+              naturalMenuWidth
+            >
+              ${field.options.map(option => html`
+                <mwc-list-item value="${option}">${option}</mwc-list-item>
+              `)}
+            </ha-select>
+          </div>
+        `;
+        
+      case 'number':
+        return html`
+          <div class="config-field-compact">
+            <label class="config-label-compact">
+              ${field.label}
+              ${field.required ? html`<span class="required-star">*</span>` : ''}
+            </label>
+            <ha-textfield
+              class="number-input-compact"
+              .value=${currentValue}
+              @input=${e => this._onConfigChanged(key, e.target.value)}
+              type="number"
+              min=${field.min}
+              max=${field.max}
+              outlined
+            ></ha-textfield>
+          </div>
+        `;
+        
+      default:
+        return html`
+          <div class="config-field-compact">
+            <label class="config-label-compact">
+              ${field.label}
+              ${field.required ? html`<span class="required-star">*</span>` : ''}
+            </label>
+            <ha-textfield
+              .value=${currentValue}
+              @input=${e => this._onConfigChanged(key, e.target.value)}
+              outlined
+            ></ha-textfield>
+          </div>
+        `;
     }
-
-    if (field.type === 'number') {
-      return html`
-        <div class="config-item">
-          <label class="config-label">
-            ${field.label}
-            ${field.required ? html`<span class="required-star">*</span>` : ''}
-          </label>
-          <ha-textfield
-            class="number-input"
-            .value=${currentValue}
-            @input=${e => this._onConfigChanged(key, e.target.value)}
-            type="number"
-            min=${field.min}
-            max=${field.max}
-            outlined
-          ></ha-textfield>
-        </div>
-      `;
-    }
-
-    // 默认文本输入
-    return html`
-      <div class="config-item">
-        <label class="config-label">
-          ${field.label}
-          ${field.required ? html`<span class="required-star">*</span>` : ''}
-        </label>
-        <ha-textfield
-          .value=${currentValue}
-          @input=${e => this._onConfigChanged(key, e.target.value)}
-          outlined
-        ></ha-textfield>
-      </div>
-    `;
   }
 
   _renderDatasourceSection() {
@@ -331,8 +331,8 @@ class HaCardForgeEditor extends LitElement {
         
         <div class="config-grid-compact">
           ${requirements.map(req => html`
-            <div class="config-item">
-              <label class="config-label">
+            <div class="config-field-compact">
+              <label class="config-label-compact">
                 ${req.description}
                 ${req.required ? html`<span class="required-star">*</span>` : ''}
               </label>
