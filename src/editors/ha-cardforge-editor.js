@@ -87,9 +87,13 @@ class HaCardForgeEditor extends LitElement {
       ...config 
     };
     
+    // 添加安全检查
     if (this.config.plugin) {
       this._selectedPlugin = PluginRegistry.getPlugin(this.config.plugin);
       this._pluginManifest = this._selectedPlugin?.manifest || null;
+    } else {
+      this._selectedPlugin = null;
+      this._pluginManifest = null;
     }
   }
 
@@ -356,24 +360,29 @@ class HaCardForgeEditor extends LitElement {
 
   _onPluginSelected(plugin) {
     if (plugin.id === this.config.plugin) return;
-
+  
     this.config = {
       plugin: plugin.id,
       entities: {},
       theme: 'auto'
     };
+    
+    // 添加安全检查
     this._selectedPlugin = PluginRegistry.getPlugin(plugin.id);
     this._pluginManifest = this._selectedPlugin?.manifest || null;
-    this._notifyConfigUpdate();
-  }
-
-  _onThemeSelected(themeId) {
-    if (themeId === this.config.theme) return;
-
-    this.config = {
-      ...this.config,
-      theme: themeId
-    };
+    
+    // 确保 entities 配置与插件要求匹配
+    if (this._pluginManifest?.entity_requirements) {
+      const requirements = this._pluginManifest.entity_requirements;
+      const entities = {};
+      
+      requirements.forEach(req => {
+        entities[req.key] = this.config.entities?.[req.key] || '';
+      });
+      
+      this.config.entities = entities;
+    }
+    
     this._notifyConfigUpdate();
   }
 
