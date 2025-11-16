@@ -39,6 +39,7 @@ class HaCardForgeEditor extends LitElement {
   constructor() {
     super();
     this.config = { 
+      type: 'custom:ha-cardforge-card',  // 确保类型字段
       plugin: '', 
       entities: {}, 
       theme: 'auto' 
@@ -81,6 +82,7 @@ class HaCardForgeEditor extends LitElement {
 
   setConfig(config) {
     this.config = { 
+      type: 'custom:ha-cardforge-card',  // 确保类型字段
       plugin: '',
       entities: {},
       theme: 'auto',
@@ -357,14 +359,22 @@ class HaCardForgeEditor extends LitElement {
   _onPluginSelected(plugin) {
     if (plugin.id === this.config.plugin) return;
 
-    this.config = {
+    // 创建完整的新配置，确保包含所有必需字段
+    const newConfig = {
+      type: 'custom:ha-cardforge-card',  // 确保包含 type 字段
       plugin: plugin.id,
       entities: {},
       theme: 'auto'
     };
+
+    this.config = newConfig;
     this._selectedPlugin = PluginRegistry.getPlugin(plugin.id);
     this._pluginManifest = this._selectedPlugin?.manifest || null;
-    this._notifyConfigUpdate();
+    
+    // 延迟通知配置更新，确保 DOM 已更新
+    setTimeout(() => {
+      this._notifyConfigUpdate();
+    }, 0);
   }
 
   _onThemeSelected(themeId) {
@@ -394,15 +404,26 @@ class HaCardForgeEditor extends LitElement {
   }
 
   _notifyConfigUpdate() {
+    // 确保配置对象包含所有必需字段
+    const configToSend = {
+      type: 'custom:ha-cardforge-card',
+      ...this.config
+    };
+    
     this.dispatchEvent(new CustomEvent('config-changed', {
-      detail: { config: this.config }
+      detail: { config: configToSend }
     }));
     this.requestUpdate();
   }
 
   _save() {
+    const configToSend = {
+      type: 'custom:ha-cardforge-card',
+      ...this.config
+    };
+    
     this.dispatchEvent(new CustomEvent('config-changed', {
-      detail: { config: this.config }
+      detail: { config: configToSend }
     }));
     this.dispatchEvent(new CustomEvent('config-saved'));
   }
