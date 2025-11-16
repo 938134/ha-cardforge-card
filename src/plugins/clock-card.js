@@ -79,7 +79,10 @@ class ClockCard extends BasePlugin {
     }
     
     if (showSeconds) {
-      timeDisplay = timeDisplay.replace(':', ':' + systemData.iso_string.split(':')[2].substring(0, 2));
+      // 获取带秒数的时间
+      const now = new Date();
+      const seconds = String(now.getSeconds()).padStart(2, '0');
+      timeDisplay = timeDisplay.replace(':', ':' + systemData.time.split(':')[1] + ':' + seconds);
     }
     
     return timeDisplay;
@@ -114,15 +117,10 @@ class ClockCard extends BasePlugin {
   getTemplate(config, hass, entities) {
     const systemData = this.getSystemData(hass, config);
     
-    // 使用系统变量或自定义实体
-    const timeDisplay = this._getCardValue(hass, entities, 'custom_time', 
-      this._formatTimeDisplay(config, systemData));
-    
-    const dateDisplay = this._getCardValue(hass, entities, 'custom_date', 
-      this._formatDateDisplay(config, systemData));
-    
-    const weekdayDisplay = this._getCardValue(hass, entities, 'custom_weekday', 
-      systemData.weekday);
+    // 使用系统数据，不调用 _getCardValue 方法
+    const timeDisplay = this._formatTimeDisplay(config, systemData);
+    const dateDisplay = this._formatDateDisplay(config, systemData);
+    const weekdayDisplay = systemData.weekday;
     
     const layoutClass = this._getLayoutClass(config);
     const textSizeClass = this._getTextSizeClass(config);
@@ -159,6 +157,7 @@ class ClockCard extends BasePlugin {
       
       .clock-card {
         text-align: center;
+        padding: var(--cf-spacing-xl);
       }
       
       /* 紧凑布局 */
@@ -170,9 +169,10 @@ class ClockCard extends BasePlugin {
       }
       
       .layout-compact .time-primary {
-        ${this._cfTextSize('xl')}
-        ${this._cfFontWeight('bold')}
+        font-size: 1.8em;
+        font-weight: bold;
         font-variant-numeric: tabular-nums;
+        color: var(--cf-text-primary);
       }
       
       .layout-compact .date-weekday {
@@ -182,13 +182,13 @@ class ClockCard extends BasePlugin {
       }
       
       .layout-compact .date {
-        ${this._cfTextSize('sm')}
-        ${this._cfColor('text')}
+        font-size: 0.9em;
+        color: var(--cf-text-primary);
       }
       
       .layout-compact .weekday {
-        ${this._cfTextSize('xs')}
-        ${this._cfColor('text-secondary')}
+        font-size: 0.8em;
+        color: var(--cf-text-secondary);
       }
       
       /* 优雅布局 */
@@ -199,10 +199,12 @@ class ClockCard extends BasePlugin {
       }
       
       .layout-elegant .time-primary {
-        ${this._cfTextSize('xxl')}
-        ${this._cfFontWeight('bold')}
+        font-size: 2.5em;
+        font-weight: 300;
         font-variant-numeric: tabular-nums;
         letter-spacing: -0.5px;
+        color: var(--cf-text-primary);
+        line-height: 1;
       }
       
       .layout-elegant .date-weekday {
@@ -212,13 +214,13 @@ class ClockCard extends BasePlugin {
       }
       
       .layout-elegant .date {
-        ${this._cfTextSize('lg')}
-        ${this._cfColor('text')}
+        font-size: 1.1em;
+        color: var(--cf-text-primary);
       }
       
       .layout-elegant .weekday {
-        ${this._cfTextSize('md')}
-        ${this._cfColor('text-secondary')}
+        font-size: 0.95em;
+        color: var(--cf-text-secondary);
         font-weight: 500;
       }
       
@@ -230,15 +232,16 @@ class ClockCard extends BasePlugin {
       }
       
       .layout-minimal .time-primary {
-        ${this._cfTextSize('xl')}
-        ${this._cfFontWeight('semibold')}
+        font-size: 1.8em;
+        font-weight: 600;
         font-variant-numeric: tabular-nums;
+        color: var(--cf-text-primary);
       }
       
       .layout-minimal .date-weekday,
       .layout-minimal .date-single {
-        ${this._cfTextSize('sm')}
-        ${this._cfColor('text-secondary')}
+        font-size: 0.9em;
+        color: var(--cf-text-secondary);
       }
       
       /* 文字大小调整 */
