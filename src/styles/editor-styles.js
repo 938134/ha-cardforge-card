@@ -150,6 +150,20 @@ export const editorStyles = css`
     line-height: 1.2;
   }
 
+  /* ===== 主题预览样式 ===== */
+  .theme-preview {
+    width: 100%;
+    height: 60px;
+    border-radius: var(--cf-radius-sm);
+    margin-bottom: var(--cf-spacing-sm);
+    border: 2px solid transparent;
+    transition: all var(--cf-transition-fast);
+  }
+
+  .selector-item.selected .theme-preview {
+    border-color: rgba(255, 255, 255, 0.5);
+  }
+
   /* ===== 自适应配置网格 ===== */
   .config-grid {
     display: grid;
@@ -186,108 +200,81 @@ export const editorStyles = css`
     position: relative;
   }
 
-  /* 限制下拉菜单最大高度，防止超出窗口 */
+  /* 限制下拉菜单最大高度 */
   ha-select::part(mdc-menu) {
     max-height: 300px !important;
     overflow-y: auto !important;
-    position: fixed !important;
+    position: absolute !important;
     z-index: 1000;
   }
 
-  /* 确保下拉菜单在视口内 */
-  .mdc-menu-surface {
-    max-height: 300px !important;
-    overflow-y: auto !important;
-  }
-
-  /* ===== 官方风格的单选按钮组 ===== */
-  .radio-group-container {
-    display: flex;
-    flex-direction: column;
+  /* ===== 紧凑型开关组 ===== */
+  .switch-group {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
     gap: var(--cf-spacing-sm);
+    margin-top: var(--cf-spacing-xs);
   }
 
-  .radio-group-label {
-    font-weight: 500;
-    font-size: 0.95em;
-    color: var(--cf-text-primary);
-    margin-bottom: var(--cf-spacing-xs);
-  }
-
-  /* 水平排列的单选按钮 */
-  .radio-group-horizontal {
-    display: flex;
-    flex-wrap: wrap;
-    gap: var(--cf-spacing-sm);
-    align-items: center;
-  }
-
-  /* 官方风格的单选按钮 */
-  .form-radio {
+  .switch-item {
     display: flex;
     align-items: center;
-    gap: var(--cf-spacing-sm);
+    justify-content: space-between;
     padding: var(--cf-spacing-sm) var(--cf-spacing-md);
+    border: 1px solid var(--cf-border);
+    border-radius: var(--cf-radius-md);
+    background: var(--cf-surface);
+    transition: all var(--cf-transition-fast);
+    min-height: 52px;
+  }
+
+  .switch-item:hover {
+    border-color: var(--cf-primary-color);
+  }
+
+  .switch-label {
+    font-size: 0.9em;
+    color: var(--cf-text-primary);
+    flex: 1;
+  }
+
+  /* ===== 紧凑型单选按钮组 ===== */
+  .radio-group-compact {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+    gap: var(--cf-spacing-sm);
+    margin-top: var(--cf-spacing-xs);
+  }
+
+  .radio-option-compact {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: var(--cf-spacing-xs);
+    padding: var(--cf-spacing-sm);
     border: 1px solid var(--cf-border);
     border-radius: var(--cf-radius-md);
     cursor: pointer;
     transition: all var(--cf-transition-fast);
     background: var(--cf-surface);
-    min-width: 80px;
-    justify-content: center;
+    font-size: 0.85em;
+    text-align: center;
+    min-height: 44px;
   }
 
-  .form-radio:hover {
+  .radio-option-compact:hover {
     border-color: var(--cf-primary-color);
-    background: rgba(var(--cf-rgb-primary), 0.05);
   }
 
-  .form-radio.selected {
+  .radio-option-compact.selected {
     border-color: var(--cf-primary-color);
     background: var(--cf-primary-color);
     color: white;
   }
 
-  .form-radio input[type="radio"] {
-    display: none;
-  }
-
-  .form-radio .radio-label {
-    font-size: 0.9em;
-    font-weight: 500;
-    cursor: pointer;
-  }
-
-  /* 紧凑型单选按钮（用于选项较多的情况） */
-  .radio-group-compact {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
-    gap: var(--cf-spacing-sm);
-  }
-
-  .form-radio.compact {
-    padding: var(--cf-spacing-xs) var(--cf-spacing-sm);
-    min-width: 60px;
-    font-size: 0.85em;
-  }
-
-  /* ===== 开关控件行内布局 ===== */
-  .switch-field {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: var(--cf-spacing-sm) 0;
-    border-bottom: 1px solid rgba(var(--cf-rgb-primary), 0.1);
-  }
-
-  .switch-field:last-child {
-    border-bottom: none;
-  }
-
-  .switch-label {
-    font-size: 0.95em;
-    color: var(--cf-text-primary);
-    flex: 1;
+  /* ===== 数字输入框 ===== */
+  .number-input {
+    width: 100%;
   }
 
   /* ===== 智能输入组件样式 ===== */
@@ -394,14 +381,12 @@ export const editorStyles = css`
       font-size: 0.85em;
     }
     
-    .radio-group-compact {
-      grid-template-columns: repeat(auto-fit, minmax(80px, 1fr));
+    .switch-group {
+      grid-template-columns: 1fr;
     }
     
-    .form-radio.compact {
-      min-width: 50px;
-      font-size: 0.8em;
-      padding: 8px 10px;
+    .radio-group-compact {
+      grid-template-columns: repeat(2, 1fr);
     }
   }
 
@@ -418,13 +403,8 @@ export const editorStyles = css`
       min-height: 85px;
     }
     
-    .radio-group-horizontal {
-      flex-direction: column;
-      align-items: stretch;
-    }
-    
-    .form-radio {
-      min-width: auto;
+    .radio-group-compact {
+      grid-template-columns: 1fr;
     }
     
     .action-buttons {
@@ -439,10 +419,6 @@ export const editorStyles = css`
   @media (max-width: 360px) {
     .selector-grid {
       grid-template-columns: repeat(2, 1fr);
-    }
-    
-    .radio-group-compact {
-      grid-template-columns: 1fr;
     }
   }
 `;

@@ -28,6 +28,11 @@ class HaCardForgeEditor extends LitElement {
         display: block;
         max-width: 100%;
       }
+
+      /* 修复下拉菜单最大高度 */
+      ha-select {
+        --mdc-menu-max-height: 300px;
+      }
     `
   ];
 
@@ -198,112 +203,86 @@ class HaCardForgeEditor extends LitElement {
   _renderConfigField(key, field) {
     const currentValue = this.config[key] !== undefined ? this.config[key] : field.default;
 
-    switch (field.type) {
-      case 'boolean':
-        return html`
-          <div class="switch-field">
-            <span class="switch-label">
-              ${field.label}
-              ${field.required ? html`<span class="required-star">*</span>` : ''}
-            </span>
-            <ha-switch
-              .checked=${!!currentValue}
-              @change=${e => this._onConfigChanged(key, e.target.checked)}
-            ></ha-switch>
-          </div>
-        `;
-        
-      case 'select':
-        // 对于选项较少的select，使用单选按钮组
-        if (field.options && field.options.length <= 5) {
-          return this._renderRadioGroup(key, field, currentValue);
-        }
-        
-        return html`
-          <div class="config-field">
-            <label class="config-label">
-              ${field.label}
-              ${field.required ? html`<span class="required-star">*</span>` : ''}
-            </label>
-            <ha-select
-              .value=${currentValue}
-              @selected=${e => {
-                this._onConfigChanged(key, e.target.value);
-                // 延迟关闭下拉
-                setTimeout(() => {
-                  const select = this.shadowRoot.querySelector(`ha-select[value="${e.target.value}"]`);
-                  if (select) select.blur();
-                }, 100);
-              }}
-              fixedMenuPosition
-              naturalMenuWidth
-            >
-              ${field.options.map(option => html`
-                <mwc-list-item value="${option}">${option}</mwc-list-item>
-              `)}
-            </ha-select>
-          </div>
-        `;
-        
-      case 'number':
-        return html`
-          <div class="config-field">
-            <label class="config-label">
-              ${field.label}
-              ${field.required ? html`<span class="required-star">*</span>` : ''}
-            </label>
-            <ha-textfield
-              class="number-input"
-              .value=${currentValue}
-              @input=${e => this._onConfigChanged(key, e.target.value)}
-              type="number"
-              min=${field.min}
-              max=${field.max}
-              outlined
-            ></ha-textfield>
-          </div>
-        `;
-        
-      default:
-        return html`
-          <div class="config-field">
-            <label class="config-label">
-              ${field.label}
-              ${field.required ? html`<span class="required-star">*</span>` : ''}
-            </label>
-            <ha-textfield
-              .value=${currentValue}
-              @input=${e => this._onConfigChanged(key, e.target.value)}
-              outlined
-            ></ha-textfield>
-          </div>
-        `;
+    // 处理布尔类型（开关）
+    if (field.type === 'boolean') {
+      return html`
+        <div class="switch-item">
+          <span class="switch-label">
+            ${field.label}
+            ${field.required ? html`<span class="required-star">*</span>` : ''}
+          </span>
+          <ha-switch
+            .checked=${!!currentValue}
+            @change=${e => this._onConfigChanged(key, e.target.checked)}
+          ></ha-switch>
+        </div>
+      `;
     }
-  }
 
-  _renderRadioGroup(key, field, currentValue) {
-    const isCompact = field.options && field.options.length > 3;
-    
+    // 处理选择类型（下拉）
+    if (field.type === 'select') {
+      return html`
+        <div class="config-field">
+          <label class="config-label">
+            ${field.label}
+            ${field.required ? html`<span class="required-star">*</span>` : ''}
+          </label>
+          <ha-select
+            .value=${currentValue}
+            @selected=${e => {
+              this._onConfigChanged(key, e.target.value);
+              // 延迟关闭下拉菜单
+              setTimeout(() => {
+                const select = e.target;
+                if (select && select.menu) {
+                  select.menu.open = false;
+                }
+              }, 100);
+            }}
+            fixedMenuPosition
+            naturalMenuWidth
+          >
+            ${field.options.map(option => html`
+              <mwc-list-item value="${option}">${option}</mwc-list-item>
+            `)}
+          </ha-select>
+        </div>
+      `;
+    }
+
+    // 处理数字类型
+    if (field.type === 'number') {
+      return html`
+        <div class="config-field">
+          <label class="config-label">
+            ${field.label}
+            ${field.required ? html`<span class="required-star">*</span>` : ''}
+          </label>
+          <ha-textfield
+            class="number-input"
+            .value=${currentValue}
+            @input=${e => this._onConfigChanged(key, e.target.value)}
+            type="number"
+            min=${field.min}
+            max=${field.max}
+            outlined
+          ></ha-textfield>
+        </div>
+      `;
+    }
+
+    // 默认文本输入
     return html`
       <div class="config-field">
-        <div class="radio-group-label">
+        <label class="config-label">
           ${field.label}
           ${field.required ? html`<span class="required-star">*</span>` : ''}
-        </div>
-        <div class="${isCompact ? 'radio-group-compact' : 'radio-group-horizontal'}">
-          ${field.options.map(option => html`
-            <label class="form-radio ${isCompact ? 'compact' : ''} ${currentValue === option ? 'selected' : ''}">
-              <input 
-                type="radio" 
-                name="${key}" 
-                value="${option}" 
-                .checked=${currentValue === option}
-                @change=${e => this._onConfigChanged(key, e.target.value)}
-              >
-              <span class="radio-label">${option}</span>
-            </label>
-          `)}
-        </div>
+        </label>
+        <ha-textfield
+          .value=${currentValue}
+          @input=${e => this._onConfigChanged(key, e.target.value)}
+          outlined
+        ></ha-textfield>
       </div>
     `;
   }
