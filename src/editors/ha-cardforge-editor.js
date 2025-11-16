@@ -27,25 +27,27 @@ class HaCardForgeEditor extends LitElement {
       :host {
         display: block;
         max-width: 100%;
+        position: relative;
+        z-index: 1;
         overflow: visible !important;
       }
 
-      /* 彻底修复下拉菜单 */
+      /* 强制修复下拉菜单样式 */
       ha-select {
         --mdc-menu-min-width: 100%;
         --mdc-menu-max-width: 100%;
         --mdc-menu-max-height: 200px;
-        --mdc-menu-z-index: 10000;
-        width: 100%;
+        position: relative;
+        z-index: 10;
       }
 
-      /* 防止下拉菜单被裁剪 */
-      .editor-container {
-        overflow: visible !important;
-      }
-
-      .editor-section {
-        overflow: visible !important;
+      /* 确保下拉菜单在编辑器上方 */
+      .mdc-menu-surface {
+        max-height: 200px !important;
+        overflow-y: auto !important;
+        position: fixed !important;
+        z-index: 10000 !important;
+        transform: none !important;
       }
     `
   ];
@@ -64,7 +66,6 @@ class HaCardForgeEditor extends LitElement {
     this._themePreviewStyles = '';
     this._isDarkMode = false;
     this._pluginManifest = null;
-    this._dropdownOpen = false;
   }
 
   async firstUpdated() {
@@ -82,18 +83,6 @@ class HaCardForgeEditor extends LitElement {
       this._selectedPlugin = PluginRegistry.getPlugin(this.config.plugin);
       this._pluginManifest = this._selectedPlugin?.manifest || null;
     }
-
-    // 监听全局点击事件，防止下拉菜单意外关闭
-    this._setupGlobalListeners();
-  }
-
-  _setupGlobalListeners() {
-    // 防止下拉菜单被意外关闭
-    document.addEventListener('click', (e) => {
-      if (this._dropdownOpen && !this.contains(e.target)) {
-        e.stopPropagation();
-      }
-    }, true);
   }
 
   _detectDarkMode() {
@@ -269,12 +258,13 @@ class HaCardForgeEditor extends LitElement {
             </label>
             <ha-select
               .value=${currentValue}
-              @opened=${() => this._onDropdownOpened()}
-              @closed=${() => this._onDropdownClosed()}
               @selected=${e => {
+                // 立即更新配置，但不关闭下拉菜单
                 this._onConfigChanged(key, e.target.value);
-                // 不立即关闭，让用户看到选择结果
-                setTimeout(() => this._onDropdownClosed(), 300);
+              }}
+              @closed=${(e) => {
+                // 阻止事件冒泡，防止编辑器关闭
+                e.stopPropagation();
               }}
               fixedMenuPosition
               naturalMenuWidth
@@ -385,14 +375,6 @@ class HaCardForgeEditor extends LitElement {
     `;
   }
 
-  _onDropdownOpened() {
-    this._dropdownOpen = true;
-  }
-
-  _onDropdownClosed() {
-    this._dropdownOpen = false;
-  }
-
   _onPluginSelected(plugin) {
     if (plugin.id === this.config.plugin) return;
 
@@ -454,12 +436,6 @@ class HaCardForgeEditor extends LitElement {
     if (changedProperties.has('hass')) {
       this.requestUpdate();
     }
-  }
-
-  disconnectedCallback() {
-    // 清理事件监听器
-    document.removeEventListener('click', this._stopPropagationHandler, true);
-    super.disconnectedCallback();
   }
 }
 

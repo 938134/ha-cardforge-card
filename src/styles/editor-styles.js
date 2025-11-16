@@ -41,6 +41,7 @@ export const editorStyles = css`
     padding: var(--cf-spacing-lg);
     border-bottom: 1px solid var(--cf-border);
     position: relative;
+    overflow: visible !important; /* 重要：允许下拉菜单溢出 */
   }
 
   /* 深色模式编辑器区块 */
@@ -176,6 +177,8 @@ export const editorStyles = css`
     display: flex;
     flex-direction: column;
     gap: var(--cf-spacing-sm);
+    position: relative;
+    overflow: visible !important; /* 重要：允许下拉菜单溢出 */
   }
 
   .config-label-compact {
@@ -196,13 +199,14 @@ export const editorStyles = css`
   ha-select {
     --mdc-menu-min-width: 100%;
     --mdc-menu-max-width: 100%;
+    --mdc-menu-min-height: 0;
     --mdc-menu-max-height: 200px;
-    --mdc-menu-z-index: 10000;
     width: 100%;
     position: relative;
+    z-index: 10;
   }
 
-  /* 强制修复下拉菜单样式 */
+  /* 重要：修复下拉菜单位置 */
   ha-select::part(mdc-menu) {
     max-height: 200px !important;
     overflow-y: auto !important;
@@ -211,7 +215,7 @@ export const editorStyles = css`
     transform: none !important;
   }
 
-  /* 修复下拉菜单项 */
+  /* 修复 mdc-menu 样式 */
   .mdc-menu-surface {
     max-height: 200px !important;
     overflow-y: auto !important;
@@ -220,14 +224,10 @@ export const editorStyles = css`
     transform: none !important;
   }
 
-  /* 防止下拉菜单被裁剪 */
+  /* 确保编辑器容器不限制溢出 */
   .editor-container {
     position: relative;
     z-index: 1;
-    overflow: visible !important;
-  }
-
-  .editor-section {
     overflow: visible !important;
   }
 
