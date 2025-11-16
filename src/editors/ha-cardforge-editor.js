@@ -234,6 +234,12 @@ class HaCardForgeEditor extends LitElement {
 
     switch (field.type) {
       case 'select':
+        // 将选项数组转换为 ha-combo-box 需要的格式
+        const items = field.options.map(option => ({
+          value: option,
+          label: option
+        }));
+        
         return html`
           <div class="config-field-compact">
             <label class="config-label-compact">
@@ -241,7 +247,7 @@ class HaCardForgeEditor extends LitElement {
               ${field.required ? html`<span class="required-star">*</span>` : ''}
             </label>
             <ha-combo-box
-              .items=${field.options}
+              .items=${items}
               .value=${currentValue}
               @value-changed=${e => this._onConfigChanged(key, e.detail.value)}
               allow-custom-value

@@ -192,12 +192,43 @@ export const editorStyles = css`
     color: var(--cf-error-color);
   }
 
-  /* ===== ha-combo-box 样式 ===== */
+  /* ===== ha-combo-box 样式修复 ===== */
   ha-combo-box {
     width: 100%;
     --paper-input-container-color: var(--cf-text-secondary);
     --paper-input-container-focus-color: var(--cf-primary-color);
     --paper-input-container-input-color: var(--cf-text-primary);
+  }
+
+  /* 修复下拉列表文字显示 */
+  paper-listbox {
+    background: var(--cf-surface) !important;
+    color: var(--cf-text-primary) !important;
+    border: 1px solid var(--cf-border) !important;
+    border-radius: var(--cf-radius-md) !important;
+    box-shadow: var(--cf-shadow-lg) !important;
+    max-height: 200px !important;
+    overflow-y: auto !important;
+  }
+
+  paper-item {
+    background: transparent !important;
+    color: var(--cf-text-primary) !important;
+    padding: var(--cf-spacing-sm) var(--cf-spacing-md) !important;
+    border-bottom: 1px solid rgba(var(--cf-rgb-primary), 0.1) !important;
+  }
+
+  paper-item:hover {
+    background: rgba(var(--cf-rgb-primary), 0.08) !important;
+  }
+
+  paper-item[selected] {
+    background: var(--cf-primary-color) !important;
+    color: white !important;
+  }
+
+  paper-item:last-child {
+    border-bottom: none !important;
   }
 
   /* 深色模式 ha-combo-box */
@@ -206,6 +237,21 @@ export const editorStyles = css`
       --paper-input-container-color: var(--cf-dark-text-secondary);
       --paper-input-container-focus-color: var(--cf-primary-color);
       --paper-input-container-input-color: var(--cf-dark-text);
+    }
+
+    paper-listbox {
+      background: var(--cf-dark-surface) !important;
+      color: var(--cf-dark-text) !important;
+      border-color: var(--cf-dark-border) !important;
+    }
+
+    paper-item {
+      color: var(--cf-dark-text) !important;
+      border-bottom-color: rgba(255, 255, 255, 0.1) !important;
+    }
+
+    paper-item:hover {
+      background: rgba(255, 255, 255, 0.08) !important;
     }
   }
 
