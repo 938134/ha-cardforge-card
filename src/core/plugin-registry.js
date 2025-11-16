@@ -20,7 +20,7 @@ class PluginRegistry {
       () => import('../plugins/clock-card.js'),
       () => import('../plugins/weather-card.js'),
       () => import('../plugins/welcome-card.js'),
-      () => import('../plugins/time-week.js'),
+      () => import('../plugins/week-card.js'),
       () => import('../plugins/oilprice-card.js'),
       () => import('../plugins/poetry-card.js')
     ];
@@ -45,8 +45,10 @@ class PluginRegistry {
     if (module.manifest && module.default) {
       const PluginClass = module.default;
       
+      // 验证插件接口
       if (typeof PluginClass.prototype.getTemplate === 'function' && 
-          typeof PluginClass.prototype.getStyles === 'function') {
+          typeof PluginClass.prototype.getStyles === 'function' &&
+          typeof PluginClass.prototype.getManifest === 'function') {
         
         this._plugins.set(pluginId, {
           id: pluginId,
@@ -58,6 +60,28 @@ class PluginRegistry {
         console.warn(`插件 ${pluginId} 接口不完整，跳过`);
       }
     }
+  }
+
+  // === 核心API ===
+  static getPlugin(pluginId) {
+    return this._plugins.get(pluginId);
+  }
+
+  static getAllPlugins() {
+    return Array.from(this._plugins.values()).map(item => ({
+      ...item.manifest,
+      id: item.id
+    }));
+  }
+
+  static getPluginClass(pluginId) {
+    const plugin = this._plugins.get(pluginId);
+    return plugin ? plugin.class : null;
+  }
+
+  static createPluginInstance(pluginId) {
+    const PluginClass = this.getPluginClass(pluginId);
+    return PluginClass ? new PluginClass() : null;
   }
 
   // === 市场相关功能 ===
@@ -90,30 +114,9 @@ class PluginRegistry {
     });
     return Array.from(categories);
   }
-
-  // === 核心API ===
-  static getPlugin(pluginId) {
-    return this._plugins.get(pluginId);
-  }
-
-  static getAllPlugins() {
-    return Array.from(this._plugins.values()).map(item => ({
-      ...item.manifest,
-      id: item.id
-    }));
-  }
-
-  static getPluginClass(pluginId) {
-    const plugin = this._plugins.get(pluginId);
-    return plugin ? plugin.class : null;
-  }
-
-  static createPluginInstance(pluginId) {
-    const PluginClass = this.getPluginClass(pluginId);
-    return PluginClass ? new PluginClass() : null;
-  }
 }
 
+// 自动初始化
 PluginRegistry.initialize();
 
 export { PluginRegistry };

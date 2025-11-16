@@ -5,15 +5,60 @@ class WelcomeCard extends BasePlugin {
   static manifest = {
     id: 'welcome-card',
     name: '欢迎卡片',
-    version: '1.0.0',
-    description: '个性化欢迎信息',
-    category: '信息',
+    version: '1.1.0',
+    description: '现代简约风格的欢迎卡片，显示时间、问候语和每日一言',
+    category: 'information',
     icon: '👋',
-    entityRequirements: [
+    author: 'CardForge Team',
+    
+    config_schema: {
+      // 布局配置
+      show_date: {
+        type: 'boolean',
+        label: '显示日期',
+        default: false,
+        description: '在时间下方显示日期信息'
+      },
+      
+      show_weekday: {
+        type: 'boolean',
+        label: '显示星期',
+        default: false,
+        description: '在时间下方显示星期信息'
+      },
+      
+      // 样式配置
+      text_emphasis: {
+        type: 'select',
+        label: '重点强调',
+        options: ['time', 'greeting', 'message'],
+        default: 'time',
+        description: '选择要重点强调的内容'
+      },
+      
+      icon_style: {
+        type: 'select',
+        label: '图标风格',
+        options: ['minimal', 'bubble', 'gradient'],
+        default: 'minimal',
+        description: '选择图标的显示风格'
+      },
+      
+      // 交互配置
+      enable_animations: {
+        type: 'boolean',
+        label: '启用动画',
+        default: true,
+        description: '启用微妙的动画效果'
+      }
+    },
+    
+    entity_requirements: [
       {
         key: 'daily_message',
         description: '每日一言',
-        required: false
+        required: false,
+        type: 'string'
       }
     ]
   };
@@ -46,51 +91,46 @@ class WelcomeCard extends BasePlugin {
     return messages[randomIndex];
   }
 
-  // 获取紧凑的星期显示
-  _getCompactWeekday(weekday) {
-    const weekMap = {
-      '星期一': '周一', '星期二': '周二', '星期三': '周三',
-      '星期四': '周四', '星期五': '周五', '星期六': '周六', '星期日': '周日'
-    };
-    return weekMap[weekday] || weekday;
-  }
-
   getTemplate(config, hass, entities) {
     const systemData = this.getSystemData(hass, config);
-    
-    // 使用系统默认的用户名和问候语
-    const userName = systemData.user;
-    const greeting = systemData.greeting;
-    const compactWeekday = this._getCompactWeekday(systemData.weekday);
-    
-    // 获取每日一言，优先使用实体数据，没有则使用随机一言
     const dailyMessage = this._getCardValue(hass, entities, 'daily_message', this._getRandomDailyMessage());
+    
+    const showDate = config.show_date || false;
+    const showWeekday = config.show_weekday || false;
+    const textEmphasis = config.text_emphasis || 'time';
+    const iconStyle = config.icon_style || 'minimal';
+    const enableAnimations = config.enable_animations !== false;
 
     return `
-      <div class="cardforge-card-container cardforge-animate-fadeIn welcome-card stacked-layout">
-        <div class="cardforge-card-content">
-          <div class="cardforge-content-area cardforge-gap-md">
-            <!-- 欢迎信息卡片 -->
-            <div class="welcome-card-top cardforge-flex-column cardforge-flex-center cardforge-gap-sm">
-              <div class="welcome-icon">👋</div>
-              <div class="welcome-greeting">${greeting}，${userName}！</div>
-              <div class="welcome-time-info cardforge-flex-row cardforge-flex-center cardforge-gap-md">
-                <div class="welcome-time">${systemData.time}</div>
-                <div class="welcome-weekday">${compactWeekday}</div>
-              </div>
-              <div class="welcome-date">${systemData.date}</div>
+      <div class="cardforge-responsive-container welcome-card layout-modern ${enableAnimations ? 'with-animations' : ''}">
+        <div class="cardforge-content-grid">
+          <div class="welcome-modern-layout">
+            <!-- 时间区域 -->
+            <div class="time-section ${textEmphasis === 'time' ? 'emphasized' : ''}">
+              <div class="time-icon icon-${iconStyle}">🕒</div>
+              <div class="time-display">${systemData.time}</div>
+              ${(showDate || showWeekday) ? `
+                <div class="time-meta">
+                  ${showDate ? `<span class="date">${systemData.date_short}</span>` : ''}
+                  ${showDate && showWeekday ? '<span class="meta-separator">·</span>' : ''}
+                  ${showWeekday ? `<span class="weekday">${systemData.weekday_short}</span>` : ''}
+                </div>
+              ` : ''}
             </div>
-
-            <!-- 分隔线 -->
-            <div class="card-divider"></div>
-
-            <!-- 每日一言卡片 -->
-            <div class="daily-message-card cardforge-flex-row cardforge-flex-center cardforge-gap-sm">
-              <div class="message-icon">💭</div>
-              <div class="message-content cardforge-flex-column cardforge-gap-xs">
-                <div class="message-text">${this._renderSafeHTML(dailyMessage)}</div>
-                <div class="message-label">每日一言</div>
+            
+            <!-- 问候区域 -->
+            <div class="greeting-section ${textEmphasis === 'greeting' ? 'emphasized' : ''}">
+              <div class="greeting-icon icon-${iconStyle}">👋</div>
+              <div class="greeting-text">
+                <div class="greeting">${systemData.greeting}</div>
+                <div class="username">，${systemData.user}！</div>
               </div>
+            </div>
+            
+            <!-- 每日一言区域 -->
+            <div class="daily-message-section ${textEmphasis === 'message' ? 'emphasized' : ''}">
+              <div class="message-icon icon-${iconStyle}">💭</div>
+              <div class="message-text">${this._renderSafeHTML(dailyMessage)}</div>
             </div>
           </div>
         </div>
@@ -99,215 +139,284 @@ class WelcomeCard extends BasePlugin {
   }
 
   getStyles(config) {
+    const textEmphasis = config.text_emphasis || 'time';
+    const iconStyle = config.icon_style || 'minimal';
+    const enableAnimations = config.enable_animations !== false;
+
     return `
       ${this.getBaseStyles(config)}
       
-      .welcome-card.stacked-layout {
+      .welcome-card.layout-modern {
         text-align: center;
+        padding: var(--cf-spacing-xl) var(--cf-spacing-lg);
       }
       
-      .welcome-card-top {
-        padding: var(--cf-spacing-md) 0;
+      .welcome-modern-layout {
+        display: flex;
+        flex-direction: column;
+        gap: var(--cf-spacing-xl);
+        align-items: center;
       }
       
-      .welcome-icon {
+      /* 时间区域样式 */
+      .time-section {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: var(--cf-spacing-sm);
+      }
+      
+      .time-section.emphasized {
+        transform: scale(1.05);
+      }
+      
+      .time-icon {
         font-size: 2.5em;
-        opacity: 0.9;
-        animation: icon-float 3s ease-in-out infinite;
+        margin-bottom: var(--cf-spacing-xs);
+        ${enableAnimations ? 'animation: icon-pulse 2s ease-in-out infinite;' : ''}
       }
       
-      .welcome-greeting {
-        ${this._cfTextSize('lg')}
-        ${this._cfFontWeight('bold')}
-        ${this._cfColor('text')}
-        line-height: 1.2;
-        margin: 0;
-      }
-      
-      .welcome-time-info {
-        margin: var(--cf-spacing-xs) 0;
-      }
-      
-      .welcome-time {
-        ${this._cfTextSize('md')}
-        ${this._cfColor('text')}
+      .time-display {
+        font-size: 2.2em;
+        font-weight: 300;
         font-variant-numeric: tabular-nums;
-        font-weight: 600;
+        letter-spacing: -0.5px;
+        color: var(--cf-text-primary);
+        line-height: 1;
       }
       
-      .welcome-weekday {
-        ${this._cfTextSize('sm')}
-        ${this._cfColor('text-secondary')}
-        background: rgba(var(--cf-rgb-primary), 0.1);
-        padding: 2px 8px;
-        border-radius: 12px;
+      .time-meta {
+        display: flex;
+        gap: var(--cf-spacing-sm);
+        align-items: center;
+        font-size: 0.9em;
+        color: var(--cf-text-secondary);
+      }
+      
+      .meta-separator {
+        opacity: 0.6;
+      }
+      
+      .date, .weekday {
         font-weight: 500;
       }
       
-      .welcome-date {
-        ${this._cfTextSize('sm')}
-        ${this._cfColor('text-secondary')}
-        margin: 0;
+      /* 问候区域样式 */
+      .greeting-section {
+        display: flex;
+        align-items: center;
+        gap: var(--cf-spacing-md);
       }
       
-      .card-divider {
-        height: 1px;
-        background: linear-gradient(90deg, 
-          transparent 0%, 
-          var(--cf-border) 20%, 
-          var(--cf-border) 80%, 
-          transparent 100%);
-        margin: var(--cf-spacing-sm) 0;
+      .greeting-section.emphasized {
+        transform: scale(1.05);
       }
       
-      .daily-message-card {
-        padding: var(--cf-spacing-md);
-        background: rgba(var(--cf-rgb-primary), 0.05);
-        border-radius: var(--cf-radius-md);
-        border: 1px solid rgba(var(--cf-rgb-primary), 0.1);
+      .greeting-icon {
+        font-size: 2em;
+        flex-shrink: 0;
+        ${enableAnimations ? 'animation: icon-bounce 3s ease-in-out infinite;' : ''}
+      }
+      
+      .greeting-text {
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: center;
+        gap: 2px;
+        font-size: 1.4em;
+        line-height: 1.2;
+      }
+      
+      .greeting {
+        font-weight: 500;
+        color: var(--cf-text-primary);
+      }
+      
+      .username {
+        font-weight: 600;
+        color: var(--cf-primary-color);
+      }
+      
+      /* 每日一言区域样式 */
+      .daily-message-section {
+        display: flex;
+        align-items: flex-start;
+        gap: var(--cf-spacing-md);
+        max-width: 320px;
         text-align: left;
-        transition: all var(--cf-transition-normal);
       }
       
-      .daily-message-card:hover {
-        background: rgba(var(--cf-rgb-primary), 0.08);
-        transform: translateY(-1px);
+      .daily-message-section.emphasized {
+        transform: scale(1.05);
       }
       
       .message-icon {
-        font-size: 1.8em;
-        opacity: 0.8;
+        font-size: 1.5em;
+        margin-top: 2px;
         flex-shrink: 0;
-      }
-      
-      .message-content {
-        flex: 1;
+        ${enableAnimations ? 'animation: icon-float 4s ease-in-out infinite;' : ''}
       }
       
       .message-text {
-        ${this._cfTextSize('sm')}
-        ${this._cfColor('text')}
-        line-height: 1.4;
+        font-size: 0.95em;
+        line-height: 1.5;
+        color: var(--cf-text-secondary);
         font-style: italic;
-        margin: 0;
+        flex: 1;
       }
       
-      .message-label {
-        ${this._cfTextSize('xs')}
-        ${this._cfColor('text-secondary')}
-        font-weight: 500;
-        margin: 0;
+      /* 图标风格 */
+      .icon-minimal {
+        opacity: 0.9;
+      }
+      
+      .icon-bubble {
+        background: rgba(var(--cf-rgb-primary), 0.1);
+        padding: 8px;
+        border-radius: 50%;
+        backdrop-filter: blur(10px);
+      }
+      
+      .icon-gradient {
+        background: linear-gradient(135deg, var(--cf-primary-color), var(--cf-accent-color));
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
       }
       
       /* 动画效果 */
-      @keyframes icon-float {
+      @keyframes icon-pulse {
         0%, 100% {
-          transform: translateY(0px) rotate(0deg);
+          transform: scale(1);
+          opacity: 0.9;
         }
         50% {
+          transform: scale(1.1);
+          opacity: 1;
+        }
+      }
+      
+      @keyframes icon-bounce {
+        0%, 100% {
+          transform: translateY(0) rotate(0deg);
+        }
+        25% {
           transform: translateY(-3px) rotate(5deg);
+        }
+        75% {
+          transform: translateY(-1px) rotate(-3deg);
+        }
+      }
+      
+      @keyframes icon-float {
+        0%, 100% {
+          transform: translateY(0px);
+        }
+        50% {
+          transform: translateY(-2px);
+        }
+      }
+      
+      .with-animations .time-display {
+        animation: fade-in-up 0.8s ease-out;
+      }
+      
+      .with-animations .greeting-text {
+        animation: fade-in-up 0.8s ease-out 0.2s both;
+      }
+      
+      .with-animations .daily-message-section {
+        animation: fade-in-up 0.8s ease-out 0.4s both;
+      }
+      
+      @keyframes fade-in-up {
+        from {
+          opacity: 0;
+          transform: translateY(15px);
+        }
+        to {
+          opacity: 1;
+          transform: translateY(0);
+        }
+      }
+      
+      /* 响应式优化 */
+      @media (max-width: 600px) {
+        .welcome-card.layout-modern {
+          padding: var(--cf-spacing-lg) var(--cf-spacing-md);
+        }
+        
+        .welcome-modern-layout {
+          gap: var(--cf-spacing-lg);
+        }
+        
+        .time-display {
+          font-size: 1.8em;
+        }
+        
+        .time-icon {
+          font-size: 2em;
+        }
+        
+        .greeting-text {
+          font-size: 1.2em;
+        }
+        
+        .greeting-icon {
+          font-size: 1.6em;
+        }
+        
+        .message-text {
+          font-size: 0.9em;
+        }
+        
+        .message-icon {
+          font-size: 1.3em;
+        }
+      }
+      
+      @media (max-width: 400px) {
+        .welcome-card.layout-modern {
+          padding: var(--cf-spacing-md) var(--cf-spacing-sm);
+        }
+        
+        .time-display {
+          font-size: 1.6em;
+        }
+        
+        .greeting-text {
+          font-size: 1.1em;
+          flex-direction: column;
+          gap: 0;
+        }
+        
+        .daily-message-section {
+          flex-direction: column;
+          text-align: center;
+          gap: var(--cf-spacing-sm);
         }
       }
       
       /* 深色模式优化 */
       @media (prefers-color-scheme: dark) {
-        .daily-message-card {
-          background: rgba(255, 255, 255, 0.05);
-          border-color: rgba(255, 255, 255, 0.1);
-        }
-        
-        .welcome-weekday {
+        .icon-bubble {
           background: rgba(255, 255, 255, 0.1);
         }
       }
       
-      /* 主题特殊样式 */
-      .theme-glass .daily-message-card {
-        background: rgba(255, 255, 255, 0.08);
-        backdrop-filter: blur(10px);
-        border: 1px solid rgba(255, 255, 255, 0.15);
+      /* 主题适配 */
+      .theme-glass .icon-bubble {
+        background: rgba(255, 255, 255, 0.15);
+        backdrop-filter: blur(20px);
       }
       
-      .theme-gradient .daily-message-card {
-        background: rgba(255, 255, 255, 0.12);
-        border: 1px solid rgba(255, 255, 255, 0.2);
+      .theme-gradient .icon-bubble {
+        background: rgba(255, 255, 255, 0.2);
       }
       
-      .theme-neon .daily-message-card {
-        background: rgba(0, 255, 136, 0.08);
-        border: 1px solid rgba(0, 255, 136, 0.2);
-        box-shadow: 0 0 8px rgba(0, 255, 136, 0.1);
-      }
-      
-      .theme-ink-wash .daily-message-card {
-        background: rgba(255, 255, 255, 0.05);
-        border: 1px solid rgba(255, 255, 255, 0.1);
-      }
-      
-      /* 响应式优化 */
-      @media (max-width: 600px) {
-        .welcome-card-top {
-          padding: var(--cf-spacing-sm) 0;
-        }
-        
-        .welcome-icon {
-          font-size: 2em;
-        }
-        
-        .welcome-greeting {
-          ${this._cfTextSize('md')}
-        }
-        
-        .welcome-time {
-          ${this._cfTextSize('sm')}
-        }
-        
-        .welcome-weekday {
-          ${this._cfTextSize('xs')}
-          padding: 1px 6px;
-        }
-        
-        .welcome-date {
-          ${this._cfTextSize('xs')}
-        }
-        
-        .daily-message-card {
-          padding: var(--cf-spacing-sm);
-        }
-        
-        .message-icon {
-          font-size: 1.5em;
-        }
-        
-        .message-text {
-          ${this._cfTextSize('xs')}
-          line-height: 1.3;
-        }
-        
-        .message-label {
-          ${this._cfTextSize('xxs')}
-        }
-        
-        .card-divider {
-          margin: var(--cf-spacing-xs) 0;
-        }
-      }
-      
-      @media (max-width: 400px) {
-        .welcome-card {
-          ${this._cfPadding('md')}
-        }
-        
-        .welcome-time-info {
-          flex-direction: column;
-          gap: var(--cf-spacing-xs);
-        }
-        
-        .daily-message-card {
-          flex-direction: column;
-          text-align: center;
-          gap: var(--cf-spacing-sm);
-        }
+      .theme-neon .icon-bubble {
+        background: rgba(0, 255, 136, 0.1);
+        box-shadow: 0 0 10px rgba(0, 255, 136, 0.3);
       }
     `;
   }

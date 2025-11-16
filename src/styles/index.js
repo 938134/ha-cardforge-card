@@ -1,9 +1,10 @@
+// src/styles/index.js
 import { css } from 'https://unpkg.com/lit@2.8.0/index.js?module';
 import { foundationStyles } from './foundation-styles.js';
 import { themeStyles } from './theme-styles.js';
 import { editorStyles } from './editor-styles.js';
 
-// 完整的样式系统（移除了 shared-styles.js，其内容已迁移到 foundation-styles.js）
+// 完整的样式系统
 export const cardForgeStyles = [
   foundationStyles,
   themeStyles,

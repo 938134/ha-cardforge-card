@@ -5,32 +5,146 @@ class ClockCard extends BasePlugin {
   static manifest = {
     id: 'clock-card',
     name: '时钟卡片',
-    version: '1.0.0',
-    description: '简洁的时间显示，三行布局',
+    version: '1.1.0',
+    description: '显示当前时间、日期和星期信息',
     category: '时间',
     icon: '🕒',
-    entityRequirements: []  // 空数组，不需要关联实体
+    author: 'CardForge',
+    
+    config_schema: {
+      // 时间格式配置
+      time_format: {
+        type: 'select',
+        label: '时间格式',
+        options: ['24小时制', '12小时制'],
+        default: '24小时制',
+        description: '选择时间显示格式'
+      },
+      
+      // 日期格式配置
+      date_format: {
+        type: 'select',
+        label: '日期格式',
+        options: ['完整日期', '短日期', '数字日期'],
+        default: '完整日期',
+        description: '选择日期显示格式'
+      },
+      
+      // 显示选项
+      show_seconds: {
+        type: 'boolean',
+        label: '显示秒数',
+        default: false,
+        description: '是否显示秒数'
+      },
+      
+      show_weekday: {
+        type: 'boolean',
+        label: '显示星期',
+        default: true,
+        description: '是否显示星期信息'
+      },
+      
+      // 布局配置
+      layout: {
+        type: 'select',
+        label: '布局样式',
+        options: ['compact', 'elegant', 'minimal'],
+        default: 'elegant',
+        description: '选择时钟显示布局'
+      },
+      
+      // 样式配置
+      text_size: {
+        type: 'select',
+        label: '文字大小',
+        options: ['small', 'medium', 'large'],
+        default: 'medium',
+        description: '调整文字显示大小'
+      }
+    },
+    
+    entity_requirements: []
   };
 
-  getTemplate(config, hass, entities) {
-    // 直接从 config 获取配置，不需要关联实体
+  // 格式化时间显示
+  _formatTimeDisplay(config, systemData) {
+    const timeFormat = config.time_format || '24小时制';
     const showSeconds = config.show_seconds || false;
-    const timeFormat = config.time_format || 'auto';
     
-    const displayTime = this._getDisplayTime(timeFormat, showSeconds);
+    let timeDisplay = systemData.time;
+    
+    if (timeFormat === '12小时制') {
+      timeDisplay = systemData.time_12h;
+    }
+    
+    if (showSeconds) {
+      timeDisplay = timeDisplay.replace(':', ':' + systemData.iso_string.split(':')[2].substring(0, 2));
+    }
+    
+    return timeDisplay;
+  }
+
+  // 格式化日期显示
+  _formatDateDisplay(config, systemData) {
+    const dateFormat = config.date_format || '完整日期';
+    
+    switch (dateFormat) {
+      case '短日期':
+        return systemData.date_short;
+      case '数字日期':
+        return systemData.date_number;
+      default:
+        return systemData.date;
+    }
+  }
+
+  // 获取布局类名
+  _getLayoutClass(config) {
+    const layout = config.layout || 'elegant';
+    return `layout-${layout}`;
+  }
+
+  // 获取文字大小类名
+  _getTextSizeClass(config) {
+    const size = config.text_size || 'medium';
+    return `text-${size}`;
+  }
+
+  getTemplate(config, hass, entities) {
+    const systemData = this.getSystemData(hass, config);
+    
+    // 使用系统变量或自定义实体
+    const timeDisplay = this._getCardValue(hass, entities, 'custom_time', 
+      this._formatTimeDisplay(config, systemData));
+    
+    const dateDisplay = this._getCardValue(hass, entities, 'custom_date', 
+      this._formatDateDisplay(config, systemData));
+    
+    const weekdayDisplay = this._getCardValue(hass, entities, 'custom_weekday', 
+      systemData.weekday);
+    
+    const layoutClass = this._getLayoutClass(config);
+    const textSizeClass = this._getTextSizeClass(config);
+    const showWeekday = config.show_weekday !== false;
 
     return `
-      <div class="cardforge-responsive-container layout-single-column clock-card simple-layout">
-        <div class="cardforge-card-content">
-          <div class="cardforge-content-area cardforge-gap-md">
-            <!-- 第一行：时间 -->
-            <div class="clock-time">${displayTime}</div>
-            
-            <!-- 第二行：日期 -->
-            <div class="clock-date">$date</div>
-            
-            <!-- 第三行：星期 -->
-            <div class="clock-weekday">$weekday</div>
+      <div class="cardforge-responsive-container clock-card ${layoutClass} ${textSizeClass}">
+        <div class="cardforge-content-grid">
+          <div class="cardforge-main-content">
+            <div class="clock-display">
+              <div class="time-primary">${this._renderSafeHTML(timeDisplay)}</div>
+              ${showWeekday ? `
+                <div class="date-weekday">
+                  <span class="date">${this._renderSafeHTML(dateDisplay)}</span>
+                  <span class="weekday">${this._renderSafeHTML(weekdayDisplay)}</span>
+                </div>
+              ` : `
+                <div class="date-single">
+                  ${this._renderSafeHTML(dateDisplay)}
+                </div>
+              `}
+            </div>
           </div>
         </div>
       </div>
@@ -38,143 +152,178 @@ class ClockCard extends BasePlugin {
   }
 
   getStyles(config) {
+    const layoutClass = this._getLayoutClass(config);
+    
     return `
       ${this.getBaseStyles(config)}
       
-      .clock-card.simple-layout {
+      .clock-card {
         text-align: center;
+      }
+      
+      /* 紧凑布局 */
+      .layout-compact .clock-display {
+        display: flex;
+        align-items: center;
         justify-content: center;
-        min-height: 120px;
+        gap: var(--cf-spacing-md);
       }
       
-      .clock-time {
-        font-size: 2.2em;
-        font-weight: 700;
-        color: var(--card-text, var(--cf-text-primary));
+      .layout-compact .time-primary {
+        ${this._cfTextSize('xl')}
+        ${this._cfFontWeight('bold')}
         font-variant-numeric: tabular-nums;
-        line-height: 1.1;
-        margin: 0;
-        text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
       }
       
-      .clock-date {
-        font-size: 1em;
-        color: var(--cf-text-secondary);
+      .layout-compact .date-weekday {
+        display: flex;
+        flex-direction: column;
+        gap: 2px;
+      }
+      
+      .layout-compact .date {
+        ${this._cfTextSize('sm')}
+        ${this._cfColor('text')}
+      }
+      
+      .layout-compact .weekday {
+        ${this._cfTextSize('xs')}
+        ${this._cfColor('text-secondary')}
+      }
+      
+      /* 优雅布局 */
+      .layout-elegant .clock-display {
+        display: flex;
+        flex-direction: column;
+        gap: var(--cf-spacing-sm);
+      }
+      
+      .layout-elegant .time-primary {
+        ${this._cfTextSize('xxl')}
+        ${this._cfFontWeight('bold')}
+        font-variant-numeric: tabular-nums;
+        letter-spacing: -0.5px;
+      }
+      
+      .layout-elegant .date-weekday {
+        display: flex;
+        flex-direction: column;
+        gap: var(--cf-spacing-xs);
+      }
+      
+      .layout-elegant .date {
+        ${this._cfTextSize('lg')}
+        ${this._cfColor('text')}
+      }
+      
+      .layout-elegant .weekday {
+        ${this._cfTextSize('md')}
+        ${this._cfColor('text-secondary')}
         font-weight: 500;
-        margin: 0;
-        line-height: 1.2;
       }
       
-      .clock-weekday {
-        font-size: 1em;
-        color: var(--cf-text-secondary);
-        margin: 0;
-        line-height: 1.2;
+      /* 极简布局 */
+      .layout-minimal .clock-display {
+        display: flex;
+        flex-direction: column;
+        gap: var(--cf-spacing-xs);
+      }
+      
+      .layout-minimal .time-primary {
+        ${this._cfTextSize('xl')}
+        ${this._cfFontWeight('semibold')}
+        font-variant-numeric: tabular-nums;
+      }
+      
+      .layout-minimal .date-weekday,
+      .layout-minimal .date-single {
+        ${this._cfTextSize('sm')}
+        ${this._cfColor('text-secondary')}
+      }
+      
+      /* 文字大小调整 */
+      .text-small .time-primary {
+        font-size: 1.5em !important;
+      }
+      
+      .text-small .date {
+        font-size: 0.9em !important;
+      }
+      
+      .text-large .time-primary {
+        font-size: 3em !important;
+      }
+      
+      .text-large .date {
+        font-size: 1.3em !important;
       }
       
       /* 主题特殊样式 */
-      .theme-glass .clock-time {
-        text-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+      .theme-glass .clock-card {
+        backdrop-filter: blur(20px);
+        background: rgba(255, 255, 255, 0.1) !important;
+        border: 1px solid rgba(255, 255, 255, 0.2) !important;
       }
       
-      .theme-gradient .clock-time {
-        background: linear-gradient(135deg, #667eea, #764ba2);
-        -webkit-background-clip: text;
-        -webkit-text-fill-color: transparent;
-        background-clip: text;
-      }
-      
-      .theme-neon .clock-time {
-        color: #00ff88;
-        text-shadow: 
-          0 0 10px #00ff88,
-          0 0 20px rgba(0, 255, 136, 0.3);
-      }
-      
-      .theme-ink-wash .clock-time {
-        color: #ecf0f1;
+      .theme-gradient .clock-card {
+        color: white !important;
         text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
       }
       
-      .theme-ink-wash .clock-date,
-      .theme-ink-wash .clock-weekday {
-        color: #bdc3c7;
+      .theme-neon .clock-card {
+        color: #00ff88 !important;
+        text-shadow: 0 0 10px currentColor;
+      }
+      
+      .theme-ink-wash .clock-card {
+        background: linear-gradient(135deg, #2c3e50 0%, #34495e 100%) !important;
+        color: #ecf0f1 !important;
+        border: 1px solid #7f8c8d !important;
       }
       
       /* 响应式优化 */
-      @container cardforge-container (min-width: 300px) {
-        .clock-time {
-          font-size: 2.4em;
+      @container cardforge-container (max-width: 400px) {
+        .layout-compact .clock-display {
+          flex-direction: column;
+          gap: var(--cf-spacing-sm);
+        }
+        
+        .layout-elegant .time-primary {
+          font-size: 2em !important;
+        }
+        
+        .text-large .time-primary {
+          font-size: 2.2em !important;
         }
       }
       
-      @container cardforge-container (min-width: 400px) {
-        .clock-time {
-          font-size: 2.6em;
-        }
-      }
-      
-      @media (max-width: 600px) {
-        .clock-card.simple-layout {
-          min-height: 100px;
-          padding: var(--cf-spacing-md);
+      @container cardforge-container (max-width: 300px) {
+        .clock-card {
+          padding: var(--cf-spacing-md) !important;
         }
         
-        .clock-time {
-          font-size: 1.8em;
+        .layout-elegant .time-primary {
+          font-size: 1.8em !important;
         }
         
-        .clock-date,
-        .clock-weekday {
-          font-size: 0.9em;
-        }
-      }
-      
-      @media (max-width: 400px) {
-        .clock-card.simple-layout {
-          min-height: 90px;
-          padding: var(--cf-spacing-sm);
-        }
-        
-        .clock-time {
-          font-size: 1.6em;
-        }
-        
-        .clock-date,
-        .clock-weekday {
-          font-size: 0.85em;
+        .date-weekday {
+          flex-direction: column !important;
         }
       }
       
       /* 动画效果 */
-      @keyframes time-update {
-        0% { opacity: 0.9; transform: translateY(1px); }
-        100% { opacity: 1; transform: translateY(0); }
+      .clock-card {
+        transition: all 0.3s ease;
       }
       
-      .clock-time {
-        animation: time-update 0.5s ease-in-out;
+      .time-primary {
+        transition: transform 0.2s ease;
+      }
+      
+      .clock-card:hover .time-primary {
+        transform: scale(1.05);
       }
     `;
-  }
-
-  // === 辅助方法 ===
-  _getDisplayTime(timeFormat, showSeconds) {
-    const showSec = showSeconds === true || showSeconds === 'true';
-    
-    switch (timeFormat) {
-      case '12h':
-        return showSec ? '$time_12h' : '$time_12h'.replace(/:\d{2}\s/, ' ');
-      case '24h':
-        return showSec ? '$time_24h' : '$time';
-      case 'auto':
-      default:
-        // 根据系统偏好自动选择
-        const is12Hour = Intl.DateTimeFormat().resolvedOptions().hour12;
-        return is12Hour ? 
-          (showSec ? '$time_12h' : '$time_12h'.replace(/:\d{2}\s/, ' ')) :
-          (showSec ? '$time_24h' : '$time');
-    }
   }
 }
 

@@ -31,12 +31,19 @@ class HaCardForgeCard extends LitElement {
       this._loading = true;
       this._error = null;
       
+      // 验证配置
       this.config = this._validateConfig(config);
       
+      // 初始化插件系统
       await PluginRegistry.initialize();
       
+      // 加载插件
       this._plugin = await this._loadPlugin(this.config.plugin);
       
+      // 验证插件配置
+      this._validatePluginConfig();
+      
+      // 更新实体数据
       this._updateEntities();
       
     } catch (error) {
@@ -59,6 +66,18 @@ class HaCardForgeCard extends LitElement {
       theme: 'auto',
       ...config
     };
+  }
+
+  _validatePluginConfig() {
+    if (!this._plugin) return;
+    
+    try {
+      const manifest = this._plugin.getManifest();
+      this._plugin._validateConfig(this.config, manifest);
+      this.config = this._plugin._applyConfigDefaults(this.config, manifest);
+    } catch (error) {
+      console.warn('插件配置验证警告:', error.message);
+    }
   }
 
   async _loadPlugin(pluginId) {
@@ -174,7 +193,7 @@ class HaCardForgeCard extends LitElement {
 
   static getStubConfig() {
     return {
-      plugin: 'clock-card',
+      plugin: 'simple-clock',
       entities: {},
       theme: 'auto'
     };
