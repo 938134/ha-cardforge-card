@@ -11,13 +11,6 @@ class WelcomeCard extends BasePlugin {
     icon: '👋',
     author: 'CardForge',
     config_schema: {
-      user_name: {
-        type: 'text',
-        label: '用户名',
-        required: false,
-        default: '',
-        description: '留空将使用系统用户名'
-      },
       show_datetime: {
         type: 'boolean',
         label: '显示日期时间',
