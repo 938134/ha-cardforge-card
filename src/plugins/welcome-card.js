@@ -447,7 +447,5 @@ export class WelcomeCardPlugin extends BasePlugin {
   }
 }
 
-// 注册插件
-if (typeof window !== 'undefined' && window.cardforge) {
-  window.cardforge.registerPlugin(new WelcomeCardPlugin());
-}
+export default WelcomeCardPlugin;
+export const manifest = WelcomeCardPlugin.manifest;
