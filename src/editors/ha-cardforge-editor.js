@@ -16,7 +16,6 @@ class HaCardForgeEditor extends LitElement {
     _themes: { state: true },
     _selectedPlugin: { state: true },
     _initialized: { state: true },
-    _configVersion: { state: true },
     _themePreviewStyles: { state: true },
     _isDarkMode: { state: true },
     _pluginManifest: { state: true }
@@ -69,7 +68,6 @@ class HaCardForgeEditor extends LitElement {
     this._themes = [];
     this._selectedPlugin = null;
     this._initialized = false;
-    this._configVersion = 0;
     this._themePreviewStyles = '';
     this._isDarkMode = false;
     this._pluginManifest = null;
@@ -109,7 +107,6 @@ class HaCardForgeEditor extends LitElement {
       theme: 'auto',
       ...config 
     };
-    this._configVersion = 0;
     
     if (this.config.plugin) {
       this._selectedPlugin = PluginRegistry.getPlugin(this.config.plugin);
@@ -138,9 +135,6 @@ class HaCardForgeEditor extends LitElement {
           
           <!-- 数据源配置区域 -->
           ${this.config.plugin ? this._renderDatasourceSection() : ''}
-          
-          <!-- 实时预览区域 -->
-          ${this.config.plugin ? this._renderPreviewSection() : ''}
           
           <!-- 操作按钮 -->
           ${this._renderActionButtons()}
@@ -332,31 +326,6 @@ class HaCardForgeEditor extends LitElement {
     `;
   }
 
-  _renderPreviewSection() {
-    return html`
-      <div class="editor-section">
-        <div class="section-header">
-          <span class="section-icon">👁️</span>
-          <span>实时预览</span>
-        </div>
-        
-        <div class="preview-container">
-          <ha-cardforge-card
-            .hass=${this.hass}
-            .config=${{
-              ...this.config,
-              _preview: true
-            }}
-          ></ha-cardforge-card>
-        </div>
-        
-        <div class="cf-text-xs cf-text-secondary cf-mt-sm">
-          💡 预览基于当前配置和实体状态
-        </div>
-      </div>
-    `;
-  }
-
   _renderActionButtons() {
     return html`
       <div class="editor-section">
@@ -387,7 +356,7 @@ class HaCardForgeEditor extends LitElement {
     };
     this._selectedPlugin = PluginRegistry.getPlugin(plugin.id);
     this._pluginManifest = this._selectedPlugin?.manifest || null;
-    this._forcePreviewUpdate();
+    this._notifyConfigUpdate();
   }
 
   _onThemeSelected(themeId) {
@@ -397,7 +366,7 @@ class HaCardForgeEditor extends LitElement {
       ...this.config,
       theme: themeId
     };
-    this._forcePreviewUpdate();
+    this._notifyConfigUpdate();
   }
 
   _onConfigChanged(key, value) {
@@ -405,7 +374,7 @@ class HaCardForgeEditor extends LitElement {
       ...this.config,
       [key]: value
     };
-    this._forcePreviewUpdate();
+    this._notifyConfigUpdate();
   }
 
   _onDatasourceChanged(key, value) {
@@ -413,18 +382,12 @@ class HaCardForgeEditor extends LitElement {
       ...this.config.entities,
       [key]: value
     };
-    this._forcePreviewUpdate();
+    this._notifyConfigUpdate();
   }
 
-  _forcePreviewUpdate() {
-    this._configVersion++;
-    const newConfig = {
-      ...this.config,
-      _version: this._configVersion
-    };
-    
+  _notifyConfigUpdate() {
     this.dispatchEvent(new CustomEvent('config-changed', {
-      detail: { config: newConfig }
+      detail: { config: this.config }
     }));
     this.requestUpdate();
   }
