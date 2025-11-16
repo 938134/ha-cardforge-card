@@ -192,31 +192,43 @@ export const editorStyles = css`
     color: var(--cf-error-color);
   }
 
-  /* ===== 修复下拉菜单超出问题 ===== */
+  /* ===== 彻底修复下拉菜单问题 ===== */
   ha-select {
     --mdc-menu-min-width: 100%;
     --mdc-menu-max-width: 100%;
-    --mdc-menu-min-height: 0;
+    --mdc-menu-max-height: 200px;
+    --mdc-menu-z-index: 10000;
     width: 100%;
     position: relative;
   }
 
-  /* 重要：修复下拉菜单位置和高度 */
-  ha-select {
-    --mdc-menu-max-height: 250px;
-  }
-
-  .mdc-menu-surface {
-    max-height: 250px !important;
+  /* 强制修复下拉菜单样式 */
+  ha-select::part(mdc-menu) {
+    max-height: 200px !important;
     overflow-y: auto !important;
     position: fixed !important;
     z-index: 10000 !important;
+    transform: none !important;
   }
 
-  /* 确保下拉菜单在编辑器内部 */
+  /* 修复下拉菜单项 */
+  .mdc-menu-surface {
+    max-height: 200px !important;
+    overflow-y: auto !important;
+    position: fixed !important;
+    z-index: 10000 !important;
+    transform: none !important;
+  }
+
+  /* 防止下拉菜单被裁剪 */
   .editor-container {
     position: relative;
     z-index: 1;
+    overflow: visible !important;
+  }
+
+  .editor-section {
+    overflow: visible !important;
   }
 
   /* ===== 紧凑型开关组 ===== */
@@ -224,6 +236,7 @@ export const editorStyles = css`
     display: grid;
     grid-template-columns: repeat(2, 1fr);
     gap: var(--cf-spacing-md);
+    margin-bottom: var(--cf-spacing-lg);
   }
 
   .switch-item-compact {

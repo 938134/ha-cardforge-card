@@ -27,20 +27,25 @@ class HaCardForgeEditor extends LitElement {
       :host {
         display: block;
         max-width: 100%;
+        overflow: visible !important;
       }
 
-      /* 强制修复下拉菜单样式 */
+      /* 彻底修复下拉菜单 */
       ha-select {
-        --mdc-menu-max-height: 250px;
         --mdc-menu-min-width: 100%;
         --mdc-menu-max-width: 100%;
+        --mdc-menu-max-height: 200px;
+        --mdc-menu-z-index: 10000;
+        width: 100%;
       }
 
-      .mdc-menu-surface {
-        max-height: 250px !important;
-        overflow-y: auto !important;
-        position: fixed !important;
-        z-index: 10000 !important;
+      /* 防止下拉菜单被裁剪 */
+      .editor-container {
+        overflow: visible !important;
+      }
+
+      .editor-section {
+        overflow: visible !important;
       }
     `
   ];
@@ -59,6 +64,7 @@ class HaCardForgeEditor extends LitElement {
     this._themePreviewStyles = '';
     this._isDarkMode = false;
     this._pluginManifest = null;
+    this._dropdownOpen = false;
   }
 
   async firstUpdated() {
@@ -76,6 +82,18 @@ class HaCardForgeEditor extends LitElement {
       this._selectedPlugin = PluginRegistry.getPlugin(this.config.plugin);
       this._pluginManifest = this._selectedPlugin?.manifest || null;
     }
+
+    // 监听全局点击事件，防止下拉菜单意外关闭
+    this._setupGlobalListeners();
+  }
+
+  _setupGlobalListeners() {
+    // 防止下拉菜单被意外关闭
+    document.addEventListener('click', (e) => {
+      if (this._dropdownOpen && !this.contains(e.target)) {
+        e.stopPropagation();
+      }
+    }, true);
   }
 
   _detectDarkMode() {
@@ -251,15 +269,12 @@ class HaCardForgeEditor extends LitElement {
             </label>
             <ha-select
               .value=${currentValue}
+              @opened=${() => this._onDropdownOpened()}
+              @closed=${() => this._onDropdownClosed()}
               @selected=${e => {
                 this._onConfigChanged(key, e.target.value);
-                // 延迟关闭下拉菜单
-                setTimeout(() => {
-                  const select = e.target;
-                  if (select && select.menu) {
-                    select.menu.open = false;
-                  }
-                }, 100);
+                // 不立即关闭，让用户看到选择结果
+                setTimeout(() => this._onDropdownClosed(), 300);
               }}
               fixedMenuPosition
               naturalMenuWidth
@@ -370,6 +385,14 @@ class HaCardForgeEditor extends LitElement {
     `;
   }
 
+  _onDropdownOpened() {
+    this._dropdownOpen = true;
+  }
+
+  _onDropdownClosed() {
+    this._dropdownOpen = false;
+  }
+
   _onPluginSelected(plugin) {
     if (plugin.id === this.config.plugin) return;
 
@@ -431,6 +454,12 @@ class HaCardForgeEditor extends LitElement {
     if (changedProperties.has('hass')) {
       this.requestUpdate();
     }
+  }
+
+  disconnectedCallback() {
+    // 清理事件监听器
+    document.removeEventListener('click', this._stopPropagationHandler, true);
+    super.disconnectedCallback();
   }
 }
 
