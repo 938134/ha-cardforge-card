@@ -1,9 +1,9 @@
 // src/plugins/welcome-card.js
 import { BasePlugin } from '../core/base-plugin.js';
 
-export class WelcomeCardPlugin extends BasePlugin {
+class WelcomeCard extends BasePlugin {
   static manifest = {
-    id: 'welcome_card',
+    id: 'welcome-card',
     name: '欢迎卡片',
     version: '1.0.0',
     description: '显示个性化欢迎信息和每日一言',
@@ -108,7 +108,6 @@ export class WelcomeCardPlugin extends BasePlugin {
 
   getStyles(config) {
     const baseStyles = this.getBaseStyles(config);
-    const layoutStyle = config.layout_style || 'classic';
     
     return `
       ${baseStyles}
@@ -316,7 +315,7 @@ export class WelcomeCardPlugin extends BasePlugin {
       };
     }
 
-    // 默认使用内置名言（这里可以扩展从API获取）
+    // 默认使用内置名言
     return this._getDefaultQuote();
   }
 
@@ -447,5 +446,5 @@ export class WelcomeCardPlugin extends BasePlugin {
   }
 }
 
-export default WelcomeCardPlugin;
-export const manifest = WelcomeCardPlugin.manifest;
+export default WelcomeCard;
+export const manifest = WelcomeCard.manifest;
