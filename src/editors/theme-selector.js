@@ -23,15 +23,14 @@ export class ThemeSelector extends LitElement {
   render() {
     return html`
       <div class="theme-selector">
-        <div class="cf-grid cf-grid-auto cf-gap-md">
+        <div class="selector-grid">
           ${this._themes.map(theme => html`
             <div 
-              class="cf-card theme-item ${this.selectedTheme === theme.id ? 'selected' : ''}"
+              class="selector-item ${this.selectedTheme === theme.id ? 'selected' : ''}"
               @click=${() => this._selectTheme(theme.id)}
             >
               <div class="theme-preview theme-preview-${theme.id}"></div>
-              <div class="theme-name">${theme.name}</div>
-              <div class="theme-description">${theme.description}</div>
+              <div class="selector-name">${theme.name}</div>
             </div>
           `)}
         </div>
