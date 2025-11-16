@@ -17,7 +17,7 @@ class PluginRegistry {
 
   static async _discoverPlugins() {
     const pluginModules = [
-      () => import('../plugins/simple-clock.js'),
+      () => import('../plugins/clock-card.js'),
       () => import('../plugins/weather-card.js'),
       () => import('../plugins/welcome-card.js'),
       () => import('../plugins/time-week.js'),
