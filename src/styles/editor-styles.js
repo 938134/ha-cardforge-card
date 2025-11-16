@@ -164,18 +164,27 @@ export const editorStyles = css`
     border-color: rgba(255, 255, 255, 0.5);
   }
 
-  /* ===== 自适应配置网格 ===== */
-  .config-grid {
+  /* ===== 紧凑型配置网格 ===== */
+  .config-grid-compact {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-    gap: var(--cf-spacing-lg);
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: var(--cf-spacing-md);
     width: 100%;
   }
 
-  .config-field {
+  .config-item {
     display: flex;
     flex-direction: column;
     gap: var(--cf-spacing-sm);
+    padding: var(--cf-spacing-md);
+    border: 1px solid var(--cf-border);
+    border-radius: var(--cf-radius-md);
+    background: var(--cf-surface);
+    transition: all var(--cf-transition-fast);
+  }
+
+  .config-item:hover {
+    border-color: var(--cf-primary-color);
   }
 
   .config-label {
@@ -191,7 +200,7 @@ export const editorStyles = css`
     color: var(--cf-error-color);
   }
 
-  /* ===== 修复下拉菜单超出问题 ===== */
+  /* ===== 彻底修复下拉菜单超出问题 ===== */
   ha-select {
     --mdc-menu-min-width: 100%;
     --mdc-menu-max-width: 100%;
@@ -200,12 +209,23 @@ export const editorStyles = css`
     position: relative;
   }
 
-  /* 限制下拉菜单最大高度 */
-  ha-select::part(mdc-menu) {
-    max-height: 300px !important;
+  /* 强制限制下拉菜单在视口内 */
+  .mdc-menu-surface {
+    max-height: min(300px, 50vh) !important;
     overflow-y: auto !important;
-    position: absolute !important;
-    z-index: 1000;
+    position: fixed !important;
+    z-index: 10000 !important;
+    transform-origin: top center !important;
+  }
+
+  /* 确保下拉菜单不会超出视口 */
+  .mdc-menu-surface--open {
+    max-height: min(300px, calc(100vh - 100px)) !important;
+    top: auto !important;
+    bottom: auto !important;
+    left: 0 !important;
+    right: 0 !important;
+    margin: 0 auto !important;
   }
 
   /* ===== 紧凑型开关组 ===== */
@@ -213,14 +233,13 @@ export const editorStyles = css`
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
     gap: var(--cf-spacing-sm);
-    margin-top: var(--cf-spacing-xs);
   }
 
   .switch-item {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: var(--cf-spacing-sm) var(--cf-spacing-md);
+    padding: var(--cf-spacing-sm);
     border: 1px solid var(--cf-border);
     border-radius: var(--cf-radius-md);
     background: var(--cf-surface);
@@ -243,7 +262,6 @@ export const editorStyles = css`
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
     gap: var(--cf-spacing-sm);
-    margin-top: var(--cf-spacing-xs);
   }
 
   .radio-option-compact {
@@ -354,7 +372,7 @@ export const editorStyles = css`
 
   /* ===== 响应式优化 ===== */
   @media (max-width: 768px) {
-    .config-grid {
+    .config-grid-compact {
       grid-template-columns: 1fr;
       gap: var(--cf-spacing-md);
     }

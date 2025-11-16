@@ -29,9 +29,18 @@ class HaCardForgeEditor extends LitElement {
         max-width: 100%;
       }
 
-      /* 修复下拉菜单最大高度 */
+      /* 强制修复下拉菜单样式 */
       ha-select {
         --mdc-menu-max-height: 300px;
+        --mdc-menu-min-width: 100%;
+        --mdc-menu-max-width: 100%;
+      }
+
+      .mdc-menu-surface {
+        max-height: 300px !important;
+        overflow-y: auto !important;
+        position: fixed !important;
+        z-index: 10000 !important;
       }
     `
   ];
@@ -184,6 +193,10 @@ class HaCardForgeEditor extends LitElement {
     
     const schema = this._pluginManifest.config_schema;
     
+    // 按类型分组配置项
+    const booleanFields = Object.entries(schema).filter(([_, field]) => field.type === 'boolean');
+    const otherFields = Object.entries(schema).filter(([_, field]) => field.type !== 'boolean');
+    
     return html`
       <div class="editor-section">
         <div class="section-header">
@@ -191,38 +204,46 @@ class HaCardForgeEditor extends LitElement {
           <span>卡片配置</span>
         </div>
         
-        <div class="config-grid">
-          ${Object.entries(schema).map(([key, field]) => 
-            this._renderConfigField(key, field)
-          )}
-        </div>
+        <!-- 布尔类型配置项 - 紧凑网格布局 -->
+        ${booleanFields.length > 0 ? html`
+          <div class="config-grid-compact">
+            ${booleanFields.map(([key, field]) => this._renderBooleanField(key, field))}
+          </div>
+        ` : ''}
+        
+        <!-- 其他类型配置项 - 紧凑网格布局 -->
+        ${otherFields.length > 0 ? html`
+          <div class="config-grid-compact" style="margin-top: ${booleanFields.length > 0 ? 'var(--cf-spacing-lg)' : '0'}">
+            ${otherFields.map(([key, field]) => this._renderOtherField(key, field))}
+          </div>
+        ` : ''}
       </div>
     `;
   }
 
-  _renderConfigField(key, field) {
+  _renderBooleanField(key, field) {
     const currentValue = this.config[key] !== undefined ? this.config[key] : field.default;
 
-    // 处理布尔类型（开关）
-    if (field.type === 'boolean') {
-      return html`
-        <div class="switch-item">
-          <span class="switch-label">
-            ${field.label}
-            ${field.required ? html`<span class="required-star">*</span>` : ''}
-          </span>
-          <ha-switch
-            .checked=${!!currentValue}
-            @change=${e => this._onConfigChanged(key, e.target.checked)}
-          ></ha-switch>
-        </div>
-      `;
-    }
+    return html`
+      <div class="config-item">
+        <label class="config-label">
+          ${field.label}
+          ${field.required ? html`<span class="required-star">*</span>` : ''}
+        </label>
+        <ha-switch
+          .checked=${!!currentValue}
+          @change=${e => this._onConfigChanged(key, e.target.checked)}
+        ></ha-switch>
+      </div>
+    `;
+  }
 
-    // 处理选择类型（下拉）
+  _renderOtherField(key, field) {
+    const currentValue = this.config[key] !== undefined ? this.config[key] : field.default;
+
     if (field.type === 'select') {
       return html`
-        <div class="config-field">
+        <div class="config-item">
           <label class="config-label">
             ${field.label}
             ${field.required ? html`<span class="required-star">*</span>` : ''}
@@ -250,10 +271,9 @@ class HaCardForgeEditor extends LitElement {
       `;
     }
 
-    // 处理数字类型
     if (field.type === 'number') {
       return html`
-        <div class="config-field">
+        <div class="config-item">
           <label class="config-label">
             ${field.label}
             ${field.required ? html`<span class="required-star">*</span>` : ''}
@@ -273,7 +293,7 @@ class HaCardForgeEditor extends LitElement {
 
     // 默认文本输入
     return html`
-      <div class="config-field">
+      <div class="config-item">
         <label class="config-label">
           ${field.label}
           ${field.required ? html`<span class="required-star">*</span>` : ''}
@@ -309,9 +329,9 @@ class HaCardForgeEditor extends LitElement {
           <span>数据源配置</span>
         </div>
         
-        <div class="config-grid">
+        <div class="config-grid-compact">
           ${requirements.map(req => html`
-            <div class="config-field">
+            <div class="config-item">
               <label class="config-label">
                 ${req.description}
                 ${req.required ? html`<span class="required-star">*</span>` : ''}
