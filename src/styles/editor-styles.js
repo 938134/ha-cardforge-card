@@ -177,26 +177,101 @@ export const editorStyles = css`
     color: var(--cf-error-color);
   }
 
-  /* ===== 简化表单控件样式 ===== */
-  .form-control {
-    width: 100%;
-  }
-
-  /* 修复下拉菜单超出问题 */
+  /* ===== 修复下拉菜单超出问题 ===== */
   ha-select {
     --mdc-menu-min-width: 100%;
     --mdc-menu-max-width: 100%;
     --mdc-menu-min-height: 0;
     width: 100%;
+    position: relative;
   }
 
-  /* 确保下拉菜单在编辑器内部 */
+  /* 限制下拉菜单最大高度，防止超出窗口 */
   ha-select::part(mdc-menu) {
+    max-height: 300px !important;
+    overflow-y: auto !important;
     position: fixed !important;
     z-index: 1000;
   }
 
-  /* 开关控件行内布局 */
+  /* 确保下拉菜单在视口内 */
+  .mdc-menu-surface {
+    max-height: 300px !important;
+    overflow-y: auto !important;
+  }
+
+  /* ===== 官方风格的单选按钮组 ===== */
+  .radio-group-container {
+    display: flex;
+    flex-direction: column;
+    gap: var(--cf-spacing-sm);
+  }
+
+  .radio-group-label {
+    font-weight: 500;
+    font-size: 0.95em;
+    color: var(--cf-text-primary);
+    margin-bottom: var(--cf-spacing-xs);
+  }
+
+  /* 水平排列的单选按钮 */
+  .radio-group-horizontal {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--cf-spacing-sm);
+    align-items: center;
+  }
+
+  /* 官方风格的单选按钮 */
+  .form-radio {
+    display: flex;
+    align-items: center;
+    gap: var(--cf-spacing-sm);
+    padding: var(--cf-spacing-sm) var(--cf-spacing-md);
+    border: 1px solid var(--cf-border);
+    border-radius: var(--cf-radius-md);
+    cursor: pointer;
+    transition: all var(--cf-transition-fast);
+    background: var(--cf-surface);
+    min-width: 80px;
+    justify-content: center;
+  }
+
+  .form-radio:hover {
+    border-color: var(--cf-primary-color);
+    background: rgba(var(--cf-rgb-primary), 0.05);
+  }
+
+  .form-radio.selected {
+    border-color: var(--cf-primary-color);
+    background: var(--cf-primary-color);
+    color: white;
+  }
+
+  .form-radio input[type="radio"] {
+    display: none;
+  }
+
+  .form-radio .radio-label {
+    font-size: 0.9em;
+    font-weight: 500;
+    cursor: pointer;
+  }
+
+  /* 紧凑型单选按钮（用于选项较多的情况） */
+  .radio-group-compact {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
+    gap: var(--cf-spacing-sm);
+  }
+
+  .form-radio.compact {
+    padding: var(--cf-spacing-xs) var(--cf-spacing-sm);
+    min-width: 60px;
+    font-size: 0.85em;
+  }
+
+  /* ===== 开关控件行内布局 ===== */
   .switch-field {
     display: flex;
     align-items: center;
@@ -213,56 +288,6 @@ export const editorStyles = css`
     font-size: 0.95em;
     color: var(--cf-text-primary);
     flex: 1;
-  }
-
-  /* 单选按钮组布局 */
-  .radio-group {
-    display: flex;
-    flex-wrap: wrap;
-    gap: var(--cf-spacing-sm);
-    margin-top: var(--cf-spacing-xs);
-  }
-
-  .radio-option {
-    display: flex;
-    align-items: center;
-    gap: var(--cf-spacing-xs);
-    padding: var(--cf-spacing-sm) var(--cf-spacing-md);
-    border: 1px solid var(--cf-border);
-    border-radius: var(--cf-radius-md);
-    cursor: pointer;
-    transition: all var(--cf-transition-fast);
-    background: var(--cf-surface);
-    font-size: 0.9em;
-  }
-
-  .radio-option:hover {
-    border-color: var(--cf-primary-color);
-  }
-
-  .radio-option.selected {
-    border-color: var(--cf-primary-color);
-    background: var(--cf-primary-color);
-    color: white;
-  }
-
-  /* 数字输入框 */
-  .number-input {
-    width: 100%;
-  }
-
-  /* ===== 主题预览样式 ===== */
-  .theme-preview {
-    width: 100%;
-    height: 60px;
-    border-radius: var(--cf-radius-sm);
-    margin-bottom: var(--cf-spacing-sm);
-    border: 2px solid transparent;
-    transition: all var(--cf-transition-fast);
-  }
-
-  .selector-item.selected .theme-preview {
-    border-color: rgba(255, 255, 255, 0.5);
   }
 
   /* ===== 智能输入组件样式 ===== */
@@ -369,13 +394,14 @@ export const editorStyles = css`
       font-size: 0.85em;
     }
     
-    .radio-group {
-      gap: var(--cf-spacing-xs);
+    .radio-group-compact {
+      grid-template-columns: repeat(auto-fit, minmax(80px, 1fr));
     }
     
-    .radio-option {
-      padding: var(--cf-spacing-xs) var(--cf-spacing-sm);
-      font-size: 0.85em;
+    .form-radio.compact {
+      min-width: 50px;
+      font-size: 0.8em;
+      padding: 8px 10px;
     }
   }
 
@@ -392,6 +418,15 @@ export const editorStyles = css`
       min-height: 85px;
     }
     
+    .radio-group-horizontal {
+      flex-direction: column;
+      align-items: stretch;
+    }
+    
+    .form-radio {
+      min-width: auto;
+    }
+    
     .action-buttons {
       flex-direction: column;
     }
@@ -404,6 +439,10 @@ export const editorStyles = css`
   @media (max-width: 360px) {
     .selector-grid {
       grid-template-columns: repeat(2, 1fr);
+    }
+    
+    .radio-group-compact {
+      grid-template-columns: 1fr;
     }
   }
 `;

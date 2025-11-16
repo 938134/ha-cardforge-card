@@ -214,6 +214,11 @@ class HaCardForgeEditor extends LitElement {
         `;
         
       case 'select':
+        // 对于选项较少的select，使用单选按钮组
+        if (field.options && field.options.length <= 5) {
+          return this._renderRadioGroup(key, field, currentValue);
+        }
+        
         return html`
           <div class="config-field">
             <label class="config-label">
@@ -222,10 +227,9 @@ class HaCardForgeEditor extends LitElement {
             </label>
             <ha-select
               .value=${currentValue}
-              @closed=${this._preventDropdownClose}
               @selected=${e => {
                 this._onConfigChanged(key, e.target.value);
-                // 延迟关闭以防止立即重新渲染
+                // 延迟关闭下拉
                 setTimeout(() => {
                   const select = this.shadowRoot.querySelector(`ha-select[value="${e.target.value}"]`);
                   if (select) select.blur();
@@ -275,6 +279,33 @@ class HaCardForgeEditor extends LitElement {
           </div>
         `;
     }
+  }
+
+  _renderRadioGroup(key, field, currentValue) {
+    const isCompact = field.options && field.options.length > 3;
+    
+    return html`
+      <div class="config-field">
+        <div class="radio-group-label">
+          ${field.label}
+          ${field.required ? html`<span class="required-star">*</span>` : ''}
+        </div>
+        <div class="${isCompact ? 'radio-group-compact' : 'radio-group-horizontal'}">
+          ${field.options.map(option => html`
+            <label class="form-radio ${isCompact ? 'compact' : ''} ${currentValue === option ? 'selected' : ''}">
+              <input 
+                type="radio" 
+                name="${key}" 
+                value="${option}" 
+                .checked=${currentValue === option}
+                @change=${e => this._onConfigChanged(key, e.target.value)}
+              >
+              <span class="radio-label">${option}</span>
+            </label>
+          `)}
+        </div>
+      </div>
+    `;
   }
 
   _renderDatasourceSection() {
@@ -338,11 +369,6 @@ class HaCardForgeEditor extends LitElement {
         </div>
       </div>
     `;
-  }
-
-  _preventDropdownClose(e) {
-    // 阻止下拉菜单自动关闭
-    e.stopPropagation();
   }
 
   _onPluginSelected(plugin) {
