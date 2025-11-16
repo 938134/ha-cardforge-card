@@ -36,34 +36,12 @@ class WelcomeCard extends BasePlugin {
         required: false,
         default: true
       },
-      daily_quote_source: {
-        type: 'select',
-        label: '名言来源',
-        required: false,
-        default: 'hitokoto',
-        options: ['hitokoto', 'custom'],
-        description: '选择名言来源'
-      },
-      custom_quote: {
-        type: 'text',
-        label: '自定义名言',
-        required: false,
-        default: '',
-        description: '当选择自定义来源时使用'
-      },
       layout_style: {
         type: 'select',
         label: '布局样式',
         required: false,
         default: 'classic',
         options: ['classic', 'modern', 'minimal']
-      },
-      background_image: {
-        type: 'text',
-        label: '背景图片',
-        required: false,
-        default: '',
-        description: '背景图片URL（可选）'
       }
     },
     entity_requirements: [
@@ -77,16 +55,23 @@ class WelcomeCard extends BasePlugin {
 
   getTemplate(config, hass, entities) {
     try {
+      // 确保 config 不是 undefined
+      const safeConfig = config || {};
+      
       // 应用配置默认值并验证
       const manifest = this.getManifest();
-      const validatedConfig = this._applyConfigDefaults(config, manifest);
-      this._validateConfig(validatedConfig, manifest);
+      const validatedConfig = this._applyConfigDefaults(safeConfig, manifest);
+      
+      // 在编辑器环境中跳过严格验证
+      if (hass) {
+        this._validateConfig(validatedConfig, manifest);
+      }
 
-      // 获取系统数据
+      // 获取系统数据（处理编辑器环境）
       const systemData = this.getSystemData(hass, validatedConfig);
       
-      // 获取用户名
-      const userName = validatedConfig.user_name || systemData.user;
+      // 安全获取用户名
+      const userName = validatedConfig.user_name || systemData.user || '家人';
       
       // 获取每日一言
       const dailyQuote = this._getDailyQuote(hass, entities, validatedConfig);
@@ -102,12 +87,13 @@ class WelcomeCard extends BasePlugin {
       }
 
     } catch (error) {
+      console.error('欢迎卡片渲染错误:', error);
       return this._renderError(`欢迎卡片渲染失败: ${error.message}`);
     }
   }
 
   getStyles(config) {
-    const baseStyles = this.getBaseStyles(config);
+    const baseStyles = this.getBaseStyles(config || {});
     
     return `
       ${baseStyles}
@@ -296,8 +282,11 @@ class WelcomeCard extends BasePlugin {
       return null;
     }
 
+    // 安全处理 entities 参数
+    const safeEntities = entities || {};
+    
     // 如果有每日一言传感器实体，优先使用
-    const quoteEntity = entities.daily_quote;
+    const quoteEntity = safeEntities.daily_quote;
     if (quoteEntity && quoteEntity.state) {
       return {
         content: quoteEntity.state,
@@ -380,7 +369,7 @@ class WelcomeCard extends BasePlugin {
       `style="background-image: url('${this._renderSafeHTML(config.background_image)}')"` : '';
     
     const backgroundClass = config.background_image ? 'background-image' : '';
-    const userInitial = userName.charAt(0).toUpperCase();
+    const userInitial = userName ? userName.charAt(0).toUpperCase() : '家';
 
     return `
       <div class="cardforge-responsive-container welcome-card ${backgroundClass}" ${backgroundStyle}>
