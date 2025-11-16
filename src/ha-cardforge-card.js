@@ -193,7 +193,7 @@ class HaCardForgeCard extends LitElement {
 
   static getStubConfig() {
     return {
-      plugin: 'clock-card',
+      plugin: 'welcome-card',
       entities: {},
       theme: 'auto'
     };
