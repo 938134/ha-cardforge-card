@@ -4,219 +4,290 @@ import { BasePlugin } from '../core/base-plugin.js';
 class OilPriceCard extends BasePlugin {
   static manifest = {
     id: 'oilprice-card',
-    name: '油价卡片',
+    name: '油价信息',
     version: '1.0.0',
-    description: '紧凑布局的油价信息卡片，支持多油品显示',
-    category: 'life',
+    description: '显示各省市油价信息和调价趋势',
+    category: 'information',
     icon: '⛽',
-    author: 'CardForge Team',
+    author: 'CardForge',
     
     config_schema: {
-      // 布局配置
-      layout_mode: {
-        type: 'select',
-        label: '布局模式',
-        options: ['auto', 'compact', 'detailed'],
-        default: 'auto',
-        description: '选择油品显示布局方式'
-      },
-      
+      // 显示配置
       show_province: {
         type: 'boolean',
         label: '显示省份',
         default: true,
-        description: '显示省份信息'
+        description: '显示油价所属省份'
       },
       
       show_trend: {
         type: 'boolean',
-        label: '显示走势',
+        label: '显示价格趋势',
         default: true,
-        description: '显示油价走势信息'
+        description: '显示油价涨跌趋势箭头'
       },
       
-      show_next_adjust: {
+      show_next_adjustment: {
         type: 'boolean',
-        label: '显示调价时间',
+        label: '显示下次调价',
         default: true,
-        description: '显示下次调价时间'
+        description: '显示下次调价窗口期'
       },
       
-      // 样式配置
-      price_emphasis: {
-        type: 'select',
-        label: '价格强调',
-        options: ['none', 'highlight_92', 'highlight_95'],
-        default: 'highlight_92',
-        description: '选择要强调的油品价格'
+      show_update_time: {
+        type: 'boolean',
+        label: '显示更新时间',
+        default: true,
+        description: '显示油价数据更新时间'
       },
       
-      compact_style: {
+      // 布局配置
+      layout_style: {
         type: 'select',
-        label: '紧凑样式',
-        options: ['minimal', 'bordered', 'card'],
-        default: 'bordered',
-        description: '油品项的显示样式'
+        label: '布局风格',
+        options: ['standard', 'compact', 'detailed', 'minimal'],
+        default: 'standard',
+        description: '选择油价卡片的布局风格'
+      },
+      
+      // 油品显示配置
+      show_diesel: {
+        type: 'boolean',
+        label: '显示0#柴油',
+        default: true,
+        description: '显示0号柴油价格'
+      },
+      
+      show_92: {
+        type: 'boolean',
+        label: '显示92#汽油',
+        default: true,
+        description: '显示92号汽油价格'
+      },
+      
+      show_95: {
+        type: 'boolean',
+        label: '显示95#汽油',
+        default: true,
+        description: '显示95号汽油价格'
+      },
+      
+      show_98: {
+        type: 'boolean',
+        label: '显示98#汽油',
+        default: true,
+        description: '显示98号汽油价格'
+      },
+      
+      // 颜色配置
+      use_color_coding: {
+        type: 'boolean',
+        label: '使用颜色编码',
+        default: true,
+        description: '使用颜色表示价格涨跌'
       }
     },
     
     entity_requirements: [
       {
         key: 'province',
-        description: '省份',
-        required: false,
-        type: 'string'
+        description: '省份名称',
+        required: true,
+        suggested: 'sensor.oilprice_province'
       },
       {
         key: 'diesel_0',
-        description: '0号柴油价格',
+        description: '0#柴油价格',
         required: false,
-        type: 'string'
+        suggested: 'sensor.oilprice_diesel_0'
       },
       {
         key: 'gasoline_92',
-        description: '92号汽油价格',
-        required: false,
-        type: 'string'
+        description: '92#汽油价格',
+        required: true,
+        suggested: 'sensor.oilprice_92'
       },
       {
         key: 'gasoline_95',
-        description: '95号汽油价格',
-        required: false,
-        type: 'string'
+        description: '95#汽油价格',
+        required: true,
+        suggested: 'sensor.oilprice_95'
       },
       {
         key: 'gasoline_98',
-        description: '98号汽油价格',
+        description: '98#汽油价格',
         required: false,
-        type: 'string'
+        suggested: 'sensor.oilprice_98'
       },
       {
-        key: 'next_adjust',
-        description: '下次调价时间',
+        key: 'price_trend',
+        description: '油价趋势',
         required: false,
-        type: 'string'
+        suggested: 'sensor.oilprice_trend'
       },
       {
-        key: 'trend',
-        description: '油价走势',
+        key: 'next_adjustment',
+        description: '下次调价窗口期',
         required: false,
-        type: 'string'
+        suggested: 'sensor.oilprice_next_adjustment'
+      },
+      {
+        key: 'update_time',
+        description: '更新时间',
+        required: false,
+        suggested: 'sensor.oilprice_update_time'
       }
     ]
   };
 
-  // 默认油价数据
-  _getDefaultOilPrice() {
-    return {
-      province: '浙江',
-      diesel_0: '6.57',
-      gasoline_92: '6.92',
-      gasoline_95: '7.36',
-      gasoline_98: '8.86',
-      next_adjust: '11月24日24时',
-      trend: '目前预计下调70元/吨(0.05元/升-0.06元/升)'
+  // 获取趋势图标
+  _getTrendIcon(trend) {
+    const trendMap = {
+      'up': '📈',
+      'down': '📉',
+      'stable': '➡️',
+      'rise': '📈',
+      'fall': '📉',
+      'unchanged': '➡️'
     };
-  }
-
-  // 解析油价数据
-  _parseOilPriceData(entities) {
-    const defaultData = this._getDefaultOilPrice();
     
-    return {
-      province: this._getEntityValue(entities, 'province', defaultData.province),
-      diesel_0: this._getEntityValue(entities, 'diesel_0', defaultData.diesel_0),
-      gasoline_92: this._getEntityValue(entities, 'gasoline_92', defaultData.gasoline_92),
-      gasoline_95: this._getEntityValue(entities, 'gasoline_95', defaultData.gasoline_95),
-      gasoline_98: this._getEntityValue(entities, 'gasoline_98', defaultData.gasoline_98),
-      next_adjust: this._getEntityValue(entities, 'next_adjust', defaultData.next_adjust),
-      trend: this._getEntityValue(entities, 'trend', defaultData.trend)
-    };
+    return trendMap[trend] || '➡️';
   }
 
-  // 格式化价格显示
+  // 获取趋势颜色
+  _getTrendColor(trend, useColor = true) {
+    if (!useColor) return 'var(--cf-text-primary)';
+    
+    const colorMap = {
+      'up': 'var(--cf-error-color)',
+      'down': 'var(--cf-success-color)',
+      'stable': 'var(--cf-text-secondary)',
+      'rise': 'var(--cf-error-color)',
+      'fall': 'var(--cf-success-color)',
+      'unchanged': 'var(--cf-text-secondary)'
+    };
+    
+    return colorMap[trend] || 'var(--cf-text-secondary)';
+  }
+
+  // 获取趋势文本
+  _getTrendText(trend) {
+    const textMap = {
+      'up': '上涨',
+      'down': '下降',
+      'stable': '持平',
+      'rise': '上涨',
+      'fall': '下降',
+      'unchanged': '持平'
+    };
+    
+    return textMap[trend] || '未知';
+  }
+
+  // 格式化价格
   _formatPrice(price) {
-    if (!price) return '-';
-    const num = this._safeParseFloat(price);
+    if (!price) return '--';
+    const num = parseFloat(price);
     return isNaN(num) ? price : num.toFixed(2);
   }
 
-  // 判断是否为下调趋势
-  _isDownwardTrend(trend) {
-    return trend && (trend.includes('下调') || trend.includes('下降') || trend.includes('降低'));
-  }
-
-  // 判断是否为上调趋势
-  _isUpwardTrend(trend) {
-    return trend && (trend.includes('上调') || trend.includes('上涨') || trend.includes('增加'));
-  }
-
-  getTemplate(config, hass, entities) {
-    const oilData = this._parseOilPriceData(entities);
-    
-    // 检查是否有油价数据
-    const hasPriceData = oilData.diesel_0 || oilData.gasoline_92 || oilData.gasoline_95 || oilData.gasoline_98;
-    
-    if (!hasPriceData) {
-      return this._renderError('油价数据不可用', '⛽');
-    }
-
-    const layoutMode = config.layout_mode || 'auto';
+  // 渲染标准布局
+  _renderStandardLayout(config, entities) {
     const showProvince = config.show_province !== false;
     const showTrend = config.show_trend !== false;
-    const showNextAdjust = config.show_next_adjust !== false;
-    const priceEmphasis = config.price_emphasis || 'highlight_92';
-    const compactStyle = config.compact_style || 'bordered';
+    const showNextAdjustment = config.show_next_adjustment !== false;
+    const showUpdateTime = config.show_update_time !== false;
+    const useColorCoding = config.use_color_coding !== false;
 
-    const isDownward = this._isDownwardTrend(oilData.trend);
-    const isUpward = this._isUpwardTrend(oilData.trend);
+    const province = this._getCardValue(this.hass, entities, 'province', '全国');
+    const trend = this._getCardValue(this.hass, entities, 'price_trend', 'stable');
+    const nextAdjustment = this._getCardValue(this.hass, entities, 'next_adjustment', '');
+    const updateTime = this._getCardValue(this.hass, entities, 'update_time', '');
 
-    // 油品数据数组
-    const oilProducts = [
-      { type: 'diesel_0', name: '0号柴油', price: oilData.diesel_0, icon: '🛢️' },
-      { type: 'gasoline_92', name: '92号', price: oilData.gasoline_92, icon: '⛽' },
-      { type: 'gasoline_95', name: '95号', price: oilData.gasoline_95, icon: '⛽' },
-      { type: 'gasoline_98', name: '98号', price: oilData.gasoline_98, icon: '🔥' }
-    ].filter(product => product.price); // 只显示有数据的油品
+    const dieselPrice = config.show_diesel ? this._getCardValue(this.hass, entities, 'diesel_0', '') : null;
+    const gasoline92 = config.show_92 ? this._getCardValue(this.hass, entities, 'gasoline_92', '') : null;
+    const gasoline95 = config.show_95 ? this._getCardValue(this.hass, entities, 'gasoline_95', '') : null;
+    const gasoline98 = config.show_98 ? this._getCardValue(this.hass, entities, 'gasoline_98', '') : null;
+
+    const trendIcon = this._getTrendIcon(trend);
+    const trendColor = this._getTrendColor(trend, useColorCoding);
+    const trendText = this._getTrendText(trend);
 
     return `
-      <div class="cardforge-responsive-container oilprice-card layout-${layoutMode}">
-        <div class="cardforge-content-grid">
-          <!-- 头部信息 -->
-          <div class="oilprice-header">
-            ${showProvince && oilData.province ? `
-              <div class="province-info">
-                <div class="province-icon">📍</div>
-                <div class="province-name">${oilData.province}油价</div>
+      <div class="oilprice-standard">
+        <!-- 头部信息 -->
+        <div class="oilprice-header">
+          ${showProvince ? `
+            <div class="province-info">
+              <span class="province-icon">📍</span>
+              <span class="province-name">${province}</span>
+            </div>
+          ` : ''}
+          
+          ${showTrend ? `
+            <div class="trend-info" style="color: ${trendColor}">
+              <span class="trend-icon">${trendIcon}</span>
+              <span class="trend-text">${trendText}</span>
+            </div>
+          ` : ''}
+        </div>
+        
+        <!-- 油价表格 -->
+        <div class="price-table">
+          ${dieselPrice ? `
+            <div class="price-row diesel-row">
+              <div class="fuel-type">
+                <span class="fuel-icon">🛢️</span>
+                <span class="fuel-name">0#柴油</span>
               </div>
-            ` : ''}
-            
-            ${showNextAdjust && oilData.next_adjust ? `
-              <div class="adjust-time">
-                <span class="adjust-label">下次调价:</span>
-                <span class="adjust-value">${oilData.next_adjust}</span>
+              <div class="fuel-price">${this._formatPrice(dieselPrice)} 元/升</div>
+            </div>
+          ` : ''}
+          
+          ${gasoline92 ? `
+            <div class="price-row gasoline-92-row">
+              <div class="fuel-type">
+                <span class="fuel-icon">⛽</span>
+                <span class="fuel-name">92#汽油</span>
               </div>
-            ` : ''}
-          </div>
-
-          <!-- 油品价格网格 -->
-          <div class="oilprice-grid compact-${compactStyle}">
-            ${oilProducts.map(product => html`
-              <div class="oil-item ${product.type} ${priceEmphasis === `highlight_${product.type.split('_')[1]}` ? 'emphasized' : ''}">
-                <div class="oil-icon">${product.icon}</div>
-                <div class="oil-info">
-                  <div class="oil-name">${product.name}</div>
-                  <div class="oil-price">${this._formatPrice(product.price)}<span class="price-unit">元</span></div>
-                </div>
+              <div class="fuel-price">${this._formatPrice(gasoline92)} 元/升</div>
+            </div>
+          ` : ''}
+          
+          ${gasoline95 ? `
+            <div class="price-row gasoline-95-row">
+              <div class="fuel-type">
+                <span class="fuel-icon">⛽</span>
+                <span class="fuel-name">95#汽油</span>
               </div>
-            `).join('')}
-          </div>
-
-          <!-- 走势信息 -->
-          ${showTrend && oilData.trend ? `
-            <div class="trend-section ${isDownward ? 'trend-down' : ''} ${isUpward ? 'trend-up' : ''}">
-              <div class="trend-icon">${isDownward ? '📉' : isUpward ? '📈' : '➡️'}</div>
-              <div class="trend-text">${this._renderSafeHTML(oilData.trend)}</div>
+              <div class="fuel-price">${this._formatPrice(gasoline95)} 元/升</div>
+            </div>
+          ` : ''}
+          
+          ${gasoline98 ? `
+            <div class="price-row gasoline-98-row">
+              <div class="fuel-type">
+                <span class="fuel-icon">⛽</span>
+                <span class="fuel-name">98#汽油</span>
+              </div>
+              <div class="fuel-price">${this._formatPrice(gasoline98)} 元/升</div>
+            </div>
+          ` : ''}
+        </div>
+        
+        <!-- 底部信息 -->
+        <div class="oilprice-footer">
+          ${showNextAdjustment && nextAdjustment ? `
+            <div class="next-adjustment">
+              <span class="adjustment-icon">📅</span>
+              <span class="adjustment-text">下次调价: ${nextAdjustment}</span>
+            </div>
+          ` : ''}
+          
+          ${showUpdateTime && updateTime ? `
+            <div class="update-time">
+              <span class="time-icon">🕒</span>
+              <span class="time-text">更新: ${updateTime}</span>
             </div>
           ` : ''}
         </div>
@@ -224,218 +295,572 @@ class OilPriceCard extends BasePlugin {
     `;
   }
 
+  // 渲染紧凑布局
+  _renderCompactLayout(config, entities) {
+    const showProvince = config.show_province !== false;
+    const showTrend = config.show_trend !== false;
+    const useColorCoding = config.use_color_coding !== false;
+
+    const province = this._getCardValue(this.hass, entities, 'province', '全国');
+    const trend = this._getCardValue(this.hass, entities, 'price_trend', 'stable');
+    
+    const dieselPrice = config.show_diesel ? this._getCardValue(this.hass, entities, 'diesel_0', '') : null;
+    const gasoline92 = config.show_92 ? this._getCardValue(this.hass, entities, 'gasoline_92', '') : null;
+    const gasoline95 = config.show_95 ? this._getCardValue(this.hass, entities, 'gasoline_95', '') : null;
+    const gasoline98 = config.show_98 ? this._getCardValue(this.hass, entities, 'gasoline_98', '') : null;
+
+    const trendIcon = this._getTrendIcon(trend);
+    const trendColor = this._getTrendColor(trend, useColorCoding);
+
+    return `
+      <div class="oilprice-compact">
+        <div class="compact-header">
+          ${showProvince ? `
+            <div class="compact-province">${province}油价</div>
+          ` : ''}
+          ${showTrend ? `
+            <div class="compact-trend" style="color: ${trendColor}">${trendIcon}</div>
+          ` : ''}
+        </div>
+        
+        <div class="compact-prices">
+          ${gasoline92 ? `
+            <div class="compact-price-item">
+              <div class="compact-fuel-name">92#</div>
+              <div class="compact-price">${this._formatPrice(gasoline92)}</div>
+            </div>
+          ` : ''}
+          
+          ${gasoline95 ? `
+            <div class="compact-price-item">
+              <div class="compact-fuel-name">95#</div>
+              <div class="compact-price">${this._formatPrice(gasoline95)}</div>
+            </div>
+          ` : ''}
+          
+          ${dieselPrice ? `
+            <div class="compact-price-item">
+              <div class="compact-fuel-name">0#</div>
+              <div class="compact-price">${this._formatPrice(dieselPrice)}</div>
+            </div>
+          ` : ''}
+        </div>
+      </div>
+    `;
+  }
+
+  // 渲染详细布局
+  _renderDetailedLayout(config, entities) {
+    const showProvince = config.show_province !== false;
+    const showTrend = config.show_trend !== false;
+    const showNextAdjustment = config.show_next_adjustment !== false;
+    const showUpdateTime = config.show_update_time !== false;
+    const useColorCoding = config.use_color_coding !== false;
+
+    const province = this._getCardValue(this.hass, entities, 'province', '全国');
+    const trend = this._getCardValue(this.hass, entities, 'price_trend', 'stable');
+    const nextAdjustment = this._getCardValue(this.hass, entities, 'next_adjustment', '');
+    const updateTime = this._getCardValue(this.hass, entities, 'update_time', '');
+
+    const dieselPrice = config.show_diesel ? this._getCardValue(this.hass, entities, 'diesel_0', '') : null;
+    const gasoline92 = config.show_92 ? this._getCardValue(this.hass, entities, 'gasoline_92', '') : null;
+    const gasoline95 = config.show_95 ? this._getCardValue(this.hass, entities, 'gasoline_95', '') : null;
+    const gasoline98 = config.show_98 ? this._getCardValue(this.hass, entities, 'gasoline_98', '') : null;
+
+    const trendIcon = this._getTrendIcon(trend);
+    const trendColor = this._getTrendColor(trend, useColorCoding);
+    const trendText = this._getTrendText(trend);
+
+    return `
+      <div class="oilprice-detailed">
+        <div class="detailed-header">
+          <div class="detailed-title">
+            <span class="title-icon">⛽</span>
+            <span class="title-text">油价信息</span>
+          </div>
+          
+          ${showProvince ? `
+            <div class="detailed-province">
+              <span class="province-badge">${province}</span>
+            </div>
+          ` : ''}
+        </div>
+        
+        <div class="detailed-content">
+          <!-- 趋势信息 -->
+          ${showTrend ? `
+            <div class="trend-card" style="border-left-color: ${trendColor}">
+              <div class="trend-card-icon">${trendIcon}</div>
+              <div class="trend-card-content">
+                <div class="trend-card-title">价格趋势</div>
+                <div class="trend-card-value" style="color: ${trendColor}">${trendText}</div>
+              </div>
+            </div>
+          ` : ''}
+          
+          <!-- 价格网格 -->
+          <div class="price-grid">
+            ${gasoline92 ? `
+              <div class="price-card">
+                <div class="price-card-header">
+                  <span class="fuel-icon-small">⛽</span>
+                  <span class="fuel-name-small">92#汽油</span>
+                </div>
+                <div class="price-card-value">${this._formatPrice(gasoline92)}</div>
+                <div class="price-card-unit">元/升</div>
+              </div>
+            ` : ''}
+            
+            ${gasoline95 ? `
+              <div class="price-card">
+                <div class="price-card-header">
+                  <span class="fuel-icon-small">⛽</span>
+                  <span class="fuel-name-small">95#汽油</span>
+                </div>
+                <div class="price-card-value">${this._formatPrice(gasoline95)}</div>
+                <div class="price-card-unit">元/升</div>
+              </div>
+            ` : ''}
+            
+            ${dieselPrice ? `
+              <div class="price-card">
+                <div class="price-card-header">
+                  <span class="fuel-icon-small">🛢️</span>
+                  <span class="fuel-name-small">0#柴油</span>
+                </div>
+                <div class="price-card-value">${this._formatPrice(dieselPrice)}</div>
+                <div class="price-card-unit">元/升</div>
+              </div>
+            ` : ''}
+            
+            ${gasoline98 ? `
+              <div class="price-card">
+                <div class="price-card-header">
+                  <span class="fuel-icon-small">⛽</span>
+                  <span class="fuel-name-small">98#汽油</span>
+                </div>
+                <div class="price-card-value">${this._formatPrice(gasoline98)}</div>
+                <div class="price-card-unit">元/升</div>
+              </div>
+            ` : ''}
+          </div>
+          
+          <!-- 附加信息 -->
+          <div class="additional-info">
+            ${showNextAdjustment && nextAdjustment ? `
+              <div class="info-item">
+                <span class="info-icon">📅</span>
+                <span class="info-label">下次调价:</span>
+                <span class="info-value">${nextAdjustment}</span>
+              </div>
+            ` : ''}
+            
+            ${showUpdateTime && updateTime ? `
+              <div class="info-item">
+                <span class="info-icon">🕒</span>
+                <span class="info-label">更新时间:</span>
+                <span class="info-value">${updateTime}</span>
+              </div>
+            ` : ''}
+          </div>
+        </div>
+      </div>
+    `;
+  }
+
+  // 渲染极简布局
+  _renderMinimalLayout(config, entities) {
+    const gasoline92 = config.show_92 ? this._getCardValue(this.hass, entities, 'gasoline_92', '') : null;
+    const gasoline95 = config.show_95 ? this._getCardValue(this.hass, entities, 'gasoline_95', '') : null;
+
+    if (!gasoline92 && !gasoline95) return '<div class="oilprice-minimal">暂无油价数据</div>';
+
+    return `
+      <div class="oilprice-minimal">
+        <div class="minimal-prices">
+          ${gasoline92 ? `
+            <div class="minimal-price">
+              <span class="minimal-label">92#</span>
+              <span class="minimal-value">${this._formatPrice(gasoline92)}</span>
+            </div>
+          ` : ''}
+          
+          ${gasoline95 ? `
+            <div class="minimal-price">
+              <span class="minimal-label">95#</span>
+              <span class="minimal-value">${this._formatPrice(gasoline95)}</span>
+            </div>
+          ` : ''}
+        </div>
+      </div>
+    `;
+  }
+
+  getTemplate(config, hass, entities) {
+    this.hass = hass;
+    const layoutStyle = config.layout_style || 'standard';
+
+    let layoutHTML = '';
+    
+    switch (layoutStyle) {
+      case 'compact':
+        layoutHTML = this._renderCompactLayout(config, entities);
+        break;
+      case 'detailed':
+        layoutHTML = this._renderDetailedLayout(config, entities);
+        break;
+      case 'minimal':
+        layoutHTML = this._renderMinimalLayout(config, entities);
+        break;
+      default:
+        layoutHTML = this._renderStandardLayout(config, entities);
+    }
+
+    return `
+      <div class="cardforge-responsive-container oilprice-card layout-${layoutStyle}">
+        <div class="cardforge-content-grid">
+          ${layoutHTML}
+        </div>
+      </div>
+    `;
+  }
+
   getStyles(config) {
-    const layoutMode = config.layout_mode || 'auto';
-    const compactStyle = config.compact_style || 'bordered';
-    const priceEmphasis = config.price_emphasis || 'highlight_92';
+    const layoutStyle = config.layout_style || 'standard';
+    const useColorCoding = config.use_color_coding !== false;
 
     return `
       ${this.getBaseStyles(config)}
       
       .oilprice-card {
         padding: var(--cf-spacing-lg);
+        min-height: 180px;
       }
       
-      /* 头部信息 */
+      /* ===== 标准布局样式 ===== */
+      .oilprice-standard {
+        display: flex;
+        flex-direction: column;
+        gap: var(--cf-spacing-lg);
+        height: 100%;
+      }
+      
       .oilprice-header {
         display: flex;
         justify-content: space-between;
         align-items: center;
-        margin-bottom: var(--cf-spacing-md);
-        flex-wrap: wrap;
-        gap: var(--cf-spacing-sm);
+        padding-bottom: var(--cf-spacing-md);
+        border-bottom: 1px solid var(--cf-border);
       }
       
       .province-info {
         display: flex;
         align-items: center;
         gap: var(--cf-spacing-sm);
+        font-weight: 600;
+        color: var(--cf-text-primary);
       }
       
       .province-icon {
         font-size: 1.1em;
       }
       
-      .province-name {
-        font-size: 1.1em;
-        font-weight: 600;
+      .trend-info {
+        display: flex;
+        align-items: center;
+        gap: var(--cf-spacing-xs);
+        font-size: 0.9em;
+        font-weight: 500;
+      }
+      
+      .price-table {
+        display: flex;
+        flex-direction: column;
+        gap: var(--cf-spacing-md);
+        flex: 1;
+      }
+      
+      .price-row {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: var(--cf-spacing-sm) var(--cf-spacing-md);
+        background: rgba(var(--cf-rgb-primary), 0.05);
+        border-radius: var(--cf-radius-md);
+        border-left: 3px solid var(--cf-primary-color);
+      }
+      
+      .diesel-row {
+        border-left-color: #8B4513;
+      }
+      
+      .gasoline-92-row {
+        border-left-color: #FF6B6B;
+      }
+      
+      .gasoline-95-row {
+        border-left-color: #4ECDC4;
+      }
+      
+      .gasoline-98-row {
+        border-left-color: #45B7D1;
+      }
+      
+      .fuel-type {
+        display: flex;
+        align-items: center;
+        gap: var(--cf-spacing-sm);
+        font-weight: 500;
         color: var(--cf-text-primary);
       }
       
-      .adjust-time {
+      .fuel-price {
+        font-size: 1.2em;
+        font-weight: 600;
+        color: var(--cf-text-primary);
+        font-variant-numeric: tabular-nums;
+      }
+      
+      .oilprice-footer {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding-top: var(--cf-spacing-md);
+        border-top: 1px solid var(--cf-border);
         font-size: 0.85em;
         color: var(--cf-text-secondary);
       }
       
-      .adjust-label {
-        opacity: 0.8;
+      .next-adjustment,
+      .update-time {
+        display: flex;
+        align-items: center;
+        gap: var(--cf-spacing-xs);
       }
       
-      .adjust-value {
-        font-weight: 500;
-        margin-left: 4px;
+      /* ===== 紧凑布局样式 ===== */
+      .oilprice-compact {
+        display: flex;
+        flex-direction: column;
+        gap: var(--cf-spacing-md);
+        height: 100%;
+        justify-content: center;
       }
       
-      /* 油品网格布局 */
-      .oilprice-grid {
+      .compact-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+      }
+      
+      .compact-province {
+        font-weight: 600;
+        color: var(--cf-text-primary);
+        font-size: 1.1em;
+      }
+      
+      .compact-trend {
+        font-size: 1.2em;
+      }
+      
+      .compact-prices {
         display: grid;
+        grid-template-columns: repeat(3, 1fr);
         gap: var(--cf-spacing-sm);
-        margin: var(--cf-spacing-md) 0;
       }
       
-      /* 自动布局：根据容器宽度自适应 */
-      .layout-auto .oilprice-grid {
-        grid-template-columns: repeat(auto-fit, minmax(80px, 1fr));
+      .compact-price-item {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: var(--cf-spacing-xs);
+        padding: var(--cf-spacing-md);
+        background: rgba(var(--cf-rgb-primary), 0.08);
+        border-radius: var(--cf-radius-md);
+        text-align: center;
       }
       
-      /* 紧凑布局：强制4列，不够宽度时自动换行 */
-      .layout-compact .oilprice-grid {
-        grid-template-columns: repeat(4, 1fr);
+      .compact-fuel-name {
+        font-size: 0.9em;
+        color: var(--cf-text-secondary);
+        font-weight: 500;
       }
       
-      /* 详细布局：2x2网格 */
-      .layout-detailed .oilprice-grid {
+      .compact-price {
+        font-size: 1.3em;
+        font-weight: 700;
+        color: var(--cf-text-primary);
+        font-variant-numeric: tabular-nums;
+      }
+      
+      /* ===== 详细布局样式 ===== */
+      .oilprice-detailed {
+        display: flex;
+        flex-direction: column;
+        gap: var(--cf-spacing-lg);
+        height: 100%;
+      }
+      
+      .detailed-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding-bottom: var(--cf-spacing-md);
+        border-bottom: 1px solid var(--cf-border);
+      }
+      
+      .detailed-title {
+        display: flex;
+        align-items: center;
+        gap: var(--cf-spacing-sm);
+        font-size: 1.2em;
+        font-weight: 600;
+        color: var(--cf-text-primary);
+      }
+      
+      .province-badge {
+        background: var(--cf-primary-color);
+        color: white;
+        padding: var(--cf-spacing-xs) var(--cf-spacing-md);
+        border-radius: var(--cf-radius-md);
+        font-size: 0.85em;
+        font-weight: 500;
+      }
+      
+      .detailed-content {
+        display: flex;
+        flex-direction: column;
+        gap: var(--cf-spacing-lg);
+        flex: 1;
+      }
+      
+      .trend-card {
+        display: flex;
+        align-items: center;
+        gap: var(--cf-spacing-md);
+        padding: var(--cf-spacing-md);
+        background: rgba(var(--cf-rgb-primary), 0.05);
+        border-radius: var(--cf-radius-md);
+        border-left: 4px solid;
+      }
+      
+      .trend-card-icon {
+        font-size: 1.5em;
+      }
+      
+      .trend-card-content {
+        flex: 1;
+      }
+      
+      .trend-card-title {
+        font-size: 0.9em;
+        color: var(--cf-text-secondary);
+        margin-bottom: var(--cf-spacing-xs);
+      }
+      
+      .trend-card-value {
+        font-size: 1.1em;
+        font-weight: 600;
+      }
+      
+      .price-grid {
+        display: grid;
         grid-template-columns: repeat(2, 1fr);
         gap: var(--cf-spacing-md);
       }
       
-      /* 油品项样式 */
-      .oil-item {
+      .price-card {
         display: flex;
         flex-direction: column;
-        align-items: center;
-        padding: var(--cf-spacing-sm);
+        gap: var(--cf-spacing-sm);
+        padding: var(--cf-spacing-md);
+        background: rgba(var(--cf-rgb-primary), 0.08);
         border-radius: var(--cf-radius-md);
-        transition: all 0.2s ease;
         text-align: center;
-      }
-      
-      .oil-item.emphasized {
-        transform: scale(1.05);
-        z-index: 1;
-      }
-      
-      /* 紧凑样式变体 */
-      .compact-minimal .oil-item {
-        background: transparent;
-        padding: var(--cf-spacing-xs);
-      }
-      
-      .compact-bordered .oil-item {
-        background: rgba(var(--cf-rgb-primary), 0.05);
-        border: 1px solid rgba(var(--cf-rgb-primary), 0.1);
-      }
-      
-      .compact-card .oil-item {
-        background: var(--cf-surface);
         border: 1px solid var(--cf-border);
-        box-shadow: var(--cf-shadow-sm);
       }
       
-      .oil-item.emphasized.compact-card {
-        box-shadow: var(--cf-shadow-md);
-        border-color: var(--cf-primary-color);
-      }
-      
-      /* 油品图标和文字 */
-      .oil-icon {
-        font-size: 1.4em;
-        margin-bottom: 4px;
-        line-height: 1;
-      }
-      
-      .oil-info {
-        flex: 1;
+      .price-card-header {
         display: flex;
-        flex-direction: column;
+        align-items: center;
         justify-content: center;
-      }
-      
-      .oil-name {
-        font-size: 0.75em;
-        font-weight: 500;
+        gap: var(--cf-spacing-xs);
+        font-size: 0.9em;
         color: var(--cf-text-secondary);
-        margin-bottom: 2px;
-        line-height: 1.2;
       }
       
-      .oil-price {
-        font-size: 1em;
-        font-weight: 600;
+      .price-card-value {
+        font-size: 1.4em;
+        font-weight: 700;
         color: var(--cf-text-primary);
         font-variant-numeric: tabular-nums;
-        line-height: 1.2;
       }
       
-      .price-unit {
-        font-size: 0.7em;
-        font-weight: normal;
-        margin-left: 1px;
-        opacity: 0.8;
+      .price-card-unit {
+        font-size: 0.8em;
+        color: var(--cf-text-secondary);
       }
       
-      /* 强调样式 */
-      .oil-item.emphasized .oil-price {
-        color: var(--cf-primary-color);
-        font-size: 1.1em;
+      .additional-info {
+        display: flex;
+        flex-direction: column;
+        gap: var(--cf-spacing-sm);
+        padding-top: var(--cf-spacing-md);
+        border-top: 1px solid var(--cf-border);
       }
       
-      .gasoline_92.emphasized .oil-icon,
-      .gasoline_95.emphasized .oil-icon {
-        animation: pump-pulse 2s ease-in-out infinite;
-      }
-      
-      @keyframes pump-pulse {
-        0%, 100% {
-          transform: scale(1);
-        }
-        50% {
-          transform: scale(1.1);
-        }
-      }
-      
-      /* 走势信息 */
-      .trend-section {
+      .info-item {
         display: flex;
         align-items: center;
         gap: var(--cf-spacing-sm);
-        padding: var(--cf-spacing-sm) var(--cf-spacing-md);
-        border-radius: var(--cf-radius-md);
-        background: rgba(var(--cf-rgb-primary), 0.05);
-        margin-top: var(--cf-spacing-sm);
-      }
-      
-      .trend-down {
-        background: rgba(var(--cf-rgb-success), 0.1);
-        border: 1px solid rgba(var(--cf-rgb-success), 0.2);
-      }
-      
-      .trend-up {
-        background: rgba(var(--cf-rgb-error), 0.1);
-        border: 1px solid rgba(var(--cf-rgb-error), 0.2);
-      }
-      
-      .trend-icon {
-        font-size: 1.2em;
-        flex-shrink: 0;
-      }
-      
-      .trend-text {
-        font-size: 0.85em;
-        line-height: 1.3;
+        font-size: 0.9em;
         color: var(--cf-text-secondary);
-        flex: 1;
       }
       
-      .trend-down .trend-text {
-        color: var(--cf-success-color);
+      .info-label {
+        font-weight: 500;
       }
       
-      .trend-up .trend-text {
-        color: var(--cf-error-color);
+      .info-value {
+        color: var(--cf-text-primary);
+        font-weight: 500;
       }
       
-      /* 响应式优化 */
+      /* ===== 极简布局样式 ===== */
+      .oilprice-minimal {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        height: 100%;
+      }
+      
+      .minimal-prices {
+        display: flex;
+        gap: var(--cf-spacing-xl);
+        align-items: baseline;
+      }
+      
+      .minimal-price {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: var(--cf-spacing-xs);
+      }
+      
+      .minimal-label {
+        font-size: 0.9em;
+        color: var(--cf-text-secondary);
+        font-weight: 500;
+      }
+      
+      .minimal-value {
+        font-size: 1.8em;
+        font-weight: 700;
+        color: var(--cf-text-primary);
+        font-variant-numeric: tabular-nums;
+      }
+      
+      /* ===== 响应式优化 ===== */
       @media (max-width: 600px) {
         .oilprice-card {
           padding: var(--cf-spacing-md);
@@ -443,90 +868,55 @@ class OilPriceCard extends BasePlugin {
         
         .oilprice-header {
           flex-direction: column;
+          gap: var(--cf-spacing-sm);
           align-items: flex-start;
-          gap: var(--cf-spacing-xs);
         }
         
-        /* 移动端自动调整为2列 */
-        .layout-auto .oilprice-grid,
-        .layout-compact .oilprice-grid {
+        .oilprice-footer {
+          flex-direction: column;
+          gap: var(--cf-spacing-sm);
+          align-items: flex-start;
+        }
+        
+        .compact-prices {
           grid-template-columns: repeat(2, 1fr);
         }
         
-        .oil-item {
-          padding: var(--cf-spacing-xs);
+        .price-grid {
+          grid-template-columns: 1fr;
         }
         
-        .oil-icon {
-          font-size: 1.2em;
+        .minimal-prices {
+          gap: var(--cf-spacing-lg);
         }
         
-        .oil-name {
-          font-size: 0.7em;
-        }
-        
-        .oil-price {
-          font-size: 0.9em;
-        }
-        
-        .trend-section {
-          padding: var(--cf-spacing-xs) var(--cf-spacing-sm);
-        }
-        
-        .trend-text {
-          font-size: 0.8em;
+        .minimal-value {
+          font-size: 1.5em;
         }
       }
       
       @media (max-width: 400px) {
-        .oilprice-card {
-          padding: var(--cf-spacing-sm);
+        .compact-prices {
+          grid-template-columns: 1fr;
         }
         
-        .oilprice-grid {
-          gap: var(--cf-spacing-xs);
-        }
-        
-        .oil-item {
-          padding: 6px 4px;
-        }
-        
-        .oil-icon {
-          font-size: 1.1em;
-          margin-bottom: 2px;
-        }
-        
-        .oil-name {
-          font-size: 0.65em;
-        }
-        
-        .oil-price {
-          font-size: 0.85em;
+        .minimal-prices {
+          flex-direction: column;
+          gap: var(--cf-spacing-md);
         }
       }
       
       /* 深色模式优化 */
       @media (prefers-color-scheme: dark) {
-        .compact-bordered .oil-item {
+        .price-row,
+        .compact-price-item,
+        .price-card {
           background: rgba(255, 255, 255, 0.05);
-          border-color: rgba(255, 255, 255, 0.1);
         }
         
-        .trend-section {
-          background: rgba(255, 255, 255, 0.05);
+        .trend-card {
+          background: rgba(255, 255, 255, 0.03);
         }
-      }
-      
-      /* 主题适配 */
-      .theme-glass .compact-bordered .oil-item {
-        background: rgba(255, 255, 255, 0.08);
-        backdrop-filter: blur(10px);
-        border: 1px solid rgba(255, 255, 255, 0.15);
-      }
-      
-      .theme-glass .trend-section {
-        background: rgba(255, 255, 255, 0.08);
-        backdrop-filter: blur(10px);
       }
     `;
   }
