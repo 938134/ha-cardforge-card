@@ -30,29 +30,39 @@ class HaCardForgeEditor extends LitElement {
       }
       
       .config-section {
-        margin-bottom: var(--cf-spacing-lg);
+        margin-bottom: 0;
       }
       
       .config-field {
-        margin-bottom: var(--cf-spacing-md);
+        margin-bottom: 0;
       }
       
       .config-label {
         display: block;
         margin-bottom: var(--cf-spacing-sm);
         font-weight: 500;
-        font-size: 0.9em;
+        font-size: 0.95em;
       }
       
       .config-description {
-        font-size: 0.8em;
+        font-size: 0.85em;
         color: var(--cf-text-secondary);
         margin-top: var(--cf-spacing-xs);
       }
       
       .required-star {
         color: var(--cf-error-color);
-        margin-left: 2px;
+        margin-left: 4px;
+      }
+
+      /* 确保下拉菜单不被遮挡 */
+      ha-select {
+        --mdc-menu-min-width: 100%;
+        width: 100%;
+      }
+
+      mwc-list-item {
+        font-size: 0.9em;
       }
     `
   ];
@@ -124,16 +134,16 @@ class HaCardForgeEditor extends LitElement {
         <style>${this._themePreviewStyles}</style>
         
         <div class="editor-layout">
-          <!-- 插件选择区域 -->
+          <!-- 1. 卡片类型区域 -->
           ${this._renderPluginSection()}
           
-          <!-- 插件配置区域 -->
-          ${this.config.plugin ? this._renderPluginConfigSection() : ''}
-          
-          <!-- 主题选择区域 -->
+          <!-- 2. 主题样式区域 -->
           ${this.config.plugin ? this._renderThemeSection() : ''}
           
-          <!-- 数据源配置区域 -->
+          <!-- 3. 卡片配置区域 -->
+          ${this.config.plugin ? this._renderPluginConfigSection() : ''}
+          
+          <!-- 4. 数据源配置区域 -->
           ${this.config.plugin ? this._renderDatasourceSection() : ''}
           
           <!-- 操作按钮 -->
@@ -178,6 +188,32 @@ class HaCardForgeEditor extends LitElement {
     `;
   }
 
+  _renderThemeSection() {
+    return html`
+      <div class="editor-section">
+        <div class="section-header">
+          <span class="section-icon">🎭</span>
+          <span>主题样式</span>
+        </div>
+        
+        <div class="cf-grid cf-grid-auto cf-gap-md">
+          ${this._themes.map(theme => html`
+            <div 
+              class="cf-card theme-item ${this.config.theme === theme.id ? 'selected' : ''}"
+              @click=${() => this._onThemeSelected(theme.id)}
+            >
+              <div 
+                class="theme-preview theme-preview-${theme.id}"
+              ></div>
+              <div class="theme-name">${theme.name}</div>
+              <div class="theme-description">${theme.description}</div>
+            </div>
+          `)}
+        </div>
+      </div>
+    `;
+  }
+
   _renderPluginConfigSection() {
     if (!this._pluginManifest?.config_schema) return '';
     
@@ -187,10 +223,10 @@ class HaCardForgeEditor extends LitElement {
       <div class="editor-section">
         <div class="section-header">
           <span class="section-icon">⚙️</span>
-          <span>插件配置</span>
+          <span>卡片配置</span>
         </div>
         
-        <div class="config-section">
+        <div class="config-grid">
           ${Object.entries(schema).map(([key, field]) => html`
             <div class="config-field">
               <label class="config-label">
@@ -211,11 +247,13 @@ class HaCardForgeEditor extends LitElement {
   }
 
   _renderConfigField(key, field) {
+    const currentValue = this.config[key] !== undefined ? this.config[key] : field.default;
+
     switch (field.type) {
       case 'boolean':
         return html`
           <ha-switch
-            .checked=${!!this.config[key]}
+            .checked=${!!currentValue}
             @change=${e => this._onConfigChanged(key, e.target.checked)}
           ></ha-switch>
         `;
@@ -223,7 +261,7 @@ class HaCardForgeEditor extends LitElement {
       case 'select':
         return html`
           <ha-select
-            .value=${this.config[key] || field.default}
+            .value=${currentValue}
             @selected=${e => this._onConfigChanged(key, e.target.value)}
             fixedMenuPosition
             naturalMenuWidth
@@ -237,50 +275,26 @@ class HaCardForgeEditor extends LitElement {
       case 'number':
         return html`
           <ha-textfield
-            .value=${this.config[key] || field.default}
+            .value=${currentValue}
             @input=${e => this._onConfigChanged(key, e.target.value)}
             type="number"
             min=${field.min}
             max=${field.max}
             outlined
+            fullwidth
           ></ha-textfield>
         `;
         
       default:
         return html`
           <ha-textfield
-            .value=${this.config[key] || field.default}
+            .value=${currentValue}
             @input=${e => this._onConfigChanged(key, e.target.value)}
             outlined
+            fullwidth
           ></ha-textfield>
         `;
     }
-  }
-
-  _renderThemeSection() {
-    return html`
-      <div class="editor-section">
-        <div class="section-header">
-          <span class="section-icon">🎭</span>
-          <span>主题样式</span>
-        </div>
-        
-        <div class="cf-grid cf-grid-auto cf-gap-md">
-          ${this._themes.map(theme => html`
-            <div 
-              class="cf-card cf-selector-card ${this.config.theme === theme.id ? 'selected' : ''}"
-              @click=${() => this._onThemeSelected(theme.id)}
-            >
-              <div 
-                class="theme-preview theme-preview-${theme.id}"
-                style="width: 100%; height: 50px; border-radius: var(--cf-radius-sm); margin-bottom: var(--cf-spacing-xs);"
-              ></div>
-              <div class="cf-selector-name">${theme.name}</div>
-            </div>
-          `)}
-        </div>
-      </div>
-    `;
   }
 
   _renderDatasourceSection() {
@@ -305,12 +319,12 @@ class HaCardForgeEditor extends LitElement {
           <span>数据源配置</span>
         </div>
         
-        <div class="cf-flex cf-flex-column cf-gap-lg">
+        <div class="config-grid">
           ${requirements.map(req => html`
-            <div class="cf-input-container">
-              <label class="cf-text-sm cf-font-medium cf-mb-sm">
+            <div class="config-field">
+              <label class="config-label">
                 ${req.description}
-                ${req.required ? html`<span class="cf-error">*</span>` : ''}
+                ${req.required ? html`<span class="required-star">*</span>` : ''}
               </label>
               
               <smart-input
@@ -319,6 +333,10 @@ class HaCardForgeEditor extends LitElement {
                 .placeholder=${`输入${req.description}`}
                 @value-changed=${e => this._onDatasourceChanged(req.key, e.detail.value)}
               ></smart-input>
+              
+              ${req.required ? html`
+                <div class="config-description">必需字段</div>
+              ` : ''}
             </div>
           `)}
         </div>

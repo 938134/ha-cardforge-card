@@ -26,12 +26,12 @@ export class ThemeSelector extends LitElement {
         <div class="cf-grid cf-grid-auto cf-gap-md">
           ${this._themes.map(theme => html`
             <div 
-              class="cf-card cf-selector-card ${this.selectedTheme === theme.id ? 'selected' : ''}"
+              class="cf-card theme-item ${this.selectedTheme === theme.id ? 'selected' : ''}"
               @click=${() => this._selectTheme(theme.id)}
             >
               <div class="theme-preview theme-preview-${theme.id}"></div>
-              <div class="cf-selector-name">${theme.name}</div>
-              <div class="cf-text-xs cf-text-secondary cf-mt-xs">${theme.description}</div>
+              <div class="theme-name">${theme.name}</div>
+              <div class="theme-description">${theme.description}</div>
             </div>
           `)}
         </div>
