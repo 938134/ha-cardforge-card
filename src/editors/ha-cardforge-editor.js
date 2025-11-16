@@ -27,27 +27,11 @@ class HaCardForgeEditor extends LitElement {
       :host {
         display: block;
         max-width: 100%;
-        position: relative;
-        z-index: 1;
-        overflow: visible !important;
       }
 
-      /* 强制修复下拉菜单样式 */
-      ha-select {
-        --mdc-menu-min-width: 100%;
-        --mdc-menu-max-width: 100%;
-        --mdc-menu-max-height: 200px;
-        position: relative;
-        z-index: 10;
-      }
-
-      /* 确保下拉菜单在编辑器上方 */
-      .mdc-menu-surface {
-        max-height: 200px !important;
-        overflow-y: auto !important;
-        position: fixed !important;
-        z-index: 10000 !important;
-        transform: none !important;
+      /* ha-combo-box 样式优化 */
+      ha-combo-box {
+        width: 100%;
       }
     `
   ];
@@ -256,23 +240,12 @@ class HaCardForgeEditor extends LitElement {
               ${field.label}
               ${field.required ? html`<span class="required-star">*</span>` : ''}
             </label>
-            <ha-select
+            <ha-combo-box
+              .items=${field.options}
               .value=${currentValue}
-              @selected=${e => {
-                // 立即更新配置，但不关闭下拉菜单
-                this._onConfigChanged(key, e.target.value);
-              }}
-              @closed=${(e) => {
-                // 阻止事件冒泡，防止编辑器关闭
-                e.stopPropagation();
-              }}
-              fixedMenuPosition
-              naturalMenuWidth
-            >
-              ${field.options.map(option => html`
-                <mwc-list-item value="${option}">${option}</mwc-list-item>
-              `)}
-            </ha-select>
+              @value-changed=${e => this._onConfigChanged(key, e.detail.value)}
+              allow-custom-value
+            ></ha-combo-box>
           </div>
         `;
         

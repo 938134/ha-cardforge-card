@@ -41,7 +41,6 @@ export const editorStyles = css`
     padding: var(--cf-spacing-lg);
     border-bottom: 1px solid var(--cf-border);
     position: relative;
-    overflow: visible !important; /* 重要：允许下拉菜单溢出 */
   }
 
   /* 深色模式编辑器区块 */
@@ -177,8 +176,6 @@ export const editorStyles = css`
     display: flex;
     flex-direction: column;
     gap: var(--cf-spacing-sm);
-    position: relative;
-    overflow: visible !important; /* 重要：允许下拉菜单溢出 */
   }
 
   .config-label-compact {
@@ -195,40 +192,21 @@ export const editorStyles = css`
     color: var(--cf-error-color);
   }
 
-  /* ===== 彻底修复下拉菜单问题 ===== */
-  ha-select {
-    --mdc-menu-min-width: 100%;
-    --mdc-menu-max-width: 100%;
-    --mdc-menu-min-height: 0;
-    --mdc-menu-max-height: 200px;
+  /* ===== ha-combo-box 样式 ===== */
+  ha-combo-box {
     width: 100%;
-    position: relative;
-    z-index: 10;
+    --paper-input-container-color: var(--cf-text-secondary);
+    --paper-input-container-focus-color: var(--cf-primary-color);
+    --paper-input-container-input-color: var(--cf-text-primary);
   }
 
-  /* 重要：修复下拉菜单位置 */
-  ha-select::part(mdc-menu) {
-    max-height: 200px !important;
-    overflow-y: auto !important;
-    position: fixed !important;
-    z-index: 10000 !important;
-    transform: none !important;
-  }
-
-  /* 修复 mdc-menu 样式 */
-  .mdc-menu-surface {
-    max-height: 200px !important;
-    overflow-y: auto !important;
-    position: fixed !important;
-    z-index: 10000 !important;
-    transform: none !important;
-  }
-
-  /* 确保编辑器容器不限制溢出 */
-  .editor-container {
-    position: relative;
-    z-index: 1;
-    overflow: visible !important;
+  /* 深色模式 ha-combo-box */
+  @media (prefers-color-scheme: dark) {
+    ha-combo-box {
+      --paper-input-container-color: var(--cf-dark-text-secondary);
+      --paper-input-container-focus-color: var(--cf-primary-color);
+      --paper-input-container-input-color: var(--cf-dark-text);
+    }
   }
 
   /* ===== 紧凑型开关组 ===== */
