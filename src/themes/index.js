@@ -57,8 +57,6 @@ class ThemeManager {
         applyTheme: theme.applyTheme ? theme.applyTheme.bind(theme) : (() => {}),
         getPreview: () => theme.preview || this._generatePreviewFromTheme(theme, themeId)
       });
-      
-      console.log(`✅ 注册主题: ${theme.name || this._formatThemeName(themeId)}`);
     } else {
       console.warn(`主题 ${themeId} 格式不正确，跳过`);
     }
@@ -174,8 +172,6 @@ class ThemeManager {
       applyTheme: themeConfig.applyTheme || (() => {}),
       getPreview: () => themeConfig.preview || this._generatePreviewFromConfig(themeConfig)
     });
-    
-    console.log(`✅ 动态注册主题: ${themeConfig.name}`);
   }
 
   _generatePreviewFromConfig(themeConfig) {

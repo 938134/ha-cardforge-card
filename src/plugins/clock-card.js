@@ -29,7 +29,14 @@ class ClockCard extends BasePlugin {
     entity_requirements: []
   };
 
+  // 确保 manifest 作为实例属性也可访问
+  get manifest() {
+    return ClockCard.manifest;
+  }
+
   getTemplate(config, hass, entities) {
+    // 添加配置默认值处理
+    const safeConfig = config || {};
     const now = new Date();
     
     // 格式化时间
@@ -43,8 +50,8 @@ class ClockCard extends BasePlugin {
     const date = now.toLocaleDateString('zh-CN');
     const weekday = '星期' + '日一二三四五六'[now.getDay()];
     
-    const showDate = config.show_date !== false;
-    const showWeekday = config.show_weekday !== false;
+    const showDate = safeConfig.show_date !== false;
+    const showWeekday = safeConfig.show_weekday !== false;
 
     return `
       <div class="clock-card">
@@ -104,5 +111,6 @@ class ClockCard extends BasePlugin {
   }
 }
 
+// 确保默认导出和命名导出都正确
 export default ClockCard;
-export const manifest = ClockCard.manifest;
+export { ClockCard };
