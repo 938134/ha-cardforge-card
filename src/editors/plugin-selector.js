@@ -1,6 +1,6 @@
 // src/editors/plugin-selector.js
-import { LitElement, html } from 'https://unpkg.com/lit@2.8.0/index.js?module';
-import { cardForgeStyles } from '../styles/index.js';
+import { LitElement, html, css } from 'https://unpkg.com/lit@2.8.0/index.js?module';
+import { foundationStyles } from '../core/styles.js';
 
 export class PluginSelector extends LitElement {
   static properties = {
@@ -10,7 +10,116 @@ export class PluginSelector extends LitElement {
     _searchQuery: { state: true }
   };
 
-  static styles = cardForgeStyles;
+  static styles = [
+    foundationStyles,
+    css`
+      .plugin-selector {
+        width: 100%;
+      }
+
+      .search-box {
+        margin-bottom: var(--cf-spacing-lg);
+      }
+
+      .plugin-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
+        gap: var(--cf-spacing-md);
+        width: 100%;
+      }
+
+      .plugin-item {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        padding: var(--cf-spacing-md);
+        border: 1px solid var(--cf-border);
+        border-radius: var(--cf-radius-md);
+        cursor: pointer;
+        transition: all var(--cf-transition-normal);
+        background: var(--cf-surface);
+        min-height: 100px;
+        text-align: center;
+        position: relative;
+        overflow: hidden;
+      }
+
+      .plugin-item:hover {
+        border-color: var(--cf-primary-color);
+        transform: translateY(-2px);
+        box-shadow: var(--cf-shadow-md);
+      }
+
+      .plugin-item.selected {
+        border-color: var(--cf-primary-color);
+        background: var(--cf-primary-color);
+        color: white;
+        transform: translateY(-1px);
+      }
+
+      .plugin-icon {
+        font-size: 2em;
+        margin-bottom: var(--cf-spacing-sm);
+        line-height: 1;
+      }
+
+      .plugin-name {
+        font-size: 0.9em;
+        font-weight: 500;
+        line-height: 1.2;
+      }
+
+      .plugin-description {
+        font-size: 0.7em;
+        color: var(--cf-text-secondary);
+        margin-top: var(--cf-spacing-xs);
+      }
+
+      .plugin-item.selected .plugin-description {
+        color: rgba(255, 255, 255, 0.8);
+      }
+
+      /* 深色模式适配 */
+      @media (prefers-color-scheme: dark) {
+        .plugin-item {
+          background: var(--cf-dark-surface);
+          border-color: var(--cf-dark-border);
+        }
+      }
+
+      /* 响应式优化 */
+      @media (max-width: 600px) {
+        .plugin-grid {
+          grid-template-columns: repeat(auto-fit, minmax(90px, 1fr));
+          gap: var(--cf-spacing-sm);
+        }
+
+        .plugin-item {
+          min-height: 90px;
+          padding: var(--cf-spacing-sm);
+        }
+
+        .plugin-icon {
+          font-size: 1.8em;
+        }
+
+        .plugin-name {
+          font-size: 0.85em;
+        }
+      }
+
+      @media (max-width: 400px) {
+        .plugin-grid {
+          grid-template-columns: repeat(2, 1fr);
+        }
+
+        .plugin-item {
+          min-height: 85px;
+        }
+      }
+    `
+  ];
 
   constructor() {
     super();
@@ -52,15 +161,15 @@ export class PluginSelector extends LitElement {
     }
 
     return html`
-      <div class="plugin-list">
+      <div class="plugin-grid">
         ${this._filteredPlugins.map(plugin => html`
           <div 
             class="plugin-item ${this.selectedPlugin === plugin.id ? 'selected' : ''}"
             @click=${() => this._selectPlugin(plugin)}
           >
-            <div class="plugin-item-icon">${plugin.icon}</div>
-            <div class="plugin-item-name">${plugin.name}</div>
-            <div class="plugin-item-description">${plugin.version}</div>
+            <div class="plugin-icon">${plugin.icon}</div>
+            <div class="plugin-name">${plugin.name}</div>
+            <div class="plugin-description">${plugin.version}</div>
           </div>
         `)}
       </div>
