@@ -16,16 +16,16 @@ class PoetryCard extends BasePlugin {
       layout_style: {
         type: 'select',
         label: '布局风格',
-        options: ['vertical', 'horizontal', 'classic', 'modern'],
-        default: 'vertical',
+        options: ['竖排', '横排', '经典', '现代'],
+        default: '竖排',
         description: '选择诗词展示的布局风格'
       },
       
       font_size: {
         type: 'select',
         label: '字体大小',
-        options: ['small', 'medium', 'large'],
-        default: 'medium',
+        options: ['小号', '中号', '大号'],
+        default: '中号',
         description: '选择诗词文字的显示大小'
       },
       
@@ -34,14 +34,6 @@ class PoetryCard extends BasePlugin {
         label: '显示边框',
         default: true,
         description: '显示卡片边框装饰'
-      },
-      
-      background_style: {
-        type: 'select',
-        label: '背景样式',
-        options: ['plain', 'paper', 'ink-wash'],
-        default: 'paper',
-        description: '选择卡片背景样式'
       },
       
       // 动画效果
@@ -86,7 +78,7 @@ class PoetryCard extends BasePlugin {
     if (!content) return '';
     
     // 根据布局风格选择换行策略
-    if (layoutStyle === 'vertical') {
+    if (layoutStyle === '竖排') {
       return this._formatVerticalContent(content);
     } else {
       return this._formatHorizontalContent(content);
@@ -125,32 +117,44 @@ class PoetryCard extends BasePlugin {
   _formatHorizontalContent(content) {
     // 横排布局：智能标点换行，保持诗词韵律
     let formattedContent = '';
-    let currentLine = '';
     
-    // 按字符处理，智能判断换行位置
-    for (let i = 0; i < content.length; i++) {
-      const char = content[i];
-      currentLine += char;
+    // 先按自然段落分割（如果有换行）
+    const paragraphs = content.split('\n').filter(p => p.trim());
+    
+    paragraphs.forEach(paragraph => {
+      let currentLine = '';
+      let lines = [];
       
-      // 遇到标点符号时考虑换行
-      if (['。', '！', '？', '；', '\n'].includes(char)) {
-        // 句子结束，换行
-        formattedContent += `<div class="poetry-line">${currentLine}</div>`;
-        currentLine = '';
-      } else if (['，', '、'].includes(char)) {
-        // 逗号处，如果下一句较长也可以考虑换行
-        const nextChars = content.slice(i + 1, i + 4);
-        if (nextChars.length >= 3 && !['，', '。', '！', '？'].includes(nextChars[0])) {
-          formattedContent += `<div class="poetry-line">${currentLine}</div>`;
+      // 按字符处理，智能判断换行位置
+      for (let i = 0; i < paragraph.length; i++) {
+        const char = paragraph[i];
+        currentLine += char;
+        
+        // 遇到标点符号时考虑换行
+        if (['。', '！', '？', '；', '\n'].includes(char)) {
+          // 句子结束，换行
+          lines.push(currentLine);
           currentLine = '';
+        } else if (['，', '、'].includes(char)) {
+          // 逗号处，如果下一句较长也可以考虑换行
+          const nextChars = paragraph.slice(i + 1, i + 4);
+          if (nextChars.length >= 3 && !['，', '。', '！', '？'].includes(nextChars[0])) {
+            lines.push(currentLine);
+            currentLine = '';
+          }
         }
       }
-    }
-    
-    // 处理最后一行
-    if (currentLine) {
-      formattedContent += `<div class="poetry-line">${currentLine}</div>`;
-    }
+      
+      // 处理最后一行
+      if (currentLine) {
+        lines.push(currentLine);
+      }
+      
+      // 生成HTML
+      lines.forEach(line => {
+        formattedContent += `<div class="poetry-line">${line}</div>`;
+      });
+    });
     
     return formattedContent;
   }
@@ -162,7 +166,7 @@ class PoetryCard extends BasePlugin {
     const author = this._getCardValue(this.hass, entities, 'author', '');
     const content = this._getCardValue(this.hass, entities, 'content', '');
     
-    const formattedContent = this._formatPoetryContent(content, 'vertical');
+    const formattedContent = this._formatPoetryContent(content, '竖排');
     const enableAnimations = config.enable_animations !== false;
 
     return `
@@ -188,7 +192,7 @@ class PoetryCard extends BasePlugin {
     const author = this._getCardValue(this.hass, entities, 'author', '');
     const content = this._getCardValue(this.hass, entities, 'content', '');
     
-    const formattedContent = this._formatPoetryContent(content, 'horizontal');
+    const formattedContent = this._formatPoetryContent(content, '横排');
     const enableAnimations = config.enable_animations !== false;
 
     return `
@@ -212,17 +216,20 @@ class PoetryCard extends BasePlugin {
     const author = this._getCardValue(this.hass, entities, 'author', '');
     const content = this._getCardValue(this.hass, entities, 'content', '');
     
-    const formattedContent = this._formatPoetryContent(content, 'horizontal');
+    const formattedContent = this._formatPoetryContent(content, '横排');
     const enableAnimations = config.enable_animations !== false;
+    const showBorder = config.show_border !== false;
 
     return `
-      <div class="poetry-classic ${enableAnimations ? 'with-animations' : ''}">
-        <div class="classic-border">
-          <div class="classic-corner corner-tl"></div>
-          <div class="classic-corner corner-tr"></div>
-          <div class="classic-corner corner-bl"></div>
-          <div class="classic-corner corner-br"></div>
-        </div>
+      <div class="poetry-classic ${enableAnimations ? 'with-animations' : ''} ${showBorder ? 'with-border' : ''}">
+        ${showBorder ? `
+          <div class="classic-border">
+            <div class="classic-corner corner-tl"></div>
+            <div class="classic-corner corner-tr"></div>
+            <div class="classic-corner corner-bl"></div>
+            <div class="classic-corner corner-br"></div>
+          </div>
+        ` : ''}
         
         <div class="classic-content">
           <div class="classic-title">${title}</div>
@@ -243,7 +250,7 @@ class PoetryCard extends BasePlugin {
     const author = this._getCardValue(this.hass, entities, 'author', '');
     const content = this._getCardValue(this.hass, entities, 'content', '');
     
-    const formattedContent = this._formatPoetryContent(content, 'horizontal');
+    const formattedContent = this._formatPoetryContent(content, '横排');
     const enableAnimations = config.enable_animations !== false;
 
     return `
@@ -271,18 +278,18 @@ class PoetryCard extends BasePlugin {
 
   getTemplate(config, hass, entities) {
     this.hass = hass;
-    const layoutStyle = config.layout_style || 'vertical';
+    const layoutStyle = config.layout_style || '竖排';
 
     let layoutHTML = '';
     
     switch (layoutStyle) {
-      case 'horizontal':
+      case '横排':
         layoutHTML = this._renderHorizontalLayout(entities, config);
         break;
-      case 'classic':
+      case '经典':
         layoutHTML = this._renderClassicLayout(entities, config);
         break;
-      case 'modern':
+      case '现代':
         layoutHTML = this._renderModernLayout(entities, config);
         break;
       default:
@@ -299,20 +306,19 @@ class PoetryCard extends BasePlugin {
   }
 
   getStyles(config) {
-    const layoutStyle = config.layout_style || 'vertical';
-    const fontSize = config.font_size || 'medium';
+    const layoutStyle = config.layout_style || '竖排';
+    const fontSize = config.font_size || '中号';
     const showBorder = config.show_border !== false;
-    const backgroundStyle = config.background_style || 'paper';
     const enableAnimations = config.enable_animations !== false;
 
     // 字体大小映射
     const fontSizes = {
-      small: { title: '1.3em', content: '1em', author: '0.9em' },
-      medium: { title: '1.6em', content: '1.2em', author: '1em' },
-      large: { title: '2em', content: '1.5em', author: '1.1em' }
+      '小号': { title: '1.3em', content: '1em', author: '0.9em' },
+      '中号': { title: '1.6em', content: '1.2em', author: '1em' },
+      '大号': { title: '2em', content: '1.5em', author: '1.1em' }
     };
 
-    const sizes = fontSizes[fontSize] || fontSizes.medium;
+    const sizes = fontSizes[fontSize] || fontSizes['中号'];
 
     return `
       ${this.getBaseStyles(config)}
@@ -323,38 +329,6 @@ class PoetryCard extends BasePlugin {
         overflow: hidden;
         min-height: 200px;
         font-family: "SimSun", "NSimSun", "楷体", "宋体", serif;
-      }
-      
-      /* 背景样式 */
-      .poetry-card.background-plain {
-        background: var(--cf-surface);
-      }
-      
-      .poetry-card.background-paper {
-        background: #fefefe;
-        background-image: 
-          radial-gradient(#ddd 1px, transparent 1px),
-          radial-gradient(#ddd 1px, transparent 1px);
-        background-size: 20px 20px;
-        background-position: 0 0, 10px 10px;
-      }
-      
-      .poetry-card.background-ink-wash {
-        background: linear-gradient(135deg, #f5f1e6 0%, #e8dfca 100%);
-        position: relative;
-      }
-      
-      .poetry-card.background-ink-wash::before {
-        content: '';
-        position: absolute;
-        top: 0;
-        left: 0;
-        right: 0;
-        bottom: 0;
-        background: 
-          radial-gradient(circle at 20% 80%, rgba(0,0,0,0.03) 0%, transparent 50%),
-          radial-gradient(circle at 80% 20%, rgba(0,0,0,0.02) 0%, transparent 50%);
-        pointer-events: none;
       }
       
       /* ===== 竖排布局样式 ===== */
@@ -405,7 +379,7 @@ class PoetryCard extends BasePlugin {
       .vertical-char {
         font-size: ${sizes.content};
         line-height: 1.2;
-        color: #2c1810;
+        color: var(--cf-text-primary);
       }
       
       .vertical-punctuation {
@@ -455,7 +429,7 @@ class PoetryCard extends BasePlugin {
       
       .horizontal-author {
         font-size: ${sizes.author};
-        color: #666;
+        color: var(--cf-text-secondary);
         font-style: italic;
       }
       
@@ -466,11 +440,12 @@ class PoetryCard extends BasePlugin {
         align-items: center;
         justify-content: center;
         gap: 0.8em;
+        text-align: center;
       }
       
       .poetry-line {
         font-size: ${sizes.content};
-        color: #2c1810;
+        color: var(--cf-text-primary);
         line-height: 1.8;
         text-align: center;
         width: 100%;
@@ -478,8 +453,8 @@ class PoetryCard extends BasePlugin {
       
       /* 智能标点换行优化 */
       .poetry-line {
-        text-align: justify;
-        text-justify: inter-ideograph;
+        text-align: center;
+        word-wrap: break-word;
       }
       
       /* ===== 经典布局样式 ===== */
@@ -487,6 +462,9 @@ class PoetryCard extends BasePlugin {
         position: relative;
         height: 100%;
         padding: var(--cf-spacing-xl);
+      }
+      
+      .poetry-classic.with-border {
         background: #fef9f0;
         border: 1px solid #d4b78c;
       }
@@ -555,13 +533,14 @@ class PoetryCard extends BasePlugin {
       
       .classic-author {
         font-size: ${sizes.author};
-        color: #666;
+        color: var(--cf-text-secondary);
         margin-bottom: var(--cf-spacing-xl);
         font-style: italic;
       }
       
       .classic-poetry {
         line-height: 2;
+        text-align: center;
       }
       
       /* ===== 现代布局样式 ===== */
@@ -600,7 +579,9 @@ class PoetryCard extends BasePlugin {
         display: flex;
         flex-direction: column;
         justify-content: center;
+        align-items: center;
         gap: 0.6em;
+        text-align: center;
       }
       
       .modern-decoration {
@@ -687,29 +668,28 @@ class PoetryCard extends BasePlugin {
       
       /* 深色模式适配 */
       @media (prefers-color-scheme: dark) {
-        .poetry-card.background-paper {
-          background: #2a2a2a;
-          background-image: 
-            radial-gradient(#444 1px, transparent 1px),
-            radial-gradient(#444 1px, transparent 1px);
-        }
-        
-        .poetry-card.background-ink-wash {
-          background: linear-gradient(135deg, #3a3a3a 0%, #2d2d2d 100%);
-        }
-        
-        .vertical-char,
-        .poetry-line {
-          color: #e0e0e0;
-        }
-        
-        .poetry-classic {
+        .poetry-classic.with-border {
           background: #3a3a3a;
           border-color: #666;
         }
         
         .classic-corner {
           border-color: #8b4513;
+        }
+        
+        .vertical-title,
+        .horizontal-title,
+        .classic-title {
+          color: #d4b78c;
+        }
+        
+        .vertical-punctuation {
+          color: #d4b78c;
+        }
+        
+        .vertical-seal {
+          border-color: #d4b78c;
+          color: #d4b78c;
         }
       }
     `;
