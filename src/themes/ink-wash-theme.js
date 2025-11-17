@@ -26,7 +26,6 @@ export default {
   },
 
   applyTheme(element, config = {}) {
-    // 添加水墨效果装饰元素
     if (!element.querySelector('.ink-wash-decoration')) {
       const decoration = document.createElement('div');
       decoration.className = 'ink-wash-decoration';
