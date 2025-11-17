@@ -2,58 +2,56 @@
 import { BasePlugin } from '../core/base-plugin.js';
 
 class DashboardCardPlugin extends BasePlugin {
-  // 修复：使用正确的静态属性定义
-  static get manifest() {
-    return {
-      id: 'dashboard-card',
-      name: '数据看板',
-      description: '支持标题、内容和页脚的灵活看板卡片',
-      version: '1.0.0',
-      category: 'dashboard',
-      icon: '📊',
-      author: 'CardForge',
-      config_schema: {
-        layout: {
-          type: 'select',
-          label: '布局方式',
-          options: ['vertical', 'horizontal', 'grid'],
-          default: 'vertical',
-          required: true
-        },
-        show_header: {
-          type: 'boolean',
-          label: '显示标题栏',
-          default: true,
-          required: false
-        },
-        show_footer: {
-          type: 'boolean',
-          label: '显示页脚栏',
-          default: true,
-          required: false
-        },
-        card_style: {
-          type: 'select',
-          label: '卡片样式',
-          options: ['default', 'minimal', 'bordered', 'filled'],
-          default: 'default',
-          required: false
-        }
+  // 使用静态属性定义
+  static manifest = {
+    id: 'dashboard-card',
+    name: '数据看板',
+    description: '支持标题、内容和页脚的灵活看板卡片',
+    version: '1.0.0',
+    category: 'dashboard',
+    icon: '📊',
+    author: 'CardForge',
+    config_schema: {
+      layout: {
+        type: 'select',
+        label: '布局方式',
+        options: ['vertical', 'horizontal', 'grid'],
+        default: 'vertical',
+        required: true
       },
-      entity_requirements: [
-        {
-          key: 'header_title',
-          description: '标题文本或实体',
-          required: false
-        },
-        {
-          key: 'footer_text',
-          description: '页脚文本或实体',
-          required: false
-        }
-      ]
-    };
-  }
+      show_header: {
+        type: 'boolean',
+        label: '显示标题栏',
+        default: true,
+        required: false
+      },
+      show_footer: {
+        type: 'boolean',
+        label: '显示页脚栏',
+        default: true,
+        required: false
+      },
+      card_style: {
+        type: 'select',
+        label: '卡片样式',
+        options: ['default', 'minimal', 'bordered', 'filled'],
+        default: 'default',
+        required: false
+      }
+    },
+    entity_requirements: [
+      {
+        key: 'header_title',
+        description: '标题文本或实体',
+        required: false
+      },
+      {
+        key: 'footer_text',
+        description: '页脚文本或实体',
+        required: false
+      }
+    ]
+  };
 
   getTemplate(config, hass, entities) {
     const header = this._renderHeader(config, hass, entities);
@@ -94,7 +92,6 @@ class DashboardCardPlugin extends BasePlugin {
   _renderHeaderActions(config, hass, entities) {
     const actions = [];
     
-    // 动态添加操作按钮
     for (let i = 1; i <= 3; i++) {
       const actionKey = `header_action_${i}`;
       if (entities[actionKey]) {
@@ -118,8 +115,6 @@ class DashboardCardPlugin extends BasePlugin {
 
   _renderContent(config, hass, entities) {
     const contentItems = [];
-    
-    // 解析内容配置
     const contentConfig = this._parseContentConfig(entities);
     
     contentConfig.forEach((item, index) => {
@@ -148,7 +143,6 @@ class DashboardCardPlugin extends BasePlugin {
         break;
       }
       
-      // 支持两种配置方式：content_1 或 content_1_value
       const value = entities[valueKey] || entities[baseKey];
       const label = entities[labelKey] || `项目 ${index}`;
       const icon = entities[iconKey] || this._getDefaultIconForValue(value);
@@ -268,7 +262,6 @@ class DashboardCardPlugin extends BasePlugin {
   }
 
   _parseActionConfig(actionConfig) {
-    // 解析动作配置格式: "action:turn_on,entity:light.living_room,icon:💡"
     try {
       const config = {};
       actionConfig.split(',').forEach(part => {
@@ -300,7 +293,6 @@ class DashboardCardPlugin extends BasePlugin {
         container-type: inline-size;
       }
       
-      /* 布局变体 */
       .layout-horizontal .dashboard-content {
         display: flex;
         flex-direction: row;
@@ -318,7 +310,6 @@ class DashboardCardPlugin extends BasePlugin {
         gap: var(--cf-spacing-md);
       }
       
-      /* 标题样式 */
       .dashboard-header {
         display: flex;
         align-items: center;
@@ -372,7 +363,6 @@ class DashboardCardPlugin extends BasePlugin {
         border-color: var(--cf-primary-color);
       }
       
-      /* 内容样式 */
       .dashboard-content {
         flex: 1;
         padding: var(--cf-spacing-lg);
@@ -446,7 +436,6 @@ class DashboardCardPlugin extends BasePlugin {
         background: var(--cf-error-color);
       }
       
-      /* 页脚样式 */
       .dashboard-footer {
         padding: var(--cf-spacing-md) var(--cf-spacing-lg);
         background: rgba(var(--cf-rgb-primary), 0.03);
@@ -471,7 +460,6 @@ class DashboardCardPlugin extends BasePlugin {
         font-size: 1.1em;
       }
       
-      /* 样式变体 */
       .style-minimal .dashboard-header,
       .style-minimal .dashboard-footer {
         background: transparent;
@@ -496,7 +484,6 @@ class DashboardCardPlugin extends BasePlugin {
         border-color: rgba(var(--cf-rgb-primary), 0.2);
       }
       
-      /* 响应式设计 */
       @container (max-width: 400px) {
         .dashboard-header {
           flex-direction: column;
@@ -520,7 +507,6 @@ class DashboardCardPlugin extends BasePlugin {
         }
       }
       
-      /* 深色模式适配 */
       @media (prefers-color-scheme: dark) {
         .dashboard-header {
           background: rgba(var(--cf-rgb-primary), 0.1);
@@ -542,5 +528,6 @@ class DashboardCardPlugin extends BasePlugin {
   }
 }
 
-// 修复：确保正确导出
+// 修复：正确的导出方式
 export default DashboardCardPlugin;
+export const manifest = DashboardCardPlugin.manifest;

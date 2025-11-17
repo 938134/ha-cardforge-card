@@ -1,533 +1,538 @@
-// src/plugins/dashboard-card.js
+// src/plugins/clock-card.js
 import { BasePlugin } from '../core/base-plugin.js';
 
-class DashboardCardPlugin extends BasePlugin {
-  // 使用静态属性定义
+class ClockCard extends BasePlugin {
   static manifest = {
-    id: 'dashboard-card',
-    name: '数据看板',
-    description: '支持标题、内容和页脚的灵活看板卡片',
-    version: '1.0.0',
-    category: 'dashboard',
-    icon: '📊',
+    id: 'clock-card',
+    name: '精美时钟',
+    version: '2.0.0',
+    description: '多种风格的时钟卡片，支持日期和星期显示',
+    category: '时间',
+    icon: '🕰️',
     author: 'CardForge',
+    
     config_schema: {
-      layout: {
+      clock_style: {
         type: 'select',
-        label: '布局方式',
-        options: ['vertical', 'horizontal', 'grid'],
-        default: 'vertical',
-        required: true
+        label: '时钟风格',
+        options: ['现代风格', '经典风格', '简约风格', '毛玻璃风格', '霓虹风格'],
+        default: '现代风格'
       },
-      show_header: {
+      
+      show_date: {
         type: 'boolean',
-        label: '显示标题栏',
-        default: true,
-        required: false
+        label: '显示日期',
+        default: true
       },
-      show_footer: {
+      
+      show_weekday: {
         type: 'boolean',
-        label: '显示页脚栏',
-        default: true,
-        required: false
+        label: '显示星期',
+        default: true
       },
-      card_style: {
-        type: 'select',
-        label: '卡片样式',
-        options: ['default', 'minimal', 'bordered', 'filled'],
-        default: 'default',
-        required: false
-      }
-    },
-    entity_requirements: [
-      {
-        key: 'header_title',
-        description: '标题文本或实体',
-        required: false
+      
+      time_format: {
+        type: 'boolean',
+        label: '24小时制',
+        default: true
       },
-      {
-        key: 'footer_text',
-        description: '页脚文本或实体',
-        required: false
+      
+      enable_animations: {
+        type: 'boolean',
+        label: '启用动画',
+        default: true
       }
-    ]
+    }
   };
 
+  // 获取时间数据
+  _getTimeData() {
+    const now = new Date();
+    const weekdays = ['日', '一', '二', '三', '四', '五', '六'];
+    const hour = now.getHours();
+    const isPM = hour >= 12;
+    
+    return {
+      // 时间
+      time_24h: now.toLocaleTimeString('zh-CN', { 
+        hour: '2-digit', 
+        minute: '2-digit',
+        hour12: false 
+      }),
+      time_12h: now.toLocaleTimeString('zh-CN', { 
+        hour: '2-digit', 
+        minute: '2-digit',
+        hour12: true 
+      }),
+      
+      // 日期
+      date: now.toLocaleDateString('zh-CN'),
+      date_short: `${now.getMonth() + 1}月${now.getDate()}日`,
+      year: now.getFullYear(),
+      month: String(now.getMonth() + 1).padStart(2, '0'),
+      day: String(now.getDate()).padStart(2, '0'),
+      
+      // 星期
+      weekday: `星期${weekdays[now.getDay()]}`,
+      weekday_short: `周${weekdays[now.getDay()]}`,
+      
+      // 时间组件
+      hour: String(now.getHours()).padStart(2, '0'),
+      hour_12: String(hour % 12 || 12).padStart(2, '0'),
+      minute: String(now.getMinutes()).padStart(2, '0'),
+      ampm: isPM ? 'PM' : 'AM'
+    };
+  }
+
   getTemplate(config, hass, entities) {
-    const header = this._renderHeader(config, hass, entities);
-    const content = this._renderContent(config, hass, entities);
-    const footer = this._renderFooter(config, hass, entities);
-    
-    const layoutClass = `layout-${config.layout || 'vertical'}`;
-    const styleClass = `style-${config.card_style || 'default'}`;
+    const timeData = this._getTimeData();
+    const clockStyle = config.clock_style || '现代风格';
+    const showAnimations = config.enable_animations !== false;
 
     return `
-      <div class="dashboard-card ${layoutClass} ${styleClass}">
-        ${config.show_header !== false ? header : ''}
-        <div class="dashboard-content">
-          ${content}
-        </div>
-        ${config.show_footer !== false ? footer : ''}
-      </div>
-    `;
-  }
-
-  _renderHeader(config, hass, entities) {
-    const title = this._getCardValue(hass, entities, 'header_title', '数据看板');
-    const subtitle = this._getCardValue(hass, entities, 'header_subtitle', '');
-    const icon = entities.header_icon || '📊';
-
-    return `
-      <div class="dashboard-header">
-        <div class="header-icon">${icon}</div>
-        <div class="header-text">
-          <div class="header-title">${this._renderSafeHTML(title)}</div>
-          ${subtitle ? `<div class="header-subtitle">${this._renderSafeHTML(subtitle)}</div>` : ''}
-        </div>
-        ${this._renderHeaderActions(config, hass, entities)}
-      </div>
-    `;
-  }
-
-  _renderHeaderActions(config, hass, entities) {
-    const actions = [];
-    
-    for (let i = 1; i <= 3; i++) {
-      const actionKey = `header_action_${i}`;
-      if (entities[actionKey]) {
-        const actionConfig = this._parseActionConfig(entities[actionKey]);
-        if (actionConfig) {
-          actions.push(`
-            <button class="header-action" data-action="${actionConfig.action}" data-entity="${actionConfig.entity}">
-              ${actionConfig.icon || '⚡'}
-            </button>
-          `);
-        }
-      }
-    }
-
-    return actions.length > 0 ? `
-      <div class="header-actions">
-        ${actions.join('')}
-      </div>
-    ` : '';
-  }
-
-  _renderContent(config, hass, entities) {
-    const contentItems = [];
-    const contentConfig = this._parseContentConfig(entities);
-    
-    contentConfig.forEach((item, index) => {
-      contentItems.push(this._renderContentItem(item, hass, index));
-    });
-
-    if (contentItems.length === 0) {
-      return this._renderEmpty('暂无内容配置', '📝');
-    }
-
-    return contentItems.join('');
-  }
-
-  _parseContentConfig(entities) {
-    const items = [];
-    let index = 1;
-    
-    while (true) {
-      const baseKey = `content_${index}`;
-      const valueKey = `${baseKey}_value`;
-      const labelKey = `${baseKey}_label`;
-      const iconKey = `${baseKey}_icon`;
-      const typeKey = `${baseKey}_type`;
-      
-      if (!entities[valueKey] && !entities[baseKey]) {
-        break;
-      }
-      
-      const value = entities[valueKey] || entities[baseKey];
-      const label = entities[labelKey] || `项目 ${index}`;
-      const icon = entities[iconKey] || this._getDefaultIconForValue(value);
-      const type = entities[typeKey] || 'text';
-      
-      items.push({
-        value,
-        label,
-        icon,
-        type,
-        key: baseKey
-      });
-      
-      index++;
-    }
-    
-    return items;
-  }
-
-  _renderContentItem(item, hass, index) {
-    const displayValue = this._getFlexibleValue(hass, item.value, '--');
-    const formattedValue = this._formatValue(displayValue, item.type);
-    
-    return `
-      <div class="content-item" data-type="${item.type}" data-index="${index}">
-        <div class="item-icon">${item.icon}</div>
-        <div class="item-content">
-          <div class="item-label">${this._renderSafeHTML(item.label)}</div>
-          <div class="item-value">${formattedValue}</div>
-        </div>
-        ${this._renderItemBadge(item, hass)}
-      </div>
-    `;
-  }
-
-  _renderItemBadge(item, hass) {
-    if (item.type === 'entity' && item.value.includes('.')) {
-      const entity = hass?.states?.[item.value];
-      if (entity) {
-        const state = entity.state;
-        const isOn = state === 'on' || state === 'home' || state === 'open';
-        const isOff = state === 'off' || state === 'away' || state === 'closed';
-        const isUnavailable = state === 'unavailable' || state === 'unknown';
-        
-        if (isUnavailable) {
-          return '<div class="item-badge unavailable">离线</div>';
-        } else if (isOn || isOff) {
-          return `<div class="item-badge ${isOn ? 'on' : 'off'}">${isOn ? '开' : '关'}</div>`;
-        }
-      }
-    }
-    return '';
-  }
-
-  _renderFooter(config, hass, entities) {
-    const footerText = this._getCardValue(hass, entities, 'footer_text', '');
-    const footerIcon = entities.footer_icon || '🕒';
-    const timestamp = this._getCardValue(hass, entities, 'footer_timestamp', '');
-
-    if (!footerText && !timestamp) {
-      return '';
-    }
-
-    return `
-      <div class="dashboard-footer">
-        <div class="footer-content">
-          ${footerText ? `
-            <div class="footer-text">
-              <span class="footer-icon">${footerIcon}</span>
-              ${this._renderSafeHTML(footerText)}
-            </div>
-          ` : ''}
-          ${timestamp ? `
-            <div class="footer-timestamp">
-              ${this._renderSafeHTML(timestamp)}
-            </div>
-          ` : ''}
+      <div class="cardforge-responsive-container clock-card style-${this._getStyleClass(clockStyle)} ${showAnimations ? 'with-animations' : ''}">
+        <div class="cardforge-content-grid">
+          ${this._renderClock(timeData, config)}
         </div>
       </div>
     `;
   }
 
-  _formatValue(value, type) {
-    if (value === '--') return value;
+  _getStyleClass(styleName) {
+    const styleMap = {
+      '现代风格': 'modern',
+      '经典风格': 'classic', 
+      '简约风格': 'minimal',
+      '毛玻璃风格': 'glass',
+      '霓虹风格': 'neon'
+    };
+    return styleMap[styleName] || 'modern';
+  }
+
+  _renderClock(timeData, config) {
+    const clockStyle = config.clock_style || '现代风格';
     
-    switch (type) {
-      case 'number':
-        const num = parseFloat(value);
-        return isNaN(num) ? value : num.toLocaleString();
-      case 'percentage':
-        const percent = parseFloat(value);
-        return isNaN(percent) ? value : `${percent}%`;
-      case 'temperature':
-        const temp = parseFloat(value);
-        return isNaN(temp) ? value : `${temp}°C`;
-      case 'currency':
-        const amount = parseFloat(value);
-        return isNaN(amount) ? value : `¥${amount.toLocaleString()}`;
+    switch (clockStyle) {
+      case '经典风格':
+        return this._renderClassicClock(timeData, config);
+      case '简约风格':
+        return this._renderMinimalClock(timeData, config);
+      case '毛玻璃风格':
+        return this._renderGlassClock(timeData, config);
+      case '霓虹风格':
+        return this._renderNeonClock(timeData, config);
       default:
-        return this._renderSafeHTML(value);
+        return this._renderModernClock(timeData, config);
     }
   }
 
-  _getDefaultIconForValue(value) {
-    if (!value) return '📄';
+  // 通用时间渲染函数
+  _renderTimeDisplay(timeData, config, styleClass) {
+    const timeFormat = config.time_format !== false;
+    const hourDisplay = timeFormat ? timeData.hour : timeData.hour_12;
     
-    if (value.includes('temperature') || value.includes('temp')) return '🌡️';
-    if (value.includes('humidity')) return '💧';
-    if (value.includes('pressure')) return '🌪️';
-    if (value.includes('light')) return '💡';
-    if (value.includes('power')) return '⚡';
-    if (value.includes('door') || value.includes('window')) return '🚪';
-    if (value.includes('motion')) return '👤';
-    if (value.includes('water')) return '💦';
-    
-    return '📊';
+    return `
+      <div class="${styleClass}-time">
+        <span class="${styleClass}-hour">${hourDisplay}</span>
+        <span class="${styleClass}-separator">:</span>
+        <span class="${styleClass}-minute">${timeData.minute}</span>
+      </div>
+      ${!timeFormat ? `<div class="${styleClass}-ampm">${timeData.ampm}</div>` : ''}
+    `;
   }
 
-  _parseActionConfig(actionConfig) {
-    try {
-      const config = {};
-      actionConfig.split(',').forEach(part => {
-        const [key, value] = part.split(':');
-        if (key && value) {
-          config[key.trim()] = value.trim();
-        }
-      });
-      return config;
-    } catch (error) {
-      console.warn('动作配置解析失败:', actionConfig);
-      return null;
-    }
+  // 通用日期信息渲染函数
+  _renderDateInfo(timeData, config, styleClass) {
+    if (!config.show_date && !config.show_weekday) return '';
+    
+    const dateDisplay = config.show_date ? 
+      (styleClass === 'minimal' || styleClass === 'neon' ? timeData.date_short : timeData.date) : '';
+    const weekdayDisplay = config.show_weekday ? 
+      (styleClass === 'minimal' || styleClass === 'neon' ? timeData.weekday_short : timeData.weekday) : '';
+    
+    return `
+      <div class="${styleClass}-info">
+        ${config.show_date ? `<div class="${styleClass}-date">${dateDisplay}</div>` : ''}
+        ${config.show_weekday ? `<div class="${styleClass}-weekday">${weekdayDisplay}</div>` : ''}
+      </div>
+    `;
+  }
+
+  _renderModernClock(timeData, config) {
+    const timeFormat = config.time_format !== false;
+    const timeDisplay = timeFormat ? timeData.time_24h : timeData.time_12h;
+    
+    return `
+      <div class="modern-clock">
+        <div class="time-main">
+          <div class="time-digits">
+            ${timeDisplay.split(':').map((part, index) => `
+              <span class="digit-part">${part}</span>
+              ${index < 1 ? '<span class="digit-separator">:</span>' : ''}
+            `).join('')}
+          </div>
+          ${!timeFormat ? `
+            <div class="ampm-indicator">${timeData.ampm}</div>
+          ` : ''}
+        </div>
+        ${this._renderDateInfo(timeData, config, 'modern')}
+      </div>
+    `;
+  }
+
+  _renderClassicClock(timeData, config) {
+    return `
+      <div class="classic-clock">
+        <div class="clock-face">
+          ${this._renderTimeDisplay(timeData, config, 'classic')}
+        </div>
+        ${this._renderDateInfo(timeData, config, 'classic')}
+      </div>
+    `;
+  }
+
+  _renderMinimalClock(timeData, config) {
+    return `
+      <div class="minimal-clock">
+        ${this._renderTimeDisplay(timeData, config, 'minimal')}
+        ${this._renderDateInfo(timeData, config, 'minimal')}
+      </div>
+    `;
+  }
+
+  _renderGlassClock(timeData, config) {
+    return `
+      <div class="glass-clock">
+        ${this._renderTimeDisplay(timeData, config, 'glass')}
+        ${this._renderDateInfo(timeData, config, 'glass')}
+      </div>
+    `;
+  }
+
+  _renderNeonClock(timeData, config) {
+    return `
+      <div class="neon-clock">
+        ${this._renderTimeDisplay(timeData, config, 'neon')}
+        ${this._renderDateInfo(timeData, config, 'neon')}
+      </div>
+    `;
   }
 
   getStyles(config) {
-    const baseStyles = this.getBaseStyles(config);
-    
+    const clockStyle = config.clock_style || '现代风格';
+    const styleClass = this._getStyleClass(clockStyle);
+    const showAnimations = config.enable_animations !== false;
+
+    // 通用样式变量
+    const styles = {
+      base: `
+        .clock-card {
+          padding: var(--cf-spacing-xl);
+          min-height: 200px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          text-align: center;
+        }
+      `,
+      
+      modern: `
+        .modern-clock { width: 100%; }
+        .modern-clock .time-main {
+          display: flex;
+          align-items: baseline;
+          justify-content: center;
+          gap: var(--cf-spacing-sm);
+          margin-bottom: var(--cf-spacing-lg);
+        }
+        .modern-clock .time-digits {
+          display: flex;
+          align-items: baseline;
+          gap: 2px;
+          font-variant-numeric: tabular-nums;
+        }
+        .modern-clock .digit-part {
+          font-size: 4em;
+          font-weight: 300;
+          color: var(--cf-text-primary);
+          line-height: 1;
+          text-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .modern-clock .digit-separator {
+          font-size: 3em;
+          font-weight: 200;
+          color: var(--cf-primary-color);
+          animation: ${showAnimations ? 'blink 2s infinite' : 'none'};
+        }
+        .modern-clock .ampm-indicator {
+          font-size: 1.5em;
+          font-weight: 600;
+          color: var(--cf-accent-color);
+          margin-left: var(--cf-spacing-sm);
+          align-self: flex-end;
+          margin-bottom: 0.2em;
+        }
+        .modern-clock .modern-info {
+          display: flex;
+          flex-direction: column;
+          gap: var(--cf-spacing-xs);
+        }
+        .modern-clock .modern-date {
+          font-size: 1.4em;
+          font-weight: 500;
+          color: var(--cf-text-primary);
+        }
+        .modern-clock .modern-weekday {
+          font-size: 1.2em;
+          color: var(--cf-text-secondary);
+          font-weight: 400;
+        }
+      `,
+      
+      classic: `
+        .classic-clock { width: 100%; }
+        .classic-clock .clock-face {
+          background: var(--cf-surface);
+          border: 3px solid var(--cf-primary-color);
+          border-radius: var(--cf-radius-xl);
+          padding: var(--cf-spacing-xl);
+          margin-bottom: var(--cf-spacing-lg);
+          box-shadow: var(--cf-shadow-md);
+        }
+        .classic-clock .classic-time {
+          font-size: 3.5em;
+          font-weight: 600;
+          color: var(--cf-text-primary);
+          font-variant-numeric: tabular-nums;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          gap: 4px;
+        }
+        .classic-clock .classic-separator {
+          color: var(--cf-primary-color);
+          animation: ${showAnimations ? 'blink 1s infinite' : 'none'};
+        }
+        .classic-clock .classic-ampm {
+          font-size: 1.2em;
+          color: var(--cf-accent-color);
+          font-weight: 600;
+          margin-top: var(--cf-spacing-sm);
+        }
+        .classic-clock .classic-info {
+          display: flex;
+          gap: var(--cf-spacing-lg);
+          justify-content: center;
+          font-size: 1.1em;
+        }
+        .classic-clock .classic-date {
+          color: var(--cf-text-primary);
+          font-weight: 500;
+        }
+        .classic-clock .classic-weekday {
+          color: var(--cf-accent-color);
+          font-weight: 500;
+        }
+      `,
+      
+      minimal: `
+        .minimal-clock { width: 100%; }
+        .minimal-clock .minimal-time {
+          font-size: 4.5em;
+          font-weight: 200;
+          color: var(--cf-text-primary);
+          font-variant-numeric: tabular-nums;
+          letter-spacing: -2px;
+          margin-bottom: var(--cf-spacing-sm);
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          gap: 4px;
+        }
+        .minimal-clock .minimal-separator {
+          animation: ${showAnimations ? 'blink 1.5s infinite' : 'none'};
+        }
+        .minimal-clock .minimal-ampm {
+          font-size: 1.2em;
+          color: var(--cf-accent-color);
+          font-weight: 500;
+          margin-bottom: var(--cf-spacing-lg);
+        }
+        .minimal-clock .minimal-info {
+          display: flex;
+          gap: var(--cf-spacing-lg);
+          justify-content: center;
+          font-size: 1em;
+          color: var(--cf-text-secondary);
+        }
+      `,
+      
+      glass: `
+        .glass-clock { width: 100%; }
+        .glass-clock .glass-time {
+          font-size: 4em;
+          font-weight: 300;
+          color: var(--cf-text-primary);
+          font-variant-numeric: tabular-nums;
+          margin-bottom: var(--cf-spacing-sm);
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          gap: 4px;
+        }
+        .glass-clock .glass-separator {
+          color: var(--cf-primary-color);
+          animation: ${showAnimations ? 'blink 1.5s infinite' : 'none'};
+        }
+        .glass-clock .glass-ampm {
+          font-size: 1.3em;
+          color: var(--cf-accent-color);
+          font-weight: 500;
+          margin-bottom: var(--cf-spacing-lg);
+        }
+        .glass-clock .glass-info {
+          display: flex;
+          flex-direction: column;
+          gap: var(--cf-spacing-xs);
+          font-size: 1.1em;
+          color: var(--cf-text-primary);
+          opacity: 0.9;
+        }
+      `,
+      
+      neon: `
+        .neon-clock { width: 100%; }
+        .neon-clock .neon-time {
+          font-size: 4em;
+          font-weight: 600;
+          font-variant-numeric: tabular-nums;
+          margin-bottom: var(--cf-spacing-sm);
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          gap: 4px;
+          text-shadow: 
+            0 0 5px #00ff88,
+            0 0 10px #00ff88,
+            0 0 20px #00ff88;
+          animation: ${showAnimations ? 'neonPulse 2s infinite' : 'none'};
+        }
+        .neon-clock .neon-digit {
+          color: #00ff88;
+        }
+        .neon-clock .neon-separator {
+          color: #00ff88;
+          animation: ${showAnimations ? 'blink 1s infinite' : 'none'};
+        }
+        .neon-clock .neon-ampm {
+          font-size: 1.3em;
+          color: #00ff88;
+          font-weight: 500;
+          margin-bottom: var(--cf-spacing-lg);
+          text-shadow: 0 0 5px #00ff88;
+        }
+        .neon-clock .neon-info {
+          display: flex;
+          gap: var(--cf-spacing-lg);
+          justify-content: center;
+          font-size: 1.1em;
+          color: #00ff88;
+          text-shadow: 0 0 5px #00ff88;
+        }
+      `,
+      
+      container: `
+        .style-glass .cardforge-responsive-container {
+          backdrop-filter: blur(20px);
+          background: rgba(255, 255, 255, 0.1);
+          border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+        .style-neon .cardforge-responsive-container {
+          background: #1a1a1a;
+          border: 1px solid #00ff88;
+          box-shadow: 
+            0 0 10px #00ff88,
+            inset 0 0 15px rgba(0, 255, 136, 0.1);
+        }
+        .style-minimal .cardforge-responsive-container {
+          background: transparent;
+          border: none;
+          box-shadow: none;
+        }
+      `,
+      
+      animations: `
+        @keyframes blink {
+          0%, 50% { opacity: 1; }
+          51%, 100% { opacity: 0.3; }
+        }
+        @keyframes neonPulse {
+          0%, 100% { 
+            text-shadow: 
+              0 0 5px #00ff88,
+              0 0 10px #00ff88,
+              0 0 20px #00ff88;
+          }
+          50% { 
+            text-shadow: 
+              0 0 10px #00ff88,
+              0 0 20px #00ff88,
+              0 0 40px #00ff88;
+          }
+        }
+      `,
+      
+      responsive: `
+        @media (max-width: 600px) {
+          .clock-card {
+            padding: var(--cf-spacing-lg);
+            min-height: 150px;
+          }
+          .modern-clock .digit-part { font-size: 3em; }
+          .modern-clock .digit-separator { font-size: 2.2em; }
+          .classic-clock .classic-time { font-size: 2.8em; }
+          .minimal-clock .minimal-time { font-size: 3.5em; }
+          .glass-clock .glass-time { font-size: 3.2em; }
+          .neon-clock .neon-time { font-size: 3.2em; }
+          .modern-clock .modern-info,
+          .classic-clock .classic-info,
+          .minimal-clock .minimal-info,
+          .neon-clock .neon-info {
+            flex-direction: column;
+            gap: var(--cf-spacing-xs);
+          }
+        }
+        @media (max-width: 400px) {
+          .modern-clock .digit-part { font-size: 2.5em; }
+          .classic-clock .classic-time { font-size: 2.2em; }
+          .minimal-clock .minimal-time { font-size: 3em; }
+        }
+      `,
+      
+      darkMode: `
+        @media (prefers-color-scheme: dark) {
+          .style-glass .cardforge-responsive-container {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+          }
+          .minimal-clock .minimal-time {
+            color: var(--cf-dark-text);
+          }
+        }
+      `
+    };
+
     return `
-      ${baseStyles}
-      
-      .dashboard-card {
-        display: flex;
-        flex-direction: column;
-        min-height: 120px;
-        background: var(--card-background-color);
-        border-radius: var(--cf-radius-lg);
-        overflow: hidden;
-        container-type: inline-size;
-      }
-      
-      .layout-horizontal .dashboard-content {
-        display: flex;
-        flex-direction: row;
-        overflow-x: auto;
-      }
-      
-      .layout-horizontal .content-item {
-        min-width: 120px;
-        flex-shrink: 0;
-      }
-      
-      .layout-grid .dashboard-content {
-        display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
-        gap: var(--cf-spacing-md);
-      }
-      
-      .dashboard-header {
-        display: flex;
-        align-items: center;
-        padding: var(--cf-spacing-lg);
-        background: rgba(var(--cf-rgb-primary), 0.05);
-        border-bottom: 1px solid var(--cf-border);
-        gap: var(--cf-spacing-md);
-      }
-      
-      .header-icon {
-        font-size: 1.5em;
-        flex-shrink: 0;
-      }
-      
-      .header-text {
-        flex: 1;
-        min-width: 0;
-      }
-      
-      .header-title {
-        font-weight: 600;
-        font-size: 1.1em;
-        color: var(--cf-text-primary);
-        margin-bottom: var(--cf-spacing-xs);
-      }
-      
-      .header-subtitle {
-        font-size: 0.9em;
-        color: var(--cf-text-secondary);
-      }
-      
-      .header-actions {
-        display: flex;
-        gap: var(--cf-spacing-sm);
-        flex-shrink: 0;
-      }
-      
-      .header-action {
-        background: none;
-        border: 1px solid var(--cf-border);
-        border-radius: var(--cf-radius-md);
-        padding: var(--cf-spacing-sm);
-        cursor: pointer;
-        transition: all var(--cf-transition-fast);
-        font-size: 1.1em;
-      }
-      
-      .header-action:hover {
-        background: var(--cf-primary-color);
-        color: white;
-        border-color: var(--cf-primary-color);
-      }
-      
-      .dashboard-content {
-        flex: 1;
-        padding: var(--cf-spacing-lg);
-        display: flex;
-        flex-direction: column;
-        gap: var(--cf-spacing-md);
-      }
-      
-      .content-item {
-        display: flex;
-        align-items: center;
-        padding: var(--cf-spacing-md);
-        background: var(--cf-surface);
-        border-radius: var(--cf-radius-md);
-        border: 1px solid var(--cf-border);
-        gap: var(--cf-spacing-md);
-        transition: all var(--cf-transition-fast);
-        position: relative;
-      }
-      
-      .content-item:hover {
-        border-color: var(--cf-primary-color);
-        transform: translateY(-1px);
-        box-shadow: var(--cf-shadow-sm);
-      }
-      
-      .item-icon {
-        font-size: 1.5em;
-        flex-shrink: 0;
-        width: 40px;
-        text-align: center;
-      }
-      
-      .item-content {
-        flex: 1;
-        min-width: 0;
-      }
-      
-      .item-label {
-        font-size: 0.9em;
-        color: var(--cf-text-secondary);
-        margin-bottom: var(--cf-spacing-xs);
-      }
-      
-      .item-value {
-        font-weight: 600;
-        font-size: 1.1em;
-        color: var(--cf-text-primary);
-      }
-      
-      .item-badge {
-        position: absolute;
-        top: 8px;
-        right: 8px;
-        font-size: 0.7em;
-        padding: 2px 6px;
-        border-radius: 10px;
-        background: var(--cf-text-secondary);
-        color: white;
-      }
-      
-      .item-badge.on {
-        background: var(--cf-success-color);
-      }
-      
-      .item-badge.off {
-        background: var(--cf-text-secondary);
-      }
-      
-      .item-badge.unavailable {
-        background: var(--cf-error-color);
-      }
-      
-      .dashboard-footer {
-        padding: var(--cf-spacing-md) var(--cf-spacing-lg);
-        background: rgba(var(--cf-rgb-primary), 0.03);
-        border-top: 1px solid var(--cf-border);
-      }
-      
-      .footer-content {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        font-size: 0.85em;
-        color: var(--cf-text-secondary);
-      }
-      
-      .footer-text {
-        display: flex;
-        align-items: center;
-        gap: var(--cf-spacing-xs);
-      }
-      
-      .footer-icon {
-        font-size: 1.1em;
-      }
-      
-      .style-minimal .dashboard-header,
-      .style-minimal .dashboard-footer {
-        background: transparent;
-        border: none;
-      }
-      
-      .style-minimal .content-item {
-        background: transparent;
-        border: 1px solid transparent;
-      }
-      
-      .style-bordered .dashboard-card {
-        border: 2px solid var(--cf-border);
-      }
-      
-      .style-bordered .content-item {
-        border: 1px solid var(--cf-border);
-      }
-      
-      .style-filled .content-item {
-        background: rgba(var(--cf-rgb-primary), 0.1);
-        border-color: rgba(var(--cf-rgb-primary), 0.2);
-      }
-      
-      @container (max-width: 400px) {
-        .dashboard-header {
-          flex-direction: column;
-          align-items: flex-start;
-          gap: var(--cf-spacing-sm);
-        }
-        
-        .header-actions {
-          align-self: stretch;
-          justify-content: space-between;
-        }
-        
-        .layout-grid .dashboard-content {
-          grid-template-columns: 1fr;
-        }
-        
-        .footer-content {
-          flex-direction: column;
-          gap: var(--cf-spacing-sm);
-          align-items: flex-start;
-        }
-      }
-      
-      @media (prefers-color-scheme: dark) {
-        .dashboard-header {
-          background: rgba(var(--cf-rgb-primary), 0.1);
-        }
-        
-        .dashboard-footer {
-          background: rgba(var(--cf-rgb-primary), 0.05);
-        }
-        
-        .content-item {
-          background: var(--cf-dark-surface);
-        }
-        
-        .style-filled .content-item {
-          background: rgba(var(--cf-rgb-primary), 0.15);
-        }
-      }
+      ${this.getBaseStyles(config)}
+      ${styles.base}
+      ${styles[styleClass] || styles.modern}
+      ${styles.container}
+      ${styles.animations}
+      ${styles.responsive}
+      ${styles.darkMode}
     `;
   }
 }
 
-// 修复：正确的导出方式
-export default DashboardCardPlugin;
-export const manifest = DashboardCardPlugin.manifest;
+export default ClockCard;
+export const manifest = ClockCard.manifest;
