@@ -12,7 +12,8 @@ export class EntityManager extends LitElement {
     _showAddDialog: { state: true },
     _editingEntity: { state: true },
     _searchQuery: { state: true },
-    _showEntityList: { state: true }
+    _showEntityList: { state: true },
+    _dialogData: { state: true }
   };
 
   static styles = [
@@ -413,6 +414,12 @@ export class EntityManager extends LitElement {
     this._editingEntity = null;
     this._searchQuery = '';
     this._showEntityList = false;
+    this._dialogData = {
+      name: '',
+      icon: 'mdi:tag',
+      source: '',
+      key: ''
+    };
   }
 
   willUpdate(changedProperties) {
@@ -583,17 +590,13 @@ export class EntityManager extends LitElement {
     if (!this._showAddDialog && !this._editingEntity) return '';
 
     const isEditing = !!this._editingEntity;
-    const entity = isEditing ? 
-      this._dynamicEntities.find(e => e.key === this._editingEntity) : 
-      { key: '', name: '', icon: 'mdi:tag', source: '' };
+    const title = isEditing ? '编辑实体' : '添加实体';
 
     return html`
       <div class="dialog-overlay" @click=${this._closeDialog}>
         <div class="dialog" @click=${e => e.stopPropagation()}>
           <div class="dialog-header">
-            <div class="dialog-title">
-              ${isEditing ? '编辑实体' : '添加实体'}
-            </div>
+            <div class="dialog-title">${title}</div>
             <button class="close-button" @click=${this._closeDialog}>
               <ha-icon icon="mdi:close"></ha-icon>
             </button>
@@ -603,8 +606,8 @@ export class EntityManager extends LitElement {
             <div class="form-field">
               <label class="form-label">实体名称</label>
               <ha-textfield
-                .value=${entity.name}
-                @input=${e => this._onDialogFieldChange('name', e.target.value)}
+                .value=${this._dialogData.name}
+                @input=${e => this._updateDialogData('name', e.target.value)}
                 placeholder="例如：室内温度"
                 outlined
                 fullwidth
@@ -614,8 +617,8 @@ export class EntityManager extends LitElement {
             <div class="form-field">
               <label class="form-label">图标</label>
               <ha-textfield
-                .value=${entity.icon}
-                @input=${e => this._onDialogFieldChange('icon', e.target.value)}
+                .value=${this._dialogData.icon}
+                @input=${e => this._updateDialogData('icon', e.target.value)}
                 placeholder="例如：mdi:thermometer"
                 outlined
                 fullwidth
@@ -627,9 +630,9 @@ export class EntityManager extends LitElement {
               <label class="form-label">数据源</label>
               <div class="entity-picker">
                 <ha-textfield
-                  .value=${entity.source}
+                  .value=${this._dialogData.source}
                   @input=${e => {
-                    this._onDialogFieldChange('source', e.target.value);
+                    this._updateDialogData('source', e.target.value);
                     this._searchQuery = e.target.value;
                     this._showEntityList = true;
                   }}
@@ -703,38 +706,35 @@ export class EntityManager extends LitElement {
   }
 
   _selectEntity(entityId) {
-    this._onDialogFieldChange('source', entityId);
+    this._updateDialogData('source', entityId);
     this._showEntityList = false;
     this._searchQuery = '';
   }
 
   _insertTemplate(template) {
-    this._onDialogFieldChange('source', template);
+    this._updateDialogData('source', template);
     this._showEntityList = false;
     this._searchQuery = '';
   }
 
-  _onDialogFieldChange(field, value) {
-    if (!this._editingEntity) {
-      this._newEntity = {
-        ...this._newEntity,
-        [field]: value
-      };
-    } else {
-      this._editingEntityData = {
-        ...this._editingEntityData,
-        [field]: value
-      };
-    }
+  _updateDialogData(field, value) {
+    this._dialogData = {
+      ...this._dialogData,
+      [field]: value
+    };
   }
 
   _validateDialog() {
-    const entity = this._editingEntity ? this._editingEntityData : this._newEntity;
-    return entity?.name && entity?.source;
+    return this._dialogData?.name && this._dialogData?.source;
   }
 
   _showAddEntityDialog() {
-    this._newEntity = { name: '', icon: 'mdi:tag', source: '' };
+    this._dialogData = { 
+      name: '', 
+      icon: 'mdi:tag', 
+      source: '', 
+      key: '' 
+    };
     this._showAddDialog = true;
     this._searchQuery = '';
     this._showEntityList = false;
@@ -744,7 +744,12 @@ export class EntityManager extends LitElement {
     const entity = this._dynamicEntities.find(e => e.key === key);
     if (entity) {
       this._editingEntity = key;
-      this._editingEntityData = { ...entity };
+      this._dialogData = { 
+        name: entity.name, 
+        icon: entity.icon, 
+        source: entity.source, 
+        key: entity.key 
+      };
       this._searchQuery = '';
       this._showEntityList = false;
     }
@@ -763,17 +768,16 @@ export class EntityManager extends LitElement {
 
   _saveEntity() {
     const isEditing = !!this._editingEntity;
-    const entityData = isEditing ? this._editingEntityData : this._newEntity;
     
-    if (!entityData.name || !entityData.source) return;
+    if (!this._dialogData.name || !this._dialogData.source) return;
 
-    const key = isEditing ? this._editingEntity : this._generateEntityKey(entityData.name);
+    const key = isEditing ? this._editingEntity : this._generateEntityKey(this._dialogData.name);
     const newEntities = { ...this.entities };
     
     // 保存实体数据
-    newEntities[key] = entityData.source;
-    newEntities[`${key}_name`] = entityData.name;
-    newEntities[`${key}_icon`] = entityData.icon;
+    newEntities[key] = this._dialogData.source;
+    newEntities[`${key}_name`] = this._dialogData.name;
+    newEntities[`${key}_icon`] = this._dialogData.icon;
     
     this._notifyEntitiesChange(newEntities);
     this._closeDialog();
@@ -786,8 +790,12 @@ export class EntityManager extends LitElement {
   _closeDialog() {
     this._showAddDialog = false;
     this._editingEntity = null;
-    this._editingEntityData = null;
-    this._newEntity = null;
+    this._dialogData = {
+      name: '',
+      icon: 'mdi:tag',
+      source: '',
+      key: ''
+    };
     this._searchQuery = '';
     this._showEntityList = false;
   }
