@@ -7,7 +7,8 @@ export class EntityManager extends LitElement {
     hass: { type: Object },
     entities: { type: Object },
     _config: { state: true },
-    _expandedSections: { state: true }
+    _expandedSections: { state: true },
+    _editingItem: { state: true }
   };
 
   static styles = [
@@ -78,6 +79,19 @@ export class EntityManager extends LitElement {
         border-bottom: none;
       }
 
+      .entity-icon {
+        width: 32px;
+        height: 32px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: var(--primary-color);
+        border-radius: 8px;
+        margin-right: 12px;
+        color: white;
+        font-size: 16px;
+      }
+
       .entity-content {
         flex: 1;
         min-width: 0;
@@ -105,6 +119,24 @@ export class EntityManager extends LitElement {
         padding: 20px;
         color: var(--secondary-text-color);
       }
+
+      /* 编辑表单 */
+      .edit-form {
+        padding: 16px;
+        background: var(--secondary-background-color);
+        border-top: 1px solid var(--divider-color);
+      }
+
+      .form-field {
+        margin-bottom: 16px;
+      }
+
+      .form-actions {
+        display: flex;
+        justify-content: flex-end;
+        gap: 8px;
+        margin-top: 16px;
+      }
     `
   ];
 
@@ -112,6 +144,7 @@ export class EntityManager extends LitElement {
     super();
     this._config = { header: [], content: [], footer: [] };
     this._expandedSections = new Set(['content']);
+    this._editingItem = null;
   }
 
   willUpdate(changedProperties) {
@@ -200,6 +233,7 @@ export class EntityManager extends LitElement {
   _renderSection(sectionType, icon, title) {
     const items = this._config[sectionType];
     const isExpanded = this._expandedSections.has(sectionType);
+    const isEditing = this._editingItem?.sectionType === sectionType;
 
     return html`
       <div class="config-section">
@@ -211,7 +245,7 @@ export class EntityManager extends LitElement {
           </div>
           <button class="add-button" @click=${(e) => {
             e.stopPropagation();
-            this._showEntityEditor(sectionType);
+            this._startAddItem(sectionType);
           }}>
             添加
           </button>
@@ -224,111 +258,179 @@ export class EntityManager extends LitElement {
             ` : items.map((item, index) => this._renderEntityRow(item, index, sectionType))}
           </div>
         ` : ''}
+
+        ${isEditing ? this._renderEditForm(sectionType) : ''}
       </div>
     `;
   }
 
   _renderEntityRow(item, index, sectionType) {
+    const isEditing = this._editingItem?.sectionType === sectionType && this._editingItem?.index === index;
+
+    if (isEditing) return '';
+
     return html`
       <div class="entity-row">
+        <div class="entity-icon">${item.icon}</div>
         <div class="entity-content">
           <div class="entity-name">${item.label}</div>
           <div class="entity-value">${item.value}</div>
         </div>
         <div class="entity-actions">
-          <button @click=${() => this._showEntityEditor(sectionType, index)}>编辑</button>
+          <button @click=${() => this._startEditItem(sectionType, index)}>编辑</button>
           <button @click=${() => this._removeItem(sectionType, index)}>删除</button>
         </div>
       </div>
     `;
   }
 
-  _showEntityEditor(sectionType, index = null) {
-    const item = index !== null ? this._config[sectionType][index] : null;
-    
-    // 使用官方实体选择器
-    this._openEntityPicker(sectionType, index, item);
-  }
+  _renderEditForm(sectionType) {
+    const editingItem = this._editingItem;
+    if (!editingItem || editingItem.sectionType !== sectionType) return '';
 
-  _openEntityPicker(sectionType, index, item) {
-    // 创建官方实体选择器
-    const entityPicker = document.createElement('ha-entity-picker');
-    entityPicker.hass = this.hass;
-    entityPicker.allowCustomValue = true;
-    
-    if (item?.value && this.hass?.states[item.value]) {
-      entityPicker.value = item.value;
-    }
+    const item = this._config[sectionType][editingItem.index] || { label: '', value: '', icon: '📊' };
+    const entityInfo = this._getEntityInfo(item.value);
 
-    // 创建对话框
-    const dialog = document.createElement('ha-dialog');
-    dialog.heading = index !== null ? '编辑实体' : '添加实体';
-    
-    dialog.content = html`
-      <div style="padding: 20px; min-width: 300px;">
-        <ha-textfield
-          label="显示名称"
-          .value=${item?.label || ''}
-          @input=${e => this._tempLabel = e.target.value}
-          style="width: 100%; margin-bottom: 16px;"
-        ></ha-textfield>
-        
-        <ha-entity-picker
-          .hass=${this.hass}
-          .value=${item?.value || ''}
-          @value-changed=${e => this._tempValue = e.detail.value}
-          style="width: 100%; margin-bottom: 16px;"
-        ></ha-entity-picker>
+    return html`
+      <div class="edit-form">
+        <div class="form-field">
+          <label>显示名称</label>
+          <ha-textfield
+            .value=${item.label}
+            @input=${e => this._updateEditingItem({ label: e.target.value })}
+            placeholder=${entityInfo.name || "显示名称"}
+            fullwidth
+          ></ha-textfield>
+        </div>
 
-        <ha-icon-picker
-          label="图标"
-          .value=${item?.icon || 'mdi:home'}
-          @value-changed=${e => this._tempIcon = e.detail.value}
-          style="width: 100%;"
-        ></ha-icon-picker>
+        <div class="form-field">
+          <label>数据源</label>
+          <ha-entity-picker
+            .hass=${this.hass}
+            .value=${item.value}
+            @value-changed=${e => {
+              const newValue = e.detail.value;
+              this._updateEditingItem({ value: newValue });
+              // 自动填充实体信息
+              const entityInfo = this._getEntityInfo(newValue);
+              if (entityInfo.name && !item.label) {
+                this._updateEditingItem({ label: entityInfo.name });
+              }
+              if (entityInfo.icon && item.icon === '📊') {
+                this._updateEditingItem({ icon: entityInfo.icon });
+              }
+            }}
+            allow-custom-value
+            fullwidth
+          ></ha-entity-picker>
+        </div>
+
+        <div class="form-field">
+          <label>图标</label>
+          <ha-textfield
+            .value=${item.icon}
+            @input=${e => this._updateEditingItem({ icon: e.target.value })}
+            placeholder="选择图标"
+            fullwidth
+          ></ha-textfield>
+          <div style="font-size: 12px; color: var(--secondary-text-color); margin-top: 4px;">
+            常用图标: 📊 🌡️ 💧 💡 ⚡ 🚪 👤 🕒 🏠 📱
+          </div>
+        </div>
+
+        <div class="form-actions">
+          <button @click=${this._cancelEdit}>取消</button>
+          <button 
+            @click=${this._saveEdit}
+            ?disabled=${!item.label.trim() || !item.value.trim()}
+          >保存</button>
+        </div>
       </div>
     `;
-
-    dialog.actions = [
-      { label: '取消', action: 'close' },
-      { 
-        label: '保存', 
-        action: () => {
-          this._saveEntity(sectionType, index, {
-            label: this._tempLabel || this._getDefaultLabel(this._tempValue),
-            value: this._tempValue,
-            icon: this._tempIcon || 'mdi:home'
-          });
-        } 
-      }
-    ];
-
-    document.body.appendChild(dialog);
-    dialog.showDialog();
-
-    // 存储临时数据
-    this._tempLabel = item?.label || '';
-    this._tempValue = item?.value || '';
-    this._tempIcon = item?.icon || 'mdi:home';
   }
 
-  _getDefaultLabel(entityId) {
-    if (!entityId || !this.hass?.states[entityId]) return '新项目';
-    return this.hass.states[entityId].attributes?.friendly_name || entityId;
-  }
-
-  _saveEntity(sectionType, index, newItem) {
-    if (!newItem.value) return;
-
-    if (index !== null) {
-      // 编辑现有项
-      this._config[sectionType][index] = newItem;
-    } else {
-      // 添加新项
-      this._config[sectionType].push(newItem);
+  _getEntityInfo(entityValue) {
+    if (!entityValue || !this.hass) return { name: '', icon: '📊' };
+    
+    if (entityValue.includes('.') && this.hass.states[entityValue]) {
+      const entity = this.hass.states[entityValue];
+      return {
+        name: entity.attributes?.friendly_name || entityValue,
+        icon: this._getDefaultEntityIcon(entityValue)
+      };
     }
+    
+    return { name: '', icon: '📊' };
+  }
 
+  _getDefaultEntityIcon(entityId) {
+    const domain = entityId.split('.')[0];
+    const icons = {
+      light: '💡',
+      sensor: '📊',
+      switch: '🔌',
+      climate: '🌡️',
+      media_player: '📺',
+      person: '👤',
+      binary_sensor: '🔲',
+      input_boolean: '⚙️',
+      automation: '🤖',
+      script: '📜'
+    };
+    return icons[domain] || '📊';
+  }
+
+  _startAddItem(sectionType) {
+    this._editingItem = {
+      sectionType,
+      index: this._config[sectionType].length,
+      isNew: true
+    };
+    this._config[sectionType].push({ label: '', value: '', icon: '📊' });
+    this._expandedSections.add(sectionType);
+    this.requestUpdate();
+  }
+
+  _startEditItem(sectionType, index) {
+    this._editingItem = { sectionType, index, isNew: false };
+    this.requestUpdate();
+  }
+
+  _updateEditingItem(updates) {
+    if (!this._editingItem) return;
+    
+    const { sectionType, index } = this._editingItem;
+    this._config[sectionType][index] = {
+      ...this._config[sectionType][index],
+      ...updates
+    };
+    this.requestUpdate();
+  }
+
+  _saveEdit() {
+    if (!this._editingItem) return;
+    
+    const { sectionType, index } = this._editingItem;
+    const item = this._config[sectionType][index];
+    
+    if (!item.label.trim() || !item.value.trim()) {
+      return;
+    }
+    
+    this._editingItem = null;
     this._notifyEntitiesChange();
+  }
+
+  _cancelEdit() {
+    if (!this._editingItem) return;
+    
+    const { sectionType, index, isNew } = this._editingItem;
+    
+    if (isNew) {
+      this._config[sectionType].splice(index, 1);
+    }
+    
+    this._editingItem = null;
     this.requestUpdate();
   }
 
