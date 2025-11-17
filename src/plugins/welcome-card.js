@@ -4,919 +4,813 @@ import { BasePlugin } from '../core/base-plugin.js';
 class WelcomeCard extends BasePlugin {
   static manifest = {
     id: 'welcome-card',
-    name: '智能欢迎',
-    version: '2.0.0',
-    description: '个性化欢迎信息，支持每日一言',
-    category: 'information',
+    name: '欢迎卡片',
+    version: '1.0.0',
+    description: '个性化欢迎卡片，显示用户信息和每日一言',
+    category: '信息',
     icon: '👋',
     author: 'CardForge',
     
     config_schema: {
-      // 布局配置
-      layout_style: {
+      welcome_style: {
         type: 'select',
-        label: '布局风格',
-        options: ['modern', 'minimal', 'classic', 'creative'],
-        default: 'modern',
-        description: '选择欢迎卡片的布局风格'
+        label: '欢迎风格',
+        options: ['温馨风格', '简约风格', '商务风格', '创意风格', '动态风格'],
+        default: '温馨风格'
       },
       
-      show_user: {
+      show_avatar: {
         type: 'boolean',
-        label: '显示用户',
-        default: true,
-        description: '显示用户信息'
+        label: '显示用户头像',
+        default: true
       },
       
       show_quote: {
         type: 'boolean',
         label: '显示每日一言',
-        default: true,
-        description: '显示每日励志名言'
+        default: true
       },
       
-      // 个性化配置
-      custom_greeting: {
-        type: 'select',
-        label: '问候语风格',
-        options: ['friendly', 'formal', 'casual', 'inspirational'],
-        default: 'friendly',
-        description: '选择问候语风格'
-      },
-      
-      show_time_info: {
+      show_time: {
         type: 'boolean',
-        label: '显示时间信息',
-        default: true,
-        description: '显示当前时间和日期'
+        label: '显示当前时间',
+        default: true
       },
       
-      // 动画效果
+      custom_greeting: {
+        type: 'string',
+        label: '自定义问候语',
+        default: '',
+        placeholder: '例如：早上好，{name}！'
+      },
+      
+      quote_entity: {
+        type: 'string',
+        label: '每日一言实体',
+        default: '',
+        placeholder: '例如：sensor.daily_quote'
+      },
+      
       enable_animations: {
         type: 'boolean',
-        label: '启用动画',
-        default: true,
-        description: '启用欢迎动画效果'
+        label: '启用动画效果',
+        default: true
       }
     },
     
     entity_requirements: [
       {
-        key: 'daily_quote',
-        description: '每日一言实体',
-        required: false,
-        suggested: 'sensor.daily_quote'
+        key: 'user_entity',
+        description: '用户实体',
+        required: true
       }
     ]
   };
 
-  // 名言库
-  _getQuotes() {
-    return [
-      { text: "知识就是力量", author: "弗朗西斯·培根" },
-      { text: "读万卷书，行万里路", author: "刘彝" },
-      { text: "三人行，必有我师焉", author: "孔子" },
-      { text: "学而不思则罔，思而不学则殆", author: "孔子" },
-      { text: "知之者不如好之者，好之者不如乐之者", author: "孔子" },
-      { text: "天行健，君子以自强不息", author: "《周易》" },
-      { text: "千里之行，始于足下", author: "老子" },
-      { text: "精诚所至，金石为开", author: "王充" },
-      { text: "有志者事竟成", author: "《后汉书》" },
-      { text: "不积跬步，无以至千里", author: "荀子" },
-      { text: "生活就像一盒巧克力，你永远不知道下一颗是什么味道", author: "《阿甘正传》" },
-      { text: "人生没有彩排，每一天都是现场直播", author: "佚名" },
-      { text: "活在当下，珍惜眼前", author: "佚名" },
-      { text: "简单就是美", author: "佚名" },
-      { text: "快乐不是因为拥有的多，而是计较的少", author: "佚名" },
-      { text: "成功不是将来才有的，而是从决定去做的那一刻起，持续累积而成", author: "佚名" },
-      { text: "失败是成功之母", author: "俗语" },
-      { text: "机会总是留给有准备的人", author: "路易斯·巴斯德" },
-      { text: "坚持就是胜利", author: "俗语" },
-      { text: "细节决定成败", author: "汪中求" }
-    ];
-  }
-
-  // 获取随机名言
-  _getRandomQuote() {
-    const quotes = this._getQuotes();
+  // 获取欢迎数据
+  _getWelcomeData(config, hass, entities) {
     const now = new Date();
-    const dayOfYear = Math.floor((now - new Date(now.getFullYear(), 0, 0)) / 1000 / 60 / 60 / 24);
-    const index = dayOfYear % quotes.length;
+    const hour = now.getHours();
     
-    return quotes[index];
-  }
-
-  // 获取个性化问候语
-  _getGreeting(systemData, style = 'friendly') {
-    const hour = new Date().getHours();
-    const greetings = {
-      friendly: {
-        morning: `早上好，${systemData.user}！🌞`,
-        afternoon: `下午好，${systemData.user}！☀️`,
-        evening: `晚上好，${systemData.user}！🌙`,
-        night: `夜深了，${systemData.user}，注意休息哦 🌟`
-      },
-      formal: {
-        morning: `早安，${systemData.user}`,
-        afternoon: `午安，${systemData.user}`,
-        evening: `晚上好，${systemData.user}`,
-        night: `晚安，${systemData.user}`
-      },
-      casual: {
-        morning: `嘿 ${systemData.user}！新的一天开始啦 🎉`,
-        afternoon: `嗨 ${systemData.user}！今天过得怎么样？ 😊`,
-        evening: `晚上好 ${systemData.user}！放松一下吧 🛋️`,
-        night: `还没睡呢 ${systemData.user}？早点休息 💤`
-      },
-      inspirational: {
-        morning: `新的一天，新的开始！加油，${systemData.user}！🚀`,
-        afternoon: `把握当下，${systemData.user}！今天也要全力以赴！💪`,
-        evening: `今天辛苦了，${systemData.user}！明天会更好！✨`,
-        night: `感谢今天的努力，${systemData.user}！好好休息 🌙`
-      }
+    // 根据时间生成问候语
+    let timeGreeting = '';
+    if (hour >= 5 && hour < 12) {
+      timeGreeting = '早上好';
+    } else if (hour >= 12 && hour < 14) {
+      timeGreeting = '中午好';
+    } else if (hour >= 14 && hour < 18) {
+      timeGreeting = '下午好';
+    } else {
+      timeGreeting = '晚上好';
+    }
+    
+    // 获取用户信息
+    const userEntity = entities.user_entity;
+    const userName = this._getEntityValue(entities, 'user_entity_name') || 
+                    this._getCardValue(hass, entities, 'user_entity', '用户');
+    
+    // 获取每日一言
+    let dailyQuote = '';
+    if (config.quote_entity) {
+      dailyQuote = this._getCardValue(hass, entities, 'quote_entity', '');
+    } else if (config.show_quote) {
+      // 默认每日一言库
+      dailyQuote = this._getDefaultQuote();
+    }
+    
+    // 处理自定义问候语
+    let greeting = config.custom_greeting || '{greeting}，{name}！';
+    greeting = greeting.replace('{greeting}', timeGreeting).replace('{name}', userName);
+    
+    return {
+      // 用户信息
+      user_name: userName,
+      greeting: greeting,
+      time_greeting: timeGreeting,
+      
+      // 时间信息
+      current_time: now.toLocaleTimeString('zh-CN', { 
+        hour: '2-digit', 
+        minute: '2-digit' 
+      }),
+      current_date: now.toLocaleDateString('zh-CN', {
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric'
+      }),
+      weekday: '星期' + '日一二三四五六'[now.getDay()],
+      
+      // 每日一言
+      daily_quote: dailyQuote,
+      quote_author: this._extractQuoteAuthor(dailyQuote),
+      
+      // 样式数据
+      is_morning: hour >= 5 && hour < 12,
+      is_afternoon: hour >= 12 && hour < 18,
+      is_evening: hour >= 18 || hour < 5
     };
+  }
 
-    const styleGreetings = greetings[style] || greetings.friendly;
+  // 获取默认每日一言
+  _getDefaultQuote() {
+    const quotes = [
+      "每一天都是新的开始，用心去感受生活的美好。",
+      "保持热爱，奔赴山海。",
+      "简单的生活，就是最美好的生活。",
+      "今天的努力，是明天的幸运。",
+      "心怀希望，所遇皆温柔。",
+      "生活不是等待风暴过去，而是学会在雨中跳舞。",
+      "每一个不起舞的日子，都是对生命的辜负。",
+      "保持微笑，好运自然来。",
+      "今天也要加油哦！",
+      "心怀感恩，所遇皆温柔。"
+    ];
     
-    if (hour < 6) return styleGreetings.night;
-    if (hour < 12) return styleGreetings.morning;
-    if (hour < 18) return styleGreetings.afternoon;
-    if (hour < 22) return styleGreetings.evening;
-    return styleGreetings.night;
+    const today = new Date();
+    const seed = today.getDate() + today.getMonth();
+    return quotes[seed % quotes.length];
   }
 
-  // 渲染现代布局
-  _renderModernLayout(systemData, config, entities) {
-    const greeting = this._getGreeting(systemData, config.custom_greeting);
-    const quote = this._getRandomQuote();
-    const showQuote = config.show_quote !== false;
-    const showTime = config.show_time_info !== false;
-    const showUser = config.show_user !== false;
-    const enableAnimations = config.enable_animations !== false;
-
-    // 获取实体数据
-    const dailyQuote = this._getCardValue(this.hass, entities, 'daily_quote', quote.text);
-
-    return `
-      <div class="welcome-modern ${enableAnimations ? 'with-animations' : ''}">
-        <!-- 顶部信息栏 -->
-        ${showTime ? `
-          <div class="time-section">
-            <div class="current-time">${systemData.time}</div>
-            <div class="current-date">${systemData.date}</div>
-          </div>
-        ` : ''}
-        
-        <!-- 主要内容 -->
-        <div class="main-content">
-          ${showUser ? `
-            <div class="user-section">
-              <div class="user-avatar">${systemData.user.charAt(0)}</div>
-              <div class="user-info">
-                <div class="user-name">${systemData.user}</div>
-                <div class="user-greeting">${systemData.greeting}</div>
-              </div>
-            </div>
-          ` : ''}
-          
-          <div class="greeting-section">
-            <h1 class="greeting-text">${greeting}</h1>
-          </div>
-        </div>
-        
-        <!-- 每日一言 -->
-        ${showQuote ? `
-          <div class="quote-section">
-            <div class="quote-content">
-              <div class="quote-text">"${dailyQuote}"</div>
-              <div class="quote-author">— ${quote.author}</div>
-            </div>
-          </div>
-        ` : ''}
-        
-        <!-- 装饰元素 -->
-        <div class="decoration-elements">
-          <div class="decoration-circle circle-1"></div>
-          <div class="decoration-circle circle-2"></div>
-          <div class="decoration-circle circle-3"></div>
-        </div>
-      </div>
-    `;
-  }
-
-  // 渲染简约布局
-  _renderMinimalLayout(systemData, config, entities) {
-    const greeting = this._getGreeting(systemData, config.custom_greeting);
-    const quote = this._getRandomQuote();
-    const showQuote = config.show_quote !== false;
-    const showUser = config.show_user !== false;
-    const dailyQuote = this._getCardValue(this.hass, entities, 'daily_quote', quote.text);
-
-    return `
-      <div class="welcome-minimal">
-        <div class="minimal-content">
-          ${showUser ? `
-            <div class="minimal-user">
-              <span class="user-badge">${systemData.user}</span>
-            </div>
-          ` : ''}
-          <div class="minimal-greeting">${greeting}</div>
-          ${showQuote ? `
-            <div class="minimal-quote">
-              <div class="minimal-quote-text">${dailyQuote}</div>
-            </div>
-          ` : ''}
-          <div class="minimal-time">${systemData.time}</div>
-        </div>
-      </div>
-    `;
-  }
-
-  // 渲染经典布局
-  _renderClassicLayout(systemData, config, entities) {
-    const greeting = this._getGreeting(systemData, config.custom_greeting);
-    const quote = this._getRandomQuote();
-    const showQuote = config.show_quote !== false;
-    const showUser = config.show_user !== false;
-    const dailyQuote = this._getCardValue(this.hass, entities, 'daily_quote', quote.text);
-
-    return `
-      <div class="welcome-classic">
-        <div class="classic-header">
-          <h1>欢迎回家</h1>
-          <div class="classic-time">${systemData.time} • ${systemData.date}</div>
-        </div>
-        
-        <div class="classic-content">
-          ${showUser ? `
-            <div class="classic-user">
-              <div class="classic-user-avatar">${systemData.user.charAt(0)}</div>
-              <div class="classic-user-name">${systemData.user}</div>
-            </div>
-          ` : ''}
-          
-          <div class="classic-greeting">${greeting}</div>
-          
-          ${showQuote ? `
-            <div class="classic-quote">
-              <div class="classic-quote-icon">💭</div>
-              <div class="classic-quote-content">
-                <div class="classic-quote-text">${dailyQuote}</div>
-                <div class="classic-quote-author">— ${quote.author}</div>
-              </div>
-            </div>
-          ` : ''}
-        </div>
-      </div>
-    `;
-  }
-
-  // 渲染创意布局
-  _renderCreativeLayout(systemData, config, entities) {
-    const greeting = this._getGreeting(systemData, config.custom_greeting);
-    const quote = this._getRandomQuote();
-    const showQuote = config.show_quote !== false;
-    const showUser = config.show_user !== false;
-    const dailyQuote = this._getCardValue(this.hass, entities, 'daily_quote', quote.text);
-    const enableAnimations = config.enable_animations !== false;
-
-    return `
-      <div class="welcome-creative ${enableAnimations ? 'with-animations' : ''}">
-        <div class="creative-background">
-          <div class="floating-element element-1">✨</div>
-          <div class="floating-element element-2">🌟</div>
-          <div class="floating-element element-3">💫</div>
-        </div>
-        
-        <div class="creative-content">
-          ${showUser ? `
-            <div class="creative-user">
-              <div class="creative-avatar">${systemData.user.charAt(0)}</div>
-              <div class="creative-user-info">
-                <div class="creative-username">${systemData.user}</div>
-                <div class="creative-user-greeting">${systemData.greeting}</div>
-              </div>
-            </div>
-          ` : ''}
-          
-          <div class="creative-greeting">
-            <span class="greeting-words">${greeting}</span>
-          </div>
-          
-          <div class="creative-info">
-            <div class="creative-time">
-              <span class="time-main">${systemData.time}</span>
-              <span class="time-date">${systemData.date}</span>
-            </div>
-          </div>
-          
-          ${showQuote ? `
-            <div class="creative-quote">
-              <div class="quote-bubble">
-                <div class="bubble-text">${dailyQuote}</div>
-                <div class="bubble-author">— ${quote.author}</div>
-              </div>
-            </div>
-          ` : ''}
-        </div>
-      </div>
-    `;
+  // 从名言中提取作者
+  _extractQuoteAuthor(quote) {
+    if (!quote) return '';
+    
+    const authorMatch = quote.match(/[——|-]\s*([^——|-]+)$/);
+    if (authorMatch) {
+      return authorMatch[1].trim();
+    }
+    
+    return '';
   }
 
   getTemplate(config, hass, entities) {
-    this.hass = hass; // 保存 hass 引用用于获取实体数据
-    const systemData = this.getSystemData(hass, config);
-    const layoutStyle = config.layout_style || 'modern';
-
-    let layoutHTML = '';
-    
-    switch (layoutStyle) {
-      case 'minimal':
-        layoutHTML = this._renderMinimalLayout(systemData, config, entities);
-        break;
-      case 'classic':
-        layoutHTML = this._renderClassicLayout(systemData, config, entities);
-        break;
-      case 'creative':
-        layoutHTML = this._renderCreativeLayout(systemData, config, entities);
-        break;
-      default:
-        layoutHTML = this._renderModernLayout(systemData, config, entities);
-    }
+    const welcomeData = this._getWelcomeData(config, hass, entities);
+    const styleClass = this._getStyleClass(config.welcome_style);
+    const showAnimations = config.enable_animations !== false;
 
     return `
-      <div class="cardforge-responsive-container welcome-card layout-${layoutStyle}">
+      <div class="cardforge-responsive-container welcome-card style-${styleClass} ${showAnimations ? 'with-animations' : ''}">
         <div class="cardforge-content-grid">
-          ${layoutHTML}
+          ${this._renderWelcomeContent(welcomeData, config)}
         </div>
+      </div>
+    `;
+  }
+
+  _getStyleClass(styleName) {
+    const styleMap = {
+      '温馨风格': 'warm',
+      '简约风格': 'minimal',
+      '商务风格': 'business',
+      '创意风格': 'creative',
+      '动态风格': 'dynamic'
+    };
+    return styleMap[styleName] || 'warm';
+  }
+
+  _renderWelcomeContent(welcomeData, config) {
+    const style = config.welcome_style || '温馨风格';
+    
+    switch (style) {
+      case '简约风格':
+        return this._renderMinimalWelcome(welcomeData, config);
+      case '商务风格':
+        return this._renderBusinessWelcome(welcomeData, config);
+      case '创意风格':
+        return this._renderCreativeWelcome(welcomeData, config);
+      case '动态风格':
+        return this._renderDynamicWelcome(welcomeData, config);
+      default:
+        return this._renderWarmWelcome(welcomeData, config);
+    }
+  }
+
+  _renderWarmWelcome(welcomeData, config) {
+    return `
+      <div class="warm-welcome">
+        ${config.show_avatar ? `
+          <div class="avatar-container">
+            <div class="user-avatar">${welcomeData.user_name.charAt(0)}</div>
+          </div>
+        ` : ''}
+        
+        <div class="welcome-content">
+          <div class="greeting-main">
+            <h1 class="greeting-text">${welcomeData.greeting}</h1>
+            ${config.show_time ? `
+              <div class="time-info">
+                <span class="current-time">${welcomeData.current_time}</span>
+                <span class="current-date">${welcomeData.current_date} ${welcomeData.weekday}</span>
+              </div>
+            ` : ''}
+          </div>
+          
+          ${config.show_quote && welcomeData.daily_quote ? `
+            <div class="quote-section">
+              <div class="quote-text">"${welcomeData.daily_quote.replace(/[——|-].*$/, '')}"</div>
+              ${welcomeData.quote_author ? `
+                <div class="quote-author">—— ${welcomeData.quote_author}</div>
+              ` : ''}
+            </div>
+          ` : ''}
+        </div>
+      </div>
+    `;
+  }
+
+  _renderMinimalWelcome(welcomeData, config) {
+    return `
+      <div class="minimal-welcome">
+        <div class="minimal-greeting">
+          <div class="minimal-text">${welcomeData.greeting}</div>
+          ${config.show_time ? `
+            <div class="minimal-time">${welcomeData.current_time}</div>
+          ` : ''}
+        </div>
+        
+        ${config.show_quote && welcomeData.daily_quote ? `
+          <div class="minimal-quote">
+            ${welcomeData.daily_quote}
+          </div>
+        ` : ''}
+      </div>
+    `;
+  }
+
+  _renderBusinessWelcome(welcomeData, config) {
+    return `
+      <div class="business-welcome">
+        <div class="business-header">
+          ${config.show_avatar ? `
+            <div class="business-avatar">${welcomeData.user_name.charAt(0)}</div>
+          ` : ''}
+          <div class="business-info">
+            <div class="business-greeting">${welcomeData.greeting}</div>
+            ${config.show_time ? `
+              <div class="business-time">${welcomeData.current_date} ${welcomeData.current_time}</div>
+            ` : ''}
+          </div>
+        </div>
+        
+        ${config.show_quote && welcomeData.daily_quote ? `
+          <div class="business-quote">
+            <div class="quote-icon">💼</div>
+            <div class="quote-content">
+              <div class="quote-text">${welcomeData.daily_quote}</div>
+              ${welcomeData.quote_author ? `
+                <div class="quote-source">${welcomeData.quote_author}</div>
+              ` : ''}
+            </div>
+          </div>
+        ` : ''}
+      </div>
+    `;
+  }
+
+  _renderCreativeWelcome(welcomeData, config) {
+    return `
+      <div class="creative-welcome">
+        <div class="creative-main">
+          <div class="creative-greeting">
+            <span class="greeting-emoji">${welcomeData.is_morning ? '🌅' : welcomeData.is_afternoon ? '☀️' : '🌙'}</span>
+            <span class="greeting-text">${welcomeData.greeting}</span>
+          </div>
+          
+          ${config.show_time ? `
+            <div class="creative-time">
+              <div class="time-display">${welcomeData.current_time}</div>
+              <div class="date-display">${welcomeData.current_date}</div>
+            </div>
+          ` : ''}
+        </div>
+        
+        ${config.show_quote && welcomeData.daily_quote ? `
+          <div class="creative-quote">
+            <div class="quote-decoration">❝</div>
+            <div class="quote-content">${welcomeData.daily_quote}</div>
+            <div class="quote-decoration">❞</div>
+          </div>
+        ` : ''}
+      </div>
+    `;
+  }
+
+  _renderDynamicWelcome(welcomeData, config) {
+    return `
+      <div class="dynamic-welcome">
+        <div class="dynamic-background"></div>
+        
+        <div class="dynamic-content">
+          ${config.show_avatar ? `
+            <div class="dynamic-avatar">
+              <div class="avatar-circle">${welcomeData.user_name.charAt(0)}</div>
+            </div>
+          ` : ''}
+          
+          <div class="dynamic-text">
+            <h1 class="dynamic-greeting">${welcomeData.greeting}</h1>
+            
+            ${config.show_time ? `
+              <div class="dynamic-time">
+                <span class="time-now">${welcomeData.current_time}</span>
+                <span class="date-now">${welcomeData.weekday}</span>
+              </div>
+            ` : ''}
+          </div>
+        </div>
+        
+        ${config.show_quote && welcomeData.daily_quote ? `
+          <div class="dynamic-quote">
+            <div class="floating-quote">${welcomeData.daily_quote}</div>
+          </div>
+        ` : ''}
       </div>
     `;
   }
 
   getStyles(config) {
-    const layoutStyle = config.layout_style || 'modern';
-    const enableAnimations = config.enable_animations !== false;
+    const styleClass = this._getStyleClass(config.welcome_style);
+    const showAnimations = config.enable_animations !== false;
 
     return `
       ${this.getBaseStyles(config)}
       
       .welcome-card {
-        padding: var(--cf-spacing-lg);
-        position: relative;
-        overflow: hidden;
+        padding: var(--cf-spacing-xl);
         min-height: 200px;
-      }
-      
-      /* ===== 现代布局样式 ===== */
-      .welcome-modern {
-        display: flex;
-        flex-direction: column;
-        height: 100%;
-        gap: var(--cf-spacing-lg);
-        position: relative;
-        z-index: 2;
-      }
-      
-      .time-section {
-        text-align: right;
-        opacity: 0.8;
-      }
-      
-      .current-time {
-        font-size: 1.8em;
-        font-weight: 300;
-        color: var(--cf-text-primary);
-        font-variant-numeric: tabular-nums;
-      }
-      
-      .current-date {
-        font-size: 0.9em;
-        color: var(--cf-text-secondary);
-        margin-top: var(--cf-spacing-xs);
-      }
-      
-      .main-content {
         display: flex;
         align-items: center;
-        gap: var(--cf-spacing-lg);
-        flex: 1;
       }
-      
-      .user-section {
+
+      /* ===== 温馨风格 ===== */
+      .warm-welcome {
+        width: 100%;
         display: flex;
         align-items: center;
-        gap: var(--cf-spacing-md);
+        gap: var(--cf-spacing-xl);
+      }
+
+      .warm-welcome .avatar-container {
         flex-shrink: 0;
       }
-      
-      .user-avatar {
-        width: 60px;
-        height: 60px;
+
+      .warm-welcome .user-avatar {
+        width: 80px;
+        height: 80px;
         border-radius: 50%;
         background: linear-gradient(135deg, var(--cf-primary-color), var(--cf-accent-color));
         display: flex;
         align-items: center;
         justify-content: center;
-        font-size: 1.5em;
-        font-weight: 600;
         color: white;
-        box-shadow: var(--cf-shadow-md);
-      }
-      
-      .user-info {
-        display: flex;
-        flex-direction: column;
-        gap: var(--cf-spacing-xs);
-      }
-      
-      .user-name {
-        font-size: 1.1em;
+        font-size: 2em;
         font-weight: 600;
-        color: var(--cf-text-primary);
+        box-shadow: var(--cf-shadow-lg);
       }
-      
-      .user-greeting {
-        font-size: 0.9em;
-        color: var(--cf-text-secondary);
-      }
-      
-      .greeting-section {
+
+      .warm-welcome .welcome-content {
         flex: 1;
       }
-      
-      .greeting-text {
-        font-size: 2.2em;
+
+      .warm-welcome .greeting-text {
+        font-size: 2.5em;
         font-weight: 600;
         color: var(--cf-text-primary);
-        margin: 0;
+        margin: 0 0 var(--cf-spacing-md) 0;
         line-height: 1.2;
-        background: linear-gradient(135deg, var(--cf-primary-color), var(--cf-accent-color));
-        -webkit-background-clip: text;
-        -webkit-text-fill-color: transparent;
-        background-clip: text;
       }
-      
-      .quote-section {
-        background: rgba(var(--cf-rgb-primary), 0.08);
-        border-radius: var(--cf-radius-lg);
+
+      .warm-welcome .time-info {
+        display: flex;
+        align-items: center;
+        gap: var(--cf-spacing-lg);
+        margin-bottom: var(--cf-spacing-xl);
+      }
+
+      .warm-welcome .current-time {
+        font-size: 1.8em;
+        font-weight: 500;
+        color: var(--cf-primary-color);
+      }
+
+      .warm-welcome .current-date {
+        font-size: 1.2em;
+        color: var(--cf-text-secondary);
+      }
+
+      .warm-welcome .quote-section {
+        border-left: 4px solid var(--cf-accent-color);
+        padding-left: var(--cf-spacing-lg);
+        background: rgba(var(--cf-rgb-primary), 0.05);
         padding: var(--cf-spacing-lg);
-        border-left: 4px solid var(--cf-primary-color);
+        border-radius: 0 var(--cf-radius-lg) var(--cf-radius-lg) 0;
       }
-      
-      .quote-text {
-        font-size: 1.1em;
-        font-style: italic;
+
+      .warm-welcome .quote-text {
+        font-size: 1.2em;
         color: var(--cf-text-primary);
+        font-style: italic;
         line-height: 1.5;
         margin-bottom: var(--cf-spacing-sm);
       }
-      
-      .quote-author {
-        font-size: 0.9em;
+
+      .warm-welcome .quote-author {
+        font-size: 1em;
         color: var(--cf-text-secondary);
         text-align: right;
-        font-weight: 500;
       }
-      
-      .decoration-elements {
-        position: absolute;
-        top: 0;
-        left: 0;
-        right: 0;
-        bottom: 0;
-        pointer-events: none;
-        z-index: 1;
-      }
-      
-      .decoration-circle {
-        position: absolute;
-        border-radius: 50%;
-        background: rgba(var(--cf-rgb-primary), 0.1);
-      }
-      
-      .circle-1 {
-        width: 120px;
-        height: 120px;
-        top: -40px;
-        right: -40px;
-      }
-      
-      .circle-2 {
-        width: 80px;
-        height: 80px;
-        bottom: 20px;
-        left: 10%;
-      }
-      
-      .circle-3 {
-        width: 60px;
-        height: 60px;
-        bottom: 60px;
-        right: 30%;
-      }
-      
-      /* ===== 简约布局样式 ===== */
-      .welcome-minimal {
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        height: 100%;
+
+      /* ===== 简约风格 ===== */
+      .minimal-welcome {
+        width: 100%;
         text-align: center;
       }
-      
-      .minimal-content {
-        display: flex;
-        flex-direction: column;
-        gap: var(--cf-spacing-lg);
+
+      .minimal-welcome .minimal-greeting {
+        margin-bottom: var(--cf-spacing-xl);
       }
-      
-      .minimal-user {
-        margin-bottom: var(--cf-spacing-sm);
-      }
-      
-      .user-badge {
-        background: rgba(var(--cf-rgb-primary), 0.1);
-        padding: var(--cf-spacing-xs) var(--cf-spacing-md);
-        border-radius: var(--cf-radius-md);
-        font-size: 0.9em;
-        color: var(--cf-text-secondary);
-        border: 1px solid rgba(var(--cf-rgb-primary), 0.2);
-      }
-      
-      .minimal-greeting {
-        font-size: 2.5em;
+
+      .minimal-welcome .minimal-text {
+        font-size: 2.2em;
         font-weight: 300;
         color: var(--cf-text-primary);
-        line-height: 1.2;
+        margin-bottom: var(--cf-spacing-md);
       }
-      
-      .minimal-quote {
+
+      .minimal-welcome .minimal-time {
+        font-size: 1.5em;
+        color: var(--cf-text-secondary);
+        font-variant-numeric: tabular-nums;
+      }
+
+      .minimal-welcome .minimal-quote {
         font-size: 1.1em;
         color: var(--cf-text-secondary);
         font-style: italic;
-        max-width: 400px;
-        line-height: 1.4;
+        line-height: 1.6;
+        max-width: 600px;
+        margin: 0 auto;
       }
-      
-      .minimal-time {
-        font-size: 1.8em;
-        font-weight: 200;
-        color: var(--cf-text-secondary);
-        font-variant-numeric: tabular-nums;
+
+      /* ===== 商务风格 ===== */
+      .business-welcome {
+        width: 100%;
       }
-      
-      /* ===== 经典布局样式 ===== */
-      .welcome-classic {
+
+      .business-welcome .business-header {
         display: flex;
-        flex-direction: column;
-        height: 100%;
-        gap: var(--cf-spacing-xl);
-      }
-      
-      .classic-header {
-        text-align: center;
-        border-bottom: 2px solid var(--cf-border);
+        align-items: center;
+        gap: var(--cf-spacing-lg);
+        margin-bottom: var(--cf-spacing-xl);
         padding-bottom: var(--cf-spacing-lg);
+        border-bottom: 2px solid var(--cf-border);
       }
-      
-      .classic-header h1 {
+
+      .business-welcome .business-avatar {
+        width: 60px;
+        height: 60px;
+        border-radius: 50%;
+        background: var(--cf-primary-color);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: white;
+        font-size: 1.5em;
+        font-weight: 600;
+      }
+
+      .business-welcome .business-greeting {
         font-size: 2em;
         font-weight: 600;
         color: var(--cf-text-primary);
-        margin: 0 0 var(--cf-spacing-sm) 0;
+        margin-bottom: var(--cf-spacing-xs);
       }
-      
-      .classic-time {
+
+      .business-welcome .business-time {
         font-size: 1.1em;
         color: var(--cf-text-secondary);
         font-variant-numeric: tabular-nums;
       }
-      
-      .classic-content {
-        flex: 1;
-        display: flex;
-        flex-direction: column;
-        justify-content: center;
-        gap: var(--cf-spacing-xl);
-      }
-      
-      .classic-user {
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        gap: var(--cf-spacing-md);
-        margin-bottom: var(--cf-spacing-lg);
-      }
-      
-      .classic-user-avatar {
-        width: 50px;
-        height: 50px;
-        border-radius: 50%;
-        background: linear-gradient(135deg, var(--cf-primary-color), var(--cf-accent-color));
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        font-size: 1.2em;
-        font-weight: 600;
-        color: white;
-      }
-      
-      .classic-user-name {
-        font-size: 1.2em;
-        font-weight: 600;
-        color: var(--cf-text-primary);
-      }
-      
-      .classic-greeting {
-        font-size: 2em;
-        font-weight: 500;
-        color: var(--cf-text-primary);
-        text-align: center;
-        line-height: 1.3;
-      }
-      
-      .classic-quote {
+
+      .business-welcome .business-quote {
         display: flex;
         align-items: flex-start;
         gap: var(--cf-spacing-md);
-        max-width: 500px;
-        margin: 0 auto;
+        background: var(--cf-surface);
+        padding: var(--cf-spacing-lg);
+        border-radius: var(--cf-radius-lg);
+        border: 1px solid var(--cf-border);
       }
-      
-      .classic-quote-icon {
+
+      .business-welcome .quote-icon {
         font-size: 2em;
         flex-shrink: 0;
-        margin-top: var(--cf-spacing-xs);
       }
-      
-      .classic-quote-content {
+
+      .business-welcome .quote-content {
         flex: 1;
       }
-      
-      .classic-quote-text {
+
+      .business-welcome .quote-text {
         font-size: 1.1em;
-        font-style: italic;
         color: var(--cf-text-primary);
         line-height: 1.5;
         margin-bottom: var(--cf-spacing-sm);
       }
-      
-      .classic-quote-author {
+
+      .business-welcome .quote-source {
         font-size: 0.9em;
         color: var(--cf-text-secondary);
         text-align: right;
-        font-weight: 500;
       }
-      
-      /* ===== 创意布局样式 ===== */
-      .welcome-creative {
-        position: relative;
-        height: 100%;
+
+      /* ===== 创意风格 ===== */
+      .creative-welcome {
+        width: 100%;
+        text-align: center;
+      }
+
+      .creative-welcome .creative-main {
+        margin-bottom: var(--cf-spacing-xl);
+      }
+
+      .creative-welcome .creative-greeting {
+        font-size: 2.5em;
+        font-weight: 600;
+        color: var(--cf-text-primary);
+        margin-bottom: var(--cf-spacing-lg);
         display: flex;
         align-items: center;
         justify-content: center;
+        gap: var(--cf-spacing-sm);
       }
-      
-      .creative-background {
+
+      .creative-welcome .greeting-emoji {
+        font-size: 1.2em;
+      }
+
+      .creative-welcome .creative-time {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: var(--cf-spacing-xl);
+      }
+
+      .creative-welcome .time-display {
+        font-size: 2em;
+        font-weight: 500;
+        color: var(--cf-primary-color);
+        font-variant-numeric: tabular-nums;
+      }
+
+      .creative-welcome .date-display {
+        font-size: 1.3em;
+        color: var(--cf-text-secondary);
+      }
+
+      .creative-welcome .creative-quote {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: var(--cf-spacing-md);
+        max-width: 800px;
+        margin: 0 auto;
+      }
+
+      .creative-welcome .quote-decoration {
+        font-size: 3em;
+        color: var(--cf-accent-color);
+        line-height: 1;
+      }
+
+      .creative-welcome .quote-content {
+        font-size: 1.2em;
+        color: var(--cf-text-primary);
+        font-style: italic;
+        line-height: 1.6;
+        flex: 1;
+      }
+
+      /* ===== 动态风格 ===== */
+      .dynamic-welcome {
+        width: 100%;
+        position: relative;
+        overflow: hidden;
+        border-radius: var(--cf-radius-xl);
+      }
+
+      .dynamic-welcome .dynamic-background {
         position: absolute;
         top: 0;
         left: 0;
         right: 0;
         bottom: 0;
-        pointer-events: none;
-        overflow: hidden;
+        background: linear-gradient(135deg, 
+          rgba(var(--cf-rgb-primary), 0.1) 0%, 
+          rgba(var(--cf-rgb-accent), 0.1) 100%);
+        animation: ${showAnimations ? 'gradientShift 8s ease infinite' : 'none'};
+        background-size: 200% 200%;
       }
-      
-      .floating-element {
-        position: absolute;
-        font-size: 1.5em;
-        opacity: 0.3;
-      }
-      
-      .element-1 { top: 20%; left: 10%; animation: float 6s ease-in-out infinite; }
-      .element-2 { top: 60%; right: 15%; animation: float 8s ease-in-out infinite 2s; }
-      .element-3 { bottom: 30%; left: 20%; animation: float 7s ease-in-out infinite 1s; }
-      
-      .creative-content {
-        text-align: center;
+
+      .dynamic-welcome .dynamic-content {
         position: relative;
         z-index: 2;
-        width: 100%;
-      }
-      
-      .creative-user {
         display: flex;
         align-items: center;
-        justify-content: center;
-        gap: var(--cf-spacing-md);
+        gap: var(--cf-spacing-xl);
         margin-bottom: var(--cf-spacing-lg);
       }
-      
-      .creative-avatar {
-        width: 50px;
-        height: 50px;
+
+      .dynamic-welcome .dynamic-avatar {
+        flex-shrink: 0;
+      }
+
+      .dynamic-welcome .avatar-circle {
+        width: 70px;
+        height: 70px;
         border-radius: 50%;
         background: linear-gradient(135deg, var(--cf-primary-color), var(--cf-accent-color));
         display: flex;
         align-items: center;
         justify-content: center;
-        font-size: 1.2em;
-        font-weight: 600;
         color: white;
-        box-shadow: var(--cf-shadow-md);
+        font-size: 1.8em;
+        font-weight: 600;
+        box-shadow: var(--cf-shadow-lg);
+        animation: ${showAnimations ? 'float 3s ease-in-out infinite' : 'none'};
       }
-      
-      .creative-user-info {
-        text-align: left;
-      }
-      
-      .creative-username {
-        font-size: 1.1em;
+
+      .dynamic-welcome .dynamic-greeting {
+        font-size: 2.2em;
         font-weight: 600;
         color: var(--cf-text-primary);
+        margin: 0 0 var(--cf-spacing-sm) 0;
+        animation: ${showAnimations ? 'slideIn 0.8s ease-out' : 'none'};
       }
-      
-      .creative-user-greeting {
-        font-size: 0.9em;
-        color: var(--cf-text-secondary);
-      }
-      
-      .creative-greeting {
-        margin-bottom: var(--cf-spacing-xl);
-      }
-      
-      .greeting-words {
-        font-size: 2.8em;
-        font-weight: 700;
-        background: linear-gradient(135deg, #667eea, #764ba2, #f093fb, #f5576c);
-        -webkit-background-clip: text;
-        -webkit-text-fill-color: transparent;
-        background-clip: text;
-        background-size: 300% 300%;
-        animation: gradientShift 8s ease infinite;
-      }
-      
-      .creative-info {
-        margin-bottom: var(--cf-spacing-xl);
-      }
-      
-      .creative-time {
+
+      .dynamic-welcome .dynamic-time {
         display: flex;
-        flex-direction: column;
-        gap: var(--cf-spacing-xs);
+        align-items: center;
+        gap: var(--cf-spacing-lg);
       }
-      
-      .time-main {
-        font-size: 2em;
-        font-weight: 300;
-        color: var(--cf-text-primary);
+
+      .dynamic-welcome .time-now {
+        font-size: 1.5em;
+        font-weight: 500;
+        color: var(--cf-primary-color);
         font-variant-numeric: tabular-nums;
       }
-      
-      .time-date {
-        font-size: 1em;
-        color: var(--cf-text-secondary);
-      }
-      
-      .creative-quote {
-        max-width: 400px;
-        margin: 0 auto;
-      }
-      
-      .quote-bubble {
-        background: rgba(var(--cf-rgb-primary), 0.1);
-        border-radius: var(--cf-radius-lg);
-        padding: var(--cf-spacing-lg);
-        border: 1px solid rgba(var(--cf-rgb-primary), 0.2);
-        backdrop-filter: blur(10px);
-      }
-      
-      .bubble-text {
+
+      .dynamic-welcome .date-now {
         font-size: 1.1em;
-        font-style: italic;
-        color: var(--cf-text-primary);
-        line-height: 1.5;
-        margin-bottom: var(--cf-spacing-sm);
-      }
-      
-      .bubble-author {
-        font-size: 0.9em;
         color: var(--cf-text-secondary);
-        font-weight: 500;
       }
-      
+
+      .dynamic-welcome .dynamic-quote {
+        position: relative;
+        z-index: 2;
+      }
+
+      .dynamic-welcome .floating-quote {
+        font-size: 1.1em;
+        color: var(--cf-text-primary);
+        font-style: italic;
+        text-align: center;
+        padding: var(--cf-spacing-lg);
+        background: rgba(var(--cf-rgb-background), 0.8);
+        border-radius: var(--cf-radius-lg);
+        backdrop-filter: blur(10px);
+        animation: ${showAnimations ? 'fadeInUp 1s ease-out 0.3s both' : 'none'};
+      }
+
       /* ===== 动画定义 ===== */
-      @keyframes float {
-        0%, 100% { transform: translateY(0px) rotate(0deg); }
-        50% { transform: translateY(-20px) rotate(180deg); }
-      }
-      
       @keyframes gradientShift {
-        0% { background-position: 0% 50%; }
+        0%, 100% { background-position: 0% 50%; }
         50% { background-position: 100% 50%; }
-        100% { background-position: 0% 50%; }
       }
-      
-      .with-animations .greeting-text {
-        animation: gentle-pulse 3s ease-in-out infinite;
+
+      @keyframes float {
+        0%, 100% { transform: translateY(0px); }
+        50% { transform: translateY(-10px); }
       }
-      
-      .with-animations .quote-section {
-        animation: slideInUp 0.6s ease-out;
-      }
-      
-      @keyframes gentle-pulse {
-        0%, 100% { transform: scale(1); }
-        50% { transform: scale(1.02); }
-      }
-      
-      @keyframes slideInUp {
-        from {
-          opacity: 0;
-          transform: translateY(20px);
+
+      @keyframes slideIn {
+        from { 
+          opacity: 0; 
+          transform: translateX(-30px); 
         }
-        to {
-          opacity: 1;
-          transform: translateY(0);
+        to { 
+          opacity: 1; 
+          transform: translateX(0); 
         }
       }
-      
+
+      @keyframes fadeInUp {
+        from { 
+          opacity: 0; 
+          transform: translateY(20px); 
+        }
+        to { 
+          opacity: 1; 
+          transform: translateY(0); 
+        }
+      }
+
       /* ===== 响应式优化 ===== */
-      @media (max-width: 600px) {
+      @media (max-width: 768px) {
         .welcome-card {
-          padding: var(--cf-spacing-md);
-          min-height: 180px;
+          padding: var(--cf-spacing-lg);
         }
-        
-        .greeting-text {
-          font-size: 1.8em;
+
+        .warm-welcome {
+          flex-direction: column;
+          text-align: center;
+          gap: var(--cf-spacing-lg);
         }
-        
-        .main-content {
+
+        .warm-welcome .time-info {
+          justify-content: center;
+        }
+
+        .warm-welcome .greeting-text {
+          font-size: 2em;
+        }
+
+        .creative-welcome .creative-greeting {
+          font-size: 2em;
+          flex-direction: column;
+          gap: var(--cf-spacing-sm);
+        }
+
+        .creative-welcome .creative-time {
+          flex-direction: column;
+          gap: var(--cf-spacing-md);
+        }
+
+        .dynamic-welcome .dynamic-content {
+          flex-direction: column;
+          text-align: center;
+          gap: var(--cf-spacing-lg);
+        }
+
+        .business-welcome .business-header {
           flex-direction: column;
           text-align: center;
           gap: var(--cf-spacing-md);
         }
-        
-        .user-avatar {
-          width: 50px;
-          height: 50px;
-          font-size: 1.2em;
-        }
-        
-        .minimal-greeting {
-          font-size: 2em;
-        }
-        
-        .classic-greeting {
-          font-size: 1.6em;
-        }
-        
-        .greeting-words {
-          font-size: 2.2em;
-        }
-        
-        .creative-time .time-main {
-          font-size: 1.6em;
-        }
-      }
-      
-      @media (max-width: 400px) {
-        .greeting-text {
-          font-size: 1.5em;
-        }
-        
-        .minimal-greeting {
-          font-size: 1.6em;
-        }
-        
-        .classic-greeting {
-          font-size: 1.3em;
-        }
-        
-        .greeting-words {
+
+        .business-welcome .business-greeting {
           font-size: 1.8em;
         }
-        
-        .current-time {
-          font-size: 1.5em;
+      }
+
+      @media (max-width: 480px) {
+        .warm-welcome .greeting-text {
+          font-size: 1.8em;
+        }
+
+        .creative-welcome .creative-greeting {
+          font-size: 1.8em;
+        }
+
+        .creative-welcome .quote-content {
+          font-size: 1.1em;
+        }
+
+        .minimal-welcome .minimal-text {
+          font-size: 1.8em;
         }
       }
-      
-      /* 深色模式优化 */
+
+      /* ===== 深色模式优化 ===== */
       @media (prefers-color-scheme: dark) {
-        .quote-section,
-        .quote-bubble {
-          background: rgba(255, 255, 255, 0.05);
+        .business-welcome .business-quote {
+          background: var(--cf-dark-surface);
+          border-color: var(--cf-dark-border);
         }
-        
-        .decoration-circle {
-          background: rgba(255, 255, 255, 0.05);
-        }
-        
-        .user-badge {
-          background: rgba(255, 255, 255, 0.05);
-          border-color: rgba(255, 255, 255, 0.1);
+
+        .dynamic-welcome .floating-quote {
+          background: rgba(var(--cf-rgb-dark-background), 0.8);
         }
       }
     `;
