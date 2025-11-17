@@ -1,5 +1,5 @@
 // src/ha-cardforge-card.js
-import { LitElement, html } from 'https://unpkg.com/lit@2.8.0/index.js?module';
+import { LitElement, html, css } from 'https://unpkg.com/lit@2.8.0/index.js?module';
 import { unsafeHTML } from 'https://unpkg.com/lit-html/directives/unsafe-html.js?module';
 import { PluginRegistry } from './core/plugin-registry.js';
 import { foundationStyles } from './core/styles.js';
