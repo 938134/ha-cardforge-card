@@ -1,7 +1,6 @@
 // src/editors/entity-manager.js
 import { LitElement, html, css } from 'https://unpkg.com/lit@2.8.0/index.js?module';
 import { foundationStyles } from '../core/styles.js';
-import { getJinjaParser } from '../core/jinja-parser.js';
 
 export class EntityManager extends LitElement {
   static properties = {
@@ -9,8 +8,9 @@ export class EntityManager extends LitElement {
     requirements: { type: Array },
     entities: { type: Object },
     _dynamicEntities: { state: true },
-    _showAddDialog: { state: true },
-    _editingEntity: { state: true }
+    _showEntityPicker: { state: true },
+    _editingEntity: { state: true },
+    _entityPickerConfig: { state: true }
   };
 
   static styles = [
@@ -69,6 +69,7 @@ export class EntityManager extends LitElement {
         border-radius: var(--cf-radius-md);
         padding: var(--cf-spacing-md);
         transition: all var(--cf-transition-normal);
+        position: relative;
       }
 
       .entity-card:hover {
@@ -141,10 +142,30 @@ export class EntityManager extends LitElement {
         border-left: 2px solid var(--cf-success-color);
       }
 
+      .required-badge {
+        background: var(--cf-error-color);
+        color: white;
+        padding: 2px 6px;
+        border-radius: var(--cf-radius-sm);
+        font-size: 0.7em;
+        font-weight: 500;
+      }
+
+      .optional-badge {
+        background: var(--cf-text-secondary);
+        color: white;
+        padding: 2px 6px;
+        border-radius: var(--cf-radius-sm);
+        font-size: 0.7em;
+        font-weight: 500;
+      }
+
       .empty-state {
         text-align: center;
         padding: var(--cf-spacing-xl);
         color: var(--cf-text-secondary);
+        border: 2px dashed var(--cf-border);
+        border-radius: var(--cf-radius-md);
       }
 
       .empty-icon {
@@ -153,7 +174,17 @@ export class EntityManager extends LitElement {
         opacity: 0.5;
       }
 
-      /* 对话框样式 */
+      .empty-text {
+        font-size: 0.9em;
+        margin-bottom: var(--cf-spacing-sm);
+      }
+
+      .empty-hint {
+        font-size: 0.8em;
+        opacity: 0.7;
+      }
+
+      /* 实体选择器对话框 */
       .dialog-overlay {
         position: fixed;
         top: 0;
@@ -171,19 +202,22 @@ export class EntityManager extends LitElement {
       .dialog {
         background: var(--cf-surface);
         border-radius: var(--cf-radius-lg);
-        padding: var(--cf-spacing-xl);
+        padding: 0;
         width: 100%;
-        max-width: 500px;
-        max-height: 90vh;
-        overflow-y: auto;
+        max-width: 600px;
+        max-height: 80vh;
+        overflow: hidden;
         box-shadow: var(--cf-shadow-xl);
+        display: flex;
+        flex-direction: column;
       }
 
       .dialog-header {
+        padding: var(--cf-spacing-lg);
+        border-bottom: 1px solid var(--cf-border);
         display: flex;
         align-items: center;
         justify-content: space-between;
-        margin-bottom: var(--cf-spacing-lg);
       }
 
       .dialog-title {
@@ -207,81 +241,18 @@ export class EntityManager extends LitElement {
         color: var(--cf-primary-color);
       }
 
-      .form-grid {
-        display: grid;
-        grid-template-columns: 1fr;
-        gap: var(--cf-spacing-lg);
-      }
-
-      .form-field {
-        display: flex;
-        flex-direction: column;
-        gap: var(--cf-spacing-sm);
-      }
-
-      .form-label {
-        font-weight: 500;
-        color: var(--cf-text-primary);
-        font-size: 0.9em;
-      }
-
-      .form-hint {
-        font-size: 0.8em;
-        color: var(--cf-text-secondary);
-        margin-top: var(--cf-spacing-xs);
-      }
-
-      .entity-picker {
-        position: relative;
-      }
-
-      .entity-list {
-        position: absolute;
-        top: 100%;
-        left: 0;
-        right: 0;
-        background: var(--cf-surface);
-        border: 1px solid var(--cf-border);
-        border-radius: var(--cf-radius-md);
-        box-shadow: var(--cf-shadow-lg);
-        max-height: 200px;
+      .dialog-content {
+        flex: 1;
         overflow-y: auto;
-        z-index: 100;
-        margin-top: var(--cf-spacing-xs);
-      }
-
-      .entity-option {
-        padding: var(--cf-spacing-sm) var(--cf-spacing-md);
-        cursor: pointer;
-        border-bottom: 1px solid rgba(var(--cf-rgb-primary), 0.1);
-        transition: background-color var(--cf-transition-fast);
-      }
-
-      .entity-option:hover {
-        background: rgba(var(--cf-rgb-primary), 0.05);
-      }
-
-      .entity-option:last-child {
-        border-bottom: none;
-      }
-
-      .entity-option-name {
-        font-weight: 500;
-        color: var(--cf-text-primary);
-        font-size: 0.9em;
-      }
-
-      .entity-option-id {
-        font-size: 0.8em;
-        color: var(--cf-text-secondary);
-        margin-top: 2px;
+        padding: var(--cf-spacing-lg);
       }
 
       .dialog-actions {
+        padding: var(--cf-spacing-lg);
+        border-top: 1px solid var(--cf-border);
         display: flex;
         gap: var(--cf-spacing-md);
         justify-content: flex-end;
-        margin-top: var(--cf-spacing-xl);
       }
 
       .cancel-button {
@@ -322,6 +293,31 @@ export class EntityManager extends LitElement {
         transform: none;
       }
 
+      /* 表单样式 */
+      .form-grid {
+        display: grid;
+        grid-template-columns: 1fr;
+        gap: var(--cf-spacing-lg);
+      }
+
+      .form-field {
+        display: flex;
+        flex-direction: column;
+        gap: var(--cf-spacing-sm);
+      }
+
+      .form-label {
+        font-weight: 500;
+        color: var(--cf-text-primary);
+        font-size: 0.9em;
+      }
+
+      .form-hint {
+        font-size: 0.8em;
+        color: var(--cf-text-secondary);
+        margin-top: var(--cf-spacing-xs);
+      }
+
       /* 深色模式适配 */
       @media (prefers-color-scheme: dark) {
         .entity-card {
@@ -333,13 +329,20 @@ export class EntityManager extends LitElement {
           background: rgba(255, 255, 255, 0.05);
         }
 
+        .empty-state {
+          border-color: var(--cf-dark-border);
+        }
+
         .dialog {
           background: var(--cf-dark-surface);
         }
 
-        .entity-list {
-          background: var(--cf-dark-surface);
-          border-color: var(--cf-dark-border);
+        .dialog-header {
+          border-bottom-color: var(--cf-dark-border);
+        }
+
+        .dialog-actions {
+          border-top-color: var(--cf-dark-border);
         }
 
         .cancel-button {
@@ -352,8 +355,14 @@ export class EntityManager extends LitElement {
       /* 响应式优化 */
       @media (max-width: 768px) {
         .dialog {
-          padding: var(--cf-spacing-lg);
           margin: var(--cf-spacing-md);
+          max-height: 90vh;
+        }
+
+        .dialog-header,
+        .dialog-content,
+        .dialog-actions {
+          padding: var(--cf-spacing-md);
         }
 
         .section-header {
@@ -372,10 +381,9 @@ export class EntityManager extends LitElement {
   constructor() {
     super();
     this._dynamicEntities = [];
-    this._showAddDialog = false;
+    this._showEntityPicker = false;
     this._editingEntity = null;
-    this._searchQuery = '';
-    this._showEntityList = false;
+    this._entityPickerConfig = null;
   }
 
   willUpdate(changedProperties) {
@@ -393,7 +401,7 @@ export class EntityManager extends LitElement {
     // 提取动态实体（非静态需求的实体）
     const staticKeys = (this.requirements || []).map(req => req.key);
     this._dynamicEntities = Object.entries(this.entities)
-      .filter(([key]) => !staticKeys.includes(key))
+      .filter(([key]) => !staticKeys.includes(key) && !key.endsWith('_name') && !key.endsWith('_icon'))
       .map(([key, source]) => ({
         key,
         source,
@@ -403,22 +411,28 @@ export class EntityManager extends LitElement {
   }
 
   _getDefaultName(key, source) {
+    // 从实体ID生成友好名称
     if (source.includes('.') && this.hass?.states?.[source]) {
-      return this.hass.states[source].attributes?.friendly_name || source;
+      const entity = this.hass.states[source];
+      return entity.attributes?.friendly_name || source;
     }
-    return key.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+    
+    // 从key生成友好名称
+    return key.replace(/_/g, ' ')
+             .replace(/\b\w/g, l => l.toUpperCase())
+             .replace(/Custom /, '');
   }
 
   render() {
     const staticEntities = this._renderStaticEntities();
     const dynamicEntities = this._renderDynamicEntities();
-    const dialog = this._renderDialog();
+    const entityPicker = this._renderEntityPicker();
 
     return html`
       <div class="entity-manager">
         ${staticEntities}
         ${dynamicEntities}
-        ${dialog}
+        ${entityPicker}
       </div>
     `;
   }
@@ -436,12 +450,7 @@ export class EntityManager extends LitElement {
           <div class="section-title">必需实体</div>
         </div>
         <div class="entity-grid">
-          ${requirements.map(req => this._renderEntityCard(req.key, {
-            name: req.description,
-            icon: '🔧',
-            source: this.entities?.[req.key] || '',
-            required: true
-          }))}
+          ${requirements.map(req => this._renderEntityCard(req, true))}
         </div>
       </div>
     `;
@@ -461,20 +470,15 @@ export class EntityManager extends LitElement {
         ${this._dynamicEntities.length === 0 ? html`
           <div class="empty-state">
             <div class="empty-icon">🏷️</div>
-            <div class="cf-text-sm">暂无自定义实体</div>
-            <div class="cf-text-xs cf-text-secondary cf-mt-sm">
-              点击"添加实体"按钮来添加自定义实体或Jinja模板
+            <div class="empty-text">暂无自定义实体</div>
+            <div class="empty-hint">
+              点击"添加实体"按钮来配置自定义实体数据源
             </div>
           </div>
         ` : html`
           <div class="entity-grid">
             ${this._dynamicEntities.map(entity => 
-              this._renderEntityCard(entity.key, {
-                name: entity.name,
-                icon: entity.icon,
-                source: entity.source,
-                required: false
-              })
+              this._renderEntityCard(entity, false)
             )}
           </div>
         `}
@@ -482,24 +486,34 @@ export class EntityManager extends LitElement {
     `;
   }
 
-  _renderEntityCard(key, entity) {
-    const parser = getJinjaParser(this.hass);
-    const preview = entity.source ? parser.parse(entity.source, '') : '';
+  _renderEntityCard(entityInfo, isRequired) {
+    const source = isRequired ? 
+      (this.entities?.[entityInfo.key] || '') : 
+      entityInfo.source;
+    
+    const name = isRequired ? 
+      entityInfo.description : 
+      entityInfo.name;
+    
+    const icon = isRequired ? '🔧' : entityInfo.icon;
 
     return html`
       <div class="entity-card">
         <div class="entity-header">
           <div class="entity-info">
-            <div class="entity-icon">${entity.icon}</div>
-            <div class="entity-name">${entity.name}</div>
-            ${entity.required ? html`<div class="cf-text-xs cf-error">必需</div>` : ''}
+            <div class="entity-icon">${icon}</div>
+            <div class="entity-name">${name}</div>
+            ${isRequired ? 
+              html`<div class="required-badge">必需</div>` :
+              html`<div class="optional-badge">可选</div>`
+            }
           </div>
-          ${!entity.required ? html`
+          ${!isRequired ? html`
             <div class="entity-actions">
-              <button class="action-button" @click=${() => this._editEntity(key)} title="编辑">
+              <button class="action-button" @click=${() => this._editEntity(entityInfo.key)} title="编辑">
                 ✏️
               </button>
-              <button class="action-button" @click=${() => this._removeEntity(key)} title="删除">
+              <button class="action-button" @click=${() => this._removeEntity(entityInfo.key)} title="删除">
                 🗑️
               </button>
             </div>
@@ -507,20 +521,42 @@ export class EntityManager extends LitElement {
         </div>
         
         <div class="entity-source">
-          ${entity.source || '未配置'}
+          ${source || '未配置'}
         </div>
         
-        ${preview ? html`
+        ${source && this.hass ? html`
           <div class="entity-preview">
-            预览: ${preview}
+            当前值: ${this._getEntityPreview(source)}
           </div>
+        ` : ''}
+        
+        ${entityInfo.hint ? html`
+          <div class="form-hint">${entityInfo.hint}</div>
         ` : ''}
       </div>
     `;
   }
 
-  _renderDialog() {
-    if (!this._showAddDialog && !this._editingEntity) return '';
+  _getEntityPreview(source) {
+    if (!source || !this.hass) return '';
+    
+    // 实体ID预览
+    if (source.includes('.') && this.hass.states[source]) {
+      const entity = this.hass.states[source];
+      const unit = entity.attributes?.unit_of_measurement;
+      return `${entity.state}${unit ? ` ${unit}` : ''}`;
+    }
+    
+    // Jinja模板预览（简化）
+    if (source.includes('{{')) {
+      return 'Jinja2模板';
+    }
+    
+    return '文本内容';
+  }
+
+  _renderEntityPicker() {
+    if (!this._showEntityPicker) return '';
 
     const isEditing = !!this._editingEntity;
     const entity = isEditing ? 
@@ -528,93 +564,74 @@ export class EntityManager extends LitElement {
       { key: '', name: '', icon: '🏷️', source: '' };
 
     return html`
-      <div class="dialog-overlay" @click=${this._closeDialog}>
+      <div class="dialog-overlay" @click=${this._closeEntityPicker}>
         <div class="dialog" @click=${e => e.stopPropagation()}>
           <div class="dialog-header">
             <div class="dialog-title">
               ${isEditing ? '编辑实体' : '添加实体'}
             </div>
-            <button class="close-button" @click=${this._closeDialog}>×</button>
+            <button class="close-button" @click=${this._closeEntityPicker}>×</button>
           </div>
           
-          <div class="form-grid">
-            <div class="form-field">
-              <label class="form-label">实体名称</label>
-              <ha-textfield
-                .value=${entity.name}
-                @input=${e => this._onDialogFieldChange('name', e.target.value)}
-                placeholder="例如：室内温度"
-                outlined
-                fullwidth
-              ></ha-textfield>
-            </div>
-            
-            <div class="form-field">
-              <label class="form-label">图标</label>
-              <ha-textfield
-                .value=${entity.icon}
-                @input=${e => this._onDialogFieldChange('icon', e.target.value)}
-                placeholder="例如：🌡️"
-                outlined
-                fullwidth
-              ></ha-textfield>
-              <div class="form-hint">输入一个emoji作为图标</div>
-            </div>
-            
-            <div class="form-field">
-              <label class="form-label">数据源</label>
-              <div class="entity-picker">
+          <div class="dialog-content">
+            <div class="form-grid">
+              <div class="form-field">
+                <label class="form-label">显示名称</label>
                 <ha-textfield
-                  .value=${entity.source}
-                  @input=${e => {
-                    this._onDialogFieldChange('source', e.target.value);
-                    this._searchQuery = e.target.value;
-                    this._showEntityList = true;
-                  }}
-                  @focus=${() => this._showEntityList = true}
-                  placeholder="实体ID 或 Jinja模板，例如：sensor.temperature 或 {{ states('sensor.temp') }}"
+                  .value=${entity.name}
+                  @input=${e => this._onEntityFieldChange('name', e.target.value)}
+                  placeholder="例如：室内温度"
                   outlined
                   fullwidth
                 ></ha-textfield>
-                
-                ${this._showEntityList && this._searchQuery ? html`
-                  <div class="entity-list">
-                    ${this._getFilteredEntities().map(entity => html`
-                      <div class="entity-option" @click=${() => this._selectEntity(entity.entity_id)}>
-                        <div class="entity-option-name">${entity.friendly_name}</div>
-                        <div class="entity-option-id">${entity.entity_id}</div>
-                      </div>
-                    `)}
-                    
-                    <div class="entity-option" @click=${() => this._insertTemplate("{{ states('entity_id') }}")}>
-                      <div class="entity-option-name">Jinja模板: 获取实体状态</div>
-                      <div class="entity-option-id">{{ states('entity_id') }}</div>
-                    </div>
-                    
-                    <div class="entity-option" @click=${() => this._insertTemplate("{{ state_attr('entity_id', 'attribute') }}")}>
-                      <div class="entity-option-name">Jinja模板: 获取实体属性</div>
-                      <div class="entity-option-id">{{ state_attr('entity_id', 'attribute') }}</div>
-                    </div>
-                    
-                    <div class="entity-option" @click=${() => this._insertTemplate("{{ now().strftime('%H:%M') }}")}>
-                      <div class="entity-option-name">Jinja模板: 当前时间</div>
-                      <div class="entity-option-id">{{ now().strftime('%H:%M') }}</div>
-                    </div>
-                  </div>
-                ` : ''}
+                <div class="form-hint">实体在卡片中显示的名称</div>
               </div>
-              <div class="form-hint">
-                可以输入实体ID（如 sensor.temperature）或 Jinja2模板
+              
+              <div class="form-field">
+                <label class="form-label">图标</label>
+                <ha-textfield
+                  .value=${entity.icon}
+                  @input=${e => this._onEntityFieldChange('icon', e.target.value)}
+                  placeholder="例如：🌡️"
+                  outlined
+                  fullwidth
+                ></ha-textfield>
+                <div class="form-hint">输入一个emoji作为图标</div>
+              </div>
+              
+              <div class="form-field">
+                <label class="form-label">数据源</label>
+                <ha-entity-picker
+                  .hass=${this.hass}
+                  .value=${entity.source?.includes('.') ? entity.source : ''}
+                  @value-changed=${e => this._onEntityFieldChange('source', e.detail.value)}
+                  allow-custom-entity
+                  .includeDomains=${['sensor', 'binary_sensor', 'device_tracker', 'person']}
+                  placeholder="选择实体或输入实体ID"
+                  fullwidth
+                ></ha-entity-picker>
+                <div class="form-hint">
+                  或者输入 Jinja2 模板，例如: {{ states('sensor.temperature') }}
+                </div>
+                
+                <ha-textfield
+                  .value=${entity.source?.includes('{{') ? entity.source : ''}
+                  @input=${e => this._onEntityFieldChange('source', e.target.value)}
+                  placeholder="或输入 Jinja2 模板"
+                  outlined
+                  fullwidth
+                  style="margin-top: var(--cf-spacing-sm);"
+                ></ha-textfield>
               </div>
             </div>
           </div>
           
           <div class="dialog-actions">
-            <button class="cancel-button" @click=${this._closeDialog}>取消</button>
+            <button class="cancel-button" @click=${this._closeEntityPicker}>取消</button>
             <button 
               class="save-button" 
               @click=${this._saveEntity}
-              ?disabled=${!this._validateDialog()}
+              ?disabled=${!this._validateEntityForm()}
             >
               ${isEditing ? '更新' : '添加'}
             </button>
@@ -624,35 +641,7 @@ export class EntityManager extends LitElement {
     `;
   }
 
-  _getFilteredEntities() {
-    if (!this.hass || !this._searchQuery) return [];
-    
-    const query = this._searchQuery.toLowerCase();
-    return Object.entries(this.hass.states)
-      .map(([entity_id, stateObj]) => ({
-        entity_id,
-        friendly_name: stateObj.attributes?.friendly_name || entity_id
-      }))
-      .filter(entity => 
-        entity.entity_id.toLowerCase().includes(query) || 
-        entity.friendly_name.toLowerCase().includes(query)
-      )
-      .slice(0, 10);
-  }
-
-  _selectEntity(entityId) {
-    this._onDialogFieldChange('source', entityId);
-    this._showEntityList = false;
-    this._searchQuery = '';
-  }
-
-  _insertTemplate(template) {
-    this._onDialogFieldChange('source', template);
-    this._showEntityList = false;
-    this._searchQuery = '';
-  }
-
-  _onDialogFieldChange(field, value) {
+  _onEntityFieldChange(field, value) {
     if (!this._editingEntity) {
       // 新建实体
       this._newEntity = {
@@ -668,16 +657,15 @@ export class EntityManager extends LitElement {
     }
   }
 
-  _validateDialog() {
+  _validateEntityForm() {
     const entity = this._editingEntity ? this._editingEntityData : this._newEntity;
     return entity?.name && entity?.source;
   }
 
   _showAddEntityDialog() {
     this._newEntity = { name: '', icon: '🏷️', source: '' };
-    this._showAddDialog = true;
-    this._searchQuery = '';
-    this._showEntityList = false;
+    this._showEntityPicker = true;
+    this._editingEntity = null;
   }
 
   _editEntity(key) {
@@ -685,8 +673,7 @@ export class EntityManager extends LitElement {
     if (entity) {
       this._editingEntity = key;
       this._editingEntityData = { ...entity };
-      this._searchQuery = '';
-      this._showEntityList = false;
+      this._showEntityPicker = true;
     }
   }
 
@@ -716,32 +703,27 @@ export class EntityManager extends LitElement {
     newEntities[`${key}_icon`] = entityData.icon;
     
     this._notifyEntitiesChange(newEntities);
-    this._closeDialog();
+    this._closeEntityPicker();
   }
 
   _generateEntityKey(name) {
-    return `custom_${name.toLowerCase().replace(/[^a-z0-9]/g, '_')}`;
+    return `custom_${name.toLowerCase()
+      .replace(/[^a-z0-9]/g, '_')
+      .replace(/_+/g, '_')
+      .replace(/^_|_$/g, '')}`;
   }
 
-  _closeDialog() {
-    this._showAddDialog = false;
+  _closeEntityPicker() {
+    this._showEntityPicker = false;
     this._editingEntity = null;
     this._editingEntityData = null;
     this._newEntity = null;
-    this._searchQuery = '';
-    this._showEntityList = false;
   }
 
   _notifyEntitiesChange(newEntities) {
     this.dispatchEvent(new CustomEvent('entities-changed', {
       detail: { entities: newEntities }
     }));
-  }
-
-  updated(changedProperties) {
-    if (changedProperties.has('hass') && this._showEntityList) {
-      this.requestUpdate();
-    }
   }
 }
 
