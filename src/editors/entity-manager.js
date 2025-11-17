@@ -9,10 +9,10 @@ export class EntityManager extends LitElement {
     requirements: { type: Array },
     entities: { type: Object },
     _config: { state: true },
-    _draggingIndex: { state: true },
     _showEntityPicker: { state: true },
     _currentPickerField: { state: true },
-    _searchQuery: { state: true }
+    _searchQuery: { state: true },
+    _filteredEntities: { state: true }
   };
 
   static styles = [
@@ -22,14 +22,14 @@ export class EntityManager extends LitElement {
         width: 100%;
       }
 
-      /* 参照官方多实体卡片设计 */
+      /* 简洁的卡片设计 */
       .config-section {
-        background: var(--card-background-color);
-        border-radius: var(--card-border-radius, 12px);
+        background: var(--card-background-color, #ffffff);
+        border-radius: 12px;
         padding: 0;
         margin-bottom: 16px;
-        border: 1px solid var(--divider-color);
-        box-shadow: var(--card-box-shadow, 0 2px 4px rgba(0,0,0,0.1));
+        border: 1px solid var(--divider-color, #e0e0e0);
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
         overflow: hidden;
       }
 
@@ -37,47 +37,52 @@ export class EntityManager extends LitElement {
         display: flex;
         align-items: center;
         justify-content: space-between;
-        padding: 16px;
-        background: var(--secondary-background-color);
-        border-bottom: 1px solid var(--divider-color);
+        padding: 16px 20px;
+        background: var(--secondary-background-color, #f8f9fa);
+        border-bottom: 1px solid var(--divider-color, #e0e0e0);
       }
 
       .section-title {
         font-weight: 600;
-        color: var(--primary-text-color);
+        color: var(--primary-text-color, #212121);
         font-size: 16px;
         display: flex;
         align-items: center;
-        gap: 8px;
+        gap: 10px;
       }
 
       .section-icon {
         font-size: 20px;
+        opacity: 0.8;
       }
 
       .add-button {
-        background: var(--primary-color);
+        background: var(--primary-color, #03a9f4);
         color: white;
         border: none;
-        border-radius: 4px;
+        border-radius: 6px;
         padding: 8px 16px;
         font-size: 14px;
+        font-weight: 500;
         cursor: pointer;
         display: flex;
         align-items: center;
         gap: 6px;
-        transition: background-color 0.3s;
+        transition: all 0.2s ease;
+        min-height: 36px;
       }
 
       .add-button:hover {
-        background: var(--accent-color);
+        background: var(--accent-color, #ff4081);
+        transform: translateY(-1px);
+        box-shadow: 0 2px 8px rgba(0,0,0,0.15);
       }
 
-      .add-button ha-icon {
-        --mdc-icon-size: 18px;
+      .add-button:active {
+        transform: translateY(0);
       }
 
-      /* 实体列表样式 - 参照官方 */
+      /* 实体列表 */
       .entities-list {
         padding: 0;
       }
@@ -85,14 +90,16 @@ export class EntityManager extends LitElement {
       .entity-row {
         display: flex;
         align-items: center;
-        padding: 12px 16px;
-        border-bottom: 1px solid var(--divider-color);
-        transition: background-color 0.3s;
-        min-height: 60px;
+        padding: 16px 20px;
+        border-bottom: 1px solid var(--divider-color, #f0f0f0);
+        transition: all 0.2s ease;
+        min-height: 68px;
+        cursor: pointer;
       }
 
       .entity-row:hover {
-        background: var(--secondary-background-color);
+        background: var(--secondary-background-color, #f8f9fa);
+        transform: translateX(4px);
       }
 
       .entity-row:last-child {
@@ -105,218 +112,268 @@ export class EntityManager extends LitElement {
         display: flex;
         align-items: center;
         justify-content: center;
-        background: var(--primary-color);
-        border-radius: 50%;
+        background: linear-gradient(135deg, var(--primary-color, #03a9f4), var(--accent-color, #ff4081));
+        border-radius: 10px;
         margin-right: 16px;
         color: white;
         font-size: 18px;
         flex-shrink: 0;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
       }
 
       .entity-content {
         flex: 1;
         min-width: 0;
-        display: flex;
-        flex-direction: column;
-        gap: 4px;
       }
 
       .entity-name {
-        font-weight: 500;
-        color: var(--primary-text-color);
+        font-weight: 600;
+        color: var(--primary-text-color, #212121);
         font-size: 14px;
+        margin-bottom: 4px;
+        line-height: 1.3;
       }
 
       .entity-value {
         font-size: 12px;
-        color: var(--secondary-text-color);
-        font-family: var(--code-font-family, monospace);
+        color: var(--secondary-text-color, #757575);
+        font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
         word-break: break-all;
+        line-height: 1.4;
+        opacity: 0.8;
       }
 
       .entity-preview {
         font-size: 11px;
-        color: var(--success-color);
-        margin-top: 2px;
+        color: var(--success-color, #4caf50);
+        margin-top: 4px;
+        font-weight: 500;
       }
 
       .entity-actions {
         display: flex;
-        gap: 8px;
-        margin-left: 16px;
+        gap: 4px;
+        margin-left: 12px;
         flex-shrink: 0;
       }
 
       .entity-action {
-        background: none;
-        border: none;
-        color: var(--secondary-text-color);
-        cursor: pointer;
+        background: transparent;
+        border: 1px solid var(--divider-color, #e0e0e0);
+        border-radius: 6px;
         padding: 8px;
-        border-radius: 4px;
-        transition: all 0.3s;
+        cursor: pointer;
+        color: var(--secondary-text-color, #757575);
+        transition: all 0.2s ease;
         display: flex;
         align-items: center;
         justify-content: center;
+        min-width: 36px;
+        min-height: 36px;
       }
 
       .entity-action:hover {
-        background: var(--secondary-background-color);
-        color: var(--primary-color);
+        background: var(--primary-color, #03a9f4);
+        color: white;
+        border-color: var(--primary-color, #03a9f4);
+        transform: scale(1.05);
       }
 
       .empty-state {
         text-align: center;
         padding: 40px 20px;
-        color: var(--secondary-text-color);
+        color: var(--secondary-text-color, #757575);
       }
 
       .empty-icon {
         font-size: 48px;
         margin-bottom: 16px;
-        opacity: 0.5;
+        opacity: 0.4;
       }
 
       .empty-text {
-        font-size: 16px;
+        font-size: 15px;
         margin-bottom: 8px;
+        font-weight: 500;
       }
 
-      /* 内联编辑样式 */
+      .empty-hint {
+        font-size: 13px;
+        opacity: 0.7;
+      }
+
+      /* 编辑表单 */
       .edit-form {
-        padding: 16px;
-        background: var(--secondary-background-color);
-        border-top: 1px solid var(--divider-color);
+        padding: 20px;
+        background: var(--secondary-background-color, #f8f9fa);
+        border-top: 1px solid var(--divider-color, #e0e0e0);
+        animation: slideDown 0.2s ease-out;
+      }
+
+      @keyframes slideDown {
+        from {
+          opacity: 0;
+          transform: translateY(-10px);
+        }
+        to {
+          opacity: 1;
+          transform: translateY(0);
+        }
       }
 
       .form-grid {
         display: grid;
         grid-template-columns: 1fr 1fr auto;
-        gap: 12px;
+        gap: 16px;
         align-items: start;
       }
 
       .form-field {
         display: flex;
         flex-direction: column;
-        gap: 6px;
+        gap: 8px;
       }
 
       .form-label {
-        font-weight: 500;
-        color: var(--primary-text-color);
-        font-size: 12px;
+        font-weight: 600;
+        color: var(--primary-text-color, #212121);
+        font-size: 13px;
         text-transform: uppercase;
         letter-spacing: 0.5px;
       }
 
-      .field-with-preview {
-        display: flex;
-        flex-direction: column;
-        gap: 4px;
+      .field-input {
+        position: relative;
       }
 
-      .field-inputs {
-        display: flex;
-        gap: 8px;
-        align-items: center;
-      }
-
-      .field-inputs ha-textfield {
-        flex: 1;
+      .field-input ha-textfield {
+        width: 100%;
       }
 
       .entity-picker-btn {
-        background: var(--card-background-color);
-        border: 1px solid var(--divider-color);
+        position: absolute;
+        right: 8px;
+        top: 50%;
+        transform: translateY(-50%);
+        background: var(--card-background-color, #ffffff);
+        border: 1px solid var(--divider-color, #e0e0e0);
         border-radius: 4px;
-        padding: 8px 12px;
+        padding: 6px 8px;
         cursor: pointer;
-        color: var(--primary-text-color);
-        transition: all 0.3s;
-        min-width: 44px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
+        color: var(--primary-text-color, #212121);
+        transition: all 0.2s ease;
+        z-index: 2;
       }
 
       .entity-picker-btn:hover {
-        background: var(--primary-color);
+        background: var(--primary-color, #03a9f4);
         color: white;
-        border-color: var(--primary-color);
+        border-color: var(--primary-color, #03a9f4);
       }
 
       .field-preview {
-        font-size: 11px;
-        color: var(--secondary-text-color);
-        background: var(--card-background-color);
-        padding: 4px 8px;
-        border-radius: 4px;
-        min-height: 16px;
-        font-family: var(--code-font-family, monospace);
+        font-size: 12px;
+        color: var(--secondary-text-color, #757575);
+        background: var(--card-background-color, #ffffff);
+        padding: 6px 10px;
+        border-radius: 6px;
+        margin-top: 6px;
+        border: 1px solid var(--divider-color, #f0f0f0);
+        font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
       }
 
       .icon-picker {
         display: flex;
         align-items: center;
-        gap: 8px;
+        gap: 12px;
       }
 
       .icon-display {
-        font-size: 20px;
-        width: 40px;
-        height: 40px;
+        width: 44px;
+        height: 44px;
         display: flex;
         align-items: center;
         justify-content: center;
-        background: var(--card-background-color);
-        border: 1px solid var(--divider-color);
-        border-radius: 4px;
+        background: var(--card-background-color, #ffffff);
+        border: 2px solid var(--divider-color, #e0e0e0);
+        border-radius: 10px;
+        font-size: 20px;
+        transition: all 0.2s ease;
+      }
+
+      .icon-display:hover {
+        border-color: var(--primary-color, #03a9f4);
+        transform: scale(1.05);
       }
 
       .icon-select {
-        background: var(--card-background-color);
-        border: 1px solid var(--divider-color);
-        border-radius: 4px;
-        padding: 8px;
-        color: var(--primary-text-color);
-        min-width: 80px;
+        background: var(--card-background-color, #ffffff);
+        border: 1px solid var(--divider-color, #e0e0e0);
+        border-radius: 6px;
+        padding: 10px 12px;
+        color: var(--primary-text-color, #212121);
+        font-size: 14px;
+        min-width: 100px;
+        transition: all 0.2s ease;
+      }
+
+      .icon-select:focus {
+        border-color: var(--primary-color, #03a9f4);
+        outline: none;
       }
 
       .form-actions {
         display: flex;
         justify-content: flex-end;
-        gap: 8px;
-        margin-top: 16px;
-        padding-top: 16px;
-        border-top: 1px solid var(--divider-color);
+        gap: 12px;
+        margin-top: 20px;
+        padding-top: 20px;
+        border-top: 1px solid var(--divider-color, #e0e0e0);
       }
 
       .cancel-button {
-        background: var(--secondary-background-color);
-        color: var(--primary-text-color);
-        border: 1px solid var(--divider-color);
-        border-radius: 4px;
-        padding: 8px 16px;
+        background: transparent;
+        color: var(--secondary-text-color, #757575);
+        border: 1px solid var(--divider-color, #e0e0e0);
+        border-radius: 6px;
+        padding: 10px 20px;
         cursor: pointer;
         font-size: 14px;
+        font-weight: 500;
+        transition: all 0.2s ease;
+      }
+
+      .cancel-button:hover {
+        background: var(--secondary-background-color, #f8f9fa);
+        color: var(--primary-text-color, #212121);
       }
 
       .save-button {
-        background: var(--primary-color);
+        background: var(--primary-color, #03a9f4);
         color: white;
         border: none;
-        border-radius: 4px;
-        padding: 8px 16px;
+        border-radius: 6px;
+        padding: 10px 24px;
         cursor: pointer;
         font-size: 14px;
+        font-weight: 600;
+        transition: all 0.2s ease;
       }
 
       .save-button:hover:not(:disabled) {
-        background: var(--accent-color);
+        background: var(--accent-color, #ff4081);
+        transform: translateY(-1px);
+        box-shadow: 0 4px 12px rgba(0,0,0,0.15);
       }
 
-      /* 实体选择器样式 */
+      .save-button:disabled {
+        background: var(--disabled-color, #bdbdbd);
+        cursor: not-allowed;
+        transform: none;
+        box-shadow: none;
+      }
+
+      /* 实体选择器 */
       .entity-picker-overlay {
         position: fixed;
         top: 0;
@@ -329,65 +386,91 @@ export class EntityManager extends LitElement {
         justify-content: center;
         z-index: 1000;
         padding: 20px;
+        animation: fadeIn 0.2s ease-out;
+      }
+
+      @keyframes fadeIn {
+        from { opacity: 0; }
+        to { opacity: 1; }
       }
 
       .entity-picker-dialog {
-        background: var(--card-background-color);
-        border-radius: 12px;
+        background: var(--card-background-color, #ffffff);
+        border-radius: 16px;
         width: 100%;
         max-width: 500px;
-        max-height: 80vh;
+        max-height: 70vh;
         overflow: hidden;
         display: flex;
         flex-direction: column;
-        box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
+        box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+        animation: scaleIn 0.2s ease-out;
+      }
+
+      @keyframes scaleIn {
+        from {
+          opacity: 0;
+          transform: scale(0.9);
+        }
+        to {
+          opacity: 1;
+          transform: scale(1);
+        }
       }
 
       .picker-header {
         display: flex;
         align-items: center;
         justify-content: space-between;
-        padding: 16px 20px;
-        border-bottom: 1px solid var(--divider-color);
+        padding: 20px 24px;
+        border-bottom: 1px solid var(--divider-color, #e0e0e0);
       }
 
       .picker-title {
         font-weight: 600;
-        color: var(--primary-text-color);
+        color: var(--primary-text-color, #212121);
         font-size: 18px;
       }
 
       .close-button {
         background: none;
         border: none;
-        color: var(--secondary-text-color);
+        color: var(--secondary-text-color, #757575);
         cursor: pointer;
         padding: 8px;
-        border-radius: 4px;
+        border-radius: 6px;
+        transition: all 0.2s ease;
+      }
+
+      .close-button:hover {
+        background: var(--secondary-background-color, #f8f9fa);
+        color: var(--primary-text-color, #212121);
       }
 
       .search-box {
-        padding: 0 20px 16px;
+        padding: 0 24px 16px;
       }
 
       .entity-list {
         flex: 1;
         overflow-y: auto;
         max-height: 400px;
+        padding: 0;
       }
 
       .entity-item {
-        padding: 12px 20px;
+        padding: 14px 24px;
         cursor: pointer;
-        border-bottom: 1px solid var(--divider-color);
-        transition: background-color 0.3s;
+        border-bottom: 1px solid var(--divider-color, #f0f0f0);
+        transition: all 0.2s ease;
         display: flex;
         align-items: center;
-        gap: 12px;
+        gap: 14px;
       }
 
       .entity-item:hover {
-        background: var(--secondary-background-color);
+        background: var(--secondary-background-color, #f8f9fa);
+        transform: translateX(4px);
       }
 
       .entity-item:last-child {
@@ -399,57 +482,72 @@ export class EntityManager extends LitElement {
         min-width: 0;
       }
 
-      .entity-name {
+      .entity-picker-name {
         font-weight: 500;
-        color: var(--primary-text-color);
+        color: var(--primary-text-color, #212121);
         font-size: 14px;
         margin-bottom: 2px;
+        line-height: 1.3;
       }
 
-      .entity-id {
+      .entity-picker-id {
         font-size: 12px;
-        color: var(--secondary-text-color);
-        font-family: var(--code-font-family, monospace);
+        color: var(--secondary-text-color, #757575);
+        font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+        line-height: 1.4;
       }
 
       .template-option {
-        border-top: 2px solid var(--divider-color);
-        background: var(--secondary-background-color);
+        border-top: 2px solid var(--divider-color, #e0e0e0);
+        background: var(--secondary-background-color, #f8f9fa);
       }
 
-      .template-option .entity-name {
-        color: var(--primary-color);
+      .template-option .entity-picker-name {
+        color: var(--primary-color, #03a9f4);
       }
 
-      /* 响应式设计 */
+      /* 响应式优化 */
       @media (max-width: 768px) {
         .form-grid {
           grid-template-columns: 1fr;
-          gap: 8px;
+          gap: 12px;
         }
 
         .entity-picker-dialog {
           margin: 10px;
-        }
-      }
-
-      /* 深色模式适配 */
-      @media (prefers-color-scheme: dark) {
-        .config-section {
-          background: var(--dark-card-background-color);
-          border-color: var(--dark-divider-color);
+          max-height: 80vh;
         }
 
         .section-header {
-          background: var(--dark-secondary-background-color);
+          padding: 14px 16px;
+        }
+
+        .entity-row {
+          padding: 14px 16px;
+        }
+      }
+
+      /* 深色模式 */
+      @media (prefers-color-scheme: dark) {
+        .config-section {
+          background: var(--dark-card-background-color, #1e1e1e);
+          border-color: var(--dark-divider-color, #2a2a2a);
+        }
+
+        .section-header {
+          background: var(--dark-secondary-background-color, #2a2a2a);
         }
 
         .entity-row:hover {
-          background: var(--dark-secondary-background-color);
+          background: var(--dark-secondary-background-color, #2a2a2a);
         }
 
         .edit-form {
-          background: var(--dark-secondary-background-color);
+          background: var(--dark-secondary-background-color, #2a2a2a);
+        }
+
+        .entity-picker-dialog {
+          background: var(--dark-card-background-color, #1e1e1e);
         }
       }
     `
@@ -462,16 +560,55 @@ export class EntityManager extends LitElement {
       content: [],
       footer: []
     };
-    this._draggingIndex = -1;
     this._showEntityPicker = false;
     this._currentPickerField = null;
     this._searchQuery = '';
+    this._filteredEntities = [];
     this._editingItem = null;
+    this._entityCache = null;
+    this._entityCacheTime = 0;
   }
 
   willUpdate(changedProperties) {
-    if (changedProperties.has('entities')) {
+    // 性能优化：只在 entities 真正变化时解析
+    if (changedProperties.has('entities') && this.entities !== changedProperties.get('entities')) {
       this._parseConfigFromEntities();
+    }
+
+    // 优化实体搜索
+    if (changedProperties.has('_searchQuery') || changedProperties.has('hass')) {
+      this._updateFilteredEntities();
+    }
+  }
+
+  // 性能优化：缓存实体列表
+  _getAvailableEntities() {
+    const now = Date.now();
+    if (!this._entityCache || now - this._entityCacheTime > 5000) { // 5秒缓存
+      this._entityCache = this.hass ? Object.entries(this.hass.states)
+        .map(([entity_id, stateObj]) => ({
+          entity_id,
+          friendly_name: stateObj.attributes?.friendly_name || entity_id,
+          domain: entity_id.split('.')[0]
+        }))
+        .sort((a, b) => a.friendly_name.localeCompare(b.friendly_name)) : [];
+      this._entityCacheTime = now;
+    }
+    return this._entityCache;
+  }
+
+  _updateFilteredEntities() {
+    const entities = this._getAvailableEntities();
+    if (!this._searchQuery) {
+      this._filteredEntities = entities.slice(0, 50); // 限制数量
+    } else {
+      const query = this._searchQuery.toLowerCase();
+      this._filteredEntities = entities
+        .filter(entity => 
+          entity.entity_id.toLowerCase().includes(query) || 
+          entity.friendly_name.toLowerCase().includes(query)
+        )
+        .slice(0, 50);
     }
   }
 
@@ -483,63 +620,46 @@ export class EntityManager extends LitElement {
 
     const config = { header: [], content: [], footer: [] };
     
-    // 解析标题项
-    if (this.entities.header) {
-      config.header.push({
-        label: '标题',
-        value: this.entities.header,
-        icon: this.entities.header_icon || '🏷️'
-      });
-    }
-    
-    // 解析内容项
-    let index = 1;
-    while (this.entities[`content_${index}`]) {
-      config.content.push({
-        label: this.entities[`content_${index}_label`] || `项目 ${index}`,
-        value: this.entities[`content_${index}`],
-        icon: this.entities[`content_${index}_icon`] || '📊'
-      });
-      index++;
-    }
-    
-    // 解析页脚项
-    if (this.entities.footer) {
-      config.footer.push({
-        label: '页脚',
-        value: this.entities.footer,
-        icon: this.entities.footer_icon || '📄'
-      });
-    }
-    
+    // 使用更高效的方式解析
+    Object.keys(this.entities).forEach(key => {
+      if (key.startsWith('header_') && !key.includes('_label') && !key.includes('_icon')) {
+        const index = key.replace('header_', '');
+        config.header.push({
+          label: this.entities[`header_${index}_label`] || '标题',
+          value: this.entities[key],
+          icon: this.entities[`header_${index}_icon`] || '🏷️'
+        });
+      } else if (key.startsWith('content_') && !key.includes('_label') && !key.includes('_icon')) {
+        const index = key.replace('content_', '');
+        config.content.push({
+          label: this.entities[`content_${index}_label`] || `项目 ${index}`,
+          value: this.entities[key],
+          icon: this.entities[`content_${index}_icon`] || '📊'
+        });
+      } else if (key.startsWith('footer_') && !key.includes('_label') && !key.includes('_icon')) {
+        const index = key.replace('footer_', '');
+        config.footer.push({
+          label: this.entities[`footer_${index}_label`] || '页脚',
+          value: this.entities[key],
+          icon: this.entities[`footer_${index}_icon`] || '📄'
+        });
+      }
+    });
+
     this._config = config;
   }
 
   _getEntitiesFromConfig() {
     const entities = {};
     
-    // 标题项
-    this._config.header.forEach((item, index) => {
-      const key = `header_${index + 1}`;
-      entities[key] = item.value;
-      entities[`${key}_label`] = item.label;
-      entities[`${key}_icon`] = item.icon;
-    });
-    
-    // 内容项
-    this._config.content.forEach((item, index) => {
-      const key = `content_${index + 1}`;
-      entities[key] = item.value;
-      entities[`${key}_label`] = item.label;
-      entities[`${key}_icon`] = item.icon;
-    });
-    
-    // 页脚项
-    this._config.footer.forEach((item, index) => {
-      const key = `footer_${index + 1}`;
-      entities[key] = item.value;
-      entities[`${key}_label`] = item.label;
-      entities[`${key}_icon`] = item.icon;
+    // 使用更简洁的序列化方式
+    ['header', 'content', 'footer'].forEach(sectionType => {
+      this._config[sectionType].forEach((item, index) => {
+        const baseKey = `${sectionType}_${index + 1}`;
+        entities[baseKey] = item.value;
+        entities[`${baseKey}_label`] = item.label;
+        entities[`${baseKey}_icon`] = item.icon;
+      });
     });
     
     return entities;
@@ -555,9 +675,9 @@ export class EntityManager extends LitElement {
   render() {
     return html`
       <div class="entity-manager">
-        ${this._renderSection('header', '🏷️', '标题', '添加标题项')}
-        ${this._renderSection('content', '📊', '内容项', '添加内容项')}
-        ${this._renderSection('footer', '📄', '页脚', '添加页脚项')}
+        ${this._renderSection('header', '🏷️', '标题', '添加标题')}
+        ${this._renderSection('content', '📊', '内容项', '添加内容')}
+        ${this._renderSection('footer', '📄', '页脚', '添加页脚')}
         ${this._renderEntityPicker()}
       </div>
     `;
@@ -581,17 +701,22 @@ export class EntityManager extends LitElement {
         </div>
         
         <div class="entities-list">
-          ${items.length === 0 ? html`
-            <div class="empty-state">
-              <div class="empty-icon">${icon}</div>
-              <div class="empty-text">暂无${title}</div>
-            </div>
-          ` : items.map((item, index) => 
-            this._renderEntityRow(item, index, sectionType)
-          )}
+          ${items.length === 0 ? this._renderEmptyState(icon, title) : 
+            items.map((item, index) => this._renderEntityRow(item, index, sectionType))
+          }
         </div>
 
         ${isEditing ? this._renderEditForm(sectionType) : ''}
+      </div>
+    `;
+  }
+
+  _renderEmptyState(icon, title) {
+    return html`
+      <div class="empty-state">
+        <div class="empty-icon">${icon}</div>
+        <div class="empty-text">暂无${title}</div>
+        <div class="empty-hint">点击上方按钮添加</div>
       </div>
     `;
   }
@@ -603,26 +728,18 @@ export class EntityManager extends LitElement {
     if (isEditing) return '';
 
     return html`
-      <div class="entity-row">
+      <div class="entity-row" @click=${() => this._startEditItem(sectionType, index)}>
         <div class="entity-icon">${item.icon}</div>
         <div class="entity-content">
           <div class="entity-name">${item.label}</div>
           <div class="entity-value">${item.value}</div>
-          ${preview ? html`<div class="entity-preview">预览: ${preview}</div>` : ''}
+          ${preview ? html`<div class="entity-preview">${preview}</div>` : ''}
         </div>
         <div class="entity-actions">
-          <button 
-            class="entity-action" 
-            @click=${() => this._startEditItem(sectionType, index)}
-            title="编辑"
-          >
-            <ha-icon icon="mdi:pencil"></ha-icon>
-          </button>
-          <button 
-            class="entity-action" 
-            @click=${() => this._removeItem(sectionType, index)}
-            title="删除"
-          >
+          <button class="entity-action" @click=${(e) => {
+            e.stopPropagation();
+            this._removeItem(sectionType, index);
+          }} title="删除">
             <ha-icon icon="mdi:delete"></ha-icon>
           </button>
         </div>
@@ -636,54 +753,45 @@ export class EntityManager extends LitElement {
 
     const item = this._config[sectionType][editingItem.index] || { label: '', value: '', icon: '📊' };
     const preview = this._getFieldPreview(item.value);
+    const isValid = item.label.trim() && item.value.trim();
 
     return html`
       <div class="edit-form">
         <div class="form-grid">
           <div class="form-field">
             <label class="form-label">标签</label>
-            <ha-textfield
-              .value=${item.label}
-              @input=${e => this._updateEditingItem({ label: e.target.value })}
-              placeholder="显示名称"
-              fullwidth
-            ></ha-textfield>
+            <div class="field-input">
+              <ha-textfield
+                .value=${item.label}
+                @input=${e => this._updateEditingItem({ label: e.target.value })}
+                placeholder="显示名称"
+                fullwidth
+              ></ha-textfield>
+            </div>
           </div>
 
           <div class="form-field">
             <label class="form-label">数据源</label>
-            <div class="field-with-preview">
-              <div class="field-inputs">
-                <ha-textfield
-                  .value=${item.value}
-                  @input=${e => this._updateEditingItem({ value: e.target.value })}
-                  placeholder="实体ID或模板"
-                  fullwidth
-                ></ha-textfield>
-                <button 
-                  class="entity-picker-btn" 
-                  @click=${() => this._showEntityPickerFor(sectionType)}
-                  title="选择实体"
-                >
-                  <ha-icon icon="mdi:magnify"></ha-icon>
-                </button>
-              </div>
-              <div class="field-preview">${preview || '(空值)'}</div>
+            <div class="field-input">
+              <ha-textfield
+                .value=${item.value}
+                @input=${e => this._updateEditingItem({ value: e.target.value })}
+                placeholder="实体ID或模板"
+                fullwidth
+              ></ha-textfield>
+              <button class="entity-picker-btn" @click=${() => this._showEntityPickerFor(sectionType)} title="选择实体">
+                <ha-icon icon="mdi:magnify"></ha-icon>
+              </button>
             </div>
+            <div class="field-preview">${preview || '请输入实体或模板'}</div>
           </div>
 
           <div class="form-field">
             <label class="form-label">图标</label>
             <div class="icon-picker">
               <div class="icon-display">${item.icon}</div>
-              <select 
-                class="icon-select"
-                .value=${item.icon}
-                @change=${e => this._updateEditingItem({ icon: e.target.value })}
-              >
-                ${this._getCommonIcons().map(icon => html`
-                  <option value=${icon}>${icon}</option>
-                `)}
+              <select class="icon-select" .value=${item.icon} @change=${e => this._updateEditingItem({ icon: e.target.value })}>
+                ${this._getCommonIcons().map(icon => html`<option value=${icon}>${icon}</option>`)}
               </select>
             </div>
           </div>
@@ -691,7 +799,7 @@ export class EntityManager extends LitElement {
 
         <div class="form-actions">
           <button class="cancel-button" @click=${this._cancelEdit}>取消</button>
-          <button class="save-button" @click=${this._saveEdit}>保存</button>
+          <button class="save-button" ?disabled=${!isValid} @click=${this._saveEdit}>保存</button>
         </div>
       </div>
     `;
@@ -700,7 +808,6 @@ export class EntityManager extends LitElement {
   _renderEntityPicker() {
     if (!this._showEntityPicker) return '';
 
-    const entities = this._getFilteredEntities();
     const templates = [
       { name: '当前时间', value: "{{ now().strftime('%H:%M') }}" },
       { name: '今日日期', value: "{{ now().strftime('%Y-%m-%d') }}" },
@@ -729,12 +836,12 @@ export class EntityManager extends LitElement {
           </div>
           
           <div class="entity-list">
-            ${entities.map(entity => html`
+            ${this._filteredEntities.map(entity => html`
               <div class="entity-item" @click=${() => this._selectEntity(entity.entity_id)}>
                 <ha-icon class="entity-icon" icon=${this._getEntityIcon(entity.entity_id)}></ha-icon>
                 <div class="entity-info">
-                  <div class="entity-name">${entity.friendly_name}</div>
-                  <div class="entity-id">${entity.entity_id}</div>
+                  <div class="entity-picker-name">${entity.friendly_name}</div>
+                  <div class="entity-picker-id">${entity.entity_id}</div>
                 </div>
               </div>
             `)}
@@ -743,8 +850,8 @@ export class EntityManager extends LitElement {
               <div class="entity-item template-option" @click=${() => this._selectEntity(template.value)}>
                 <ha-icon class="entity-icon" icon="mdi:code-braces"></ha-icon>
                 <div class="entity-info">
-                  <div class="entity-name">${template.name}</div>
-                  <div class="entity-id">${template.value}</div>
+                  <div class="entity-picker-name">${template.name}</div>
+                  <div class="entity-picker-id">${template.value}</div>
                 </div>
               </div>
             `)}
@@ -755,28 +862,7 @@ export class EntityManager extends LitElement {
   }
 
   _getCommonIcons() {
-    return ['📊', '🌡️', '💧', '💡', '⚡', '🚪', '👤', '🕒', '🏠', '📱', '🏷️', '📄', '🔔', '⭐'];
-  }
-
-  _getAvailableEntities() {
-    if (!this.hass) return [];
-    return Object.entries(this.hass.states)
-      .map(([entity_id, stateObj]) => ({
-        entity_id,
-        friendly_name: stateObj.attributes?.friendly_name || entity_id,
-        domain: entity_id.split('.')[0]
-      }));
-  }
-
-  _getFilteredEntities() {
-    const entities = this._getAvailableEntities();
-    if (!this._searchQuery) return entities.slice(0, 30);
-    
-    const query = this._searchQuery.toLowerCase();
-    return entities.filter(entity => 
-      entity.entity_id.toLowerCase().includes(query) || 
-      entity.friendly_name.toLowerCase().includes(query)
-    ).slice(0, 30);
+    return ['📊', '🌡️', '💧', '💡', '⚡', '🚪', '👤', '🕒', '🏠', '📱', '🏷️', '📄', '🔔', '⭐', '🎯', '📈', '🔋', '🌡️'];
   }
 
   _getEntityIcon(entityId) {
@@ -791,7 +877,10 @@ export class EntityManager extends LitElement {
       binary_sensor: 'mdi:checkbox-marked-circle',
       input_boolean: 'mdi:toggle-switch',
       automation: 'mdi:robot',
-      script: 'mdi:script-text'
+      script: 'mdi:script-text',
+      device_tracker: 'mdi:account',
+      camera: 'mdi:camera',
+      cover: 'mdi:window-open'
     };
     return icons[domain] || 'mdi:circle';
   }
@@ -809,10 +898,12 @@ export class EntityManager extends LitElement {
       isNew: true
     };
     this._config[sectionType].push({ label: '', value: '', icon: '📊' });
+    this.requestUpdate();
   }
 
   _startEditItem(sectionType, index) {
     this._editingItem = { sectionType, index, isNew: false };
+    this.requestUpdate();
   }
 
   _updateEditingItem(updates) {
@@ -829,10 +920,9 @@ export class EntityManager extends LitElement {
   _saveEdit() {
     if (!this._editingItem) return;
     
-    const { sectionType, index, isNew } = this._editingItem;
+    const { sectionType, index } = this._editingItem;
     const item = this._config[sectionType][index];
     
-    // 验证必填字段
     if (!item.label.trim() || !item.value.trim()) {
       return;
     }
@@ -847,7 +937,6 @@ export class EntityManager extends LitElement {
     const { sectionType, index, isNew } = this._editingItem;
     
     if (isNew) {
-      // 如果是新增项，取消时删除
       this._config[sectionType].splice(index, 1);
     }
     
