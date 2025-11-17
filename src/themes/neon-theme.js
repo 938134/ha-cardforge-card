@@ -26,11 +26,24 @@ export default {
         0 0 ${8 * intensity}px ${glowColor},
         inset 0 0 ${15 * intensity}px ${glowColor}1a;
       animation: neonPulse ${speed}s ease-in-out infinite;
+      
+      @keyframes neonPulse {
+        0%, 100% {
+          box-shadow: 
+            0 0 8px ${glowColor},
+            inset 0 0 15px rgba(0, 255, 136, 0.1);
+        }
+        50% {
+          box-shadow: 
+            0 0 20px ${glowColor},
+            0 0 35px rgba(0, 255, 136, 0.3),
+            inset 0 0 25px rgba(0, 255, 136, 0.2);
+        }
+      }
     `;
   },
 
   applyTheme(element, config = {}) {
-    // 应用霓虹效果配置
     if (config.useMultipleColors) {
       element.classList.add('multicolor');
     } else {
