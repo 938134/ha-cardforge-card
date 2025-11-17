@@ -18,9 +18,41 @@ export class BasePlugin {
     throw new Error('必须实现 getStyles 方法');
   }
 
+  // === 动态实体支持 ===
+  
+  // 获取动态实体配置（插件可以重写此方法）
+  getDynamicEntities(config, hass) {
+    return [];
+  }
+
+  // 获取所有实体需求（静态 + 动态）
+  getAllEntityRequirements(config, hass) {
+    const manifest = this.getManifest();
+    const staticRequirements = manifest.entity_requirements || [];
+    const dynamicRequirements = this.getDynamicEntities(config, hass);
+    
+    return [...staticRequirements, ...dynamicRequirements];
+  }
+
+  // 验证实体配置
+  validateEntities(entities, config, hass) {
+    const requirements = this.getAllEntityRequirements(config, hass);
+    const errors = [];
+    
+    requirements.forEach(req => {
+      if (req.required && (!entities[req.key] || entities[req.key].trim() === '')) {
+        errors.push(`必需实体 "${req.description}" 不能为空`);
+      }
+    });
+    
+    return {
+      valid: errors.length === 0,
+      errors
+    };
+  }
+
   // === Manifest 系统 ===
   
-  // 获取插件 Manifest
   getManifest() {
     if (!this.constructor.manifest) {
       throw new Error(`插件 ${this.constructor.name} 必须定义 manifest`);
@@ -28,7 +60,6 @@ export class BasePlugin {
     return this._mergeManifest(this.constructor.manifest);
   }
 
-  // Manifest 验证
   _validateManifest(manifest) {
     const requiredFields = ['id', 'name', 'version', 'description', 'category', 'icon'];
     const missingFields = requiredFields.filter(field => !manifest[field]);
@@ -39,7 +70,6 @@ export class BasePlugin {
     return true;
   }
 
-  // Manifest 合并
   _mergeManifest(customManifest) {
     const defaultManifest = {
       id: '',
@@ -50,7 +80,7 @@ export class BasePlugin {
       icon: '📄',
       author: 'CardForge',
       config_schema: {},
-      entity_requirements: []
+      entity_requirements: []  // 默认空数组
     };
     
     const merged = { ...defaultManifest, ...customManifest };
@@ -58,7 +88,7 @@ export class BasePlugin {
     return merged;
   }
 
-  // 配置验证
+  // === 配置验证 ===
   _validateConfig(config, manifest) {
     const errors = [];
     const schema = manifest.config_schema || {};
@@ -66,13 +96,11 @@ export class BasePlugin {
     Object.entries(schema).forEach(([key, field]) => {
       const value = config[key];
       
-      // 检查必需字段
       if (field.required && (!value || value === '')) {
         errors.push(`必需字段 "${field.label}" 不能为空`);
         return;
       }
       
-      // 基础类型验证
       if (value && field.type) {
         switch (field.type) {
           case 'number':
@@ -100,7 +128,6 @@ export class BasePlugin {
     return true;
   }
 
-  // 应用配置默认值
   _applyConfigDefaults(config, manifest) {
     const defaults = {};
     const schema = manifest.config_schema || {};
@@ -118,11 +145,8 @@ export class BasePlugin {
     const now = new Date();
     
     return {
-      // 基础时间数据
       ...this._getBasicTimeData(now),
-      // 用户数据
       ...this._getUserData(hass),
-      // 问候语数据
       ...this._getGreetingData(now)
     };
   }
@@ -173,24 +197,20 @@ export class BasePlugin {
     };
   }
 
-  // === 智能数据获取（支持系统变量和Jinja）===
+  // === 智能数据获取 ===
   
   _getCardValue(hass, entities, key, defaultValue = '') {
-    // 1. 首先检查系统变量（$开头）
     if (key.startsWith('$')) {
       return this._getSystemVariable(key, hass);
     }
     
-    // 2. 原有逻辑：实体 → Jinja → 文本
     const source = this._getEntityValue(entities, key);
     return this._getFlexibleValue(hass, source, defaultValue);
   }
 
   _getSystemVariable(variableKey, hass) {
     const systemData = this.getSystemData(hass, {});
-    const variableName = variableKey.slice(1); // 去掉 $
-    
-    // 支持嵌套变量，如 $time.current
+    const variableName = variableKey.slice(1);
     const keys = variableName.split('.');
     let value = systemData;
     
@@ -214,79 +234,57 @@ export class BasePlugin {
     
     const parser = getJinjaParser(hass);
 
-    // 如果是实体ID格式
     if (source.includes('.') && hass?.states?.[source]) {
       return hass.states[source].state || defaultValue;
     }
     
-    // 如果是Jinja2模板
     if (parser.isJinjaTemplate(source)) {
       return parser.parse(source, defaultValue);
     }
     
-    // 直接文本
     return source;
   }
 
-  // === 设备支持 ===
+  // === 实体数据处理 ===
   
-  _getDeviceData(entityId, hass) {
-    if (!hass || !entityId) return null;
+  // 获取实体显示名称
+  _getEntityDisplayName(entityConfig, hass) {
+    if (entityConfig.name) {
+      return entityConfig.name;
+    }
     
-    const entity = hass.states[entityId];
-    if (!entity) return null;
+    if (entityConfig.source && hass?.states?.[entityConfig.source]) {
+      return hass.states[entityConfig.source].attributes?.friendly_name || entityConfig.source;
+    }
     
-    const domain = entityId.split('.')[0];
-    
-    return {
-      entity: entityId,
-      name: entity.attributes?.friendly_name || entityId,
-      state: entity.state,
-      attributes: entity.attributes || {},
-      domain: domain,
-      // 统一的操作方法
-      actions: this._getDeviceActions(domain)
-    };
+    return entityConfig.source || '未知实体';
   }
 
-  _getDeviceActions(domain) {
-    const actions = {
-      toggle: '切换状态',
-      turn_on: '开启',
-      turn_off: '关闭'
-    };
-    
-    // 域特定操作
-    if (domain === 'climate') {
-      actions.set_temperature = '设置温度';
-      actions.set_mode = '设置模式';
-    } else if (domain === 'fan') {
-      actions.set_speed = '设置风速';
-    } else if (domain === 'light') {
-      actions.set_brightness = '设置亮度';
+  // 获取实体图标
+  _getEntityIcon(entityConfig, hass) {
+    if (entityConfig.icon) {
+      return entityConfig.icon;
     }
     
-    return actions;
-  }
-
-  _deviceAction(hass, entityId, action, data = {}) {
-    if (!hass?.callService) {
-      console.error('Home Assistant 服务不可用');
-      return false;
+    if (entityConfig.source && hass?.states?.[entityConfig.source]) {
+      const entity = hass.states[entityConfig.source];
+      const domain = entityConfig.source.split('.')[0];
+      
+      // 根据域返回默认图标
+      const domainIcons = {
+        'light': '💡',
+        'sensor': '📊',
+        'switch': '🔌',
+        'climate': '🌡️',
+        'media_player': '📺',
+        'person': '👤',
+        'device_tracker': '📍'
+      };
+      
+      return domainIcons[domain] || '🏷️';
     }
     
-    const domain = entityId.split('.')[0];
-    
-    try {
-      hass.callService(domain, action, {
-        entity_id: entityId,
-        ...data
-      });
-      return true;
-    } catch (error) {
-      console.error(`设备操作失败: ${domain}.${action}`, error);
-      return false;
-    }
+    return '🔧'; // Jinja模板默认图标
   }
 
   // === 错误处理模板 ===
@@ -362,7 +360,6 @@ export class BasePlugin {
         --card-border-dark: #404040;
       }
       
-      /* 响应式容器 */
       .cardforge-responsive-container {
         display: flex;
         flex-direction: column;
@@ -377,7 +374,6 @@ export class BasePlugin {
         container-name: cardforge-container;
       }
       
-      /* 暗色模式适配 */
       @media (prefers-color-scheme: dark) {
         .cardforge-responsive-container {
           background: var(--card-bg-dark);
@@ -386,14 +382,12 @@ export class BasePlugin {
         }
       }
       
-      /* 内容区域 */
       .cardforge-content-grid {
         display: grid;
         grid-template-columns: 1fr;
         gap: var(--cf-spacing-md);
       }
       
-      /* 布局模式 */
       .layout-single-column .cardforge-content-grid {
         grid-template-columns: 1fr;
       }
@@ -408,43 +402,6 @@ export class BasePlugin {
         }
       }
       
-      /* 错误状态样式 */
-      .cardforge-error-container,
-      .cardforge-loading-container,
-      .cardforge-empty-container {
-        flex: 1;
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        justify-content: center;
-        gap: var(--cf-spacing-md);
-        min-height: 80px;
-        text-align: center;
-      }
-      
-      .cardforge-loading-spinner {
-        width: 24px;
-        height: 24px;
-        border: 2px solid var(--card-border-light);
-        border-top: 2px solid var(--primary-color, #03a9f4);
-        border-radius: 50%;
-        animation: cardforge-spin 1s linear infinite;
-      }
-      
-      .cardforge-error-message,
-      .cardforge-loading-text,
-      .cardforge-empty-message {
-        font-size: 0.85em;
-        color: var(--secondary-text-color, #757575);
-        line-height: 1.4;
-      }
-      
-      @keyframes cardforge-spin {
-        0% { transform: rotate(0deg); }
-        100% { transform: rotate(360deg); }
-      }
-      
-      /* 主题样式 */
       .cardforge-responsive-container {
         ${themeStyles}
       }
