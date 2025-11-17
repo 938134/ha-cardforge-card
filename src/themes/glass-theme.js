@@ -31,7 +31,6 @@ export default {
   },
 
   applyTheme(element, config = {}) {
-    // 应用毛玻璃效果配置
     if (config.useGradientOverlay) {
       element.classList.add('gradient-overlay');
     } else {
