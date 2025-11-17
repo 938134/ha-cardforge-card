@@ -2,7 +2,7 @@
 import { LitElement, html } from 'https://unpkg.com/lit@2.8.0/index.js?module';
 import { unsafeHTML } from 'https://unpkg.com/lit-html/directives/unsafe-html.js?module';
 import { PluginRegistry } from './core/plugin-registry.js';
-import { cardForgeStyles } from './styles/index.js';
+import { foundationStyles } from './core/styles.js';
 import { getJinjaParser } from './core/jinja-parser.js';
 
 class HaCardForgeCard extends LitElement {
@@ -15,7 +15,64 @@ class HaCardForgeCard extends LitElement {
     _loading: { state: true }
   };
 
-  static styles = cardForgeStyles;
+  static styles = [
+    foundationStyles,
+    css`
+      .cardforge-container {
+        position: relative;
+        min-height: 80px;
+      }
+
+      .cardforge-error-container,
+      .cardforge-loading-container,
+      .cardforge-empty-container {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: var(--cf-spacing-md);
+        min-height: 80px;
+        text-align: center;
+      }
+
+      .cardforge-loading-spinner {
+        width: 24px;
+        height: 24px;
+        border: 2px solid var(--cf-border);
+        border-top: 2px solid var(--cf-primary-color);
+        border-radius: 50%;
+        animation: cardforge-spin 1s linear infinite;
+      }
+
+      .cardforge-error-message,
+      .cardforge-loading-text,
+      .cardforge-empty-message {
+        font-size: 0.85em;
+        color: var(--cf-text-secondary);
+        line-height: 1.4;
+      }
+
+      @keyframes cardforge-spin {
+        0% { transform: rotate(0deg); }
+        100% { transform: rotate(360deg); }
+      }
+
+      /* 深色模式适配 */
+      @media (prefers-color-scheme: dark) {
+        .cardforge-loading-spinner {
+          border-color: var(--cf-dark-border);
+          border-top-color: var(--cf-primary-color);
+        }
+
+        .cardforge-error-message,
+        .cardforge-loading-text,
+        .cardforge-empty-message {
+          color: var(--cf-dark-text-secondary);
+        }
+      }
+    `
+  ];
 
   constructor() {
     super();
@@ -61,6 +118,7 @@ class HaCardForgeCard extends LitElement {
     }
     
     return {
+      type: 'custom:ha-cardforge-card',
       plugin: '',
       entities: {},
       theme: 'auto',
@@ -159,11 +217,6 @@ class HaCardForgeCard extends LitElement {
         
         <style>
           ${styles}
-          
-          .cardforge-container {
-            position: relative;
-            min-height: 80px;
-          }
         </style>
       `;
     } catch (error) {
@@ -193,7 +246,8 @@ class HaCardForgeCard extends LitElement {
 
   static getStubConfig() {
     return {
-      plugin: 'welcome-card',
+      type: 'custom:ha-cardforge-card',
+      plugin: 'clock-card',
       entities: {},
       theme: 'auto'
     };
