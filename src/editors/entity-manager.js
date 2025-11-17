@@ -73,6 +73,11 @@ export class EntityManager extends LitElement {
         padding: 8px 16px;
         border-bottom: 1px solid var(--divider-color);
         min-height: 52px;
+        cursor: pointer;
+      }
+
+      .entity-row:hover {
+        background: var(--secondary-background-color);
       }
 
       .entity-row:last-child {
@@ -89,7 +94,6 @@ export class EntityManager extends LitElement {
         border-radius: 8px;
         margin-right: 12px;
         color: white;
-        font-size: 16px;
       }
 
       .entity-content {
@@ -112,6 +116,12 @@ export class EntityManager extends LitElement {
       .entity-actions {
         display: flex;
         gap: 4px;
+        opacity: 0;
+        transition: opacity 0.2s ease;
+      }
+
+      .entity-row:hover .entity-actions {
+        opacity: 1;
       }
 
       .empty-state {
@@ -131,11 +141,60 @@ export class EntityManager extends LitElement {
         margin-bottom: 16px;
       }
 
+      .form-label {
+        display: block;
+        font-weight: 600;
+        font-size: 12px;
+        margin-bottom: 6px;
+        color: var(--primary-text-color);
+      }
+
       .form-actions {
         display: flex;
         justify-content: flex-end;
         gap: 8px;
         margin-top: 16px;
+      }
+
+      .data-source-input {
+        display: flex;
+        gap: 8px;
+        align-items: flex-start;
+      }
+
+      .data-source-input ha-textfield {
+        flex: 1;
+      }
+
+      .entity-picker-btn {
+        background: var(--card-background-color);
+        border: 1px solid var(--divider-color);
+        border-radius: 4px;
+        padding: 8px 12px;
+        cursor: pointer;
+        color: var(--primary-text-color);
+        margin-top: 16px;
+      }
+
+      .entity-picker-btn:hover {
+        background: var(--primary-color);
+        color: white;
+      }
+
+      .icon-preview {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        margin-top: 8px;
+        padding: 8px;
+        background: var(--card-background-color);
+        border-radius: 4px;
+        border: 1px solid var(--divider-color);
+      }
+
+      .icon-preview-text {
+        font-size: 12px;
+        color: var(--secondary-text-color);
       }
     `
   ];
@@ -167,21 +226,21 @@ export class EntityManager extends LitElement {
         config.header.push({
           label: this.entities[`header_${index}_label`] || '标题',
           value: this.entities[key],
-          icon: this.entities[`header_${index}_icon`] || '🏷️'
+          icon: this.entities[`header_${index}_icon`] || 'mdi:format-title'
         });
       } else if (key.startsWith('content_') && !key.includes('_label') && !key.includes('_icon')) {
         const index = key.replace('content_', '');
         config.content.push({
           label: this.entities[`content_${index}_label`] || `项目 ${index}`,
           value: this.entities[key],
-          icon: this.entities[`content_${index}_icon`] || '📊'
+          icon: this.entities[`content_${index}_icon`] || 'mdi:chart-box'
         });
       } else if (key.startsWith('footer_') && !key.includes('_label') && !key.includes('_icon')) {
         const index = key.replace('footer_', '');
         config.footer.push({
           label: this.entities[`footer_${index}_label`] || '页脚',
           value: this.entities[key],
-          icon: this.entities[`footer_${index}_icon`] || '📄'
+          icon: this.entities[`footer_${index}_icon`] || 'mdi:file-document'
         });
       }
     });
@@ -223,9 +282,9 @@ export class EntityManager extends LitElement {
   render() {
     return html`
       <div class="entity-manager">
-        ${this._renderSection('header', '🏷️', '标题')}
-        ${this._renderSection('content', '📊', '内容项')}
-        ${this._renderSection('footer', '📄', '页脚')}
+        ${this._renderSection('header', 'mdi:format-title', '标题')}
+        ${this._renderSection('content', 'mdi:chart-box', '内容项')}
+        ${this._renderSection('footer', 'mdi:file-document', '页脚')}
       </div>
     `;
   }
@@ -239,7 +298,7 @@ export class EntityManager extends LitElement {
       <div class="config-section">
         <div class="section-header" @click=${() => this._toggleSection(sectionType)}>
           <div class="section-title">
-            <span>${icon}</span>
+            <ha-icon .icon=${icon}></ha-icon>
             ${title}
             ${items.length > 0 ? html`<span class="section-count">${items.length}</span>` : ''}
           </div>
@@ -270,15 +329,19 @@ export class EntityManager extends LitElement {
     if (isEditing) return '';
 
     return html`
-      <div class="entity-row">
-        <div class="entity-icon">${item.icon}</div>
+      <div class="entity-row" @click=${() => this._startEditItem(sectionType, index)}>
+        <div class="entity-icon">
+          <ha-icon .icon=${item.icon}></ha-icon>
+        </div>
         <div class="entity-content">
           <div class="entity-name">${item.label}</div>
           <div class="entity-value">${item.value}</div>
         </div>
         <div class="entity-actions">
-          <button @click=${() => this._startEditItem(sectionType, index)}>编辑</button>
-          <button @click=${() => this._removeItem(sectionType, index)}>删除</button>
+          <button @click=${(e) => {
+            e.stopPropagation();
+            this._removeItem(sectionType, index);
+          }}>删除</button>
         </div>
       </div>
     `;
@@ -288,13 +351,14 @@ export class EntityManager extends LitElement {
     const editingItem = this._editingItem;
     if (!editingItem || editingItem.sectionType !== sectionType) return '';
 
-    const item = this._config[sectionType][editingItem.index] || { label: '', value: '', icon: '📊' };
+    const item = this._config[sectionType][editingItem.index] || { label: '', value: '', icon: 'mdi:chart-box' };
     const entityInfo = this._getEntityInfo(item.value);
+    const currentIcon = item.icon || entityInfo.icon || 'mdi:chart-box';
 
     return html`
       <div class="edit-form">
         <div class="form-field">
-          <label>显示名称</label>
+          <label class="form-label">显示名称</label>
           <ha-textfield
             .value=${item.label}
             @input=${e => this._updateEditingItem({ label: e.target.value })}
@@ -304,37 +368,40 @@ export class EntityManager extends LitElement {
         </div>
 
         <div class="form-field">
-          <label>数据源</label>
-          <ha-entity-picker
-            .hass=${this.hass}
-            .value=${item.value}
-            @value-changed=${e => {
-              const newValue = e.detail.value;
-              this._updateEditingItem({ value: newValue });
-              // 自动填充实体信息
-              const entityInfo = this._getEntityInfo(newValue);
-              if (entityInfo.name && !item.label) {
-                this._updateEditingItem({ label: entityInfo.name });
-              }
-              if (entityInfo.icon && item.icon === '📊') {
-                this._updateEditingItem({ icon: entityInfo.icon });
-              }
-            }}
-            allow-custom-value
-            fullwidth
-          ></ha-entity-picker>
+          <label class="form-label">数据源</label>
+          <div class="data-source-input">
+            <ha-textfield
+              .value=${item.value}
+              @input=${e => {
+                const newValue = e.target.value;
+                this._updateEditingItem({ value: newValue });
+                // 自动检测实体信息
+                const entityInfo = this._getEntityInfo(newValue);
+                if (entityInfo.name && !item.label) {
+                  this._updateEditingItem({ label: entityInfo.name });
+                }
+                if (entityInfo.icon) {
+                  this._updateEditingItem({ icon: entityInfo.icon });
+                }
+              }}
+              placeholder="实体ID、Jinja模板或自定义文本"
+              fullwidth
+            ></ha-textfield>
+          </div>
+          <button class="entity-picker-btn" @click=${this._showEntityPicker}>
+            <ha-icon icon="mdi:magnify"></ha-icon>
+            选择实体
+          </button>
         </div>
 
         <div class="form-field">
-          <label>图标</label>
-          <ha-textfield
-            .value=${item.icon}
-            @input=${e => this._updateEditingItem({ icon: e.target.value })}
-            placeholder="选择图标"
-            fullwidth
-          ></ha-textfield>
-          <div style="font-size: 12px; color: var(--secondary-text-color); margin-top: 4px;">
-            常用图标: 📊 🌡️ 💧 💡 ⚡ 🚪 👤 🕒 🏠 📱
+          <label class="form-label">图标</label>
+          <div class="icon-preview">
+            <ha-icon .icon=${currentIcon}></ha-icon>
+            <span class="icon-preview-text">${currentIcon}</span>
+          </div>
+          <div style="font-size: 11px; color: var(--secondary-text-color); margin-top: 4px;">
+            图标会根据数据源自动选择，也支持手动设置 mdi 图标名称
           </div>
         </div>
 
@@ -350,34 +417,88 @@ export class EntityManager extends LitElement {
   }
 
   _getEntityInfo(entityValue) {
-    if (!entityValue || !this.hass) return { name: '', icon: '📊' };
+    if (!entityValue || !this.hass) return { name: '', icon: 'mdi:chart-box' };
     
+    // 如果是实体ID
     if (entityValue.includes('.') && this.hass.states[entityValue]) {
       const entity = this.hass.states[entityValue];
       return {
         name: entity.attributes?.friendly_name || entityValue,
-        icon: this._getDefaultEntityIcon(entityValue)
+        icon: entity.attributes?.icon || this._getDefaultEntityIcon(entityValue)
       };
     }
     
-    return { name: '', icon: '📊' };
+    // 如果是Jinja模板，尝试提取实体
+    const entityMatch = entityValue.match(/states\(['"]([^'"]+)['"]\)/) || 
+                       entityValue.match(/state_attr\(['"]([^'"]+)['"]/) ||
+                       entityValue.match(/states\.([^ }\.|]+)/);
+    
+    if (entityMatch && this.hass.states[entityMatch[1]]) {
+      const entity = this.hass.states[entityMatch[1]];
+      return {
+        name: entity.attributes?.friendly_name || entityMatch[1],
+        icon: entity.attributes?.icon || this._getDefaultEntityIcon(entityMatch[1])
+      };
+    }
+    
+    // 默认图标
+    return { name: '', icon: 'mdi:chart-box' };
   }
 
   _getDefaultEntityIcon(entityId) {
     const domain = entityId.split('.')[0];
     const icons = {
-      light: '💡',
-      sensor: '📊',
-      switch: '🔌',
-      climate: '🌡️',
-      media_player: '📺',
-      person: '👤',
-      binary_sensor: '🔲',
-      input_boolean: '⚙️',
-      automation: '🤖',
-      script: '📜'
+      light: 'mdi:lightbulb',
+      sensor: 'mdi:gauge',
+      switch: 'mdi:power-plug',
+      climate: 'mdi:thermostat',
+      media_player: 'mdi:television',
+      person: 'mdi:account',
+      binary_sensor: 'mdi:checkbox-marked-circle',
+      input_boolean: 'mdi:toggle-switch',
+      automation: 'mdi:robot',
+      script: 'mdi:script-text',
+      device_tracker: 'mdi:account',
+      camera: 'mdi:camera',
+      cover: 'mdi:window-open',
+      fan: 'mdi:fan',
+      lock: 'mdi:lock',
+      vacuum: 'mdi:robot-vacuum',
+      water_heater: 'mdi:water-boiler'
     };
-    return icons[domain] || '📊';
+    return icons[domain] || 'mdi:circle';
+  }
+
+  _showEntityPicker() {
+    if (!this._editingItem) return;
+
+    // 创建实体选择器
+    const entityPicker = document.createElement('ha-entity-picker');
+    entityPicker.hass = this.hass;
+    entityPicker.allowCustomValue = true;
+    
+    // 监听实体选择
+    entityPicker.addEventListener('value-changed', (e) => {
+      const entityId = e.detail.value;
+      if (entityId) {
+        const entityInfo = this._getEntityInfo(entityId);
+        this._updateEditingItem({ 
+          value: entityId,
+          label: entityInfo.name || entityId,
+          icon: entityInfo.icon
+        });
+      }
+      entityPicker.remove();
+    });
+
+    // 添加到页面
+    document.body.appendChild(entityPicker);
+    
+    // 打开选择器
+    setTimeout(() => {
+      entityPicker.focus();
+      entityPicker.select();
+    }, 100);
   }
 
   _startAddItem(sectionType) {
@@ -386,7 +507,7 @@ export class EntityManager extends LitElement {
       index: this._config[sectionType].length,
       isNew: true
     };
-    this._config[sectionType].push({ label: '', value: '', icon: '📊' });
+    this._config[sectionType].push({ label: '', value: '', icon: 'mdi:chart-box' });
     this._expandedSections.add(sectionType);
     this.requestUpdate();
   }
