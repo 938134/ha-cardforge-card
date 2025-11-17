@@ -1,56 +1,59 @@
 // src/plugins/dashboard-card.js
 import { BasePlugin } from '../core/base-plugin.js';
 
-export default class DashboardCardPlugin extends BasePlugin {
-  static manifest = {
-    id: 'dashboard-card',
-    name: '数据看板',
-    description: '支持标题、内容和页脚的灵活看板卡片',
-    version: '1.0.0',
-    category: 'dashboard',
-    icon: '📊',
-    author: 'CardForge',
-    config_schema: {
-      layout: {
-        type: 'select',
-        label: '布局方式',
-        options: ['vertical', 'horizontal', 'grid'],
-        default: 'vertical',
-        required: true
+class DashboardCardPlugin extends BasePlugin {
+  // 修复：使用正确的静态属性定义
+  static get manifest() {
+    return {
+      id: 'dashboard-card',
+      name: '数据看板',
+      description: '支持标题、内容和页脚的灵活看板卡片',
+      version: '1.0.0',
+      category: 'dashboard',
+      icon: '📊',
+      author: 'CardForge',
+      config_schema: {
+        layout: {
+          type: 'select',
+          label: '布局方式',
+          options: ['vertical', 'horizontal', 'grid'],
+          default: 'vertical',
+          required: true
+        },
+        show_header: {
+          type: 'boolean',
+          label: '显示标题栏',
+          default: true,
+          required: false
+        },
+        show_footer: {
+          type: 'boolean',
+          label: '显示页脚栏',
+          default: true,
+          required: false
+        },
+        card_style: {
+          type: 'select',
+          label: '卡片样式',
+          options: ['default', 'minimal', 'bordered', 'filled'],
+          default: 'default',
+          required: false
+        }
       },
-      show_header: {
-        type: 'boolean',
-        label: '显示标题栏',
-        default: true,
-        required: false
-      },
-      show_footer: {
-        type: 'boolean',
-        label: '显示页脚栏',
-        default: true,
-        required: false
-      },
-      card_style: {
-        type: 'select',
-        label: '卡片样式',
-        options: ['default', 'minimal', 'bordered', 'filled'],
-        default: 'default',
-        required: false
-      }
-    },
-    entity_requirements: [
-      {
-        key: 'header_title',
-        description: '标题文本或实体',
-        required: false
-      },
-      {
-        key: 'footer_text',
-        description: '页脚文本或实体',
-        required: false
-      }
-    ]
-  };
+      entity_requirements: [
+        {
+          key: 'header_title',
+          description: '标题文本或实体',
+          required: false
+        },
+        {
+          key: 'footer_text',
+          description: '页脚文本或实体',
+          required: false
+        }
+      ]
+    };
+  }
 
   getTemplate(config, hass, entities) {
     const header = this._renderHeader(config, hass, entities);
@@ -538,3 +541,6 @@ export default class DashboardCardPlugin extends BasePlugin {
     `;
   }
 }
+
+// 修复：确保正确导出
+export default DashboardCardPlugin;
