@@ -8,9 +8,9 @@ export class EntityManager extends LitElement {
     hass: { type: Object },
     requirements: { type: Array },
     entities: { type: Object },
-    _dynamicEntities: { state: true },
-    _showAddDialog: { state: true },
-    _editingEntity: { state: true }
+    _config: { state: true },
+    _showEntityPicker: { state: true },
+    _pickingFor: { state: true }
   };
 
   static styles = [
@@ -20,102 +20,166 @@ export class EntityManager extends LitElement {
         width: 100%;
       }
 
-      .section-title {
+      .config-section {
+        background: var(--card-background-color);
+        border: 1px solid var(--divider-color);
+        border-radius: 8px;
+        padding: var(--cf-spacing-lg);
+        margin-bottom: var(--cf-spacing-lg);
+      }
+
+      .section-header {
+        display: flex;
+        align-items: center;
+        gap: var(--cf-spacing-sm);
+        margin-bottom: var(--cf-spacing-lg);
         font-weight: 600;
         color: var(--primary-text-color);
-        font-size: 16px;
-        margin-bottom: 16px;
-        padding-bottom: 8px;
-        border-bottom: 1px solid var(--divider-color);
+        font-size: 1.1em;
       }
 
-      .entity-list {
-        display: flex;
-        flex-direction: column;
-        gap: 8px;
-        margin-bottom: 16px;
+      .section-icon {
+        font-size: 1.2em;
       }
 
-      .entity-row {
-        display: flex;
-        align-items: center;
-        background: var(--card-background-color);
-        border-radius: 4px;
-        padding: 12px 16px;
-        border: 1px solid var(--divider-color);
-        transition: all 0.2s ease;
+      .field-group {
+        margin-bottom: var(--cf-spacing-lg);
       }
 
-      .entity-row:hover {
-        border-color: var(--primary-color);
-      }
-
-      .entity-info {
-        flex: 1;
-        min-width: 0;
-      }
-
-      .entity-name {
+      .field-label {
+        display: block;
+        margin-bottom: var(--cf-spacing-sm);
         font-weight: 500;
         color: var(--primary-text-color);
-        font-size: 14px;
-        margin-bottom: 4px;
       }
 
-      .entity-source {
-        font-size: 12px;
+      .field-with-preview {
+        margin-bottom: var(--cf-spacing-md);
+      }
+
+      .field-inputs {
+        display: flex;
+        gap: var(--cf-spacing-sm);
+        align-items: center;
+        margin-bottom: var(--cf-spacing-xs);
+      }
+
+      .field-inputs ha-textfield {
+        flex: 1;
+      }
+
+      .entity-picker-btn {
+        background: var(--primary-color);
+        color: white;
+        border: none;
+        border-radius: 4px;
+        padding: 8px 12px;
+        cursor: pointer;
+        transition: background-color 0.3s;
+      }
+
+      .entity-picker-btn:hover {
+        background: var(--accent-color);
+      }
+
+      .field-preview {
+        font-size: 0.85em;
         color: var(--secondary-text-color);
-        background: var(--secondary-background-color);
-        padding: 2px 6px;
-        border-radius: 3px;
-        font-family: var(--code-font-family, monospace);
-        display: inline-block;
+        background: rgba(var(--rgb-primary-color), 0.05);
+        padding: 4px 8px;
+        border-radius: 4px;
+        margin-top: 4px;
       }
 
-      .entity-actions {
+      .content-items {
+        display: flex;
+        flex-direction: column;
+        gap: var(--cf-spacing-md);
+      }
+
+      .content-item {
+        background: var(--secondary-background-color);
+        border: 1px solid var(--divider-color);
+        border-radius: 6px;
+        padding: var(--cf-spacing-md);
+      }
+
+      .item-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: var(--cf-spacing-md);
+      }
+
+      .item-number {
+        font-weight: 600;
+        color: var(--primary-text-color);
+      }
+
+      .item-actions {
         display: flex;
         gap: 4px;
-        margin-left: 12px;
       }
 
-      .entity-action {
+      .item-actions button {
         background: none;
-        border: none;
-        color: var(--secondary-text-color);
-        cursor: pointer;
-        padding: 6px;
+        border: 1px solid var(--divider-color);
         border-radius: 4px;
-        transition: all 0.2s ease;
+        padding: 4px 8px;
+        cursor: pointer;
+        transition: all 0.3s;
       }
 
-      .entity-action:hover {
-        background: var(--secondary-background-color);
-        color: var(--primary-color);
+      .item-actions button:hover:not(:disabled) {
+        background: var(--primary-color);
+        color: white;
+        border-color: var(--primary-color);
       }
 
-      .add-entity-row {
+      .item-actions button:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+      }
+
+      .item-fields {
+        display: flex;
+        flex-direction: column;
+        gap: var(--cf-spacing-md);
+      }
+
+      .icon-picker {
         display: flex;
         align-items: center;
-        justify-content: center;
-        background: var(--card-background-color);
-        border: 2px dashed var(--divider-color);
+        gap: var(--cf-spacing-sm);
+      }
+
+      .icon-picker ha-textfield {
+        flex: 1;
+      }
+
+      .icon-preview {
+        font-size: 1.5em;
+        width: 40px;
+        text-align: center;
+      }
+
+      .add-item-btn {
+        background: var(--primary-color);
+        color: white;
+        border: none;
         border-radius: 4px;
-        padding: 16px;
+        padding: 10px 16px;
         cursor: pointer;
-        transition: all 0.2s ease;
-        color: var(--secondary-text-color);
-      }
-
-      .add-entity-row:hover {
-        border-color: var(--primary-color);
-        color: var(--primary-color);
-      }
-
-      .add-entity-content {
+        font-size: 0.95em;
+        transition: background-color 0.3s;
         display: flex;
         align-items: center;
         gap: 8px;
-        font-weight: 500;
+        margin-top: var(--cf-spacing-md);
+      }
+
+      .add-item-btn:hover {
+        background: var(--accent-color);
       }
 
       .empty-state {
@@ -125,23 +189,12 @@ export class EntityManager extends LitElement {
       }
 
       .empty-icon {
-        font-size: 48px;
+        font-size: 3em;
         margin-bottom: 16px;
-        opacity: 0.3;
+        opacity: 0.5;
       }
 
-      .empty-text {
-        font-size: 14px;
-        margin-bottom: 8px;
-      }
-
-      .empty-hint {
-        font-size: 12px;
-        opacity: 0.7;
-      }
-
-      /* 对话框样式 */
-      .dialog-overlay {
+      .entity-picker-overlay {
         position: fixed;
         top: 0;
         left: 0;
@@ -155,379 +208,495 @@ export class EntityManager extends LitElement {
         padding: 20px;
       }
 
-      .dialog {
+      .entity-picker-dialog {
         background: var(--card-background-color);
         border-radius: 8px;
-        padding: 0;
+        padding: 24px;
         width: 100%;
         max-width: 500px;
-        max-height: 90vh;
-        overflow: hidden;
-        box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
+        max-height: 80vh;
+        overflow-y: auto;
       }
 
-      .dialog-header {
+      .entity-picker-header {
         display: flex;
-        align-items: center;
         justify-content: space-between;
-        padding: 20px 24px;
+        align-items: center;
+        margin-bottom: 20px;
+        padding-bottom: 16px;
         border-bottom: 1px solid var(--divider-color);
       }
 
-      .dialog-title {
+      .entity-picker-title {
         font-weight: 600;
-        color: var(--primary-text-color);
-        font-size: 18px;
+        font-size: 1.2em;
       }
 
-      .dialog-content {
-        padding: 24px;
-      }
-
-      .form-grid {
-        display: grid;
-        grid-template-columns: 1fr;
-        gap: 20px;
-      }
-
-      .form-field {
+      .entity-list {
         display: flex;
         flex-direction: column;
         gap: 8px;
+        max-height: 300px;
+        overflow-y: auto;
       }
 
-      .form-label {
-        font-weight: 500;
-        color: var(--primary-text-color);
-        font-size: 14px;
-      }
-
-      .dialog-actions {
-        display: flex;
-        gap: 12px;
-        justify-content: flex-end;
-        padding: 16px 24px;
-        border-top: 1px solid var(--divider-color);
-        background: var(--secondary-background-color);
-      }
-
-      .cancel-button {
-        background: transparent;
-        color: var(--primary-text-color);
+      .entity-item {
+        padding: 12px 16px;
         border: 1px solid var(--divider-color);
         border-radius: 4px;
-        padding: 10px 20px;
         cursor: pointer;
-        font-size: 14px;
-        font-weight: 500;
-        transition: all 0.2s ease;
+        transition: all 0.3s;
       }
 
-      .cancel-button:hover {
+      .entity-item:hover {
         border-color: var(--primary-color);
-        color: var(--primary-color);
+        background: rgba(var(--rgb-primary-color), 0.05);
       }
 
-      .save-button {
-        background: var(--primary-color);
-        color: white;
-        border: none;
-        border-radius: 4px;
-        padding: 10px 20px;
-        cursor: pointer;
-        font-size: 14px;
+      .entity-name {
         font-weight: 500;
-        transition: background-color 0.2s ease;
+        color: var(--primary-text-color);
       }
 
-      .save-button:hover:not(:disabled) {
-        background: var(--accent-color);
+      .entity-id {
+        font-size: 0.85em;
+        color: var(--secondary-text-color);
+        margin-top: 4px;
       }
 
-      .save-button:disabled {
-        background: var(--disabled-color);
-        cursor: not-allowed;
-        opacity: 0.6;
+      /* 响应式设计 */
+      @media (max-width: 768px) {
+        .config-section {
+          padding: var(--cf-spacing-md);
+        }
+
+        .field-inputs {
+          flex-direction: column;
+          align-items: stretch;
+        }
+
+        .entity-picker-btn {
+          align-self: flex-start;
+        }
       }
 
-      .required-badge {
-        background: var(--error-color);
-        color: white;
-        font-size: 11px;
-        padding: 2px 6px;
-        border-radius: 10px;
-        margin-left: 8px;
-        font-weight: 500;
+      /* 深色模式适配 */
+      @media (prefers-color-scheme: dark) {
+        .config-section {
+          background: var(--dark-card-background-color);
+          border-color: var(--dark-divider-color);
+        }
+
+        .content-item {
+          background: var(--dark-secondary-background-color);
+          border-color: var(--dark-divider-color);
+        }
+
+        .field-preview {
+          background: rgba(var(--rgb-primary-color), 0.1);
+        }
+
+        .entity-picker-dialog {
+          background: var(--dark-card-background-color);
+        }
+
+        .entity-item {
+          border-color: var(--dark-divider-color);
+        }
       }
     `
   ];
 
   constructor() {
     super();
-    this._dynamicEntities = [];
-    this._showAddDialog = false;
-    this._editingEntity = null;
-    this._dialogData = {
-      name: '',
-      source: ''
+    this._config = {
+      header: { value: '', icon: '🏷️', type: 'text' },
+      content: [],
+      footer: { value: '', icon: '📄', type: 'text' }
     };
+    this._showEntityPicker = false;
+    this._pickingFor = null;
   }
 
   willUpdate(changedProperties) {
     if (changedProperties.has('entities')) {
-      this._updateDynamicEntities();
+      this._parseConfigFromEntities();
     }
   }
 
-  _updateDynamicEntities() {
+  _parseConfigFromEntities() {
     if (!this.entities) {
-      this._dynamicEntities = [];
+      this._config = {
+        header: { value: '', icon: '🏷️', type: 'text' },
+        content: [],
+        footer: { value: '', icon: '📄', type: 'text' }
+      };
       return;
     }
 
-    // 提取动态实体（非静态需求的实体）
-    const staticKeys = (this.requirements || []).map(req => req.key);
-    this._dynamicEntities = Object.entries(this.entities)
-      .filter(([key]) => !staticKeys.includes(key) && !key.includes('_name'))
-      .map(([key, source]) => ({
-        key,
-        source,
-        name: this.entities[`${key}_name`] || this._getDefaultName(key, source)
-      }));
+    const config = {
+      header: { value: '', icon: '🏷️', type: 'text' },
+      content: [],
+      footer: { value: '', icon: '📄', type: 'text' }
+    };
+
+    // 解析标题
+    if (this.entities.header) {
+      config.header = {
+        value: this.entities.header,
+        icon: this.entities.header_icon || '🏷️',
+        type: this._detectValueType(this.entities.header)
+      };
+    }
+
+    // 解析内容项
+    let index = 1;
+    while (this.entities[`content_${index}`] || this.entities[`item_${index}`]) {
+      const baseKey = this.entities[`content_${index}`] ? `content_${index}` : `item_${index}`;
+      config.content.push({
+        label: this.entities[`${baseKey}_label`] || this.entities[`${baseKey}_name`] || `项目 ${index}`,
+        value: this.entities[baseKey],
+        icon: this.entities[`${baseKey}_icon`] || '📊',
+        type: this._detectValueType(this.entities[baseKey])
+      });
+      index++;
+    }
+
+    // 解析页脚
+    if (this.entities.footer) {
+      config.footer = {
+        value: this.entities.footer,
+        icon: this.entities.footer_icon || '📄',
+        type: this._detectValueType(this.entities.footer)
+      };
+    }
+
+    this._config = config;
   }
 
-  _getDefaultName(key, source) {
-    if (source.includes('.') && this.hass?.states?.[source]) {
-      return this.hass.states[source].attributes?.friendly_name || source;
-    }
-    return key.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+  _detectValueType(value) {
+    if (!value) return 'text';
+    if (value.includes('{{')) return 'template';
+    if (value.includes('.')) return 'entity';
+    return 'text';
   }
 
   render() {
     return html`
       <div class="entity-manager">
-        <div class="section-title">数据源配置</div>
-        
-        ${this._renderStaticEntities()}
-        ${this._renderDynamicEntities()}
-        ${this._renderDialog()}
+        ${this._renderHeaderSection()}
+        ${this._renderContentSection()}
+        ${this._renderFooterSection()}
+        ${this._renderEntityPicker()}
       </div>
     `;
   }
 
-  _renderStaticEntities() {
-    const requirements = this.requirements || [];
-    
-    if (requirements.length === 0) {
-      return '';
-    }
-
+  _renderHeaderSection() {
     return html`
-      <div class="entity-list">
-        ${requirements.map(req => this._renderEntityRow(req.key, {
-          name: req.description,
-          source: this.entities?.[req.key] || '',
-          required: true
-        }))}
-      </div>
-    `;
-  }
+      <div class="config-section">
+        <div class="section-header">
+          <span class="section-icon">🏷️</span>
+          <span>标题设置</span>
+        </div>
+        
+        <div class="field-group">
+          <label class="field-label">标题内容</label>
+          ${this._renderField(this._config.header, (newValue) => {
+            this._config.header = { ...this._config.header, ...newValue };
+            this._notifyConfigChange();
+          })}
+        </div>
 
-  _renderDynamicEntities() {
-    return html`
-      <div>
-        <div class="section-title">自定义实体</div>
-        
-        ${this._dynamicEntities.length === 0 ? html`
-          <div class="empty-state">
-            <div class="empty-icon">🏷️</div>
-            <div class="empty-text">暂无自定义实体</div>
-            <div class="empty-hint">点击"添加实体"按钮来添加自定义实体或Jinja模板</div>
-          </div>
-        ` : html`
-          <div class="entity-list">
-            ${this._dynamicEntities.map(entity => 
-              this._renderEntityRow(entity.key, {
-                name: entity.name,
-                source: entity.source,
-                required: false
-              })
-            )}
-          </div>
-        `}
-        
-        <div class="add-entity-row" @click=${this._showAddEntityDialog}>
-          <div class="add-entity-content">
-            <ha-icon icon="mdi:plus"></ha-icon>
-            添加实体
-          </div>
+        <div class="field-group">
+          <label class="field-label">标题图标</label>
+          ${this._renderIconPicker(this._config.header.icon, (newIcon) => {
+            this._config.header.icon = newIcon;
+            this._notifyConfigChange();
+          })}
         </div>
       </div>
     `;
   }
 
-  _renderEntityRow(key, entity) {
-    const parser = getJinjaParser(this.hass);
-    const preview = entity.source ? parser.parse(entity.source, '') : '';
-
+  _renderContentSection() {
     return html`
-      <div class="entity-row">
-        <div class="entity-info">
-          <div class="entity-name">
-            ${entity.name}
-            ${entity.required ? html`<span class="required-badge">必填</span>` : ''}
-          </div>
-          <div class="entity-source">${entity.source || '未配置'}</div>
-          ${preview ? html`
-            <div style="font-size: 11px; color: var(--success-color); margin-top: 4px;">
-              预览: ${preview}
+      <div class="config-section">
+        <div class="section-header">
+          <span class="section-icon">📊</span>
+          <span>内容项设置</span>
+        </div>
+        
+        <div class="content-items">
+          ${this._config.content.length === 0 ? html`
+            <div class="empty-state">
+              <div class="empty-icon">📝</div>
+              <div>暂无内容项</div>
+              <div class="empty-hint">点击下方按钮添加内容项</div>
             </div>
           ` : ''}
+          
+          ${this._config.content.map((item, index) => 
+            this._renderContentItem(item, index)
+          )}
+        </div>
+
+        <button class="add-item-btn" @click=${this._addContentItem}>
+          <ha-icon icon="mdi:plus"></ha-icon>
+          添加内容项
+        </button>
+      </div>
+    `;
+  }
+
+  _renderContentItem(item, index) {
+    return html`
+      <div class="content-item">
+        <div class="item-header">
+          <span class="item-number">内容项 #${index + 1}</span>
+          <div class="item-actions">
+            <button 
+              @click=${() => this._moveItem(index, 'up')} 
+              ?disabled=${index === 0}
+              title="上移"
+            >↑</button>
+            <button 
+              @click=${() => this._moveItem(index, 'down')} 
+              ?disabled=${index === this._config.content.length - 1}
+              title="下移"
+            >↓</button>
+            <button 
+              @click=${() => this._removeItem(index)}
+              title="删除"
+            >🗑️</button>
+          </div>
         </div>
         
-        ${!entity.required ? html`
-          <div class="entity-actions">
-            <button class="entity-action" @click=${() => this._editEntity(key)} title="编辑">
-              <ha-icon icon="mdi:pencil"></ha-icon>
-            </button>
-            <button class="entity-action" @click=${() => this._removeEntity(key)} title="删除">
-              <ha-icon icon="mdi:delete"></ha-icon>
-            </button>
+        <div class="item-fields">
+          <div class="field-group">
+            <label class="field-label">显示标签</label>
+            <ha-textfield
+              .value=${item.label}
+              @input=${e => this._updateContentItem(index, { ...item, label: e.target.value })}
+              placeholder="例如：室内温度"
+              fullwidth
+              outlined
+            ></ha-textfield>
+          </div>
+
+          <div class="field-group">
+            <label class="field-label">数据源</label>
+            ${this._renderField(
+              { value: item.value, type: item.type },
+              (newValue) => this._updateContentItem(index, { ...item, ...newValue })
+            )}
+          </div>
+
+          <div class="field-group">
+            <label class="field-label">图标</label>
+            ${this._renderIconPicker(item.icon, (newIcon) => {
+              this._updateContentItem(index, { ...item, icon: newIcon });
+            })}
+          </div>
+        </div>
+      </div>
+    `;
+  }
+
+  _renderFooterSection() {
+    return html`
+      <div class="config-section">
+        <div class="section-header">
+          <span class="section-icon">📄</span>
+          <span>页脚设置</span>
+        </div>
+        
+        <div class="field-group">
+          <label class="field-label">页脚内容</label>
+          ${this._renderField(this._config.footer, (newValue) => {
+            this._config.footer = { ...this._config.footer, ...newValue };
+            this._notifyConfigChange();
+          })}
+        </div>
+
+        <div class="field-group">
+          <label class="field-label">页脚图标</label>
+          ${this._renderIconPicker(this._config.footer.icon, (newIcon) => {
+            this._config.footer.icon = newIcon;
+            this._notifyConfigChange();
+          })}
+        </div>
+      </div>
+    `;
+  }
+
+  _renderField(fieldConfig, onUpdate) {
+    const preview = this._getPreview(fieldConfig.value);
+    
+    return html`
+      <div class="field-with-preview">
+        <div class="field-inputs">
+          <ha-textfield
+            .value=${fieldConfig.value}
+            @input=${e => onUpdate({ value: e.target.value, type: this._detectValueType(e.target.value) })}
+            placeholder="输入文本、Jinja模板或选择实体"
+            fullwidth
+            outlined
+          ></ha-textfield>
+          <button 
+            class="entity-picker-btn" 
+            @click=${() => this._startEntityPicking(onUpdate)}
+            title="选择实体"
+          >
+            <ha-icon icon="mdi:magnify"></ha-icon>
+          </button>
+        </div>
+        ${preview ? html`
+          <div class="field-preview">
+            预览: ${preview}
           </div>
         ` : ''}
       </div>
     `;
   }
 
-  _renderDialog() {
-    if (!this._showAddDialog && !this._editingEntity) return '';
+  _renderIconPicker(currentIcon, onUpdate) {
+    return html`
+      <div class="icon-picker">
+        <span class="icon-preview">${currentIcon}</span>
+        <ha-textfield
+          .value=${currentIcon}
+          @input=${e => onUpdate(e.target.value)}
+          placeholder="输入图标"
+          fullwidth
+          outlined
+        ></ha-textfield>
+      </div>
+    `;
+  }
 
-    const isEditing = !!this._editingEntity;
-    const title = isEditing ? '编辑实体' : '添加实体';
+  _renderEntityPicker() {
+    if (!this._showEntityPicker) return '';
 
     return html`
-      <div class="dialog-overlay" @click=${this._closeDialog}>
-        <div class="dialog" @click=${e => e.stopPropagation()}>
-          <div class="dialog-header">
-            <div class="dialog-title">${title}</div>
-            <button class="close-button" @click=${this._closeDialog} style="background: none; border: none; color: var(--secondary-text-color); cursor: pointer; padding: 8px; border-radius: 4px;">
+      <div class="entity-picker-overlay" @click=${this._cancelEntityPicking}>
+        <div class="entity-picker-dialog" @click=${e => e.stopPropagation()}>
+          <div class="entity-picker-header">
+            <div class="entity-picker-title">选择实体</div>
+            <button class="entity-picker-btn" @click=${this._cancelEntityPicking}>
               <ha-icon icon="mdi:close"></ha-icon>
             </button>
           </div>
           
-          <div class="dialog-content">
-            <div class="form-grid">
-              <div class="form-field">
-                <label class="form-label">实体名称</label>
-                <input
-                  class="text-input"
-                  .value=${this._dialogData.name}
-                  @input=${e => this._updateDialogData('name', e.target.value)}
-                  placeholder="例如：备份管理器状态"
-                  style="padding: 12px; border: 1px solid var(--divider-color); border-radius: 4px; background: var(--card-background-color); color: var(--primary-text-color); font-size: 14px;"
-                >
+          <div class="entity-list">
+            ${this._getAvailableEntities().map(entity => html`
+              <div class="entity-item" @click=${() => this._selectEntity(entity)}>
+                <div class="entity-name">${entity.friendly_name}</div>
+                <div class="entity-id">${entity.entity_id}</div>
               </div>
-              
-              <div class="form-field">
-                <label class="form-label">数据源</label>
-                <input
-                  class="text-input"
-                  .value=${this._dialogData.source}
-                  @input=${e => this._updateDialogData('source', e.target.value)}
-                  placeholder="实体ID 或 Jinja模板，例如：sensor.backup_status 或 {{ states('sensor.backup') }}"
-                  style="padding: 12px; border: 1px solid var(--divider-color); border-radius: 4px; background: var(--card-background-color); color: var(--primary-text-color); font-size: 14px; font-family: var(--code-font-family, monospace);"
-                >
-                <div style="font-size: 12px; color: var(--secondary-text-color); margin-top: 4px;">
-                  可以输入实体ID（如 sensor.backup_status）或 Jinja2模板表达式
-                </div>
-              </div>
-            </div>
-          </div>
-          
-          <div class="dialog-actions">
-            <button class="cancel-button" @click=${this._closeDialog}>取消</button>
-            <button 
-              class="save-button" 
-              @click=${this._saveEntity}
-              ?disabled=${!this._validateDialog()}
-            >
-              ${isEditing ? '更新' : '添加'}
-            </button>
+            `)}
           </div>
         </div>
       </div>
     `;
   }
 
-  _updateDialogData(field, value) {
-    this._dialogData = {
-      ...this._dialogData,
-      [field]: value
-    };
+  _getPreview(value) {
+    if (!value) return '';
+    const parser = getJinjaParser(this.hass);
+    return parser.parse(value, '') || '(空值)';
   }
 
-  _validateDialog() {
-    return this._dialogData?.name && this._dialogData?.source;
+  _getAvailableEntities() {
+    if (!this.hass) return [];
+    
+    return Object.entries(this.hass.states)
+      .map(([entity_id, stateObj]) => ({
+        entity_id,
+        friendly_name: stateObj.attributes?.friendly_name || entity_id,
+        state: stateObj.state
+      }))
+      .slice(0, 50); // 限制数量
   }
 
-  _showAddEntityDialog() {
-    this._dialogData = { 
-      name: '', 
-      source: ''
-    };
-    this._showAddDialog = true;
+  _startEntityPicking(onUpdate) {
+    this._pickingFor = onUpdate;
+    this._showEntityPicker = true;
   }
 
-  _editEntity(key) {
-    const entity = this._dynamicEntities.find(e => e.key === key);
-    if (entity) {
-      this._editingEntity = key;
-      this._dialogData = { 
-        name: entity.name, 
-        source: entity.source
-      };
+  _cancelEntityPicking() {
+    this._showEntityPicker = false;
+    this._pickingFor = null;
+  }
+
+  _selectEntity(entity) {
+    if (this._pickingFor) {
+      this._pickingFor({ value: entity.entity_id, type: 'entity' });
+    }
+    this._cancelEntityPicking();
+  }
+
+  _addContentItem() {
+    this._config.content.push({
+      label: `项目 ${this._config.content.length + 1}`,
+      value: '',
+      icon: '📊',
+      type: 'text'
+    });
+    this._notifyConfigChange();
+  }
+
+  _updateContentItem(index, newItem) {
+    this._config.content[index] = newItem;
+    this._notifyConfigChange();
+  }
+
+  _removeItem(index) {
+    this._config.content.splice(index, 1);
+    this._notifyConfigChange();
+  }
+
+  _moveItem(index, direction) {
+    const newIndex = direction === 'up' ? index - 1 : index + 1;
+    if (newIndex >= 0 && newIndex < this._config.content.length) {
+      const item = this._config.content.splice(index, 1)[0];
+      this._config.content.splice(newIndex, 0, item);
+      this._notifyConfigChange();
     }
   }
 
-  _removeEntity(key) {
-    const newEntities = { ...this.entities };
-    delete newEntities[key];
-    delete newEntities[`${key}_name`];
-    this._notifyEntitiesChange(newEntities);
-  }
-
-  _saveEntity() {
-    const isEditing = !!this._editingEntity;
-    
-    if (!this._dialogData.name || !this._dialogData.source) return;
-
-    const key = isEditing ? this._editingEntity : this._generateEntityKey(this._dialogData.name);
-    const newEntities = { ...this.entities };
-    
-    newEntities[key] = this._dialogData.source;
-    newEntities[`${key}_name`] = this._dialogData.name;
-    
-    this._notifyEntitiesChange(newEntities);
-    this._closeDialog();
-  }
-
-  _generateEntityKey(name) {
-    return `custom_${name.toLowerCase().replace(/[^a-z0-9]/g, '_')}`;
-  }
-
-  _closeDialog() {
-    this._showAddDialog = false;
-    this._editingEntity = null;
-    this._dialogData = {
-      name: '',
-      source: ''
-    };
-  }
-
-  _notifyEntitiesChange(newEntities) {
+  _notifyConfigChange() {
+    const entities = this._serializeConfigToEntities();
     this.dispatchEvent(new CustomEvent('entities-changed', {
-      detail: { entities: newEntities }
+      detail: { entities }
     }));
+    this.requestUpdate();
+  }
+
+  _serializeConfigToEntities() {
+    const entities = {};
+
+    // 序列化标题
+    if (this._config.header.value) {
+      entities.header = this._config.header.value;
+      entities.header_icon = this._config.header.icon;
+    }
+
+    // 序列化内容项
+    this._config.content.forEach((item, index) => {
+      const baseKey = `content_${index + 1}`;
+      entities[baseKey] = item.value;
+      entities[`${baseKey}_label`] = item.label;
+      entities[`${baseKey}_icon`] = item.icon;
+    });
+
+    // 序列化页脚
+    if (this._config.footer.value) {
+      entities.footer = this._config.footer.value;
+      entities.footer_icon = this._config.footer.icon;
+    }
+
+    return entities;
   }
 }
 

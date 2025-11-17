@@ -2,7 +2,6 @@
 import { BasePlugin } from '../core/base-plugin.js';
 
 class DashboardCardPlugin extends BasePlugin {
-  // 使用静态属性定义
   static manifest = {
     id: 'dashboard-card',
     name: '数据看板',
@@ -38,19 +37,7 @@ class DashboardCardPlugin extends BasePlugin {
         default: 'default',
         required: false
       }
-    },
-    entity_requirements: [
-      {
-        key: 'header_title',
-        description: '标题文本或实体',
-        required: false
-      },
-      {
-        key: 'footer_text',
-        description: '页脚文本或实体',
-        required: false
-      }
-    ]
+    }
   };
 
   getTemplate(config, hass, entities) {
@@ -73,89 +60,47 @@ class DashboardCardPlugin extends BasePlugin {
   }
 
   _renderHeader(config, hass, entities) {
-    const title = this._getCardValue(hass, entities, 'header_title', '数据看板');
-    const subtitle = this._getCardValue(hass, entities, 'header_subtitle', '');
-    const icon = entities.header_icon || '📊';
+    const title = this._getCardValue(hass, entities, 'header', '数据看板');
+    const icon = entities.header_icon || '🏷️';
+
+    if (!title) return '';
 
     return `
       <div class="dashboard-header">
         <div class="header-icon">${icon}</div>
         <div class="header-text">
           <div class="header-title">${this._renderSafeHTML(title)}</div>
-          ${subtitle ? `<div class="header-subtitle">${this._renderSafeHTML(subtitle)}</div>` : ''}
         </div>
-        ${this._renderHeaderActions(config, hass, entities)}
       </div>
     `;
   }
 
-  _renderHeaderActions(config, hass, entities) {
-    const actions = [];
-    
-    for (let i = 1; i <= 3; i++) {
-      const actionKey = `header_action_${i}`;
-      if (entities[actionKey]) {
-        const actionConfig = this._parseActionConfig(entities[actionKey]);
-        if (actionConfig) {
-          actions.push(`
-            <button class="header-action" data-action="${actionConfig.action}" data-entity="${actionConfig.entity}">
-              ${actionConfig.icon || '⚡'}
-            </button>
-          `);
-        }
-      }
-    }
-
-    return actions.length > 0 ? `
-      <div class="header-actions">
-        ${actions.join('')}
-      </div>
-    ` : '';
-  }
-
   _renderContent(config, hass, entities) {
-    const contentItems = [];
-    const contentConfig = this._parseContentConfig(entities);
+    const contentItems = this._discoverContentItems(entities);
     
-    contentConfig.forEach((item, index) => {
-      contentItems.push(this._renderContentItem(item, hass, index));
-    });
-
     if (contentItems.length === 0) {
       return this._renderEmpty('暂无内容配置', '📝');
     }
 
-    return contentItems.join('');
+    const itemsHtml = contentItems.map((item, index) => 
+      this._renderContentItem(item, hass, index)
+    ).join('');
+
+    return itemsHtml;
   }
 
-  _parseContentConfig(entities) {
+  _discoverContentItems(entities) {
     const items = [];
     let index = 1;
     
-    while (true) {
-      const baseKey = `content_${index}`;
-      const valueKey = `${baseKey}_value`;
-      const labelKey = `${baseKey}_label`;
-      const iconKey = `${baseKey}_icon`;
-      const typeKey = `${baseKey}_type`;
-      
-      if (!entities[valueKey] && !entities[baseKey]) {
-        break;
-      }
-      
-      const value = entities[valueKey] || entities[baseKey];
-      const label = entities[labelKey] || `项目 ${index}`;
-      const icon = entities[iconKey] || this._getDefaultIconForValue(value);
-      const type = entities[typeKey] || 'text';
-      
+    while (entities[`content_${index}`] || entities[`item_${index}`]) {
+      const baseKey = entities[`content_${index}`] ? `content_${index}` : `item_${index}`;
       items.push({
-        value,
-        label,
-        icon,
-        type,
+        value: entities[baseKey],
+        label: entities[`${baseKey}_label`] || entities[`${baseKey}_name`] || `项目 ${index}`,
+        icon: entities[`${baseKey}_icon`] || '📊',
         key: baseKey
       });
-      
       index++;
     }
     
@@ -164,10 +109,10 @@ class DashboardCardPlugin extends BasePlugin {
 
   _renderContentItem(item, hass, index) {
     const displayValue = this._getFlexibleValue(hass, item.value, '--');
-    const formattedValue = this._formatValue(displayValue, item.type);
+    const formattedValue = this._formatValue(displayValue, item.value);
     
     return `
-      <div class="content-item" data-type="${item.type}" data-index="${index}">
+      <div class="content-item" data-index="${index}">
         <div class="item-icon">${item.icon}</div>
         <div class="item-content">
           <div class="item-label">${this._renderSafeHTML(item.label)}</div>
@@ -179,7 +124,7 @@ class DashboardCardPlugin extends BasePlugin {
   }
 
   _renderItemBadge(item, hass) {
-    if (item.type === 'entity' && item.value.includes('.')) {
+    if (item.value.includes('.')) {
       const entity = hass?.states?.[item.value];
       if (entity) {
         const state = entity.state;
@@ -198,83 +143,37 @@ class DashboardCardPlugin extends BasePlugin {
   }
 
   _renderFooter(config, hass, entities) {
-    const footerText = this._getCardValue(hass, entities, 'footer_text', '');
-    const footerIcon = entities.footer_icon || '🕒';
-    const timestamp = this._getCardValue(hass, entities, 'footer_timestamp', '');
+    const footerText = this._getCardValue(hass, entities, 'footer', '');
+    const footerIcon = entities.footer_icon || '📄';
 
-    if (!footerText && !timestamp) {
-      return '';
-    }
+    if (!footerText) return '';
 
     return `
       <div class="dashboard-footer">
         <div class="footer-content">
-          ${footerText ? `
-            <div class="footer-text">
-              <span class="footer-icon">${footerIcon}</span>
-              ${this._renderSafeHTML(footerText)}
-            </div>
-          ` : ''}
-          ${timestamp ? `
-            <div class="footer-timestamp">
-              ${this._renderSafeHTML(timestamp)}
-            </div>
-          ` : ''}
+          <div class="footer-text">
+            <span class="footer-icon">${footerIcon}</span>
+            ${this._renderSafeHTML(footerText)}
+          </div>
         </div>
       </div>
     `;
   }
 
-  _formatValue(value, type) {
+  _formatValue(value, source) {
     if (value === '--') return value;
     
-    switch (type) {
-      case 'number':
-        const num = parseFloat(value);
-        return isNaN(num) ? value : num.toLocaleString();
-      case 'percentage':
-        const percent = parseFloat(value);
-        return isNaN(percent) ? value : `${percent}%`;
-      case 'temperature':
-        const temp = parseFloat(value);
-        return isNaN(temp) ? value : `${temp}°C`;
-      case 'currency':
-        const amount = parseFloat(value);
-        return isNaN(amount) ? value : `¥${amount.toLocaleString()}`;
-      default:
-        return this._renderSafeHTML(value);
+    // 根据源内容智能格式化
+    if (source.includes('temperature') || source.includes('temp')) {
+      const num = parseFloat(value);
+      return isNaN(num) ? value : `${num}°C`;
     }
-  }
-
-  _getDefaultIconForValue(value) {
-    if (!value) return '📄';
-    
-    if (value.includes('temperature') || value.includes('temp')) return '🌡️';
-    if (value.includes('humidity')) return '💧';
-    if (value.includes('pressure')) return '🌪️';
-    if (value.includes('light')) return '💡';
-    if (value.includes('power')) return '⚡';
-    if (value.includes('door') || value.includes('window')) return '🚪';
-    if (value.includes('motion')) return '👤';
-    if (value.includes('water')) return '💦';
-    
-    return '📊';
-  }
-
-  _parseActionConfig(actionConfig) {
-    try {
-      const config = {};
-      actionConfig.split(',').forEach(part => {
-        const [key, value] = part.split(':');
-        if (key && value) {
-          config[key.trim()] = value.trim();
-        }
-      });
-      return config;
-    } catch (error) {
-      console.warn('动作配置解析失败:', actionConfig);
-      return null;
+    if (source.includes('humidity')) {
+      const num = parseFloat(value);
+      return isNaN(num) ? value : `${num}%`;
     }
+    
+    return this._renderSafeHTML(value);
   }
 
   getStyles(config) {
@@ -297,17 +196,27 @@ class DashboardCardPlugin extends BasePlugin {
         display: flex;
         flex-direction: row;
         overflow-x: auto;
+        gap: var(--cf-spacing-md);
+        padding: var(--cf-spacing-md);
       }
       
       .layout-horizontal .content-item {
-        min-width: 120px;
+        min-width: 140px;
         flex-shrink: 0;
       }
       
       .layout-grid .dashboard-content {
         display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+        grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
         gap: var(--cf-spacing-md);
+        padding: var(--cf-spacing-lg);
+      }
+      
+      .layout-vertical .dashboard-content {
+        display: flex;
+        flex-direction: column;
+        gap: var(--cf-spacing-md);
+        padding: var(--cf-spacing-lg);
       }
       
       .dashboard-header {
@@ -333,42 +242,6 @@ class DashboardCardPlugin extends BasePlugin {
         font-weight: 600;
         font-size: 1.1em;
         color: var(--cf-text-primary);
-        margin-bottom: var(--cf-spacing-xs);
-      }
-      
-      .header-subtitle {
-        font-size: 0.9em;
-        color: var(--cf-text-secondary);
-      }
-      
-      .header-actions {
-        display: flex;
-        gap: var(--cf-spacing-sm);
-        flex-shrink: 0;
-      }
-      
-      .header-action {
-        background: none;
-        border: 1px solid var(--cf-border);
-        border-radius: var(--cf-radius-md);
-        padding: var(--cf-spacing-sm);
-        cursor: pointer;
-        transition: all var(--cf-transition-fast);
-        font-size: 1.1em;
-      }
-      
-      .header-action:hover {
-        background: var(--cf-primary-color);
-        color: white;
-        border-color: var(--cf-primary-color);
-      }
-      
-      .dashboard-content {
-        flex: 1;
-        padding: var(--cf-spacing-lg);
-        display: flex;
-        flex-direction: column;
-        gap: var(--cf-spacing-md);
       }
       
       .content-item {
@@ -444,7 +317,7 @@ class DashboardCardPlugin extends BasePlugin {
       
       .footer-content {
         display: flex;
-        justify-content: space-between;
+        justify-content: center;
         align-items: center;
         font-size: 0.85em;
         color: var(--cf-text-secondary);
@@ -491,19 +364,8 @@ class DashboardCardPlugin extends BasePlugin {
           gap: var(--cf-spacing-sm);
         }
         
-        .header-actions {
-          align-self: stretch;
-          justify-content: space-between;
-        }
-        
         .layout-grid .dashboard-content {
           grid-template-columns: 1fr;
-        }
-        
-        .footer-content {
-          flex-direction: column;
-          gap: var(--cf-spacing-sm);
-          align-items: flex-start;
         }
       }
       
@@ -528,6 +390,5 @@ class DashboardCardPlugin extends BasePlugin {
   }
 }
 
-// 修复：正确的导出方式
 export default DashboardCardPlugin;
 export const manifest = DashboardCardPlugin.manifest;
