@@ -4,20 +4,19 @@ import { BasePlugin } from '../core/base-plugin.js';
 class ClockCard extends BasePlugin {
   static manifest = {
     id: 'clock-card',
-    name: '视觉时钟',
+    name: '精美时钟',
     version: '2.0.0',
-    description: '现代化视觉时钟，支持多种动画效果和主题',
+    description: '多种风格的时钟卡片，支持日期和星期显示',
     category: '时间',
     icon: '🕰️',
-    author: 'CardForge Visual Team',
+    author: 'CardForge',
     
     config_schema: {
-      // 布局配置
       clock_style: {
         type: 'select',
         label: '时钟风格',
-        options: ['digital', 'analog', 'minimal', 'neon', 'glass'],
-        default: 'digital',
+        options: ['modern', 'classic', 'minimal', 'glass', 'neon'],
+        default: 'modern',
         description: '选择时钟显示风格'
       },
       
@@ -42,29 +41,6 @@ class ClockCard extends BasePlugin {
         description: '显示秒钟动画'
       },
       
-      // 动画配置
-      enable_glow: {
-        type: 'boolean',
-        label: '启用光晕效果',
-        default: true,
-        description: '为数字添加光晕动画'
-      },
-      
-      enable_pulse: {
-        type: 'boolean',
-        label: '启用脉动效果',
-        default: true,
-        description: '时间数字脉动动画'
-      },
-      
-      enable_float: {
-        type: 'boolean',
-        label: '启用浮动效果',
-        default: false,
-        description: '时钟元素浮动动画'
-      },
-      
-      // 高级配置
       time_format: {
         type: 'select',
         label: '时间格式',
@@ -73,68 +49,103 @@ class ClockCard extends BasePlugin {
         description: '选择12小时或24小时制'
       },
       
-      emphasis_color: {
-        type: 'select',
-        label: '强调色',
-        options: ['primary', 'accent', 'dynamic', 'rainbow'],
-        default: 'dynamic',
-        description: '选择时钟强调颜色'
+      enable_animations: {
+        type: 'boolean',
+        label: '启用动画',
+        default: true,
+        description: '启用时间数字动画效果'
       }
-    },
-    
-    entity_requirements: []
+    }
   };
 
-  // 获取动态颜色
-  _getDynamicColor(hour) {
-    const colorMap = {
-      primary: 'var(--cf-primary-color)',
-      accent: 'var(--cf-accent-color)',
-      dynamic: this._getTimeBasedColor(hour),
-      rainbow: this._getRainbowColor()
+  // 获取时间数据
+  _getTimeData() {
+    const now = new Date();
+    const weekdays = ['日', '一', '二', '三', '四', '五', '六'];
+    const hour = now.getHours();
+    const isPM = hour >= 12;
+    
+    return {
+      // 时间
+      time_24h: now.toLocaleTimeString('zh-CN', { 
+        hour: '2-digit', 
+        minute: '2-digit', 
+        second: '2-digit',
+        hour12: false 
+      }),
+      time_12h: now.toLocaleTimeString('zh-CN', { 
+        hour: '2-digit', 
+        minute: '2-digit', 
+        second: '2-digit',
+        hour12: true 
+      }),
+      
+      // 日期
+      date: now.toLocaleDateString('zh-CN'),
+      date_short: `${now.getMonth() + 1}月${now.getDate()}日`,
+      year: now.getFullYear(),
+      month: String(now.getMonth() + 1).padStart(2, '0'),
+      day: String(now.getDate()).padStart(2, '0'),
+      
+      // 星期
+      weekday: `星期${weekdays[now.getDay()]}`,
+      weekday_short: `周${weekdays[now.getDay()]}`,
+      
+      // 时间组件
+      hour: String(now.getHours()).padStart(2, '0'),
+      hour_12: String(hour % 12 || 12).padStart(2, '0'),
+      minute: String(now.getMinutes()).padStart(2, '0'),
+      second: String(now.getSeconds()).padStart(2, '0'),
+      ampm: isPM ? 'PM' : 'AM'
     };
-    
-    return colorMap[this.config?.emphasis_color] || colorMap.dynamic;
   }
 
-  // 基于时间的颜色变化
-  _getTimeBasedColor(hour) {
-    const colors = [
-      '#667eea', '#764ba2', // 清晨 0-6
-      '#f093fb', '#f5576c', // 上午 6-12  
-      '#4facfe', '#00f2fe', // 下午 12-18
-      '#fa709a', '#fee140'  // 晚上 18-24
-    ];
-    
-    const index = Math.floor(hour / 6);
-    return `linear-gradient(135deg, ${colors[index * 2]} 0%, ${colors[index * 2 + 1]} 100%)`;
-  }
-
-  // 彩虹色
-  _getRainbowColor() {
-    return 'linear-gradient(135deg, #ff6b6b, #ffa726, #ffee58, #66bb6a, #42a5f5, #5c6bc0, #ab47bc)';
-  }
-
-  // 生成数字时钟
-  _renderDigitalClock(timeData, config) {
-    const enableGlow = config.enable_glow !== false;
-    const enablePulse = config.enable_pulse !== false;
-    const showSeconds = config.show_seconds !== false;
-    const dynamicColor = this._getDynamicColor(timeData.hour);
+  getTemplate(config, hass, entities) {
+    const timeData = this._getTimeData();
+    const clockStyle = config.clock_style || 'modern';
+    const showAnimations = config.enable_animations !== false;
 
     return `
-      <div class="digital-clock ${enableGlow ? 'with-glow' : ''} ${enablePulse ? 'with-pulse' : ''}">
+      <div class="cardforge-responsive-container clock-card style-${clockStyle} ${showAnimations ? 'with-animations' : ''}">
+        <div class="cardforge-content-grid">
+          ${this._renderClock(timeData, config)}
+        </div>
+      </div>
+    `;
+  }
+
+  _renderClock(timeData, config) {
+    const clockStyle = config.clock_style || 'modern';
+    
+    switch (clockStyle) {
+      case 'classic':
+        return this._renderClassicClock(timeData, config);
+      case 'minimal':
+        return this._renderMinimalClock(timeData, config);
+      case 'glass':
+        return this._renderGlassClock(timeData, config);
+      case 'neon':
+        return this._renderNeonClock(timeData, config);
+      default:
+        return this._renderModernClock(timeData, config);
+    }
+  }
+
+  _renderModernClock(timeData, config) {
+    const showSeconds = config.show_seconds !== false;
+    const timeFormat = config.time_format || '24h';
+    const timeDisplay = timeFormat === '12h' ? timeData.time_12h : timeData.time_24h;
+    
+    return `
+      <div class="modern-clock">
         <div class="time-main">
           <div class="time-digits">
-            <span class="digit-group hours">${timeData.hours}</span>
-            <span class="digit-separator">:</span>
-            <span class="digit-group minutes">${timeData.minutes}</span>
-            ${showSeconds ? `
-              <span class="digit-separator">:</span>
-              <span class="digit-group seconds">${timeData.seconds}</span>
-            ` : ''}
+            ${timeDisplay.split(':').map((part, index) => `
+              <span class="digit-part ${index === 2 ? 'seconds' : ''}">${part}</span>
+              ${index < 2 ? '<span class="digit-separator">:</span>' : ''}
+            `).join('')}
           </div>
-          ${config.time_format === '12h' ? `
+          ${timeFormat === '12h' ? `
             <div class="ampm-indicator">${timeData.ampm}</div>
           ` : ''}
         </div>
@@ -145,536 +156,432 @@ class ClockCard extends BasePlugin {
             ${config.show_weekday ? `<div class="weekday">${timeData.weekday}</div>` : ''}
           </div>
         ` : ''}
-        
-        <!-- 动态背景元素 -->
-        <div class="clock-background">
-          <div class="bg-particle particle-1"></div>
-          <div class="bg-particle particle-2"></div>
-          <div class="bg-particle particle-3"></div>
-          <div class="bg-particle particle-4"></div>
-        </div>
       </div>
     `;
   }
 
-  // 生成模拟时钟
-  _renderAnalogClock(timeData, config) {
-    const secondRotation = (timeData.seconds / 60) * 360;
-    const minuteRotation = ((timeData.minutes + timeData.seconds / 60) / 60) * 360;
-    const hourRotation = ((timeData.hour % 12 + timeData.minutes / 60) / 12) * 360;
-
+  _renderClassicClock(timeData, config) {
+    const showSeconds = config.show_seconds !== false;
+    
     return `
-      <div class="analog-clock">
+      <div class="classic-clock">
         <div class="clock-face">
-          <!-- 时钟刻度 -->
-          ${Array.from({length: 12}, (_, i) => `
-            <div class="hour-mark mark-${i + 1}" style="transform: rotate(${i * 30}deg)">
-              <div class="mark-line"></div>
-              <div class="mark-number">${i === 0 ? 12 : i}</div>
-            </div>
-          `).join('')}
-          
-          <!-- 时钟指针 -->
-          <div class="clock-hands">
-            <div class="hand hour-hand" style="transform: rotate(${hourRotation}deg)"></div>
-            <div class="hand minute-hand" style="transform: rotate(${minuteRotation}deg)"></div>
-            <div class="hand second-hand" style="transform: rotate(${secondRotation}deg)"></div>
-            <div class="hand-center"></div>
+          <div class="time-display">
+            <span class="hour">${timeData.hour}</span>
+            <span class="time-separator">:</span>
+            <span class="minute">${timeData.minute}</span>
+            ${showSeconds ? `
+              <span class="time-separator">:</span>
+              <span class="second">${timeData.second}</span>
+            ` : ''}
           </div>
         </div>
         
-        <!-- 底部信息 -->
-        <div class="analog-info">
-          ${config.show_date ? `<div class="date">${timeData.date_short}</div>` : ''}
-          ${config.show_weekday ? `<div class="weekday">${timeData.weekday}</div>` : ''}
+        <div class="classic-info">
+          ${config.show_date ? `<div class="classic-date">${timeData.date_short}</div>` : ''}
+          ${config.show_weekday ? `<div class="classic-weekday">${timeData.weekday}</div>` : ''}
         </div>
       </div>
     `;
   }
 
-  // 生成简约时钟
   _renderMinimalClock(timeData, config) {
     return `
       <div class="minimal-clock">
-        <div class="minimal-time">${timeData.hours}:${timeData.minutes}</div>
-        ${config.show_seconds ? `<div class="minimal-seconds">${timeData.seconds}</div>` : ''}
-        <div class="minimal-date">
-          ${config.show_date ? `<span>${timeData.date_short}</span>` : ''}
-          ${config.show_weekday ? `<span>${timeData.weekday}</span>` : ''}
+        <div class="minimal-time">${timeData.hour}:${timeData.minute}</div>
+        ${config.show_seconds ? `<div class="minimal-seconds">${timeData.second}</div>` : ''}
+        
+        <div class="minimal-info">
+          ${config.show_date ? `<div class="minimal-date">${timeData.date_short}</div>` : ''}
+          ${config.show_weekday ? `<div class="minimal-weekday">${timeData.weekday_short}</div>` : ''}
         </div>
       </div>
     `;
   }
 
-  getTemplate(config, hass, entities) {
-    const systemData = this.getSystemData(hass, config);
-    const timeData = {
-      ...systemData,
-      hour: new Date().getHours(),
-      hours: systemData.time.split(':')[0],
-      minutes: systemData.time.split(':')[1],
-      seconds: String(new Date().getSeconds()).padStart(2, '0'),
-      ampm: systemData.hour >= 12 ? 'PM' : 'AM'
-    };
-
-    const clockStyle = config.clock_style || 'digital';
-    const enableFloat = config.enable_float || false;
-
-    let clockHTML = '';
+  _renderGlassClock(timeData, config) {
+    const showSeconds = config.show_seconds !== false;
     
-    switch (clockStyle) {
-      case 'analog':
-        clockHTML = this._renderAnalogClock(timeData, config);
-        break;
-      case 'minimal':
-        clockHTML = this._renderMinimalClock(timeData, config);
-        break;
-      case 'neon':
-        clockHTML = this._renderDigitalClock(timeData, { ...config, enable_glow: true });
-        break;
-      case 'glass':
-        clockHTML = this._renderDigitalClock(timeData, config);
-        break;
-      default:
-        clockHTML = this._renderDigitalClock(timeData, config);
-    }
-
     return `
-      <div class="cardforge-responsive-container clock-card style-${clockStyle} ${enableFloat ? 'with-float' : ''}">
-        <div class="cardforge-content-grid">
-          ${clockHTML}
+      <div class="glass-clock">
+        <div class="glass-time">
+          <span class="glass-hour">${timeData.hour}</span>
+          <span class="glass-separator">:</span>
+          <span class="glass-minute">${timeData.minute}</span>
+          ${showSeconds ? `
+            <span class="glass-separator">:</span>
+            <span class="glass-second">${timeData.second}</span>
+          ` : ''}
+        </div>
+        
+        <div class="glass-info">
+          ${config.show_date ? `<div class="glass-date">${timeData.date}</div>` : ''}
+          ${config.show_weekday ? `<div class="glass-weekday">${timeData.weekday}</div>` : ''}
+        </div>
+      </div>
+    `;
+  }
+
+  _renderNeonClock(timeData, config) {
+    return `
+      <div class="neon-clock">
+        <div class="neon-time">
+          <span class="neon-digit">${timeData.hour}</span>
+          <span class="neon-separator">:</span>
+          <span class="neon-digit">${timeData.minute}</span>
+          ${config.show_seconds ? `
+            <span class="neon-separator">:</span>
+            <span class="neon-digit">${timeData.second}</span>
+          ` : ''}
+        </div>
+        
+        <div class="neon-info">
+          ${config.show_date ? `<div class="neon-date">${timeData.date_short}</div>` : ''}
+          ${config.show_weekday ? `<div class="neon-weekday">${timeData.weekday_short}</div>` : ''}
         </div>
       </div>
     `;
   }
 
   getStyles(config) {
-    const clockStyle = config.clock_style || 'digital';
-    const enableGlow = config.enable_glow !== false;
-    const enablePulse = config.enable_pulse !== false;
-    const enableFloat = config.enable_float || false;
-    const showSeconds = config.show_seconds !== false;
-    const dynamicColor = this._getDynamicColor(new Date().getHours());
+    const clockStyle = config.clock_style || 'modern';
+    const showAnimations = config.enable_animations !== false;
 
     return `
       ${this.getBaseStyles(config)}
       
       .clock-card {
-        padding: ${clockStyle === 'analog' ? 'var(--cf-spacing-xl)' : 'var(--cf-spacing-lg)'};
-        position: relative;
-        overflow: hidden;
-        min-height: ${clockStyle === 'analog' ? '280px' : '180px'};
+        padding: var(--cf-spacing-xl);
+        min-height: 200px;
         display: flex;
         align-items: center;
         justify-content: center;
-      }
-      
-      /* 数字时钟样式 */
-      .digital-clock {
         text-align: center;
-        position: relative;
-        z-index: 2;
       }
-      
-      .time-main {
+
+      /* ===== 现代风格 ===== */
+      .modern-clock {
+        width: 100%;
+      }
+
+      .modern-clock .time-main {
         display: flex;
         align-items: baseline;
         justify-content: center;
         gap: var(--cf-spacing-sm);
-        margin-bottom: var(--cf-spacing-md);
+        margin-bottom: var(--cf-spacing-lg);
       }
-      
-      .time-digits {
+
+      .modern-clock .time-digits {
         display: flex;
         align-items: baseline;
         gap: 2px;
         font-variant-numeric: tabular-nums;
       }
-      
-      .digit-group {
+
+      .modern-clock .digit-part {
         font-size: 3.5em;
         font-weight: 300;
-        background: ${dynamicColor};
+        background: linear-gradient(135deg, var(--cf-primary-color), var(--cf-accent-color));
         -webkit-background-clip: text;
         -webkit-text-fill-color: transparent;
         background-clip: text;
         line-height: 1;
-        position: relative;
       }
-      
-      .digit-separator {
+
+      .modern-clock .seconds {
+        font-size: 2.5em;
+        opacity: 0.8;
+      }
+
+      .modern-clock .digit-separator {
         font-size: 2.5em;
         font-weight: 200;
         color: var(--cf-text-secondary);
-        animation: blink 2s infinite;
+        animation: ${showAnimations ? 'blink 2s infinite' : 'none'};
       }
-      
-      .seconds {
-        font-size: 2em;
-        opacity: 0.8;
-      }
-      
-      .ampm-indicator {
-        font-size: 1em;
+
+      .modern-clock .ampm-indicator {
+        font-size: 1.2em;
         font-weight: 600;
         color: var(--cf-accent-color);
         margin-left: var(--cf-spacing-sm);
-        opacity: 0.8;
       }
-      
-      .date-info {
+
+      .modern-clock .date-info {
         display: flex;
         flex-direction: column;
         gap: var(--cf-spacing-xs);
       }
-      
-      .date {
-        font-size: 1.2em;
+
+      .modern-clock .date {
+        font-size: 1.3em;
         font-weight: 500;
         color: var(--cf-text-primary);
       }
-      
-      .weekday {
-        font-size: 1em;
+
+      .modern-clock .weekday {
+        font-size: 1.1em;
         color: var(--cf-text-secondary);
         font-weight: 400;
       }
-      
-      /* 光晕效果 */
-      .with-glow .digit-group {
-        filter: drop-shadow(0 0 10px currentColor);
+
+      /* ===== 经典风格 ===== */
+      .classic-clock {
+        width: 100%;
       }
-      
-      .with-glow .digit-group::after {
-        content: '';
-        position: absolute;
-        top: 0;
-        left: 0;
-        right: 0;
-        bottom: 0;
-        background: inherit;
-        filter: blur(15px);
-        opacity: 0.3;
-        z-index: -1;
-      }
-      
-      /* 脉动效果 */
-      .with-pulse .digit-group {
-        animation: gentle-pulse 3s ease-in-out infinite;
-      }
-      
-      .with-pulse .seconds {
-        animation: gentle-pulse 1s ease-in-out infinite;
-      }
-      
-      /* 模拟时钟样式 */
-      .analog-clock {
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        gap: var(--cf-spacing-lg);
-      }
-      
-      .clock-face {
-        width: 200px;
-        height: 200px;
-        border-radius: 50%;
+
+      .classic-clock .clock-face {
         background: var(--cf-surface);
         border: 3px solid var(--cf-primary-color);
-        position: relative;
-        box-shadow: 
-          0 8px 32px rgba(0, 0, 0, 0.1),
-          inset 0 0 20px rgba(var(--cf-rgb-primary), 0.1);
+        border-radius: var(--cf-radius-xl);
+        padding: var(--cf-spacing-xl);
+        margin-bottom: var(--cf-spacing-lg);
+        box-shadow: var(--cf-shadow-md);
       }
-      
-      .hour-mark {
-        position: absolute;
-        top: 0;
-        left: 0;
-        width: 100%;
-        height: 100%;
-        text-align: center;
-      }
-      
-      .mark-line {
-        width: 2px;
-        height: 12px;
-        background: var(--cf-text-primary);
-        margin: 8px auto 0;
-        opacity: 0.6;
-      }
-      
-      .mark-number {
-        font-size: 0.9em;
+
+      .classic-clock .time-display {
+        font-size: 3em;
         font-weight: 600;
         color: var(--cf-text-primary);
-        margin-top: 4px;
-        transform: rotate(-90deg);
+        font-variant-numeric: tabular-nums;
       }
-      
-      .clock-hands {
-        position: absolute;
-        top: 10px;
-        left: 10px;
-        right: 10px;
-        bottom: 10px;
+
+      .classic-clock .time-separator {
+        color: var(--cf-primary-color);
+        animation: ${showAnimations ? 'blink 1s infinite' : 'none'};
       }
-      
-      .hand {
-        position: absolute;
-        background: var(--cf-text-primary);
-        border-radius: 4px;
-        transform-origin: bottom center;
-        transition: transform 0.2s cubic-bezier(0.4, 2.3, 0.8, 1);
-      }
-      
-      .hour-hand {
-        width: 6px;
-        height: 40px;
-        top: 30px;
-        left: calc(50% - 3px);
-        background: var(--cf-primary-color);
-      }
-      
-      .minute-hand {
-        width: 4px;
-        height: 60px;
-        top: 10px;
-        left: calc(50% - 2px);
-        background: var(--cf-text-primary);
-      }
-      
-      .second-hand {
-        width: 2px;
-        height: 70px;
-        top: 0;
-        left: calc(50% - 1px);
-        background: var(--cf-accent-color);
-      }
-      
-      .hand-center {
-        position: absolute;
-        top: calc(50% - 6px);
-        left: calc(50% - 6px);
-        width: 12px;
-        height: 12px;
-        background: var(--cf-accent-color);
-        border-radius: 50%;
-        border: 2px solid var(--cf-surface);
-      }
-      
-      .analog-info {
-        display: flex;
-        gap: var(--cf-spacing-md);
+
+      .classic-clock .second {
+        color: var(--cf-accent-color);
         font-size: 0.9em;
-        color: var(--cf-text-secondary);
       }
-      
-      /* 简约时钟样式 */
+
+      .classic-clock .classic-info {
+        display: flex;
+        gap: var(--cf-spacing-lg);
+        justify-content: center;
+        font-size: 1.1em;
+      }
+
+      .classic-clock .classic-date {
+        color: var(--cf-text-primary);
+        font-weight: 500;
+      }
+
+      .classic-clock .classic-weekday {
+        color: var(--cf-accent-color);
+        font-weight: 500;
+      }
+
+      /* ===== 简约风格 ===== */
       .minimal-clock {
-        text-align: center;
+        width: 100%;
       }
-      
-      .minimal-time {
+
+      .minimal-clock .minimal-time {
         font-size: 4em;
         font-weight: 200;
         color: var(--cf-text-primary);
         font-variant-numeric: tabular-nums;
-        margin-bottom: var(--cf-spacing-sm);
         letter-spacing: -2px;
+        margin-bottom: var(--cf-spacing-sm);
       }
-      
-      .minimal-seconds {
-        font-size: 1.2em;
+
+      .minimal-clock .minimal-seconds {
+        font-size: 1.5em;
         color: var(--cf-accent-color);
-        margin-bottom: var(--cf-spacing-md);
         font-variant-numeric: tabular-nums;
+        margin-bottom: var(--cf-spacing-lg);
+        animation: ${showAnimations ? 'fadeInOut 2s infinite' : 'none'};
       }
-      
-      .minimal-date {
+
+      .minimal-clock .minimal-info {
         display: flex;
-        gap: var(--cf-spacing-md);
-        font-size: 0.9em;
-        color: var(--cf-text-secondary);
+        gap: var(--cf-spacing-lg);
         justify-content: center;
+        font-size: 1em;
+        color: var(--cf-text-secondary);
       }
-      
-      /* 背景粒子 */
-      .clock-background {
-        position: absolute;
-        top: 0;
-        left: 0;
-        right: 0;
-        bottom: 0;
-        z-index: 1;
-        overflow: hidden;
+
+      /* ===== 毛玻璃风格 ===== */
+      .glass-clock {
+        width: 100%;
       }
-      
-      .bg-particle {
-        position: absolute;
-        border-radius: 50%;
-        background: rgba(var(--cf-rgb-primary), 0.1);
-        animation: float-particle 20s infinite linear;
+
+      .glass-clock .glass-time {
+        font-size: 3.5em;
+        font-weight: 300;
+        color: var(--cf-text-primary);
+        font-variant-numeric: tabular-nums;
+        margin-bottom: var(--cf-spacing-lg);
+        text-shadow: 0 2px 4px rgba(0,0,0,0.1);
       }
-      
-      .particle-1 {
-        width: 80px;
-        height: 80px;
-        top: 10%;
-        left: 10%;
-        animation-delay: 0s;
+
+      .glass-clock .glass-separator {
+        color: var(--cf-primary-color);
+        animation: ${showAnimations ? 'blink 1.5s infinite' : 'none'};
       }
-      
-      .particle-2 {
-        width: 120px;
-        height: 120px;
-        top: 60%;
-        right: 10%;
-        animation-delay: -5s;
+
+      .glass-clock .glass-second {
+        color: var(--cf-accent-color);
+        font-size: 0.9em;
       }
-      
-      .particle-3 {
-        width: 60px;
-        height: 60px;
-        bottom: 20%;
-        left: 20%;
-        animation-delay: -10s;
+
+      .glass-clock .glass-info {
+        display: flex;
+        flex-direction: column;
+        gap: var(--cf-spacing-xs);
+        font-size: 1.1em;
+        color: var(--cf-text-primary);
+        opacity: 0.9;
       }
-      
-      .particle-4 {
-        width: 100px;
-        height: 100px;
-        top: 30%;
-        right: 20%;
-        animation-delay: -15s;
+
+      /* ===== 霓虹风格 ===== */
+      .neon-clock {
+        width: 100%;
       }
-      
-      /* 动画定义 */
+
+      .neon-clock .neon-time {
+        font-size: 3.5em;
+        font-weight: 600;
+        font-variant-numeric: tabular-nums;
+        margin-bottom: var(--cf-spacing-lg);
+        text-shadow: 
+          0 0 5px #00ff88,
+          0 0 10px #00ff88,
+          0 0 20px #00ff88;
+        animation: ${showAnimations ? 'neonPulse 2s infinite' : 'none'};
+      }
+
+      .neon-clock .neon-digit {
+        color: #00ff88;
+      }
+
+      .neon-clock .neon-separator {
+        color: #00ff88;
+        animation: ${showAnimations ? 'blink 1s infinite' : 'none'};
+      }
+
+      .neon-clock .neon-info {
+        display: flex;
+        gap: var(--cf-spacing-lg);
+        justify-content: center;
+        font-size: 1.1em;
+        color: #00ff88;
+        text-shadow: 0 0 5px #00ff88;
+      }
+
+      /* ===== 动画定义 ===== */
       @keyframes blink {
         0%, 50% { opacity: 1; }
         51%, 100% { opacity: 0.3; }
       }
-      
-      @keyframes gentle-pulse {
+
+      @keyframes fadeInOut {
+        0%, 100% { opacity: 0.7; }
+        50% { opacity: 1; }
+      }
+
+      @keyframes neonPulse {
         0%, 100% { 
-          transform: scale(1);
-          opacity: 1;
+          text-shadow: 
+            0 0 5px #00ff88,
+            0 0 10px #00ff88,
+            0 0 20px #00ff88;
         }
         50% { 
-          transform: scale(1.05);
-          opacity: 0.9;
+          text-shadow: 
+            0 0 10px #00ff88,
+            0 0 20px #00ff88,
+            0 0 40px #00ff88;
         }
       }
-      
-      @keyframes float-particle {
-        0% {
-          transform: translateY(0px) rotate(0deg);
-        }
-        33% {
-          transform: translateY(-20px) rotate(120deg);
-        }
-        66% {
-          transform: translateY(10px) rotate(240deg);
-        }
-        100% {
-          transform: translateY(0px) rotate(360deg);
-        }
-      }
-      
-      /* 浮动效果 */
-      .with-float .digital-clock,
-      .with-float .analog-clock,
-      .with-float .minimal-clock {
-        animation: gentle-float 6s ease-in-out infinite;
-      }
-      
-      @keyframes gentle-float {
-        0%, 100% { 
-          transform: translateY(0px); 
-        }
-        50% { 
-          transform: translateY(-8px); 
-        }
-      }
-      
-      /* 风格变体 */
-      .style-neon .digital-clock {
-        background: rgba(0, 0, 0, 0.8);
-        border: 1px solid #00ff88;
-        box-shadow: 
-          0 0 20px #00ff88,
-          inset 0 0 20px rgba(0, 255, 136, 0.1);
-        border-radius: var(--cf-radius-lg);
-        padding: var(--cf-spacing-lg);
-      }
-      
-      .style-glass .digital-clock {
+
+      /* ===== 风格特定的容器样式 ===== */
+      .style-glass .cardforge-responsive-container {
         backdrop-filter: blur(20px);
         background: rgba(255, 255, 255, 0.1);
         border: 1px solid rgba(255, 255, 255, 0.2);
-        border-radius: var(--cf-radius-lg);
-        padding: var(--cf-spacing-lg);
       }
-      
-      /* 响应式优化 */
+
+      .style-neon .cardforge-responsive-container {
+        background: #1a1a1a;
+        border: 1px solid #00ff88;
+        box-shadow: 
+          0 0 10px #00ff88,
+          inset 0 0 15px rgba(0, 255, 136, 0.1);
+      }
+
+      .style-minimal .cardforge-responsive-container {
+        background: transparent;
+        border: none;
+        box-shadow: none;
+      }
+
+      /* ===== 响应式优化 ===== */
       @media (max-width: 600px) {
         .clock-card {
-          padding: var(--cf-spacing-md);
+          padding: var(--cf-spacing-lg);
           min-height: 150px;
         }
-        
-        .digit-group {
+
+        .modern-clock .digit-part {
           font-size: 2.5em;
         }
-        
-        .digit-separator {
-          font-size: 1.8em;
-        }
-        
-        .seconds {
-          font-size: 1.5em;
-        }
-        
-        .clock-face {
-          width: 150px;
-          height: 150px;
-        }
-        
-        .minimal-time {
-          font-size: 3em;
-        }
-      }
-      
-      @media (max-width: 400px) {
-        .digit-group {
+
+        .modern-clock .seconds {
           font-size: 2em;
         }
-        
-        .time-main {
+
+        .classic-clock .time-display {
+          font-size: 2.5em;
+        }
+
+        .minimal-clock .minimal-time {
+          font-size: 3em;
+        }
+
+        .glass-clock .glass-time {
+          font-size: 2.8em;
+        }
+
+        .neon-clock .neon-time {
+          font-size: 2.8em;
+        }
+
+        .modern-clock .date-info,
+        .classic-clock .classic-info,
+        .minimal-clock .minimal-info,
+        .neon-clock .neon-info {
           flex-direction: column;
-          align-items: center;
           gap: var(--cf-spacing-xs);
         }
-        
-        .clock-face {
-          width: 120px;
-          height: 120px;
+      }
+
+      @media (max-width: 400px) {
+        .modern-clock .digit-part {
+          font-size: 2em;
         }
-        
-        .minimal-time {
+
+        .classic-clock .time-display {
+          font-size: 2em;
+        }
+
+        .minimal-clock .minimal-time {
           font-size: 2.5em;
         }
       }
-      
-      /* 深色模式优化 */
+
+      /* ===== 深色模式优化 ===== */
       @media (prefers-color-scheme: dark) {
-        .style-glass .digital-clock {
+        .style-glass .cardforge-responsive-container {
           background: rgba(255, 255, 255, 0.05);
           border: 1px solid rgba(255, 255, 255, 0.1);
         }
-        
-        .bg-particle {
-          background: rgba(255, 255, 255, 0.05);
+
+        .minimal-clock .minimal-time {
+          color: var(--cf-dark-text);
         }
       }
     `;
