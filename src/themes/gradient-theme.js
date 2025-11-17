@@ -43,11 +43,16 @@ export default {
       animation: gradientShift ${speed}s ease infinite;
       color: white;
       border: none;
+      
+      @keyframes gradientShift {
+        0% { background-position: 0% 50%; }
+        50% { background-position: 100% 50%; }
+        100% { background-position: 0% 50%; }
+      }
     `;
   },
 
   applyTheme(element, config = {}) {
-    // 动态应用渐变配置
     if (config.useRandomGradients) {
       const gradient = this.getRandomGradient();
       if (gradient) {
