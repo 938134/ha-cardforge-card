@@ -8,9 +8,7 @@ export class EntityManager extends LitElement {
     hass: { type: Object },
     requirements: { type: Array },
     entities: { type: Object },
-    _config: { state: true },
-    _showEntityPicker: { state: true },
-    _pickingFor: { state: true }
+    _config: { state: true }
   };
 
   static styles = [
@@ -57,29 +55,14 @@ export class EntityManager extends LitElement {
         margin-bottom: var(--cf-spacing-md);
       }
 
-      .field-inputs {
+      .field-row {
         display: flex;
-        gap: var(--cf-spacing-sm);
-        align-items: center;
-        margin-bottom: var(--cf-spacing-xs);
+        gap: var(--cf-spacing-md);
+        align-items: flex-start;
       }
 
-      .field-inputs ha-textfield {
+      .field-input {
         flex: 1;
-      }
-
-      .entity-picker-btn {
-        background: var(--primary-color);
-        color: white;
-        border: none;
-        border-radius: 4px;
-        padding: 8px 12px;
-        cursor: pointer;
-        transition: background-color 0.3s;
-      }
-
-      .entity-picker-btn:hover {
-        background: var(--accent-color);
       }
 
       .field-preview {
@@ -147,14 +130,10 @@ export class EntityManager extends LitElement {
         gap: var(--cf-spacing-md);
       }
 
-      .icon-picker {
+      .icon-field {
         display: flex;
         align-items: center;
         gap: var(--cf-spacing-sm);
-      }
-
-      .icon-picker ha-textfield {
-        flex: 1;
       }
 
       .icon-preview {
@@ -194,74 +173,9 @@ export class EntityManager extends LitElement {
         opacity: 0.5;
       }
 
-      .entity-picker-overlay {
-        position: fixed;
-        top: 0;
-        left: 0;
-        right: 0;
-        bottom: 0;
-        background: rgba(0, 0, 0, 0.5);
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        z-index: 1000;
-        padding: 20px;
-      }
-
-      .entity-picker-dialog {
-        background: var(--card-background-color);
-        border-radius: 8px;
-        padding: 24px;
+      /* 官方样式适配 */
+      ha-entity-picker {
         width: 100%;
-        max-width: 500px;
-        max-height: 80vh;
-        overflow-y: auto;
-      }
-
-      .entity-picker-header {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        margin-bottom: 20px;
-        padding-bottom: 16px;
-        border-bottom: 1px solid var(--divider-color);
-      }
-
-      .entity-picker-title {
-        font-weight: 600;
-        font-size: 1.2em;
-      }
-
-      .entity-list {
-        display: flex;
-        flex-direction: column;
-        gap: 8px;
-        max-height: 300px;
-        overflow-y: auto;
-      }
-
-      .entity-item {
-        padding: 12px 16px;
-        border: 1px solid var(--divider-color);
-        border-radius: 4px;
-        cursor: pointer;
-        transition: all 0.3s;
-      }
-
-      .entity-item:hover {
-        border-color: var(--primary-color);
-        background: rgba(var(--rgb-primary-color), 0.05);
-      }
-
-      .entity-name {
-        font-weight: 500;
-        color: var(--primary-text-color);
-      }
-
-      .entity-id {
-        font-size: 0.85em;
-        color: var(--secondary-text-color);
-        margin-top: 4px;
       }
 
       /* 响应式设计 */
@@ -270,13 +184,8 @@ export class EntityManager extends LitElement {
           padding: var(--cf-spacing-md);
         }
 
-        .field-inputs {
+        .field-row {
           flex-direction: column;
-          align-items: stretch;
-        }
-
-        .entity-picker-btn {
-          align-self: flex-start;
         }
       }
 
@@ -295,14 +204,6 @@ export class EntityManager extends LitElement {
         .field-preview {
           background: rgba(var(--rgb-primary-color), 0.1);
         }
-
-        .entity-picker-dialog {
-          background: var(--dark-card-background-color);
-        }
-
-        .entity-item {
-          border-color: var(--dark-divider-color);
-        }
       }
     `
   ];
@@ -314,8 +215,6 @@ export class EntityManager extends LitElement {
       content: [],
       footer: { value: '', icon: '📄', type: 'text' }
     };
-    this._showEntityPicker = false;
-    this._pickingFor = null;
   }
 
   willUpdate(changedProperties) {
@@ -387,7 +286,6 @@ export class EntityManager extends LitElement {
         ${this._renderHeaderSection()}
         ${this._renderContentSection()}
         ${this._renderFooterSection()}
-        ${this._renderEntityPicker()}
       </div>
     `;
   }
@@ -402,7 +300,7 @@ export class EntityManager extends LitElement {
         
         <div class="field-group">
           <label class="field-label">标题内容</label>
-          ${this._renderField(this._config.header, (newValue) => {
+          ${this._renderValueField(this._config.header, (newValue) => {
             this._config.header = { ...this._config.header, ...newValue };
             this._notifyConfigChange();
           })}
@@ -410,7 +308,7 @@ export class EntityManager extends LitElement {
 
         <div class="field-group">
           <label class="field-label">标题图标</label>
-          ${this._renderIconPicker(this._config.header.icon, (newIcon) => {
+          ${this._renderIconField(this._config.header.icon, (newIcon) => {
             this._config.header.icon = newIcon;
             this._notifyConfigChange();
           })}
@@ -486,7 +384,7 @@ export class EntityManager extends LitElement {
 
           <div class="field-group">
             <label class="field-label">数据源</label>
-            ${this._renderField(
+            ${this._renderValueField(
               { value: item.value, type: item.type },
               (newValue) => this._updateContentItem(index, { ...item, ...newValue })
             )}
@@ -494,7 +392,7 @@ export class EntityManager extends LitElement {
 
           <div class="field-group">
             <label class="field-label">图标</label>
-            ${this._renderIconPicker(item.icon, (newIcon) => {
+            ${this._renderIconField(item.icon, (newIcon) => {
               this._updateContentItem(index, { ...item, icon: newIcon });
             })}
           </div>
@@ -513,7 +411,7 @@ export class EntityManager extends LitElement {
         
         <div class="field-group">
           <label class="field-label">页脚内容</label>
-          ${this._renderField(this._config.footer, (newValue) => {
+          ${this._renderValueField(this._config.footer, (newValue) => {
             this._config.footer = { ...this._config.footer, ...newValue };
             this._notifyConfigChange();
           })}
@@ -521,7 +419,7 @@ export class EntityManager extends LitElement {
 
         <div class="field-group">
           <label class="field-label">页脚图标</label>
-          ${this._renderIconPicker(this._config.footer.icon, (newIcon) => {
+          ${this._renderIconField(this._config.footer.icon, (newIcon) => {
             this._config.footer.icon = newIcon;
             this._notifyConfigChange();
           })}
@@ -530,27 +428,48 @@ export class EntityManager extends LitElement {
     `;
   }
 
-  _renderField(fieldConfig, onUpdate) {
+  _renderValueField(fieldConfig, onUpdate) {
     const preview = this._getPreview(fieldConfig.value);
+    const isEntity = fieldConfig.type === 'entity';
     
     return html`
       <div class="field-with-preview">
-        <div class="field-inputs">
-          <ha-textfield
-            .value=${fieldConfig.value}
-            @input=${e => onUpdate({ value: e.target.value, type: this._detectValueType(e.target.value) })}
-            placeholder="输入文本、Jinja模板或选择实体"
-            fullwidth
-            outlined
-          ></ha-textfield>
-          <button 
-            class="entity-picker-btn" 
-            @click=${() => this._startEntityPicking(onUpdate)}
-            title="选择实体"
+        <div class="field-row">
+          ${isEntity ? html`
+            <ha-entity-picker
+              class="field-input"
+              .hass=${this.hass}
+              .value=${fieldConfig.value}
+              @value-changed=${e => onUpdate({ value: e.detail.value, type: 'entity' })}
+              allow-custom-entity
+            ></ha-entity-picker>
+          ` : html`
+            <ha-textfield
+              class="field-input"
+              .value=${fieldConfig.value}
+              @input=${e => onUpdate({ value: e.target.value, type: this._detectValueType(e.target.value) })}
+              placeholder="输入文本、Jinja模板或选择实体"
+              fullwidth
+              outlined
+            ></ha-textfield>
+          `}
+          
+          <ha-icon-button
+            @click=${() => {
+              if (isEntity) {
+                // 从实体切换到文本输入
+                onUpdate({ value: '', type: 'text' });
+              } else {
+                // 从文本切换到实体选择
+                onUpdate({ value: '', type: 'entity' });
+              }
+            }}
+            .label=${isEntity ? '切换到文本输入' : '切换到实体选择'}
           >
-            <ha-icon icon="mdi:magnify"></ha-icon>
-          </button>
+            <ha-icon .icon=${isEntity ? 'mdi:text-box' : 'mdi:database'}></ha-icon>
+          </ha-icon-button>
         </div>
+        
         ${preview ? html`
           <div class="field-preview">
             预览: ${preview}
@@ -560,9 +479,9 @@ export class EntityManager extends LitElement {
     `;
   }
 
-  _renderIconPicker(currentIcon, onUpdate) {
+  _renderIconField(currentIcon, onUpdate) {
     return html`
-      <div class="icon-picker">
+      <div class="icon-field">
         <span class="icon-preview">${currentIcon}</span>
         <ha-textfield
           .value=${currentIcon}
@@ -575,65 +494,10 @@ export class EntityManager extends LitElement {
     `;
   }
 
-  _renderEntityPicker() {
-    if (!this._showEntityPicker) return '';
-
-    return html`
-      <div class="entity-picker-overlay" @click=${this._cancelEntityPicking}>
-        <div class="entity-picker-dialog" @click=${e => e.stopPropagation()}>
-          <div class="entity-picker-header">
-            <div class="entity-picker-title">选择实体</div>
-            <button class="entity-picker-btn" @click=${this._cancelEntityPicking}>
-              <ha-icon icon="mdi:close"></ha-icon>
-            </button>
-          </div>
-          
-          <div class="entity-list">
-            ${this._getAvailableEntities().map(entity => html`
-              <div class="entity-item" @click=${() => this._selectEntity(entity)}>
-                <div class="entity-name">${entity.friendly_name}</div>
-                <div class="entity-id">${entity.entity_id}</div>
-              </div>
-            `)}
-          </div>
-        </div>
-      </div>
-    `;
-  }
-
   _getPreview(value) {
     if (!value) return '';
     const parser = getJinjaParser(this.hass);
     return parser.parse(value, '') || '(空值)';
-  }
-
-  _getAvailableEntities() {
-    if (!this.hass) return [];
-    
-    return Object.entries(this.hass.states)
-      .map(([entity_id, stateObj]) => ({
-        entity_id,
-        friendly_name: stateObj.attributes?.friendly_name || entity_id,
-        state: stateObj.state
-      }))
-      .slice(0, 50); // 限制数量
-  }
-
-  _startEntityPicking(onUpdate) {
-    this._pickingFor = onUpdate;
-    this._showEntityPicker = true;
-  }
-
-  _cancelEntityPicking() {
-    this._showEntityPicker = false;
-    this._pickingFor = null;
-  }
-
-  _selectEntity(entity) {
-    if (this._pickingFor) {
-      this._pickingFor({ value: entity.entity_id, type: 'entity' });
-    }
-    this._cancelEntityPicking();
   }
 
   _addContentItem() {
