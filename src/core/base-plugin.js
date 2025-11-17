@@ -20,12 +20,10 @@ export class BasePlugin {
 
   // === 动态实体支持 ===
   
-  // 获取动态实体配置（插件可以重写此方法）
   getDynamicEntities(config, hass) {
     return [];
   }
 
-  // 获取所有实体需求（静态 + 动态）
   getAllEntityRequirements(config, hass) {
     const manifest = this.getManifest();
     const staticRequirements = manifest.entity_requirements || [];
@@ -34,7 +32,6 @@ export class BasePlugin {
     return [...staticRequirements, ...dynamicRequirements];
   }
 
-  // 验证实体配置
   validateEntities(entities, config, hass) {
     const requirements = this.getAllEntityRequirements(config, hass);
     const errors = [];
@@ -80,7 +77,7 @@ export class BasePlugin {
       icon: '📄',
       author: 'CardForge',
       config_schema: {},
-      entity_requirements: []  // 默认空数组
+      entity_requirements: []
     };
     
     const merged = { ...defaultManifest, ...customManifest };
@@ -139,90 +136,11 @@ export class BasePlugin {
     return { ...defaults, ...config };
   }
 
-  // === 系统变量集成 ===
-  
-  getSystemData(hass, config) {
-    const now = new Date();
-    
-    return {
-      ...this._getBasicTimeData(now),
-      ...this._getUserData(hass),
-      ...this._getGreetingData(now)
-    };
-  }
-
-  _getBasicTimeData(now) {
-    return {
-      time: now.toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit', hour12: false }),
-      time_12h: now.toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit', hour12: true }),
-      date: now.toLocaleDateString('zh-CN'),
-      date_short: `${now.getMonth() + 1}月${now.getDate()}日`,
-      date_number: now.toISOString().split('T')[0],
-      year: String(now.getFullYear()),
-      month: String(now.getMonth() + 1).padStart(2, '0'),
-      day: String(now.getDate()).padStart(2, '0'),
-      weekday: '星期' + '日一二三四五六'[now.getDay()],
-      weekday_short: '周' + '日一二三四五六'[now.getDay()],
-      timestamp: now.getTime(),
-      iso_string: now.toISOString()
-    };
-  }
-
-  _getUserData(hass) {
-    return {
-      user: hass?.user?.name || '家人',
-      user_id: hass?.user?.id || 'unknown',
-      user_language: hass?.language || 'zh-CN',
-      timezone: hass?.config?.time_zone || 'Asia/Shanghai'
-    };
-  }
-
-  _getGreetingData(now) {
-    const hour = now.getHours();
-    let greeting = '你好';
-    
-    if (hour < 6) greeting = '深夜好';
-    else if (hour < 9) greeting = '早上好';
-    else if (hour < 12) greeting = '上午好';
-    else if (hour < 14) greeting = '中午好';
-    else if (hour < 18) greeting = '下午好';
-    else if (hour < 22) greeting = '晚上好';
-    else greeting = '夜深了';
-    
-    return {
-      greeting,
-      greeting_morning: '早上好',
-      greeting_afternoon: '下午好',
-      greeting_evening: '晚上好'
-    };
-  }
-
   // === 智能数据获取 ===
   
   _getCardValue(hass, entities, key, defaultValue = '') {
-    if (key.startsWith('$')) {
-      return this._getSystemVariable(key, hass);
-    }
-    
     const source = this._getEntityValue(entities, key);
     return this._getFlexibleValue(hass, source, defaultValue);
-  }
-
-  _getSystemVariable(variableKey, hass) {
-    const systemData = this.getSystemData(hass, {});
-    const variableName = variableKey.slice(1);
-    const keys = variableName.split('.');
-    let value = systemData;
-    
-    for (const key of keys) {
-      if (value && typeof value === 'object' && key in value) {
-        value = value[key];
-      } else {
-        return `[系统变量 ${variableKey} 不存在]`;
-      }
-    }
-    
-    return value;
   }
 
   _getEntityValue(entities, key, defaultValue = '') {
@@ -234,20 +152,22 @@ export class BasePlugin {
     
     const parser = getJinjaParser(hass);
 
+    // 实体ID直接获取状态
     if (source.includes('.') && hass?.states?.[source]) {
       return hass.states[source].state || defaultValue;
     }
     
+    // Jinja模板解析
     if (parser.isJinjaTemplate(source)) {
       return parser.parse(source, defaultValue);
     }
     
+    // 直接文本
     return source;
   }
 
-  // === 实体数据处理 ===
+  // === 实体显示工具 ===
   
-  // 获取实体显示名称
   _getEntityDisplayName(entityConfig, hass) {
     if (entityConfig.name) {
       return entityConfig.name;
@@ -260,31 +180,28 @@ export class BasePlugin {
     return entityConfig.source || '未知实体';
   }
 
-  // 获取实体图标
   _getEntityIcon(entityConfig, hass) {
     if (entityConfig.icon) {
       return entityConfig.icon;
     }
     
     if (entityConfig.source && hass?.states?.[entityConfig.source]) {
-      const entity = hass.states[entityConfig.source];
       const domain = entityConfig.source.split('.')[0];
       
-      // 根据域返回默认图标
+      // 简化的域图标映射
       const domainIcons = {
         'light': '💡',
         'sensor': '📊',
         'switch': '🔌',
         'climate': '🌡️',
         'media_player': '📺',
-        'person': '👤',
-        'device_tracker': '📍'
+        'person': '👤'
       };
       
       return domainIcons[domain] || '🏷️';
     }
     
-    return '🔧'; // Jinja模板默认图标
+    return '🔧';
   }
 
   // === 错误处理模板 ===
