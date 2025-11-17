@@ -4,61 +4,52 @@ import { BasePlugin } from '../core/base-plugin.js';
 class PoetryCard extends BasePlugin {
   static manifest = {
     id: 'poetry-card',
-    name: '诗词卡片',
+    name: '诗词展示',
     version: '1.0.0',
-    description: '优雅的诗词展示卡片，支持自动换行和古典风格',
-    category: 'culture',
+    description: '优雅展示诗词，支持智能标点换行',
+    category: 'information',
     icon: '📜',
-    author: 'CardForge Team',
+    author: 'CardForge',
     
     config_schema: {
       // 布局配置
-      text_alignment: {
+      layout_style: {
         type: 'select',
-        label: '文字对齐',
-        options: ['left', 'center', 'right'],
-        default: 'center',
-        description: '诗词文字对齐方式'
+        label: '布局风格',
+        options: ['vertical', 'horizontal', 'classic', 'modern'],
+        default: 'vertical',
+        description: '选择诗词展示的布局风格'
       },
       
-      font_style: {
+      font_size: {
         type: 'select',
-        label: '字体风格',
-        options: ['modern', 'classical', 'elegant'],
-        default: 'classical',
-        description: '选择适合古诗的字体风格'
+        label: '字体大小',
+        options: ['small', 'medium', 'large'],
+        default: 'medium',
+        description: '选择诗词文字的显示大小'
       },
       
-      show_decoration: {
+      show_border: {
         type: 'boolean',
-        label: '显示装饰',
+        label: '显示边框',
         default: true,
-        description: '显示古典风格的装饰元素'
+        description: '显示卡片边框装饰'
       },
       
-      // 内容配置
-      auto_wrap: {
-        type: 'boolean',
-        label: '自动换行',
-        default: true,
-        description: '根据标点符号自动换行'
+      background_style: {
+        type: 'select',
+        label: '背景样式',
+        options: ['plain', 'paper', 'ink-wash'],
+        default: 'paper',
+        description: '选择卡片背景样式'
       },
       
-      max_lines: {
-        type: 'number',
-        label: '最大行数',
-        default: 10,
-        min: 4,
-        max: 20,
-        description: '内容区域最大显示行数'
-      },
-      
-      // 交互配置
+      // 动画效果
       enable_animations: {
         type: 'boolean',
         label: '启用动画',
         default: true,
-        description: '启用淡入动画效果'
+        description: '启用诗词展示动画效果'
       }
     },
     
@@ -66,288 +57,579 @@ class PoetryCard extends BasePlugin {
       {
         key: 'title',
         description: '诗词标题',
-        required: false,
-        type: 'string'
+        required: true,
+        suggested: 'sensor.poetry_title'
       },
       {
         key: 'dynasty',
         description: '诗词朝代',
-        required: false,
-        type: 'string'
+        required: true,
+        suggested: 'sensor.poetry_dynasty'
       },
       {
         key: 'author',
         description: '诗词作者',
-        required: false,
-        type: 'string'
+        required: true,
+        suggested: 'sensor.poetry_author'
       },
       {
         key: 'content',
         description: '诗词内容',
-        required: false,
-        type: 'string'
+        required: true,
+        suggested: 'sensor.poetry_content'
       }
     ]
   };
 
-  // 默认诗词数据
-  _getDefaultPoetry() {
-    return {
-      title: '虞美人·春花秋月何时了',
-      dynasty: '五代',
-      author: '李煜',
-      content: '春花秋月何时了？往事知多少。小楼昨夜又东风，故国不堪回首月明中。雕栏玉砌应犹在，只是朱颜改。问君能有几多愁？恰似一江春水向东流。'
-    };
-  }
-
-  // 解析诗词数据
-  _parsePoetryData(entities) {
-    const defaultData = this._getDefaultPoetry();
-    
-    return {
-      title: this._getEntityValue(entities, 'title', defaultData.title),
-      dynasty: this._getEntityValue(entities, 'dynasty', defaultData.dynasty),
-      author: this._getEntityValue(entities, 'author', defaultData.author),
-      content: this._getEntityValue(entities, 'content', defaultData.content)
-    };
-  }
-
-  // 智能换行处理
-  _formatPoetryContent(content, autoWrap = true) {
+  // 智能标点换行处理
+  _formatPoetryContent(content, layoutStyle) {
     if (!content) return '';
     
-    if (!autoWrap) {
-      return content;
+    // 根据布局风格选择换行策略
+    if (layoutStyle === 'vertical') {
+      return this._formatVerticalContent(content);
+    } else {
+      return this._formatHorizontalContent(content);
     }
+  }
+
+  // 竖排布局内容格式化
+  _formatVerticalContent(content) {
+    // 竖排布局：按句换行，智能处理标点
+    const sentences = content.split(/[，。！？；]/).filter(s => s.trim());
+    let formattedContent = '';
     
-    // 根据中文标点符号进行换行
-    const punctuationMarks = ['。', '？', '！', '；', '，'];
-    let formattedContent = content;
-    
-    // 在标点符号后添加换行
-    punctuationMarks.forEach(mark => {
-      formattedContent = formattedContent.replace(new RegExp(mark, 'g'), mark + '\n');
+    sentences.forEach((sentence, index) => {
+      const trimmedSentence = sentence.trim();
+      if (trimmedSentence) {
+        // 竖排时每个字符单独一行
+        const chars = trimmedSentence.split('');
+        const charLines = chars.map(char => 
+          `<div class="vertical-char">${char}</div>`
+        ).join('');
+        
+        formattedContent += `<div class="vertical-line">${charLines}</div>`;
+        
+        // 在句子结束后添加标点（如果原句有标点）
+        const originalEnd = content.charAt(content.indexOf(sentence) + sentence.length);
+        if (['，', '。', '！', '？', '；'].includes(originalEnd)) {
+          formattedContent += `<div class="vertical-punctuation">${originalEnd}</div>`;
+        }
+      }
     });
-    
-    // 清理多余的换行和空格
-    formattedContent = formattedContent
-      .replace(/\n+/g, '\n')  // 多个换行合并为一个
-      .replace(/^\n+|\n+$/g, '')  // 去除首尾换行
-      .replace(/ \n/g, '\n')  // 去除换行前的空格
-      .replace(/\n /g, '\n'); // 去除换行后的空格
     
     return formattedContent;
   }
 
-  getTemplate(config, hass, entities) {
-    const poetryData = this._parsePoetryData(entities);
+  // 横排布局内容格式化
+  _formatHorizontalContent(content) {
+    // 横排布局：智能标点换行，保持诗词韵律
+    let formattedContent = '';
+    let currentLine = '';
     
-    // 检查是否有有效数据
-    const hasData = poetryData.title || poetryData.dynasty || poetryData.author || poetryData.content;
-    
-    if (!hasData) {
-      return this._renderEmpty('暂无诗词数据', '📜');
+    // 按字符处理，智能判断换行位置
+    for (let i = 0; i < content.length; i++) {
+      const char = content[i];
+      currentLine += char;
+      
+      // 遇到标点符号时考虑换行
+      if (['。', '！', '？', '；', '\n'].includes(char)) {
+        // 句子结束，换行
+        formattedContent += `<div class="poetry-line">${currentLine}</div>`;
+        currentLine = '';
+      } else if (['，', '、'].includes(char)) {
+        // 逗号处，如果下一句较长也可以考虑换行
+        const nextChars = content.slice(i + 1, i + 4);
+        if (nextChars.length >= 3 && !['，', '。', '！', '？'].includes(nextChars[0])) {
+          formattedContent += `<div class="poetry-line">${currentLine}</div>`;
+          currentLine = '';
+        }
+      }
     }
+    
+    // 处理最后一行
+    if (currentLine) {
+      formattedContent += `<div class="poetry-line">${currentLine}</div>`;
+    }
+    
+    return formattedContent;
+  }
 
-    const textAlignment = config.text_alignment || 'center';
-    const fontStyle = config.font_style || 'classical';
-    const showDecoration = config.show_decoration !== false;
-    const autoWrap = config.auto_wrap !== false;
-    const maxLines = config.max_lines || 10;
+  // 渲染竖排布局
+  _renderVerticalLayout(entities, config) {
+    const title = this._getCardValue(this.hass, entities, 'title', '');
+    const dynasty = this._getCardValue(this.hass, entities, 'dynasty', '');
+    const author = this._getCardValue(this.hass, entities, 'author', '');
+    const content = this._getCardValue(this.hass, entities, 'content', '');
+    
+    const formattedContent = this._formatPoetryContent(content, 'vertical');
     const enableAnimations = config.enable_animations !== false;
 
-    const formattedContent = this._formatPoetryContent(poetryData.content, autoWrap);
+    return `
+      <div class="poetry-vertical ${enableAnimations ? 'with-animations' : ''}">
+        <div class="vertical-header">
+          <div class="vertical-title">《${title}》</div>
+          <div class="vertical-author">${author} · ${dynasty}</div>
+        </div>
+        
+        <div class="vertical-content">
+          ${formattedContent}
+        </div>
+        
+        <div class="vertical-seal">诗</div>
+      </div>
+    `;
+  }
+
+  // 渲染横排布局
+  _renderHorizontalLayout(entities, config) {
+    const title = this._getCardValue(this.hass, entities, 'title', '');
+    const dynasty = this._getCardValue(this.hass, entities, 'dynasty', '');
+    const author = this._getCardValue(this.hass, entities, 'author', '');
+    const content = this._getCardValue(this.hass, entities, 'content', '');
+    
+    const formattedContent = this._formatPoetryContent(content, 'horizontal');
+    const enableAnimations = config.enable_animations !== false;
 
     return `
-      <div class="cardforge-responsive-container poetry-card ${enableAnimations ? 'with-animations' : ''}">
-        <div class="cardforge-content-grid">
-          <div class="poetry-layout text-${textAlignment} font-${fontStyle}">
-            
-            ${showDecoration ? `
-              <div class="poetry-decoration-top">〖</div>
-            ` : ''}
-            
-            <!-- 标题区域 -->
-            ${poetryData.title ? `
-              <div class="title-section">
-                <h1 class="poetry-title">${this._renderSafeHTML(poetryData.title)}</h1>
-              </div>
-            ` : ''}
-            
-            <!-- 朝代作者区域 -->
-            ${(poetryData.dynasty || poetryData.author) ? `
-              <div class="author-section">
-                ${poetryData.dynasty ? `<span class="dynasty">${this._renderSafeHTML(poetryData.dynasty)}</span>` : ''}
-                ${poetryData.dynasty && poetryData.author ? '<span class="author-separator">·</span>' : ''}
-                ${poetryData.author ? `<span class="author">${this._renderSafeHTML(poetryData.author)}</span>` : ''}
-              </div>
-            ` : ''}
-            
-            <!-- 内容区域 -->
-            ${poetryData.content ? `
-              <div class="content-section">
-                <div class="poetry-content" style="--max-lines: ${maxLines}">
-                  ${this._renderSafeHTML(formattedContent)}
-                </div>
-              </div>
-            ` : ''}
-            
-            ${showDecoration ? `
-              <div class="poetry-decoration-bottom">〗</div>
-            ` : ''}
-            
+      <div class="poetry-horizontal ${enableAnimations ? 'with-animations' : ''}">
+        <div class="horizontal-header">
+          <div class="horizontal-title">《${title}》</div>
+          <div class="horizontal-author">${author}［${dynasty}］</div>
+        </div>
+        
+        <div class="horizontal-content">
+          ${formattedContent}
+        </div>
+      </div>
+    `;
+  }
+
+  // 渲染经典布局
+  _renderClassicLayout(entities, config) {
+    const title = this._getCardValue(this.hass, entities, 'title', '');
+    const dynasty = this._getCardValue(this.hass, entities, 'dynasty', '');
+    const author = this._getCardValue(this.hass, entities, 'author', '');
+    const content = this._getCardValue(this.hass, entities, 'content', '');
+    
+    const formattedContent = this._formatPoetryContent(content, 'horizontal');
+    const enableAnimations = config.enable_animations !== false;
+
+    return `
+      <div class="poetry-classic ${enableAnimations ? 'with-animations' : ''}">
+        <div class="classic-border">
+          <div class="classic-corner corner-tl"></div>
+          <div class="classic-corner corner-tr"></div>
+          <div class="classic-corner corner-bl"></div>
+          <div class="classic-corner corner-br"></div>
+        </div>
+        
+        <div class="classic-content">
+          <div class="classic-title">${title}</div>
+          <div class="classic-author">${author} · ${dynasty}</div>
+          
+          <div class="classic-poetry">
+            ${formattedContent}
           </div>
         </div>
       </div>
     `;
   }
 
-  getStyles(config) {
-    const textAlignment = config.text_alignment || 'center';
-    const fontStyle = config.font_style || 'classical';
-    const showDecoration = config.show_decoration !== false;
+  // 渲染现代布局
+  _renderModernLayout(entities, config) {
+    const title = this._getCardValue(this.hass, entities, 'title', '');
+    const dynasty = this._getCardValue(this.hass, entities, 'dynasty', '');
+    const author = this._getCardValue(this.hass, entities, 'author', '');
+    const content = this._getCardValue(this.hass, entities, 'content', '');
+    
+    const formattedContent = this._formatPoetryContent(content, 'horizontal');
     const enableAnimations = config.enable_animations !== false;
+
+    return `
+      <div class="poetry-modern ${enableAnimations ? 'with-animations' : ''}">
+        <div class="modern-header">
+          <div class="modern-title-section">
+            <h2 class="modern-title">${title}</h2>
+            <div class="modern-meta">
+              <span class="modern-author">${author}</span>
+              <span class="modern-dynasty">${dynasty}</span>
+            </div>
+          </div>
+        </div>
+        
+        <div class="modern-content">
+          ${formattedContent}
+        </div>
+        
+        <div class="modern-decoration">
+          <div class="decoration-line"></div>
+        </div>
+      </div>
+    `;
+  }
+
+  getTemplate(config, hass, entities) {
+    this.hass = hass;
+    const layoutStyle = config.layout_style || 'vertical';
+
+    let layoutHTML = '';
+    
+    switch (layoutStyle) {
+      case 'horizontal':
+        layoutHTML = this._renderHorizontalLayout(entities, config);
+        break;
+      case 'classic':
+        layoutHTML = this._renderClassicLayout(entities, config);
+        break;
+      case 'modern':
+        layoutHTML = this._renderModernLayout(entities, config);
+        break;
+      default:
+        layoutHTML = this._renderVerticalLayout(entities, config);
+    }
+
+    return `
+      <div class="cardforge-responsive-container poetry-card layout-${layoutStyle}">
+        <div class="cardforge-content-grid">
+          ${layoutHTML}
+        </div>
+      </div>
+    `;
+  }
+
+  getStyles(config) {
+    const layoutStyle = config.layout_style || 'vertical';
+    const fontSize = config.font_size || 'medium';
+    const showBorder = config.show_border !== false;
+    const backgroundStyle = config.background_style || 'paper';
+    const enableAnimations = config.enable_animations !== false;
+
+    // 字体大小映射
+    const fontSizes = {
+      small: { title: '1.3em', content: '1em', author: '0.9em' },
+      medium: { title: '1.6em', content: '1.2em', author: '1em' },
+      large: { title: '2em', content: '1.5em', author: '1.1em' }
+    };
+
+    const sizes = fontSizes[fontSize] || fontSizes.medium;
 
     return `
       ${this.getBaseStyles(config)}
       
       .poetry-card {
-        padding: var(--cf-spacing-xl) var(--cf-spacing-lg);
-        background: linear-gradient(135deg, var(--card-background-color) 0%, rgba(var(--cf-rgb-primary), 0.03) 100%);
+        padding: var(--cf-spacing-lg);
+        position: relative;
+        overflow: hidden;
+        min-height: 200px;
+        font-family: "SimSun", "NSimSun", "楷体", "宋体", serif;
       }
       
-      .poetry-layout {
-        display: flex;
-        flex-direction: column;
-        gap: var(--cf-spacing-lg);
+      /* 背景样式 */
+      .poetry-card.background-plain {
+        background: var(--cf-surface);
+      }
+      
+      .poetry-card.background-paper {
+        background: #fefefe;
+        background-image: 
+          radial-gradient(#ddd 1px, transparent 1px),
+          radial-gradient(#ddd 1px, transparent 1px);
+        background-size: 20px 20px;
+        background-position: 0 0, 10px 10px;
+      }
+      
+      .poetry-card.background-ink-wash {
+        background: linear-gradient(135deg, #f5f1e6 0%, #e8dfca 100%);
         position: relative;
       }
       
-      /* 装饰元素 */
-      .poetry-decoration-top,
-      .poetry-decoration-bottom {
-        font-size: 1.5em;
-        color: rgba(var(--cf-rgb-primary), 0.3);
-        line-height: 1;
-        font-family: serif;
+      .poetry-card.background-ink-wash::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: 
+          radial-gradient(circle at 20% 80%, rgba(0,0,0,0.03) 0%, transparent 50%),
+          radial-gradient(circle at 80% 20%, rgba(0,0,0,0.02) 0%, transparent 50%);
+        pointer-events: none;
       }
       
-      .poetry-decoration-top {
-        align-self: flex-start;
-        margin-bottom: -0.5em;
+      /* ===== 竖排布局样式 ===== */
+      .poetry-vertical {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        height: 100%;
+        padding: var(--cf-spacing-lg);
+        writing-mode: vertical-rl;
+        text-orientation: mixed;
       }
       
-      .poetry-decoration-bottom {
-        align-self: flex-end;
-        margin-top: -0.5em;
+      .vertical-header {
+        margin-bottom: var(--cf-spacing-xl);
+        text-align: center;
       }
       
-      /* 标题区域 */
-      .title-section {
-        margin: var(--cf-spacing-sm) 0;
-      }
-      
-      .poetry-title {
-        font-size: 1.4em;
-        font-weight: 600;
-        color: var(--cf-text-primary);
-        margin: 0;
-        line-height: 1.3;
-        text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
-      }
-      
-      /* 作者区域 */
-      .author-section {
-        font-size: 0.95em;
-        color: var(--cf-text-secondary);
+      .vertical-title {
+        font-size: ${sizes.title};
+        font-weight: 700;
+        color: #8b4513;
         margin-bottom: var(--cf-spacing-md);
+        letter-spacing: 0.2em;
       }
       
-      .dynasty {
-        font-weight: 500;
-        font-style: italic;
+      .vertical-author {
+        font-size: ${sizes.author};
+        color: #666;
+        opacity: 0.8;
       }
       
-      .author-separator {
-        margin: 0 var(--cf-spacing-xs);
+      .vertical-content {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 0.5em;
+      }
+      
+      .vertical-line {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 0.2em;
+      }
+      
+      .vertical-char {
+        font-size: ${sizes.content};
+        line-height: 1.2;
+        color: #2c1810;
+      }
+      
+      .vertical-punctuation {
+        font-size: ${sizes.content};
+        color: #8b4513;
+        margin: 0.3em 0;
+      }
+      
+      .vertical-seal {
+        position: absolute;
+        bottom: 20px;
+        left: 20px;
+        width: 40px;
+        height: 40px;
+        border: 2px solid #8b4513;
+        border-radius: 2px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 0.8em;
+        color: #8b4513;
+        transform: rotate(15deg);
         opacity: 0.6;
       }
       
-      .author {
-        font-weight: 500;
+      /* ===== 横排布局样式 ===== */
+      .poetry-horizontal {
+        display: flex;
+        flex-direction: column;
+        height: 100%;
+        padding: var(--cf-spacing-lg);
       }
       
-      /* 内容区域 */
-      .content-section {
-        margin: var(--cf-spacing-md) 0;
-      }
-      
-      .poetry-content {
-        font-size: 1.1em;
-        line-height: 1.8;
-        color: var(--cf-text-primary);
-        white-space: pre-line;
-        max-height: calc(var(--max-lines) * 1.8em);
-        overflow: hidden;
-        position: relative;
-      }
-      
-      /* 字体风格 */
-      .font-modern .poetry-content {
-        font-family: var(--paper-font-common-nowrap_-_font-family);
-      }
-      
-      .font-classical .poetry-content {
-        font-family: 'SimSun', 'NSimSun', 'STSong', serif;
-        letter-spacing: 0.5px;
-      }
-      
-      .font-elegant .poetry-content {
-        font-family: 'STKaiti', 'KaiTi', '楷体', serif;
-        font-weight: 500;
-        letter-spacing: 0.3px;
-      }
-      
-      .font-classical .poetry-title,
-      .font-elegant .poetry-title {
-        font-family: inherit;
-      }
-      
-      /* 文字对齐 */
-      .text-left {
-        text-align: left;
-        align-items: flex-start;
-      }
-      
-      .text-center {
+      .horizontal-header {
         text-align: center;
+        margin-bottom: var(--cf-spacing-xl);
+        border-bottom: 1px solid rgba(139, 69, 19, 0.3);
+        padding-bottom: var(--cf-spacing-lg);
+      }
+      
+      .horizontal-title {
+        font-size: ${sizes.title};
+        font-weight: 700;
+        color: #8b4513;
+        margin-bottom: var(--cf-spacing-sm);
+      }
+      
+      .horizontal-author {
+        font-size: ${sizes.author};
+        color: #666;
+        font-style: italic;
+      }
+      
+      .horizontal-content {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
         align-items: center;
+        justify-content: center;
+        gap: 0.8em;
       }
       
-      .text-right {
-        text-align: right;
-        align-items: flex-end;
+      .poetry-line {
+        font-size: ${sizes.content};
+        color: #2c1810;
+        line-height: 1.8;
+        text-align: center;
+        width: 100%;
       }
       
-      /* 动画效果 */
-      .with-animations .title-section {
-        animation: poetry-fade-in 0.6s ease-out;
+      /* 智能标点换行优化 */
+      .poetry-line {
+        text-align: justify;
+        text-justify: inter-ideograph;
       }
       
-      .with-animations .author-section {
-        animation: poetry-fade-in 0.6s ease-out 0.2s both;
+      /* ===== 经典布局样式 ===== */
+      .poetry-classic {
+        position: relative;
+        height: 100%;
+        padding: var(--cf-spacing-xl);
+        background: #fef9f0;
+        border: 1px solid #d4b78c;
       }
       
-      .with-animations .content-section {
-        animation: poetry-fade-in 0.6s ease-out 0.4s both;
+      .classic-border {
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        pointer-events: none;
       }
       
-      .with-animations .poetry-decoration-top,
-      .with-animations .poetry-decoration-bottom {
-        animation: poetry-fade-in 0.8s ease-out 0.6s both;
+      .classic-corner {
+        position: absolute;
+        width: 20px;
+        height: 20px;
+        border-color: #8b4513;
+        border-style: solid;
+        border-width: 0;
       }
       
-      @keyframes poetry-fade-in {
+      .corner-tl {
+        top: 10px;
+        left: 10px;
+        border-top-width: 2px;
+        border-left-width: 2px;
+      }
+      
+      .corner-tr {
+        top: 10px;
+        right: 10px;
+        border-top-width: 2px;
+        border-right-width: 2px;
+      }
+      
+      .corner-bl {
+        bottom: 10px;
+        left: 10px;
+        border-bottom-width: 2px;
+        border-left-width: 2px;
+      }
+      
+      .corner-br {
+        bottom: 10px;
+        right: 10px;
+        border-bottom-width: 2px;
+        border-right-width: 2px;
+      }
+      
+      .classic-content {
+        height: 100%;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        text-align: center;
+      }
+      
+      .classic-title {
+        font-size: ${sizes.title};
+        font-weight: 700;
+        color: #8b4513;
+        margin-bottom: var(--cf-spacing-md);
+      }
+      
+      .classic-author {
+        font-size: ${sizes.author};
+        color: #666;
+        margin-bottom: var(--cf-spacing-xl);
+        font-style: italic;
+      }
+      
+      .classic-poetry {
+        line-height: 2;
+      }
+      
+      /* ===== 现代布局样式 ===== */
+      .poetry-modern {
+        display: flex;
+        flex-direction: column;
+        height: 100%;
+        padding: var(--cf-spacing-lg);
+      }
+      
+      .modern-header {
+        margin-bottom: var(--cf-spacing-lg);
+      }
+      
+      .modern-title-section {
+        text-align: center;
+      }
+      
+      .modern-title {
+        font-size: ${sizes.title};
+        font-weight: 600;
+        color: var(--cf-text-primary);
+        margin: 0 0 var(--cf-spacing-sm) 0;
+      }
+      
+      .modern-meta {
+        display: flex;
+        justify-content: center;
+        gap: var(--cf-spacing-md);
+        font-size: ${sizes.author};
+        color: var(--cf-text-secondary);
+      }
+      
+      .modern-content {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        gap: 0.6em;
+      }
+      
+      .modern-decoration {
+        margin-top: var(--cf-spacing-lg);
+      }
+      
+      .decoration-line {
+        height: 1px;
+        background: linear-gradient(90deg, transparent, var(--cf-primary-color), transparent);
+        opacity: 0.5;
+      }
+      
+      /* ===== 动画效果 ===== */
+      .with-animations .vertical-char,
+      .with-animations .poetry-line {
+        animation: fadeInUp 0.6s ease-out both;
+      }
+      
+      .with-animations .vertical-char:nth-child(odd),
+      .with-animations .poetry-line:nth-child(odd) {
+        animation-delay: 0.1s;
+      }
+      
+      .with-animations .vertical-char:nth-child(even),
+      .with-animations .poetry-line:nth-child(even) {
+        animation-delay: 0.2s;
+      }
+      
+      @keyframes fadeInUp {
         from {
           opacity: 0;
           transform: translateY(10px);
@@ -358,89 +640,76 @@ class PoetryCard extends BasePlugin {
         }
       }
       
-      /* 深色模式优化 */
-      @media (prefers-color-scheme: dark) {
-        .poetry-card {
-          background: linear-gradient(135deg, var(--card-background-color) 0%, rgba(255, 255, 255, 0.03) 100%);
-        }
-        
-        .poetry-title {
-          text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
-        }
-      }
-      
-      /* 主题适配 */
-      .theme-ink-wash .poetry-card {
-        background: linear-gradient(135deg, #2c3e50 0%, #34495e 100%);
-        color: #ecf0f1;
-        border: 1px solid #7f8c8d;
-      }
-      
-      .theme-ink-wash .poetry-title {
-        color: #ffffff;
-        text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
-      }
-      
-      .theme-ink-wash .poetry-content {
-        color: #ecf0f1;
-        text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
-      }
-      
-      .theme-ink-wash .author-section {
-        color: #bdc3c7;
-      }
-      
-      .theme-ink-wash .poetry-decoration-top,
-      .theme-ink-wash .poetry-decoration-bottom {
-        color: rgba(255, 255, 255, 0.2);
-      }
-      
-      .theme-glass .poetry-card {
-        backdrop-filter: blur(20px);
-        background: rgba(255, 255, 255, 0.1);
-        border: 1px solid rgba(255, 255, 255, 0.2);
-      }
-      
-      /* 响应式优化 */
+      /* ===== 响应式优化 ===== */
       @media (max-width: 600px) {
         .poetry-card {
-          padding: var(--cf-spacing-lg) var(--cf-spacing-md);
+          padding: var(--cf-spacing-md);
+          min-height: 180px;
         }
         
-        .poetry-layout {
-          gap: var(--cf-spacing-md);
+        .vertical-title,
+        .horizontal-title,
+        .classic-title,
+        .modern-title {
+          font-size: 1.3em;
         }
         
-        .poetry-title {
-          font-size: 1.2em;
-        }
-        
-        .poetry-content {
-          font-size: 1em;
-          line-height: 1.6;
-        }
-        
-        .author-section {
+        .vertical-content,
+        .horizontal-content,
+        .classic-poetry,
+        .modern-content {
           font-size: 0.9em;
+        }
+        
+        .vertical-author,
+        .horizontal-author,
+        .classic-author,
+        .modern-meta {
+          font-size: 0.8em;
         }
       }
       
       @media (max-width: 400px) {
-        .poetry-card {
-          padding: var(--cf-spacing-md) var(--cf-spacing-sm);
+        .poetry-vertical {
+          writing-mode: horizontal-tb;
+          text-orientation: mixed;
         }
         
-        .poetry-title {
-          font-size: 1.1em;
+        .vertical-line {
+          flex-direction: row;
+          gap: 0.5em;
         }
         
-        .poetry-content {
-          font-size: 0.95em;
-          line-height: 1.5;
+        .vertical-punctuation {
+          margin: 0 0.2em;
+        }
+      }
+      
+      /* 深色模式适配 */
+      @media (prefers-color-scheme: dark) {
+        .poetry-card.background-paper {
+          background: #2a2a2a;
+          background-image: 
+            radial-gradient(#444 1px, transparent 1px),
+            radial-gradient(#444 1px, transparent 1px);
         }
         
-        .author-section {
-          font-size: 0.85em;
+        .poetry-card.background-ink-wash {
+          background: linear-gradient(135deg, #3a3a3a 0%, #2d2d2d 100%);
+        }
+        
+        .vertical-char,
+        .poetry-line {
+          color: #e0e0e0;
+        }
+        
+        .poetry-classic {
+          background: #3a3a3a;
+          border-color: #666;
+        }
+        
+        .classic-corner {
+          border-color: #8b4513;
         }
       }
     `;
