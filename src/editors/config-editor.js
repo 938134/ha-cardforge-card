@@ -76,12 +76,18 @@ export class ConfigEditor extends LitElement {
         width: 100%;
       }
 
-      /* ha-combo-box 样式修复 */
-      ha-combo-box {
+      /* ha-select 样式优化 */
+      ha-select {
         width: 100%;
-        --paper-input-container-color: var(--cf-text-secondary);
-        --paper-input-container-focus-color: var(--cf-primary-color);
-        --paper-input-container-input-color: var(--cf-text-primary);
+        --mdc-select-fill-color: var(--cf-surface);
+        --mdc-select-label-ink-color: var(--cf-text-secondary);
+        --mdc-select-ink-color: var(--cf-text-primary);
+        --mdc-select-dropdown-icon-color: var(--cf-text-secondary);
+        --mdc-select-focused-dropdown-icon-color: var(--cf-primary-color);
+        --mdc-select-fill-color: var(--cf-surface);
+        --mdc-select-idle-line-color: var(--cf-border);
+        --mdc-select-hover-line-color: var(--cf-primary-color);
+        --mdc-select-focused-line-color: var(--cf-primary-color);
       }
 
       /* 深色模式适配 */
@@ -91,10 +97,12 @@ export class ConfigEditor extends LitElement {
           border-color: var(--cf-dark-border);
         }
 
-        ha-combo-box {
-          --paper-input-container-color: var(--cf-dark-text-secondary);
-          --paper-input-container-focus-color: var(--cf-primary-color);
-          --paper-input-container-input-color: var(--cf-dark-text);
+        ha-select {
+          --mdc-select-fill-color: var(--cf-dark-surface);
+          --mdc-select-label-ink-color: var(--cf-dark-text-secondary);
+          --mdc-select-ink-color: var(--cf-dark-text);
+          --mdc-select-dropdown-icon-color: var(--cf-dark-text-secondary);
+          --mdc-select-idle-line-color: var(--cf-dark-border);
         }
       }
 
@@ -184,12 +192,17 @@ export class ConfigEditor extends LitElement {
               ${field.label}
               ${field.required ? html`<span class="required-star">*</span>` : ''}
             </label>
-            <ha-combo-box
-              .items=${items}
+            <ha-select
               .value=${currentValue}
-              @value-changed=${e => this._onConfigChanged(key, e.detail.value)}
-              allow-custom-value
-            ></ha-combo-box>
+              @selected=${e => this._onSelectChanged(key, e.target.value)}
+              @closed=${e => e.stopPropagation()}
+              fixedMenuPosition
+              naturalMenuWidth
+            >
+              ${items.map(item => html`
+                <mwc-list-item .value=${item.value}>${item.label}</mwc-list-item>
+              `)}
+            </ha-select>
           </div>
         `;
         
@@ -227,6 +240,10 @@ export class ConfigEditor extends LitElement {
           </div>
         `;
     }
+  }
+
+  _onSelectChanged(key, value) {
+    this._onConfigChanged(key, value);
   }
 
   _onConfigChanged(key, value) {

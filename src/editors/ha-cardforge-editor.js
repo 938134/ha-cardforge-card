@@ -292,25 +292,25 @@ class HaCardForgeEditor extends LitElement {
     `;
   }
 
-  _renderActionButtons() {
-    return html`
-      <div class="editor-section">
-        <div class="action-buttons">
-          <mwc-button 
-            outlined 
-            label="取消" 
-            @click=${this._cancel}
-          ></mwc-button>
-          <mwc-button 
-            raised 
-            label="保存配置" 
-            @click=${this._save}
-            .disabled=${!this.config.plugin}
-          ></mwc-button>
-        </div>
+_renderActionButtons() {
+  return html`
+    <div class="editor-section">
+      <div class="action-buttons">
+        <mwc-button 
+          outlined 
+          label="取消" 
+          @click=${this._cancel}
+        ></mwc-button>
+        <mwc-button 
+          raised 
+          label="保存配置" 
+          @click=${this._save}
+          .disabled=${!this.config.plugin}
+        ></mwc-button>
       </div>
-    `;
-  }
+    </div>
+  `;
+}
 
   async _onPluginChanged(e) {
     const newConfig = {
