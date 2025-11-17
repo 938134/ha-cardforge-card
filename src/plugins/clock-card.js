@@ -15,45 +15,32 @@ class ClockCard extends BasePlugin {
       clock_style: {
         type: 'select',
         label: '时钟风格',
-        options: ['modern', 'classic', 'minimal', 'glass', 'neon'],
-        default: 'modern',
-        description: '选择时钟显示风格'
+        options: ['现代风格', '经典风格', '简约风格', '毛玻璃风格', '霓虹风格'],
+        default: '现代风格'
       },
       
       show_date: {
         type: 'boolean',
         label: '显示日期',
-        default: true,
-        description: '显示完整日期信息'
+        default: true
       },
       
       show_weekday: {
         type: 'boolean',
         label: '显示星期',
-        default: true,
-        description: '显示星期信息'
-      },
-      
-      show_seconds: {
-        type: 'boolean',
-        label: '显示秒数',
-        default: true,
-        description: '显示秒钟动画'
+        default: true
       },
       
       time_format: {
-        type: 'select',
-        label: '时间格式',
-        options: ['24h', '12h'],
-        default: '24h',
-        description: '选择12小时或24小时制'
+        type: 'boolean',  // 改为 boolean 类型，使用 switch
+        label: '24小时制',
+        default: true
       },
       
       enable_animations: {
         type: 'boolean',
         label: '启用动画',
-        default: true,
-        description: '启用时间数字动画效果'
+        default: true
       }
     }
   };
@@ -69,14 +56,12 @@ class ClockCard extends BasePlugin {
       // 时间
       time_24h: now.toLocaleTimeString('zh-CN', { 
         hour: '2-digit', 
-        minute: '2-digit', 
-        second: '2-digit',
+        minute: '2-digit',
         hour12: false 
       }),
       time_12h: now.toLocaleTimeString('zh-CN', { 
         hour: '2-digit', 
-        minute: '2-digit', 
-        second: '2-digit',
+        minute: '2-digit',
         hour12: true 
       }),
       
@@ -95,18 +80,17 @@ class ClockCard extends BasePlugin {
       hour: String(now.getHours()).padStart(2, '0'),
       hour_12: String(hour % 12 || 12).padStart(2, '0'),
       minute: String(now.getMinutes()).padStart(2, '0'),
-      second: String(now.getSeconds()).padStart(2, '0'),
       ampm: isPM ? 'PM' : 'AM'
     };
   }
 
   getTemplate(config, hass, entities) {
     const timeData = this._getTimeData();
-    const clockStyle = config.clock_style || 'modern';
+    const clockStyle = config.clock_style || '现代风格';
     const showAnimations = config.enable_animations !== false;
 
     return `
-      <div class="cardforge-responsive-container clock-card style-${clockStyle} ${showAnimations ? 'with-animations' : ''}">
+      <div class="cardforge-responsive-container clock-card style-${this._getStyleClass(clockStyle)} ${showAnimations ? 'with-animations' : ''}">
         <div class="cardforge-content-grid">
           ${this._renderClock(timeData, config)}
         </div>
@@ -114,17 +98,28 @@ class ClockCard extends BasePlugin {
     `;
   }
 
+  _getStyleClass(styleName) {
+    const styleMap = {
+      '现代风格': 'modern',
+      '经典风格': 'classic', 
+      '简约风格': 'minimal',
+      '毛玻璃风格': 'glass',
+      '霓虹风格': 'neon'
+    };
+    return styleMap[styleName] || 'modern';
+  }
+
   _renderClock(timeData, config) {
-    const clockStyle = config.clock_style || 'modern';
+    const clockStyle = config.clock_style || '现代风格';
     
     switch (clockStyle) {
-      case 'classic':
+      case '经典风格':
         return this._renderClassicClock(timeData, config);
-      case 'minimal':
+      case '简约风格':
         return this._renderMinimalClock(timeData, config);
-      case 'glass':
+      case '毛玻璃风格':
         return this._renderGlassClock(timeData, config);
-      case 'neon':
+      case '霓虹风格':
         return this._renderNeonClock(timeData, config);
       default:
         return this._renderModernClock(timeData, config);
@@ -132,20 +127,19 @@ class ClockCard extends BasePlugin {
   }
 
   _renderModernClock(timeData, config) {
-    const showSeconds = config.show_seconds !== false;
-    const timeFormat = config.time_format || '24h';
-    const timeDisplay = timeFormat === '12h' ? timeData.time_12h : timeData.time_24h;
+    const timeFormat = config.time_format !== false; // true = 24小时制
+    const timeDisplay = timeFormat ? timeData.time_24h : timeData.time_12h;
     
     return `
       <div class="modern-clock">
         <div class="time-main">
           <div class="time-digits">
             ${timeDisplay.split(':').map((part, index) => `
-              <span class="digit-part ${index === 2 ? 'seconds' : ''}">${part}</span>
-              ${index < 2 ? '<span class="digit-separator">:</span>' : ''}
+              <span class="digit-part">${part}</span>
+              ${index < 1 ? '<span class="digit-separator">:</span>' : ''}
             `).join('')}
           </div>
-          ${timeFormat === '12h' ? `
+          ${!timeFormat ? `
             <div class="ampm-indicator">${timeData.ampm}</div>
           ` : ''}
         </div>
@@ -161,20 +155,18 @@ class ClockCard extends BasePlugin {
   }
 
   _renderClassicClock(timeData, config) {
-    const showSeconds = config.show_seconds !== false;
+    const timeFormat = config.time_format !== false;
+    const hourDisplay = timeFormat ? timeData.hour : timeData.hour_12;
     
     return `
       <div class="classic-clock">
         <div class="clock-face">
           <div class="time-display">
-            <span class="hour">${timeData.hour}</span>
+            <span class="hour">${hourDisplay}</span>
             <span class="time-separator">:</span>
             <span class="minute">${timeData.minute}</span>
-            ${showSeconds ? `
-              <span class="time-separator">:</span>
-              <span class="second">${timeData.second}</span>
-            ` : ''}
           </div>
+          ${!timeFormat ? `<div class="ampm-display">${timeData.ampm}</div>` : ''}
         </div>
         
         <div class="classic-info">
@@ -186,10 +178,13 @@ class ClockCard extends BasePlugin {
   }
 
   _renderMinimalClock(timeData, config) {
+    const timeFormat = config.time_format !== false;
+    const hourDisplay = timeFormat ? timeData.hour : timeData.hour_12;
+    
     return `
       <div class="minimal-clock">
-        <div class="minimal-time">${timeData.hour}:${timeData.minute}</div>
-        ${config.show_seconds ? `<div class="minimal-seconds">${timeData.second}</div>` : ''}
+        <div class="minimal-time">${hourDisplay}:${timeData.minute}</div>
+        ${!timeFormat ? `<div class="minimal-ampm">${timeData.ampm}</div>` : ''}
         
         <div class="minimal-info">
           ${config.show_date ? `<div class="minimal-date">${timeData.date_short}</div>` : ''}
@@ -200,19 +195,17 @@ class ClockCard extends BasePlugin {
   }
 
   _renderGlassClock(timeData, config) {
-    const showSeconds = config.show_seconds !== false;
+    const timeFormat = config.time_format !== false;
+    const hourDisplay = timeFormat ? timeData.hour : timeData.hour_12;
     
     return `
       <div class="glass-clock">
         <div class="glass-time">
-          <span class="glass-hour">${timeData.hour}</span>
+          <span class="glass-hour">${hourDisplay}</span>
           <span class="glass-separator">:</span>
           <span class="glass-minute">${timeData.minute}</span>
-          ${showSeconds ? `
-            <span class="glass-separator">:</span>
-            <span class="glass-second">${timeData.second}</span>
-          ` : ''}
         </div>
+        ${!timeFormat ? `<div class="glass-ampm">${timeData.ampm}</div>` : ''}
         
         <div class="glass-info">
           ${config.show_date ? `<div class="glass-date">${timeData.date}</div>` : ''}
@@ -223,17 +216,17 @@ class ClockCard extends BasePlugin {
   }
 
   _renderNeonClock(timeData, config) {
+    const timeFormat = config.time_format !== false;
+    const hourDisplay = timeFormat ? timeData.hour : timeData.hour_12;
+    
     return `
       <div class="neon-clock">
         <div class="neon-time">
-          <span class="neon-digit">${timeData.hour}</span>
+          <span class="neon-digit">${hourDisplay}</span>
           <span class="neon-separator">:</span>
           <span class="neon-digit">${timeData.minute}</span>
-          ${config.show_seconds ? `
-            <span class="neon-separator">:</span>
-            <span class="neon-digit">${timeData.second}</span>
-          ` : ''}
         </div>
+        ${!timeFormat ? `<div class="neon-ampm">${timeData.ampm}</div>` : ''}
         
         <div class="neon-info">
           ${config.show_date ? `<div class="neon-date">${timeData.date_short}</div>` : ''}
@@ -244,7 +237,8 @@ class ClockCard extends BasePlugin {
   }
 
   getStyles(config) {
-    const clockStyle = config.clock_style || 'modern';
+    const clockStyle = config.clock_style || '现代风格';
+    const styleClass = this._getStyleClass(clockStyle);
     const showAnimations = config.enable_animations !== false;
 
     return `
@@ -280,32 +274,27 @@ class ClockCard extends BasePlugin {
       }
 
       .modern-clock .digit-part {
-        font-size: 3.5em;
+        font-size: 4em;
         font-weight: 300;
-        background: linear-gradient(135deg, var(--cf-primary-color), var(--cf-accent-color));
-        -webkit-background-clip: text;
-        -webkit-text-fill-color: transparent;
-        background-clip: text;
+        color: var(--cf-text-primary);
         line-height: 1;
-      }
-
-      .modern-clock .seconds {
-        font-size: 2.5em;
-        opacity: 0.8;
+        text-shadow: 0 2px 4px rgba(0,0,0,0.1);
       }
 
       .modern-clock .digit-separator {
-        font-size: 2.5em;
+        font-size: 3em;
         font-weight: 200;
-        color: var(--cf-text-secondary);
+        color: var(--cf-primary-color);
         animation: ${showAnimations ? 'blink 2s infinite' : 'none'};
       }
 
       .modern-clock .ampm-indicator {
-        font-size: 1.2em;
+        font-size: 1.5em;
         font-weight: 600;
         color: var(--cf-accent-color);
         margin-left: var(--cf-spacing-sm);
+        align-self: flex-end;
+        margin-bottom: 0.2em;
       }
 
       .modern-clock .date-info {
@@ -315,13 +304,13 @@ class ClockCard extends BasePlugin {
       }
 
       .modern-clock .date {
-        font-size: 1.3em;
+        font-size: 1.4em;
         font-weight: 500;
         color: var(--cf-text-primary);
       }
 
       .modern-clock .weekday {
-        font-size: 1.1em;
+        font-size: 1.2em;
         color: var(--cf-text-secondary);
         font-weight: 400;
       }
@@ -341,10 +330,14 @@ class ClockCard extends BasePlugin {
       }
 
       .classic-clock .time-display {
-        font-size: 3em;
+        font-size: 3.5em;
         font-weight: 600;
         color: var(--cf-text-primary);
         font-variant-numeric: tabular-nums;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 4px;
       }
 
       .classic-clock .time-separator {
@@ -352,9 +345,11 @@ class ClockCard extends BasePlugin {
         animation: ${showAnimations ? 'blink 1s infinite' : 'none'};
       }
 
-      .classic-clock .second {
+      .classic-clock .ampm-display {
+        font-size: 1.2em;
         color: var(--cf-accent-color);
-        font-size: 0.9em;
+        font-weight: 600;
+        margin-top: var(--cf-spacing-sm);
       }
 
       .classic-clock .classic-info {
@@ -380,7 +375,7 @@ class ClockCard extends BasePlugin {
       }
 
       .minimal-clock .minimal-time {
-        font-size: 4em;
+        font-size: 4.5em;
         font-weight: 200;
         color: var(--cf-text-primary);
         font-variant-numeric: tabular-nums;
@@ -388,12 +383,11 @@ class ClockCard extends BasePlugin {
         margin-bottom: var(--cf-spacing-sm);
       }
 
-      .minimal-clock .minimal-seconds {
-        font-size: 1.5em;
+      .minimal-clock .minimal-ampm {
+        font-size: 1.2em;
         color: var(--cf-accent-color);
-        font-variant-numeric: tabular-nums;
+        font-weight: 500;
         margin-bottom: var(--cf-spacing-lg);
-        animation: ${showAnimations ? 'fadeInOut 2s infinite' : 'none'};
       }
 
       .minimal-clock .minimal-info {
@@ -410,12 +404,15 @@ class ClockCard extends BasePlugin {
       }
 
       .glass-clock .glass-time {
-        font-size: 3.5em;
+        font-size: 4em;
         font-weight: 300;
         color: var(--cf-text-primary);
         font-variant-numeric: tabular-nums;
-        margin-bottom: var(--cf-spacing-lg);
-        text-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        margin-bottom: var(--cf-spacing-sm);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 4px;
       }
 
       .glass-clock .glass-separator {
@@ -423,9 +420,11 @@ class ClockCard extends BasePlugin {
         animation: ${showAnimations ? 'blink 1.5s infinite' : 'none'};
       }
 
-      .glass-clock .glass-second {
+      .glass-clock .glass-ampm {
+        font-size: 1.3em;
         color: var(--cf-accent-color);
-        font-size: 0.9em;
+        font-weight: 500;
+        margin-bottom: var(--cf-spacing-lg);
       }
 
       .glass-clock .glass-info {
@@ -443,10 +442,14 @@ class ClockCard extends BasePlugin {
       }
 
       .neon-clock .neon-time {
-        font-size: 3.5em;
+        font-size: 4em;
         font-weight: 600;
         font-variant-numeric: tabular-nums;
-        margin-bottom: var(--cf-spacing-lg);
+        margin-bottom: var(--cf-spacing-sm);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 4px;
         text-shadow: 
           0 0 5px #00ff88,
           0 0 10px #00ff88,
@@ -463,6 +466,14 @@ class ClockCard extends BasePlugin {
         animation: ${showAnimations ? 'blink 1s infinite' : 'none'};
       }
 
+      .neon-clock .neon-ampm {
+        font-size: 1.3em;
+        color: #00ff88;
+        font-weight: 500;
+        margin-bottom: var(--cf-spacing-lg);
+        text-shadow: 0 0 5px #00ff88;
+      }
+
       .neon-clock .neon-info {
         display: flex;
         gap: var(--cf-spacing-lg);
@@ -476,11 +487,6 @@ class ClockCard extends BasePlugin {
       @keyframes blink {
         0%, 50% { opacity: 1; }
         51%, 100% { opacity: 0.3; }
-      }
-
-      @keyframes fadeInOut {
-        0%, 100% { opacity: 0.7; }
-        50% { opacity: 1; }
       }
 
       @keyframes neonPulse {
@@ -527,27 +533,27 @@ class ClockCard extends BasePlugin {
         }
 
         .modern-clock .digit-part {
-          font-size: 2.5em;
-        }
-
-        .modern-clock .seconds {
-          font-size: 2em;
-        }
-
-        .classic-clock .time-display {
-          font-size: 2.5em;
-        }
-
-        .minimal-clock .minimal-time {
           font-size: 3em;
         }
 
-        .glass-clock .glass-time {
+        .modern-clock .digit-separator {
+          font-size: 2.2em;
+        }
+
+        .classic-clock .time-display {
           font-size: 2.8em;
         }
 
+        .minimal-clock .minimal-time {
+          font-size: 3.5em;
+        }
+
+        .glass-clock .glass-time {
+          font-size: 3.2em;
+        }
+
         .neon-clock .neon-time {
-          font-size: 2.8em;
+          font-size: 3.2em;
         }
 
         .modern-clock .date-info,
@@ -561,15 +567,15 @@ class ClockCard extends BasePlugin {
 
       @media (max-width: 400px) {
         .modern-clock .digit-part {
-          font-size: 2em;
+          font-size: 2.5em;
         }
 
         .classic-clock .time-display {
-          font-size: 2em;
+          font-size: 2.2em;
         }
 
         .minimal-clock .minimal-time {
-          font-size: 2.5em;
+          font-size: 3em;
         }
       }
 
