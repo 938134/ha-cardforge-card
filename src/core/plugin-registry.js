@@ -17,11 +17,7 @@ class PluginRegistry {
   static async _discoverPlugins() {
     const pluginModules = [
       () => import('../plugins/clock-card.js'),
-      () => import('../plugins/weather-card.js'),
-      () => import('../plugins/welcome-card.js'),
-      () => import('../plugins/week-card.js'),
-      () => import('../plugins/oilprice-card.js'),
-      () => import('../plugins/poetry-card.js')
+      // 其他插件...
     ];
 
     for (const importFn of pluginModules) {
@@ -35,28 +31,36 @@ class PluginRegistry {
   }
 
   static _registerPluginModule(module) {
-    const pluginId = module.manifest?.id;
+    // 修复：检查 manifest 是否存在
+    if (!module.manifest) {
+      console.warn('插件缺少 manifest，跳过注册');
+      return;
+    }
+
+    const pluginId = module.manifest.id;
     if (!pluginId) {
       console.warn('插件缺少 manifest.id，跳过');
       return;
     }
 
-    if (module.manifest && module.default) {
+    if (module.default) {
       const PluginClass = module.default;
       
       // 验证插件接口
       if (typeof PluginClass.prototype.getTemplate === 'function' && 
-          typeof PluginClass.prototype.getStyles === 'function' &&
-          typeof PluginClass.prototype.getManifest === 'function') {
+          typeof PluginClass.prototype.getStyles === 'function') {
         
         this._plugins.set(pluginId, {
           id: pluginId,
           class: PluginClass,
           manifest: module.manifest
         });
+        console.log(`✅ 注册插件: ${pluginId}`);
       } else {
         console.warn(`插件 ${pluginId} 接口不完整，跳过`);
       }
+    } else {
+      console.warn(`插件 ${pluginId} 缺少默认导出，跳过`);
     }
   }
 
