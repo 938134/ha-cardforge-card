@@ -17,6 +17,7 @@ class PluginRegistry {
   static async _discoverPlugins() {
     const pluginModules = [
       () => import('../plugins/clock-card.js'),
+      () => import('../plugins/welcome-card.js'),
       // 其他插件...
     ];
 
