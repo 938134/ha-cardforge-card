@@ -9,6 +9,25 @@ export class BasePlugin {
     }
   }
 
+  // === 卡片能力系统 ===
+  
+  getCardCapabilities() {
+    const manifest = this.getManifest();
+    const defaultCapabilities = {
+      supportsTitle: false,
+      supportsContent: false,
+      supportsFooter: false,
+      supportsCustomFields: false,
+      supportsEntities: true,
+      supportsTheme: true
+    };
+    
+    return {
+      ...defaultCapabilities,
+      ...manifest.capabilities
+    };
+  }
+
   // === 核心接口（必须实现） ===
   getTemplate(config, hass, entities) {
     throw new Error('必须实现 getTemplate 方法');
@@ -16,308 +35,6 @@ export class BasePlugin {
 
   getStyles(config) {
     throw new Error('必须实现 getStyles 方法');
-  }
-
-  // === 系统变量集成 ===
-  
-  /**
-   * 获取系统常用变量
-   */
-  _getSystemVariables(config, hass, entities) {
-    const now = new Date();
-    const hour = now.getHours();
-    
-    // 时间相关变量
-    const timeVars = {
-      // 基础时间
-      current_time: now.toLocaleTimeString('zh-CN', { 
-        hour: '2-digit', 
-        minute: '2-digit',
-        hour12: false 
-      }),
-      current_time_12h: now.toLocaleTimeString('zh-CN', { 
-        hour: '2-digit', 
-        minute: '2-digit',
-        hour12: true 
-      }),
-      current_date: now.toLocaleDateString('zh-CN'),
-      current_date_short: `${now.getMonth() + 1}月${now.getDate()}日`,
-      current_year: now.getFullYear(),
-      current_month: String(now.getMonth() + 1).padStart(2, '0'),
-      current_day: String(now.getDate()).padStart(2, '0'),
-      current_weekday: '星期' + '日一二三四五六'[now.getDay()],
-      current_weekday_short: '周' + '日一二三四五六'[now.getDay()],
-      
-      // 时间组件
-      current_hour: String(now.getHours()).padStart(2, '0'),
-      current_hour_12: String(hour % 12 || 12).padStart(2, '0'),
-      current_minute: String(now.getMinutes()).padStart(2, '0'),
-      current_second: String(now.getSeconds()).padStart(2, '0'),
-      current_ampm: hour >= 12 ? 'PM' : 'AM',
-      
-      // 时间判断
-      is_morning: hour >= 5 && hour < 12,
-      is_noon: hour >= 11 && hour < 13,
-      is_afternoon: hour >= 12 && hour < 18,
-      is_evening: hour >= 18 || hour < 5,
-      is_night: hour >= 20 || hour < 6,
-      is_weekend: now.getDay() === 0 || now.getDay() === 6
-    };
-
-    // 问候语
-    let greeting = '';
-    if (hour >= 5 && hour < 12) {
-      greeting = '早上好';
-    } else if (hour >= 12 && hour < 14) {
-      greeting = '中午好';
-    } else if (hour >= 14 && hour < 18) {
-      greeting = '下午好';
-    } else {
-      greeting = '晚上好';
-    }
-
-    // 用户相关变量
-    const userVars = this._getUserVariables(hass, entities);
-    
-    // 系统状态变量
-    const systemVars = {
-      // Home Assistant 信息
-      ha_version: hass?.config?.version || '',
-      ha_location: hass?.config?.location_name || '家庭',
-      ha_currency: hass?.config?.currency || 'CNY',
-      ha_time_zone: hass?.config?.time_zone || 'Asia/Shanghai',
-      ha_language: hass?.config?.language || 'zh-CN',
-      
-      // 设备信息
-      browser_platform: navigator.platform,
-      browser_language: navigator.language,
-      browser_user_agent: navigator.userAgent,
-      
-      // 主题信息
-      is_dark_mode: document.body.classList.contains('dark') || 
-                    window.matchMedia('(prefers-color-scheme: dark)').matches,
-      
-      // 问候语
-      time_greeting: greeting,
-      default_greeting: `${greeting}，${userVars.current_user_name || '用户'}！`
-    };
-
-    return {
-      ...timeVars,
-      ...userVars,
-      ...systemVars,
-      
-      // 快捷变量
-      now: timeVars.current_time,
-      today: timeVars.current_date,
-      user: userVars.current_user_name,
-      location: systemVars.ha_location
-    };
-  }
-
-  /**
-   * 获取用户相关变量
-   */
-  _getUserVariables(hass, entities) {
-    const users = hass?.user?.name ? [hass.user] : 
-                 hass?.states ? this._extractUsersFromStates(hass.states) : [];
-    
-    const currentUser = users[0] || {};
-    
-    return {
-      // 当前用户
-      current_user_name: currentUser.name || '用户',
-      current_user_id: currentUser.id || '',
-      current_user_is_owner: currentUser.is_owner || false,
-      current_user_is_admin: currentUser.is_admin || false,
-      
-      // 用户列表
-      users_count: users.length,
-      users_list: users.map(user => user.name),
-      users: users,
-      
-      // 从实体中提取的用户信息
-      user_entity_name: this._getEntityValue(entities, 'user_entity_name') || currentUser.name,
-      user_entity_id: this._getEntityValue(entities, 'user_entity') || ''
-    };
-  }
-
-  /**
-   * 从实体状态中提取用户信息
-   */
-  _extractUsersFromStates(states) {
-    const users = [];
-    
-    // 从 person 实体中提取用户
-    Object.entries(states).forEach(([entityId, stateObj]) => {
-      if (entityId.startsWith('person.')) {
-        users.push({
-          id: entityId,
-          name: stateObj.attributes?.friendly_name || entityId.replace('person.', ''),
-          entity_id: entityId,
-          state: stateObj.state,
-          is_home: stateObj.state === 'home'
-        });
-      }
-    });
-    
-    return users;
-  }
-
-  /**
-   * 获取天气相关变量
-   */
-  _getWeatherVariables(hass) {
-    const weatherEntities = Object.entries(hass?.states || {})
-      .filter(([entityId]) => entityId.startsWith('weather.'))
-      .map(([entityId, stateObj]) => ({
-        entity_id: entityId,
-        name: stateObj.attributes?.friendly_name || entityId,
-        condition: stateObj.state,
-        temperature: stateObj.attributes?.temperature,
-        humidity: stateObj.attributes?.humidity,
-        pressure: stateObj.attributes?.pressure,
-        wind_speed: stateObj.attributes?.wind_speed,
-        forecast: stateObj.attributes?.forecast || []
-      }));
-    
-    const primaryWeather = weatherEntities[0] || {};
-    
-    return {
-      // 主要天气信息
-      weather_condition: primaryWeather.condition || '',
-      weather_temperature: primaryWeather.temperature || '',
-      weather_humidity: primaryWeather.humidity || '',
-      weather_pressure: primaryWeather.pressure || '',
-      weather_wind_speed: primaryWeather.wind_speed || '',
-      
-      // 天气实体列表
-      weather_entities: weatherEntities,
-      has_weather: weatherEntities.length > 0,
-      
-      // 快捷变量
-      temp: primaryWeather.temperature,
-      humidity: primaryWeather.humidity
-    };
-  }
-
-  /**
-   * 获取设备相关变量
-   */
-  _getDeviceVariables(hass) {
-    const devices = {};
-    const zones = {};
-    
-    Object.entries(hass?.states || {}).forEach(([entityId, stateObj]) => {
-      // 设备跟踪
-      if (entityId.startsWith('device_tracker.') || entityId.startsWith('person.')) {
-        const deviceName = stateObj.attributes?.friendly_name || entityId;
-        devices[deviceName] = {
-          entity_id: entityId,
-          name: deviceName,
-          state: stateObj.state,
-          is_home: stateObj.state === 'home',
-          last_changed: stateObj.last_changed
-        };
-      }
-      
-      // 区域信息
-      if (entityId.startsWith('zone.')) {
-        zones[entityId] = {
-          name: stateObj.attributes?.friendly_name || entityId,
-          latitude: stateObj.attributes?.latitude,
-          longitude: stateObj.attributes?.longitude,
-          radius: stateObj.attributes?.radius
-        };
-      }
-    });
-    
-    const homeDevices = Object.values(devices).filter(device => device.is_home);
-    
-    return {
-      // 设备信息
-      devices: devices,
-      devices_count: Object.keys(devices).length,
-      devices_at_home: homeDevices,
-      devices_at_home_count: homeDevices.length,
-      
-      // 区域信息
-      zones: zones,
-      
-      // 快捷变量
-      people_at_home: homeDevices.map(device => device.name),
-      people_at_home_count: homeDevices.length
-    };
-  }
-
-  /**
-   * 获取系统状态变量
-   */
-  _getSystemStatusVariables(hass) {
-    const entities = Object.keys(hass?.states || {});
-    const domains = {};
-    
-    entities.forEach(entityId => {
-      const domain = entityId.split('.')[0];
-      domains[domain] = (domains[domain] || 0) + 1;
-    });
-    
-    return {
-      // 系统统计
-      entities_count: entities.length,
-      domains_count: Object.keys(domains).length,
-      domains: domains,
-      
-      // 服务状态
-      services_count: Object.keys(hass?.services || {}).length,
-      
-      // 系统信息
-      system_platform: hass?.config?.components || [],
-      safe_mode: hass?.config?.safe_mode || false,
-      state: hass?.config?.state || ''
-    };
-  }
-
-  // === 模板渲染辅助方法 ===
-  
-  /**
-   * 渲染模板时替换系统变量
-   */
-  _renderWithSystemVariables(template, systemVars) {
-    if (typeof template !== 'string') return template;
-    
-    let result = template;
-    
-    // 替换 {{ variable }} 格式的变量
-    Object.entries(systemVars).forEach(([key, value]) => {
-      const regex = new RegExp(`{{${key}}}`, 'g');
-      result = result.replace(regex, this._renderSafeHTML(value));
-    });
-    
-    // 替换 {variable} 格式的变量（简化版）
-    Object.entries(systemVars).forEach(([key, value]) => {
-      const regex = new RegExp(`{${key}}`, 'g');
-      result = result.replace(regex, this._renderSafeHTML(value));
-    });
-    
-    return result;
-  }
-
-  /**
-   * 获取完整的系统数据（供插件使用）
-   */
-  _getCompleteSystemData(config, hass, entities) {
-    return {
-      ...this._getSystemVariables(config, hass, entities),
-      weather: this._getWeatherVariables(hass),
-      devices: this._getDeviceVariables(hass),
-      system: this._getSystemStatusVariables(hass),
-      
-      // 原始数据
-      _hass: hass,
-      _entities: entities,
-      _config: config
-    };
   }
 
   // === 动态实体支持 ===
@@ -379,7 +96,8 @@ export class BasePlugin {
       icon: '📄',
       author: 'CardForge',
       config_schema: {},
-      entity_requirements: []
+      entity_requirements: [],
+      capabilities: {}
     };
     
     const merged = { ...defaultManifest, ...customManifest };
