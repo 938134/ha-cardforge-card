@@ -66,22 +66,22 @@ class PoetryCard extends BasePlugin {
     // 返回诗词卡片需要的实体字段
     return [
       {
-        key: 'title',
+        key: 'poetry_title',
         description: '诗词标题',
         required: true
       },
       {
-        key: 'dynasty', 
+        key: 'poetry_dynasty', 
         description: '诗词朝代',
         required: false
       },
       {
-        key: 'author',
+        key: 'poetry_author',
         description: '诗词作者',
         required: false
       },
       {
-        key: 'content',
+        key: 'poetry_content',
         description: '诗词全文',
         required: true
       }
@@ -95,7 +95,7 @@ class PoetryCard extends BasePlugin {
     // 验证数据完整性
     const validation = this._validatePoetryData(poetryData);
     if (!validation.valid) {
-      return this._renderError(validation.message || '诗词数据不完整');
+      return this._renderError(validation.message || '诗词数据不完整，请在编辑器中配置标题和内容字段');
     }
 
     const cardStyle = config.card_style || '古典风格';
@@ -112,12 +112,23 @@ class PoetryCard extends BasePlugin {
   }
 
   _extractPoetryData(entities) {
-    // 直接从实体中获取数据
+    console.log('诗词卡片实体数据:', entities); // 调试信息
+    
+    // 从实体中获取数据，支持多种可能的键名
+    const getValue = (keys) => {
+      for (const key of keys) {
+        if (entities[key] && entities[key].state) {
+          return entities[key].state;
+        }
+      }
+      return '';
+    };
+
     return {
-      title: this._getEntityValue(entities, 'title'),
-      dynasty: this._getEntityValue(entities, 'dynasty'),
-      author: this._getEntityValue(entities, 'author'),
-      content: this._getEntityValue(entities, 'content')
+      title: getValue(['poetry_title', 'title', '诗词标题']),
+      dynasty: getValue(['poetry_dynasty', 'dynasty', '朝代']),
+      author: getValue(['poetry_author', 'author', '作者']),
+      content: getValue(['poetry_content', 'content', '诗词内容', '内容'])
     };
   }
 
@@ -169,6 +180,8 @@ class PoetryCard extends BasePlugin {
 
   _renderPoetryContent(poetryData, style, layout) {
     const { title, dynasty, author, content } = poetryData;
+    
+    console.log('渲染诗词数据:', poetryData); // 调试信息
     
     // 构建作者朝代信息
     let authorInfo = '';
