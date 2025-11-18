@@ -146,7 +146,7 @@ export class EntityManager extends LitElement {
         color: var(--primary-color);
       }
 
-      /* 内联编辑表单 */
+      /* 内联编辑表单 - 三行布局 */
       .edit-form {
         background: var(--secondary-background-color);
         border: 2px solid var(--primary-color);
@@ -167,12 +167,22 @@ export class EntityManager extends LitElement {
         }
       }
 
-      .form-grid {
-        display: grid;
-        grid-template-columns: 1fr auto;
-        gap: 12px;
-        align-items: start;
-        margin-bottom: 12px;
+      .form-row {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+        margin-bottom: 16px;
+      }
+
+      .form-row:last-child {
+        margin-bottom: 0;
+      }
+
+      .form-label {
+        font-weight: 600;
+        color: var(--primary-text-color);
+        font-size: 14px;
+        margin-bottom: 4px;
       }
 
       .form-actions {
@@ -195,13 +205,40 @@ export class EntityManager extends LitElement {
         margin-bottom: 16px;
         opacity: 0.3;
       }
+
+      /* 图标选择器容器 */
+      .icon-picker-container {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+      }
+
+      .icon-preview {
+        width: 40px;
+        height: 40px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: var(--card-background-color);
+        border: 1px solid var(--divider-color);
+        border-radius: 8px;
+        font-size: 20px;
+      }
+
+      /* 实体预览 */
+      .entity-preview {
+        font-size: 12px;
+        color: var(--success-color);
+        margin-top: 4px;
+        font-style: italic;
+      }
     `
   ];
 
   constructor() {
     super();
     this._config = { header: [], content: [], footer: [] };
-    this._editingId = null; // 格式: "section-index"
+    this._editingId = null;
   }
 
   willUpdate(changedProperties) {
@@ -218,7 +255,6 @@ export class EntityManager extends LitElement {
 
     const config = { header: [], content: [], footer: [] };
     
-    // 解析现有配置
     Object.keys(this.entities).forEach(key => {
       if (key.startsWith('header_') && !key.includes('_label') && !key.includes('_icon')) {
         const index = key.replace('header_', '');
@@ -291,7 +327,7 @@ export class EntityManager extends LitElement {
         <div class="card-header">
           <div class="card-title">
             <ha-icon .icon=${icon}></ha-icon>
-            ${title}
+            ${title} (${items.length})
           </div>
           <button class="button" @click=${() => this._addItem(sectionType)}>
             <ha-icon icon="mdi:plus"></ha-icon>
@@ -353,45 +389,62 @@ export class EntityManager extends LitElement {
     const [_, index] = this._editingId.split('-');
     const item = this._config[sectionType][parseInt(index)] || { label: '', value: '', icon: 'mdi:chart-box' };
     const entityInfo = this._getEntityInfo(item.value);
+    const preview = this._getEntityPreview(item.value);
 
     return html`
       <div class="edit-form">
-        <div class="form-grid">
+        <!-- 第一行：名称 -->
+        <div class="form-row">
+          <div class="form-label">显示名称</div>
           <ha-textfield
-            label="显示名称"
             .value=${item.label}
             @input=${e => this._updateItem('label', e.target.value)}
             placeholder=${entityInfo.name || "输入显示名称"}
             fullwidth
           ></ha-textfield>
-          
-          <ha-icon-picker
-            .value=${item.icon}
-            @value-changed=${e => this._updateItem('icon', e.detail.value)}
-            label="图标"
-          ></ha-icon-picker>
         </div>
 
-        <ha-entity-picker
-          .hass=${this.hass}
-          .value=${item.value}
-          @value-changed=${e => {
-            this._updateItem('value', e.detail.value);
-            // 自动填充实体信息
-            if (e.detail.value) {
-              const info = this._getEntityInfo(e.detail.value);
-              if (info.name && !item.label) {
-                this._updateItem('label', info.name);
+        <!-- 第二行：图标 -->
+        <div class="form-row">
+          <div class="form-label">图标</div>
+          <div class="icon-picker-container">
+            <div class="icon-preview">
+              <ha-icon .icon=${item.icon}></ha-icon>
+            </div>
+            <ha-icon-picker
+              .hass=${this.hass}
+              .value=${item.icon}
+              @value-changed=${e => this._updateItem('icon', e.detail.value)}
+              label="选择图标"
+            ></ha-icon-picker>
+          </div>
+        </div>
+
+        <!-- 第三行：实体选择 -->
+        <div class="form-row">
+          <div class="form-label">数据源</div>
+          <ha-entity-picker
+            .hass=${this.hass}
+            .value=${item.value}
+            @value-changed=${e => {
+              this._updateItem('value', e.detail.value);
+              // 自动填充实体信息
+              if (e.detail.value) {
+                const info = this._getEntityInfo(e.detail.value);
+                if (info.name && !item.label) {
+                  this._updateItem('label', info.name);
+                }
+                if (info.icon && item.icon === 'mdi:chart-box') {
+                  this._updateItem('icon', info.icon);
+                }
               }
-              if (info.icon && item.icon === 'mdi:chart-box') {
-                this._updateItem('icon', info.icon);
-              }
-            }
-          }}
-          label="选择实体"
-          allow-custom-value
-          fullwidth
-        ></ha-entity-picker>
+            }}
+            label="选择实体"
+            allow-custom-value
+            fullwidth
+          ></ha-entity-picker>
+          ${preview ? html`<div class="entity-preview">当前状态: ${preview}</div>` : ''}
+        </div>
 
         <div class="form-actions">
           <button class="button" style="background: var(--secondary-color);" @click=${this._cancelEdit}>
@@ -434,7 +487,8 @@ export class EntityManager extends LitElement {
       return this.hass.states[entityValue].state;
     }
     
-    return '';
+    // 如果是模板或其他文本
+    return entityValue.length > 50 ? entityValue.substring(0, 50) + '...' : entityValue;
   }
 
   _getDefaultIcon(entityId) {
@@ -449,7 +503,10 @@ export class EntityManager extends LitElement {
       binary_sensor: 'mdi:checkbox-marked-circle',
       input_boolean: 'mdi:toggle-switch',
       automation: 'mdi:robot',
-      script: 'mdi:script-text'
+      script: 'mdi:script-text',
+      device_tracker: 'mdi:account',
+      camera: 'mdi:camera',
+      cover: 'mdi:window-open'
     };
     return icons[domain] || 'mdi:circle';
   }
