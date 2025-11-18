@@ -11,6 +11,13 @@ class WelcomeCard extends BasePlugin {
     icon: '👋',
     author: 'CardForge',
     
+    // 卡片能力配置
+    capabilities: {
+      supportsTitle: false,     // 不需要标题自定义
+      supportsContent: true,    // 需要内容自定义（用于替代欢迎语）
+      supportsFooter: false     // 不需要页脚自定义
+    },
+    
     config_schema: {
       welcome_style: {
         type: 'select',
@@ -37,20 +44,6 @@ class WelcomeCard extends BasePlugin {
         default: true
       },
       
-      custom_greeting: {
-        type: 'string',
-        label: '自定义问候语',
-        default: '',
-        placeholder: '支持变量：{user} {greeting} {time} {date} {weekday}'
-      },
-      
-      quote_entity: {
-        type: 'string',
-        label: '每日一言实体',
-        default: '',
-        placeholder: '例如：sensor.daily_quote'
-      },
-      
       enable_animations: {
         type: 'boolean',
         label: '启用动画效果',
@@ -65,13 +58,54 @@ class WelcomeCard extends BasePlugin {
     const styleClass = this._getStyleClass(config.welcome_style);
     const showAnimations = config.enable_animations !== false;
 
+    // 获取自定义欢迎语（从实体配置中获取）
+    const customGreeting = this._getCustomGreeting(entities);
+
     return `
       <div class="cardforge-responsive-container welcome-card style-${styleClass} ${showAnimations ? 'with-animations' : ''}">
         <div class="cardforge-content-grid">
-          ${this._renderWelcomeContent(systemVars, config)}
+          ${this._renderWelcomeContent(systemVars, config, customGreeting)}
         </div>
       </div>
     `;
+  }
+
+  _getCustomGreeting(entities) {
+    // 从实体配置中获取自定义欢迎语
+    // 支持多个内容字段，第一个非空的内容作为欢迎语
+    const contentFields = Object.keys(entities || {}).filter(key => 
+      !key.includes('_name') && !key.includes('_icon')
+    );
+    
+    for (const key of contentFields) {
+      const value = entities[key];
+      if (value && value.trim()) {
+        return this._processGreetingVariables(value);
+      }
+    }
+    
+    return null;
+  }
+
+  _processGreetingVariables(greeting) {
+    const now = new Date();
+    const hour = now.getHours();
+    
+    // 时间问候语
+    let timeGreeting = '你好';
+    if (hour >= 5 && hour < 9) timeGreeting = '早上好';
+    else if (hour >= 9 && hour < 12) timeGreeting = '上午好';
+    else if (hour >= 12 && hour < 14) timeGreeting = '中午好';
+    else if (hour >= 14 && hour < 18) timeGreeting = '下午好';
+    else timeGreeting = '晚上好';
+    
+    // 处理变量
+    return greeting
+      .replace(/{user}/g, '用户')
+      .replace(/{greeting}/g, timeGreeting)
+      .replace(/{time}/g, now.toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' }))
+      .replace(/{date}/g, now.toLocaleDateString('zh-CN'))
+      .replace(/{weekday}/g, '星期' + '日一二三四五六'[now.getDay()]);
   }
 
   _getStyleClass(styleName) {
@@ -86,11 +120,11 @@ class WelcomeCard extends BasePlugin {
     return styleMap[styleName] || 'warm';
   }
 
-  _renderWelcomeContent(systemVars, config) {
+  _renderWelcomeContent(systemVars, config, customGreeting) {
     const style = config.welcome_style || '温馨风格';
     
-    // 处理自定义问候语中的变量
-    const greeting = this._processCustomGreeting(config.custom_greeting, systemVars);
+    // 使用自定义欢迎语或默认欢迎语
+    const greeting = customGreeting || systemVars.default_greeting;
     
     switch (style) {
       case '简约风格':
@@ -106,19 +140,6 @@ class WelcomeCard extends BasePlugin {
       default:
         return this._renderWarmWelcome(systemVars, config, greeting);
     }
-  }
-
-  _processCustomGreeting(customGreeting, systemVars) {
-    if (!customGreeting) {
-      return systemVars.default_greeting;
-    }
-    
-    return customGreeting
-      .replace(/{user}/g, systemVars.current_user_name)
-      .replace(/{greeting}/g, systemVars.time_greeting)
-      .replace(/{time}/g, systemVars.current_time)
-      .replace(/{date}/g, systemVars.current_date)
-      .replace(/{weekday}/g, systemVars.current_weekday);
   }
 
   _renderWarmWelcome(systemVars, config, greeting) {
@@ -290,10 +311,6 @@ class WelcomeCard extends BasePlugin {
   }
 
   _getDailyQuote(systemVars, config) {
-    if (config.quote_entity && systemVars._entities?.quote_entity) {
-      return this._getCardValue(systemVars._hass, systemVars._entities, 'quote_entity', '');
-    }
-    
     // 默认每日一言库
     const quotes = [
       "每一天都是新的开始，用心去感受生活的美好。",
@@ -322,6 +339,7 @@ class WelcomeCard extends BasePlugin {
   }
 
   getStyles(config) {
+    // 样式部分保持不变，与之前相同
     const styleClass = this._getStyleClass(config.welcome_style);
     const showAnimations = config.enable_animations !== false;
 
