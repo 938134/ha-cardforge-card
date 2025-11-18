@@ -1,6 +1,5 @@
 // src/core/base-plugin.js
 import { themeManager } from '../themes/index.js';
-import { getJinjaParser } from './jinja-parser.js';
 
 export class BasePlugin {
   constructor() {
@@ -52,7 +51,7 @@ export class BasePlugin {
     throw new Error('必须实现 getStyles 方法');
   }
 
-  // === 动态实体支持 ===
+  // === 实体需求系统 ===
   
   getDynamicEntities(config, hass) {
     return [];
@@ -177,7 +176,7 @@ export class BasePlugin {
     return { ...defaults, ...config };
   }
 
-  // === 智能数据获取 ===
+  // === 数据获取 ===
   
   _getCardValue(hass, entities, key, defaultValue = '') {
     const source = this._getEntityValue(entities, key);
@@ -191,16 +190,9 @@ export class BasePlugin {
   _getFlexibleValue(hass, source, defaultValue = '') {
     if (!source) return defaultValue;
     
-    const parser = getJinjaParser(hass);
-
     // 实体ID直接获取状态
     if (source.includes('.') && hass?.states?.[source]) {
       return hass.states[source].state || defaultValue;
-    }
-    
-    // Jinja模板解析
-    if (parser.isJinjaTemplate(source)) {
-      return parser.parse(source, defaultValue);
     }
     
     // 直接文本
@@ -229,7 +221,6 @@ export class BasePlugin {
     if (entityConfig.source && hass?.states?.[entityConfig.source]) {
       const domain = entityConfig.source.split('.')[0];
       
-      // 简化的域图标映射
       const domainIcons = {
         'light': '💡',
         'sensor': '📊',
