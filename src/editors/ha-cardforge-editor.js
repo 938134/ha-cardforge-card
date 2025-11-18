@@ -18,7 +18,8 @@ class HaCardForgeEditor extends LitElement {
     _initialized: { state: true },
     _isDarkMode: { state: true },
     _pluginManifest: { state: true },
-    _pluginInstance: { state: true }
+    _pluginInstance: { state: true },
+    _cardCapabilities: { state: true }
   };
 
   static styles = [
@@ -79,6 +80,16 @@ class HaCardForgeEditor extends LitElement {
         margin-top: var(--cf-spacing-lg);
       }
 
+      .capability-hint {
+        font-size: 0.85em;
+        color: var(--cf-text-secondary);
+        margin-top: var(--cf-spacing-sm);
+        padding: var(--cf-spacing-sm);
+        background: rgba(var(--cf-rgb-primary), 0.05);
+        border-radius: var(--cf-radius-sm);
+        border-left: 2px solid var(--cf-primary-color);
+      }
+
       /* 深色模式适配 */
       @media (prefers-color-scheme: dark) {
         .editor-container {
@@ -94,6 +105,11 @@ class HaCardForgeEditor extends LitElement {
         .section-header {
           background: rgba(var(--cf-rgb-primary), 0.1);
           color: var(--cf-dark-text);
+        }
+
+        .capability-hint {
+          background: rgba(var(--cf-rgb-primary), 0.1);
+          color: var(--cf-dark-text-secondary);
         }
       }
 
@@ -129,6 +145,7 @@ class HaCardForgeEditor extends LitElement {
     this._isDarkMode = false;
     this._pluginManifest = null;
     this._pluginInstance = null;
+    this._cardCapabilities = null;
   }
 
   async firstUpdated() {
@@ -161,6 +178,9 @@ class HaCardForgeEditor extends LitElement {
     
     if (this._selectedPlugin) {
       this._pluginInstance = PluginRegistry.createPluginInstance(this.config.plugin);
+      this._cardCapabilities = this._pluginInstance?.getCardCapabilities() || null;
+    } else {
+      this._cardCapabilities = null;
     }
   }
 
@@ -190,13 +210,13 @@ class HaCardForgeEditor extends LitElement {
           ${this._renderPluginSection()}
           
           <!-- 2. 主题样式区域 -->
-          ${this.config.plugin ? this._renderThemeSection() : ''}
+          ${this._renderThemeSection()}
           
           <!-- 3. 卡片配置区域 -->
-          ${this.config.plugin ? this._renderPluginConfigSection() : ''}
+          ${this._renderPluginConfigSection()}
           
           <!-- 4. 数据源配置区域 -->
-          ${this.config.plugin ? this._renderDatasourceSection() : ''}
+          ${this._renderDatasourceSection()}
           
           <!-- 操作按钮 -->
           ${this._renderActionButtons()}
@@ -234,6 +254,8 @@ class HaCardForgeEditor extends LitElement {
   }
 
   _renderThemeSection() {
+    if (!this.config.plugin || !this._cardCapabilities?.supportsTheme) return '';
+
     return html`
       <div class="editor-section">
         <div class="section-header">
@@ -251,7 +273,7 @@ class HaCardForgeEditor extends LitElement {
   }
 
   _renderPluginConfigSection() {
-    if (!this._pluginManifest?.config_schema) return '';
+    if (!this.config.plugin || !this._pluginManifest?.config_schema) return '';
     
     return html`
       <div class="editor-section">
@@ -270,30 +292,55 @@ class HaCardForgeEditor extends LitElement {
   }
 
   _renderDatasourceSection() {
-    if (!this._pluginInstance) return '';
+    if (!this.config.plugin || !this._pluginInstance) return '';
 
-    const manifest = this._pluginManifest;
-    
-    // 判断插件支持的模式
-    const supportsCustomFields = manifest?.supports_custom_fields;
+    const capabilities = this._cardCapabilities;
     const requirements = this._pluginInstance.getAllEntityRequirements(this.config, this.hass);
     const hasEntityRequirements = requirements && requirements.length > 0;
 
-    // 如果既不需要自定义字段也没有实体需求，就隐藏整个区域
-    if (!supportsCustomFields && !hasEntityRequirements) return '';
+    // 判断是否需要显示数据源配置
+    const shouldShowDatasource = 
+      capabilities?.supportsCustomFields ||
+      capabilities?.supportsTitle ||
+      capabilities?.supportsContent || 
+      capabilities?.supportsFooter ||
+      (capabilities?.supportsEntities && hasEntityRequirements);
+
+    if (!shouldShowDatasource) return '';
+
+    let sectionTitle = '数据源配置';
+    let sectionHint = '';
+
+    if (capabilities?.supportsCustomFields) {
+      sectionTitle = '内容配置';
+      sectionHint = '此卡片支持完全自定义字段，可以自由配置标题、内容和页脚';
+    } else if (capabilities?.supportsTitle || capabilities?.supportsContent || capabilities?.supportsFooter) {
+      sectionTitle = '内容配置';
+      const supportedParts = [];
+      if (capabilities.supportsTitle) supportedParts.push('标题');
+      if (capabilities.supportsContent) supportedParts.push('内容');
+      if (capabilities.supportsFooter) supportedParts.push('页脚');
+      sectionHint = `此卡片支持自定义：${supportedParts.join('、')}`;
+    }
 
     return html`
       <div class="editor-section">
         <div class="section-header">
           <span class="section-icon">🔧</span>
-          <span>${supportsCustomFields ? '内容配置' : '数据源配置'}</span>
+          <span>${sectionTitle}</span>
         </div>
+        
+        ${sectionHint ? html`
+          <div class="capability-hint">
+            ${sectionHint}
+          </div>
+        ` : ''}
         
         <entity-manager
           .hass=${this.hass}
           .requirements=${requirements}
           .entities=${this.config.entities || {}}
-          .mode=${supportsCustomFields ? 'custom-fields' : 'entity-requirements'}
+          .capabilities=${capabilities}
           @entities-changed=${this._onEntitiesChanged}
         ></entity-manager>
       </div>
