@@ -18,8 +18,7 @@ class HaCardForgeEditor extends LitElement {
     _initialized: { state: true },
     _isDarkMode: { state: true },
     _pluginManifest: { state: true },
-    _pluginInstance: { state: true },
-    _cardCapabilities: { state: true }
+    _pluginInstance: { state: true }
   };
 
   static styles = [
@@ -80,16 +79,6 @@ class HaCardForgeEditor extends LitElement {
         margin-top: var(--cf-spacing-lg);
       }
 
-      .capability-hint {
-        font-size: 0.85em;
-        color: var(--cf-text-secondary);
-        margin-top: var(--cf-spacing-sm);
-        padding: var(--cf-spacing-sm);
-        background: rgba(var(--cf-rgb-primary), 0.05);
-        border-radius: var(--cf-radius-sm);
-        border-left: 2px solid var(--cf-primary-color);
-      }
-
       /* 深色模式适配 */
       @media (prefers-color-scheme: dark) {
         .editor-container {
@@ -105,11 +94,6 @@ class HaCardForgeEditor extends LitElement {
         .section-header {
           background: rgba(var(--cf-rgb-primary), 0.1);
           color: var(--cf-dark-text);
-        }
-
-        .capability-hint {
-          background: rgba(var(--cf-rgb-primary), 0.1);
-          color: var(--cf-dark-text-secondary);
         }
       }
 
@@ -145,7 +129,6 @@ class HaCardForgeEditor extends LitElement {
     this._isDarkMode = false;
     this._pluginManifest = null;
     this._pluginInstance = null;
-    this._cardCapabilities = null;
   }
 
   async firstUpdated() {
@@ -178,9 +161,6 @@ class HaCardForgeEditor extends LitElement {
     
     if (this._selectedPlugin) {
       this._pluginInstance = PluginRegistry.createPluginInstance(this.config.plugin);
-      this._cardCapabilities = this._pluginInstance?.getCardCapabilities() || null;
-    } else {
-      this._cardCapabilities = null;
     }
   }
 
@@ -292,27 +272,6 @@ class HaCardForgeEditor extends LitElement {
   _renderDatasourceSection() {
     if (!this.config.plugin || !this._pluginInstance) return '';
 
-    const capabilities = this._cardCapabilities;
-    
-    // 如果三个都不支持，就隐藏整个区域
-    if (!capabilities?.supportsTitle && 
-        !capabilities?.supportsContent && 
-        !capabilities?.supportsFooter) {
-      return '';
-    }
-
-    const requirements = this._pluginInstance.getAllEntityRequirements(this.config, this.hass);
-    
-    let sectionHint = '';
-    const supportedParts = [];
-    if (capabilities.supportsTitle) supportedParts.push('标题');
-    if (capabilities.supportsContent) supportedParts.push('内容');
-    if (capabilities.supportsFooter) supportedParts.push('页脚');
-    
-    if (supportedParts.length > 0) {
-      sectionHint = `此卡片支持自定义：${supportedParts.join('、')}`;
-    }
-
     return html`
       <div class="editor-section">
         <div class="section-header">
@@ -320,17 +279,10 @@ class HaCardForgeEditor extends LitElement {
           <span>内容配置</span>
         </div>
         
-        ${sectionHint ? html`
-          <div class="capability-hint">
-            ${sectionHint}
-          </div>
-        ` : ''}
-        
         <entity-manager
           .hass=${this.hass}
-          .requirements=${requirements}
-          .entities=${this.config.entities || {}}
-          .capabilities=${capabilities}
+          .config=${this.config}
+          .pluginManifest=${this._pluginManifest}
           @entities-changed=${this._onEntitiesChanged}
         ></entity-manager>
       </div>

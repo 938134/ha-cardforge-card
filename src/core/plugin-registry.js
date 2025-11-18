@@ -18,7 +18,6 @@ class PluginRegistry {
     const pluginModules = [
       () => import('../plugins/clock-card.js'),
       () => import('../plugins/welcome-card.js'),
-      () => import('../plugins/poetry-card.js'),
       () => import('../plugins/dashboard-card.js'),
       // 其他插件...
     ];
@@ -34,7 +33,6 @@ class PluginRegistry {
   }
 
   static _registerPluginModule(module) {
-    // 修复：检查 manifest 是否存在
     if (!module.manifest) {
       console.warn('插件缺少 manifest，跳过注册');
       return;
@@ -49,7 +47,6 @@ class PluginRegistry {
     if (module.default) {
       const PluginClass = module.default;
       
-      // 验证插件接口
       if (typeof PluginClass.prototype.getTemplate === 'function' && 
           typeof PluginClass.prototype.getStyles === 'function') {
         
@@ -87,37 +84,6 @@ class PluginRegistry {
   static createPluginInstance(pluginId) {
     const PluginClass = this.getPluginClass(pluginId);
     return PluginClass ? new PluginClass() : null;
-  }
-
-  // === 市场相关功能 ===
-  static getPluginsForMarketplace(filter = {}) {
-    let plugins = Array.from(this._plugins.values()).map(item => ({
-      ...item.manifest,
-      id: item.id
-    }));
-
-    if (filter.category && filter.category !== 'all') {
-      plugins = plugins.filter(p => p.category === filter.category);
-    }
-
-    if (filter.searchQuery) {
-      const query = filter.searchQuery.toLowerCase();
-      plugins = plugins.filter(p => 
-        p.name.toLowerCase().includes(query) ||
-        p.description.toLowerCase().includes(query) ||
-        p.category.toLowerCase().includes(query)
-      );
-    }
-
-    return plugins;
-  }
-
-  static getMarketplaceCategories() {
-    const categories = new Set(['all']);
-    this.getAllPlugins().forEach(plugin => {
-      categories.add(plugin.category);
-    });
-    return Array.from(categories);
   }
 }
 

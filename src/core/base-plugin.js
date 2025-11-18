@@ -53,34 +53,72 @@ export class BasePlugin {
 
   // === 实体需求系统 ===
   
-  getDynamicEntities(config, hass) {
-    return [];
-  }
-
-  getAllEntityRequirements(config, hass) {
-    const layout = this.getLayoutFields();
-    const allFields = [
-      ...layout.title,
-      ...layout.content, 
-      ...layout.footer
-    ];
+  getEntityRequirements() {
+    const manifest = this.getManifest();
     
-    const dynamicRequirements = this.getDynamicEntities(config, hass);
+    // 策略检测
+    if (manifest.layout_type === 'free') {
+      return { strategy: 'free_layout' };
+    }
     
-    const layoutRequirements = allFields.map(field => ({
-      key: field,
-      description: field.replace(/_/g, ' '),
-      required: false
-    }));
+    if (manifest.entity_requirements && Object.keys(manifest.entity_requirements).length > 0) {
+      return { 
+        strategy: 'structured',
+        requirements: manifest.entity_requirements
+      };
+    }
     
-    return [...layoutRequirements, ...dynamicRequirements];
+    return { strategy: 'stateless' };
   }
 
   validateEntities(entities, config, hass) {
+    const requirements = this.getEntityRequirements();
+    
+    switch (requirements.strategy) {
+      case 'structured':
+        return this._validateStructuredEntities(entities, requirements.requirements);
+      case 'free_layout':
+        return this._validateFreeLayoutEntities(entities);
+      default:
+        return { valid: true, errors: [], warnings: [] };
+    }
+  }
+
+  _validateStructuredEntities(entities, requirements) {
+    const errors = [];
+    const warnings = [];
+
+    Object.entries(requirements).forEach(([key, req]) => {
+      if (req.required && (!entities[key] || entities[key].trim() === '')) {
+        errors.push(`必需字段 "${req.name}" 未配置`);
+      }
+    });
+
+    return { valid: errors.length === 0, errors, warnings };
+  }
+
+  _validateFreeLayoutEntities(entities) {
+    const blocks = this._extractContentBlocks(entities);
     return {
-      valid: true,
-      errors: []
+      valid: blocks.length > 0,
+      errors: blocks.length === 0 ? ['至少需要添加一个内容块'] : [],
+      warnings: []
     };
+  }
+
+  _extractContentBlocks(entities) {
+    const blocks = [];
+    Object.entries(entities || {}).forEach(([key, value]) => {
+      if (key.endsWith('_type')) {
+        const blockId = key.replace('_type', '');
+        blocks.push({
+          id: blockId,
+          type: value,
+          content: entities[blockId] || ''
+        });
+      }
+    });
+    return blocks;
   }
 
   // === Manifest 系统 ===

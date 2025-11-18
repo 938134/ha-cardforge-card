@@ -3,7 +3,6 @@ import { LitElement, html, css } from 'https://unpkg.com/lit@2.8.0/index.js?modu
 import { unsafeHTML } from 'https://unpkg.com/lit-html/directives/unsafe-html.js?module';
 import { PluginRegistry } from './core/plugin-registry.js';
 import { foundationStyles } from './core/styles.js';
-import { getJinjaParser } from './core/jinja-parser.js';
 
 class HaCardForgeCard extends LitElement {
   static properties = {
@@ -164,17 +163,20 @@ class HaCardForgeCard extends LitElement {
       return;
     }
 
-    const parser = getJinjaParser(this.hass);
-    
+    // 移除Jinja解析，直接使用实体值
     Object.entries(this.config.entities).forEach(([key, entitySource]) => {
-      if (entitySource) {
-        const parsedValue = parser.parse(entitySource, entitySource);
+      if (entitySource && !key.includes('_name') && !key.includes('_icon')) {
+        // 如果是实体ID，尝试获取状态，否则使用原值
+        let state = entitySource;
+        if (entitySource.includes('.') && this.hass?.states?.[entitySource]) {
+          state = this.hass.states[entitySource].state || entitySource;
+        }
         
         this._entities[key] = {
-          state: parsedValue,
+          state: state,
           attributes: {},
           _source: entitySource,
-          _isTemplate: parser.isJinjaTemplate(entitySource)
+          _isEntity: entitySource.includes('.')
         };
       }
     });
