@@ -563,35 +563,38 @@ export class EntityManager extends LitElement {
   }
 
   _renderEntityPicker(entityData, isEditing) {
-    // 检查 ha-entity-picker 是否可用
-    if (!customElements.get('ha-entity-picker')) {
-      return html`
-        <ha-textfield
-          .value=${entityData?.source || ''}
-          @input=${e => isEditing ? 
-            this._updateEntityData('source', e.target.value) : 
-            this._updateNewEntityData('source', e.target.value)}
-          placeholder="输入实体ID，例如：sensor.temperature"
-          outlined
-        ></ha-textfield>
-      `;
-    }
-
+    // 使用更兼容的方式创建实体选择器
     return html`
-      <ha-entity-picker
-        .hass=${this.hass}
-        .value=${entityData?.source || ''}
-        @value-changed=${e => {
-          if (isEditing) {
-            this._onEntityPickerChange(e.detail.value, entityData);
-          } else {
-            this._onNewEntityPickerChange(e.detail.value);
-          }
-        }}
-        .label=${"选择实体或输入实体ID"}
-        allow-custom-value
-      ></ha-entity-picker>
+      <div style="position: relative;">
+        <ha-entity-picker
+          .hass=${this.hass}
+          .value=${entityData?.source || ''}
+          @value-changed=${e => {
+            const value = e.detail.value;
+            if (isEditing) {
+              this._onEntityPickerChange(value, entityData);
+            } else {
+              this._onNewEntityPickerChange(value);
+            }
+          }}
+          .label=${"选择实体"}
+          allow-custom-value
+          .includeDomains=${this._getIncludeDomains()}
+          .includeDeviceClasses=${this._getIncludeDeviceClasses()}
+        ></ha-entity-picker>
+      </div>
     `;
+  }
+
+  _getIncludeDomains() {
+    return [
+      'sensor', 'binary_sensor', 'light', 'switch', 'climate',
+      'media_player', 'person', 'device_tracker', 'cover', 'lock'
+    ];
+  }
+
+  _getIncludeDeviceClasses() {
+    return null; // 包含所有设备类型
   }
 
   _getEntityData(key) {
@@ -669,7 +672,6 @@ export class EntityManager extends LitElement {
   _updateEntityData(field, value) {
     if (!this._editingKey) return;
     
-    // 这里只是更新本地状态，保存时才更新实体
     if (!this._newEntityData) {
       this._newEntityData = this._getEntityData(this._editingKey);
     }
@@ -776,13 +778,21 @@ export class EntityManager extends LitElement {
     }));
   }
 
-  firstUpdated() {
-    // 检查组件是否可用
+  // 确保组件正确加载
+  async firstUpdated() {
+    // 等待组件注册
+    await this.updateComplete;
+    
+    // 检查 ha-entity-picker 是否可用
     if (!customElements.get('ha-entity-picker')) {
-      console.warn('ha-entity-picker 组件未加载，使用备用输入框');
-    }
-    if (!customElements.get('ha-icon-picker')) {
-      console.warn('ha-icon-picker 组件未加载，图标选择功能不可用');
+      console.warn('ha-entity-picker 组件未加载，可能需要等待 Home Assistant 核心组件');
+      
+      // 尝试动态导入
+      try {
+        await import('/api/haproxy/static/web_components/ha-entity-picker.js');
+      } catch (e) {
+        console.warn('无法加载 ha-entity-picker 组件:', e);
+      }
     }
   }
 }
