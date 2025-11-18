@@ -9,8 +9,7 @@ export class EntityManager extends LitElement {
     entities: { type: Object },
     capabilities: { type: Object },
     _editingKey: { state: true },
-    _newEntityData: { state: true },
-    _availableEntities: { state: true }
+    _newEntityData: { state: true }
   };
 
   static styles = [
@@ -246,30 +245,13 @@ export class EntityManager extends LitElement {
         border-style: solid;
       }
 
-      /* 实体选择器样式 */
-      .entity-select {
+      /* 组件样式调整 */
+      ha-entity-picker, ha-icon-picker {
         width: 100%;
-        padding: 12px;
-        border: 1px solid var(--divider-color);
-        border-radius: 4px;
-        background: var(--card-background-color);
-        color: var(--primary-text-color);
-        font-size: 14px;
       }
 
-      .entity-select:focus {
-        border-color: var(--primary-color);
-        outline: none;
-      }
-
-      .entity-option-group {
-        font-weight: 600;
-        color: var(--primary-color);
-        background: var(--secondary-background-color);
-      }
-
-      .entity-option {
-        padding: 8px 12px;
+      ha-textfield {
+        width: 100%;
       }
 
       /* 响应式优化 */
@@ -294,31 +276,6 @@ export class EntityManager extends LitElement {
     super();
     this._editingKey = null;
     this._newEntityData = null;
-    this._availableEntities = [];
-  }
-
-  willUpdate(changedProperties) {
-    if (changedProperties.has('hass') && this.hass) {
-      this._updateAvailableEntities();
-    }
-  }
-
-  _updateAvailableEntities() {
-    if (!this.hass?.states) {
-      this._availableEntities = [];
-      return;
-    }
-
-    const entities = Object.entries(this.hass.states)
-      .map(([entityId, state]) => ({
-        id: entityId,
-        name: state.attributes?.friendly_name || entityId,
-        domain: entityId.split('.')[0],
-        state: state.state
-      }))
-      .sort((a, b) => a.name.localeCompare(b.name));
-
-    this._availableEntities = entities;
   }
 
   render() {
@@ -524,21 +481,24 @@ export class EntityManager extends LitElement {
             
             <div class="form-field">
               <label class="form-label">图标</label>
-              <ha-textfield
+              <ha-icon-picker
+                .hass=${this.hass}
                 .value=${entityData.icon}
-                @input=${e => this._updateEntityData('icon', e.target.value)}
-                placeholder="例如：mdi:thermometer"
-                outlined
-              ></ha-textfield>
-              <div style="font-size: 0.85em; color: var(--secondary-text-color);">
-                输入 Material Design Icons 名称
-              </div>
+                @value-changed=${e => this._updateEntityData('icon', e.detail.value)}
+                label="选择图标"
+              ></ha-icon-picker>
             </div>
           </div>
 
           <div class="form-field">
             <label class="form-label">数据源</label>
-            ${this._renderEntitySelect(entityData, true)}
+            <ha-entity-picker
+              .hass=${this.hass}
+              .value=${entityData.source}
+              @value-changed=${e => this._onEntityPickerChange(e.detail.value, entityData)}
+              .label=${"选择实体"}
+              allow-custom-value
+            ></ha-entity-picker>
             ${this._getEntityPreview(entityData.source) ? 
               html`<div class="entity-preview">当前状态: ${this._getEntityPreview(entityData.source)}</div>` : ''}
           </div>
@@ -577,21 +537,24 @@ export class EntityManager extends LitElement {
             
             <div class="form-field">
               <label class="form-label">图标</label>
-              <ha-textfield
+              <ha-icon-picker
+                .hass=${this.hass}
                 .value=${entityData?.icon || 'mdi:chart-box'}
-                @input=${e => this._updateNewEntityData('icon', e.target.value)}
-                placeholder="例如：mdi:thermometer"
-                outlined
-              ></ha-textfield>
-              <div style="font-size: 0.85em; color: var(--secondary-text-color);">
-                输入 Material Design Icons 名称
-              </div>
+                @value-changed=${e => this._updateNewEntityData('icon', e.detail.value)}
+                label="选择图标"
+              ></ha-icon-picker>
             </div>
           </div>
 
           <div class="form-field">
             <label class="form-label">数据源</label>
-            ${this._renderEntitySelect(entityData, false)}
+            <ha-entity-picker
+              .hass=${this.hass}
+              .value=${entityData?.source || ''}
+              @value-changed=${e => this._onNewEntityPickerChange(e.detail.value)}
+              .label=${"选择实体"}
+              allow-custom-value
+            ></ha-entity-picker>
             ${entityData?.source && this._getEntityPreview(entityData.source) ? 
               html`<div class="entity-preview">当前状态: ${this._getEntityPreview(entityData.source)}</div>` : ''}
           </div>
@@ -609,92 +572,6 @@ export class EntityManager extends LitElement {
         </div>
       </div>
     `;
-  }
-
-  _renderEntitySelect(entityData, isEditing) {
-    return html`
-      <select 
-        class="entity-select"
-        .value=${entityData?.source || ''}
-        @change=${e => {
-          const value = e.target.value;
-          if (isEditing) {
-            this._onEntitySelectChange(value, entityData);
-          } else {
-            this._onNewEntitySelectChange(value);
-          }
-        }}
-      >
-        <option value="">-- 选择实体 --</option>
-        
-        <!-- 按域分组 -->
-        ${this._getEntityGroups().map(group => html`
-          <optgroup label="${group.domain}">
-            ${group.entities.map(entity => html`
-              <option value="${entity.id}" ?selected=${entity.id === entityData?.source}>
-                ${entity.name} (${entity.id})
-              </option>
-            `)}
-          </optgroup>
-        `)}
-        
-        <!-- 自定义输入选项 -->
-        <option value="custom" ?selected=${entityData?.source && !this._isValidEntityId(entityData.source)}>
-          -- 自定义输入 --
-        </option>
-      </select>
-      
-      <!-- 自定义输入框 -->
-      ${entityData?.source && !this._isValidEntityId(entityData.source) ? html`
-        <ha-textfield
-          .value=${entityData.source}
-          @input=${e => isEditing ? 
-            this._updateEntityData('source', e.target.value) : 
-            this._updateNewEntityData('source', e.target.value)}
-          placeholder="输入自定义实体ID或文本"
-          outlined
-          style="margin-top: 8px;"
-        ></ha-textfield>
-      ` : ''}
-    `;
-  }
-
-  _getEntityGroups() {
-    const domains = {};
-    
-    this._availableEntities.forEach(entity => {
-      if (!domains[entity.domain]) {
-        domains[entity.domain] = [];
-      }
-      domains[entity.domain].push(entity);
-    });
-    
-    return Object.entries(domains)
-      .map(([domain, entities]) => ({
-        domain: this._getDomainName(domain),
-        entities: entities.slice(0, 50) // 限制每个域显示的数量
-      }))
-      .sort((a, b) => a.domain.localeCompare(b.domain));
-  }
-
-  _getDomainName(domain) {
-    const domainNames = {
-      'sensor': '传感器',
-      'binary_sensor': '二进制传感器',
-      'light': '灯光',
-      'switch': '开关',
-      'climate': '气候',
-      'media_player': '媒体播放器',
-      'person': '人员',
-      'device_tracker': '设备追踪',
-      'cover': '窗帘',
-      'lock': '锁'
-    };
-    return domainNames[domain] || domain;
-  }
-
-  _isValidEntityId(value) {
-    return value.includes('.') && this._availableEntities.some(entity => entity.id === value);
   }
 
   _getEntityData(key) {
@@ -785,11 +662,11 @@ export class EntityManager extends LitElement {
     this.requestUpdate();
   }
 
-  _onEntitySelectChange(entityId, currentData) {
+  _onEntityPickerChange(entityId, currentData) {
     this._updateEntityData('source', entityId);
     
     // 自动填充实体信息
-    if (entityId && entityId !== 'custom') {
+    if (entityId) {
       const info = this._getEntityInfo(entityId);
       if (info.name && (!currentData.name || currentData.name === this._getDefaultName(currentData.key, entityId))) {
         this._updateEntityData('name', info.name);
@@ -800,11 +677,11 @@ export class EntityManager extends LitElement {
     }
   }
 
-  _onNewEntitySelectChange(entityId) {
+  _onNewEntityPickerChange(entityId) {
     this._updateNewEntityData('source', entityId);
     
     // 自动填充实体信息
-    if (entityId && entityId !== 'custom') {
+    if (entityId) {
       const info = this._getEntityInfo(entityId);
       if (info.name && !this._newEntityData.name) {
         this._updateNewEntityData('name', info.name);
@@ -876,6 +753,20 @@ export class EntityManager extends LitElement {
     this.dispatchEvent(new CustomEvent('entities-changed', {
       detail: { entities: newEntities }
     }));
+  }
+
+  // 确保组件正确加载
+  async firstUpdated() {
+    // 等待组件注册
+    await this.updateComplete;
+    
+    // 检查组件是否可用
+    if (!customElements.get('ha-entity-picker')) {
+      console.warn('ha-entity-picker 组件未加载');
+    }
+    if (!customElements.get('ha-icon-picker')) {
+      console.warn('ha-icon-picker 组件未加载');
+    }
   }
 }
 
