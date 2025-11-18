@@ -7,7 +7,8 @@ export class EntityManager extends LitElement {
     hass: { type: Object },
     entities: { type: Object },
     _config: { state: true },
-    _editingId: { state: true }
+    _editingId: { state: true },
+    _expandedSections: { state: true }
   };
 
   static styles = [
@@ -22,18 +23,28 @@ export class EntityManager extends LitElement {
         background: var(--card-background-color);
         border-radius: var(--ha-card-border-radius, 12px);
         box-shadow: var(--ha-card-box-shadow, 0 2px 4px rgba(0,0,0,0.1));
-        padding: 16px;
+        padding: 0;
         margin-bottom: 16px;
         position: relative;
+        overflow: hidden;
       }
 
       .card-header {
         display: flex;
         align-items: center;
         justify-content: space-between;
-        margin-bottom: 16px;
-        padding-bottom: 12px;
-        border-bottom: 1px solid var(--divider-color);
+        padding: 16px;
+        cursor: pointer;
+        transition: background-color 0.3s ease;
+        border-bottom: 1px solid transparent;
+      }
+
+      .card-header:hover {
+        background: var(--secondary-background-color);
+      }
+
+      .card.expanded .card-header {
+        border-bottom-color: var(--divider-color);
       }
 
       .card-title {
@@ -43,6 +54,25 @@ export class EntityManager extends LitElement {
         display: flex;
         align-items: center;
         gap: 8px;
+      }
+
+      .expand-icon {
+        transition: transform 0.3s ease;
+      }
+
+      .card.expanded .expand-icon {
+        transform: rotate(180deg);
+      }
+
+      .card-content {
+        max-height: 0;
+        overflow: hidden;
+        transition: max-height 0.3s ease;
+      }
+
+      .card.expanded .card-content {
+        max-height: 1000px;
+        padding: 16px;
       }
 
       .entities {
@@ -196,33 +226,8 @@ export class EntityManager extends LitElement {
 
       .empty-state {
         text-align: center;
-        padding: 40px 20px;
+        padding: 20px;
         color: var(--secondary-text-color);
-      }
-
-      .empty-icon {
-        font-size: 48px;
-        margin-bottom: 16px;
-        opacity: 0.3;
-      }
-
-      /* 图标选择器容器 */
-      .icon-picker-container {
-        display: flex;
-        align-items: center;
-        gap: 12px;
-      }
-
-      .icon-preview {
-        width: 40px;
-        height: 40px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        background: var(--card-background-color);
-        border: 1px solid var(--divider-color);
-        border-radius: 8px;
-        font-size: 20px;
       }
 
       /* 实体预览 */
@@ -239,6 +244,7 @@ export class EntityManager extends LitElement {
     super();
     this._config = { header: [], content: [], footer: [] };
     this._editingId = null;
+    this._expandedSections = new Set(['content']); // 默认展开内容区域
   }
 
   willUpdate(changedProperties) {
@@ -308,6 +314,15 @@ export class EntityManager extends LitElement {
     }));
   }
 
+  _toggleSection(sectionType) {
+    if (this._expandedSections.has(sectionType)) {
+      this._expandedSections.delete(sectionType);
+    } else {
+      this._expandedSections.add(sectionType);
+    }
+    this.requestUpdate();
+  }
+
   render() {
     return html`
       <div class="entity-manager">
@@ -320,38 +335,47 @@ export class EntityManager extends LitElement {
 
   _renderSection(sectionType, icon, title) {
     const items = this._config[sectionType];
+    const isExpanded = this._expandedSections.has(sectionType);
     const isEditing = this._editingId?.startsWith(sectionType);
 
     return html`
-      <div class="card">
-        <div class="card-header">
+      <div class="card ${isExpanded ? 'expanded' : ''}">
+        <div class="card-header" @click=${() => this._toggleSection(sectionType)}>
           <div class="card-title">
             <ha-icon .icon=${icon}></ha-icon>
-            ${title} (${items.length})
+            ${title}
+            <span style="margin-left: 8px; color: var(--secondary-text-color); font-size: 14px;">
+              (${items.length})
+            </span>
           </div>
-          <button class="button" @click=${() => this._addItem(sectionType)}>
-            <ha-icon icon="mdi:plus"></ha-icon>
-            添加
-          </button>
+          <div style="display: flex; align-items: center; gap: 8px;">
+            <button class="button" @click=${(e) => {
+              e.stopPropagation();
+              this._addItem(sectionType);
+            }}>
+              <ha-icon icon="mdi:plus"></ha-icon>
+              添加
+            </button>
+            <ha-icon 
+              class="expand-icon"
+              .icon=${isExpanded ? 'mdi:chevron-up' : 'mdi:chevron-down'}
+            ></ha-icon>
+          </div>
         </div>
 
-        <div class="entities">
-          ${items.length === 0 ? this._renderEmptyState(icon) : ''}
-          ${items.map((item, index) => 
-            this._renderEntity(item, index, sectionType)
-          )}
+        <div class="card-content">
+          <div class="entities">
+            ${items.length === 0 ? html`
+              <div class="empty-state">
+                暂无${title}，点击"添加"按钮创建
+              </div>
+            ` : items.map((item, index) => 
+              this._renderEntity(item, index, sectionType)
+            )}
+          </div>
+
+          ${isEditing ? this._renderEditForm(sectionType) : ''}
         </div>
-
-        ${isEditing ? this._renderEditForm(sectionType) : ''}
-      </div>
-    `;
-  }
-
-  _renderEmptyState(icon) {
-    return html`
-      <div class="empty-state">
-        <ha-icon class="empty-icon" .icon=${icon}></ha-icon>
-        <div>暂无项目，点击"添加"按钮创建</div>
       </div>
     `;
   }
@@ -407,17 +431,13 @@ export class EntityManager extends LitElement {
         <!-- 第二行：图标 -->
         <div class="form-row">
           <div class="form-label">图标</div>
-          <div class="icon-picker-container">
-            <div class="icon-preview">
-              <ha-icon .icon=${item.icon}></ha-icon>
-            </div>
-            <ha-icon-picker
-              .hass=${this.hass}
-              .value=${item.icon}
-              @value-changed=${e => this._updateItem('icon', e.detail.value)}
-              label="选择图标"
-            ></ha-icon-picker>
-          </div>
+          <ha-icon-picker
+            .hass=${this.hass}
+            .value=${item.icon}
+            @value-changed=${e => this._updateItem('icon', e.detail.value)}
+            label="选择图标"
+            fullwidth
+          ></ha-icon-picker>
         </div>
 
         <!-- 第三行：实体选择 -->
@@ -487,8 +507,7 @@ export class EntityManager extends LitElement {
       return this.hass.states[entityValue].state;
     }
     
-    // 如果是模板或其他文本
-    return entityValue.length > 50 ? entityValue.substring(0, 50) + '...' : entityValue;
+    return '';
   }
 
   _getDefaultIcon(entityId) {
@@ -503,10 +522,7 @@ export class EntityManager extends LitElement {
       binary_sensor: 'mdi:checkbox-marked-circle',
       input_boolean: 'mdi:toggle-switch',
       automation: 'mdi:robot',
-      script: 'mdi:script-text',
-      device_tracker: 'mdi:account',
-      camera: 'mdi:camera',
-      cover: 'mdi:window-open'
+      script: 'mdi:script-text'
     };
     return icons[domain] || 'mdi:circle';
   }
@@ -520,6 +536,7 @@ export class EntityManager extends LitElement {
       icon: 'mdi:chart-box'
     });
     this._editingId = `${sectionType}-${newIndex}`;
+    this._expandedSections.add(sectionType); // 添加时自动展开
     this.requestUpdate();
   }
 
