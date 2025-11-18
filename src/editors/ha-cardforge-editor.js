@@ -215,8 +215,8 @@ class HaCardForgeEditor extends LitElement {
           <!-- 3. 卡片配置区域 -->
           ${this._renderPluginConfigSection()}
           
-          <!-- 4. 数据源配置区域 -->
-          ${this._renderDatasourceSection()}
+          <!-- 4. 内容配置区域 -->
+          ${this._renderContentSection()}
           
           <!-- 操作按钮 -->
           ${this._renderActionButtons()}
@@ -254,7 +254,7 @@ class HaCardForgeEditor extends LitElement {
   }
 
   _renderThemeSection() {
-    if (!this.config.plugin || !this._cardCapabilities?.supportsTheme) return '';
+    if (!this.config.plugin) return '';
 
     return html`
       <div class="editor-section">
@@ -291,35 +291,27 @@ class HaCardForgeEditor extends LitElement {
     `;
   }
 
-  _renderDatasourceSection() {
+  _renderContentSection() {
     if (!this.config.plugin || !this._pluginInstance) return '';
 
     const capabilities = this._cardCapabilities;
+    
+    // 如果三个都不支持，就隐藏整个区域
+    if (!capabilities?.supportsTitle && 
+        !capabilities?.supportsContent && 
+        !capabilities?.supportsFooter) {
+      return '';
+    }
+
     const requirements = this._pluginInstance.getAllEntityRequirements(this.config, this.hass);
-    const hasEntityRequirements = requirements && requirements.length > 0;
-
-    // 判断是否需要显示数据源配置
-    const shouldShowDatasource = 
-      capabilities?.supportsCustomFields ||
-      capabilities?.supportsTitle ||
-      capabilities?.supportsContent || 
-      capabilities?.supportsFooter ||
-      (capabilities?.supportsEntities && hasEntityRequirements);
-
-    if (!shouldShowDatasource) return '';
-
-    let sectionTitle = '数据源配置';
+    
     let sectionHint = '';
-
-    if (capabilities?.supportsCustomFields) {
-      sectionTitle = '内容配置';
-      sectionHint = '此卡片支持完全自定义字段，可以自由配置标题、内容和页脚';
-    } else if (capabilities?.supportsTitle || capabilities?.supportsContent || capabilities?.supportsFooter) {
-      sectionTitle = '内容配置';
-      const supportedParts = [];
-      if (capabilities.supportsTitle) supportedParts.push('标题');
-      if (capabilities.supportsContent) supportedParts.push('内容');
-      if (capabilities.supportsFooter) supportedParts.push('页脚');
+    const supportedParts = [];
+    if (capabilities.supportsTitle) supportedParts.push('标题');
+    if (capabilities.supportsContent) supportedParts.push('内容');
+    if (capabilities.supportsFooter) supportedParts.push('页脚');
+    
+    if (supportedParts.length > 0) {
       sectionHint = `此卡片支持自定义：${supportedParts.join('、')}`;
     }
 
@@ -327,7 +319,7 @@ class HaCardForgeEditor extends LitElement {
       <div class="editor-section">
         <div class="section-header">
           <span class="section-icon">🔧</span>
-          <span>${sectionTitle}</span>
+          <span>内容配置</span>
         </div>
         
         ${sectionHint ? html`
