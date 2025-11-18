@@ -278,39 +278,39 @@ export class EntityManager extends LitElement {
     `;
   }
 
-  _renderEntityRequirement(key, requirement) {
-    const currentValue = this.config.entities?.[key] || '';
+_renderEntityRequirement(key, requirement) {
+  const currentValue = this.config.entities?.[key] || '';
 
-    return html`
-      <div class="entity-requirement ${requirement.required ? 'required' : ''}">
-        <div class="requirement-header">
-          <div class="requirement-info">
-            <h4>${requirement.name}</h4>
-            ${requirement.description ? html`
-              <div class="requirement-description">${requirement.description}</div>
-            ` : ''}
-          </div>
-          ${requirement.required ? html`
-            <span class="required-badge">必需</span>
+  return html`
+    <div class="entity-requirement ${requirement.required ? 'required' : ''}">
+      <div class="requirement-header">
+        <div class="requirement-info">
+          <h4>${requirement.name}</h4>
+          ${requirement.description ? html`
+            <div class="requirement-description">${requirement.description}</div>
           ` : ''}
         </div>
-
-        <ha-entity-picker
-          .hass=${this.hass}
-          .value=${currentValue}
-          @value-changed=${e => this._onEntityChanged(key, e.detail.value)}
-          allow-custom-value
-          .label=${`选择 ${requirement.name}`}
-        ></ha-entity-picker>
-
-        ${requirement.example ? html`
-          <div class="example-hint">
-            <small>例如: ${requirement.example}</small>
-          </div>
+        ${requirement.required ? html`
+          <span class="required-badge">必需</span>
         ` : ''}
       </div>
-    `;
-  }
+
+      <ha-entity-picker
+        .hass=${this.hass}
+        .value=${currentValue}
+        @value-changed=${e => this._onEntityChanged(key, e.detail.value)}
+        allow-custom-value
+        .label=${`选择 ${requirement.name}`}
+      ></ha-entity-picker>
+
+      ${requirement.example ? html`
+        <div class="example-hint">
+          <small>例如: ${requirement.example}</small>
+        </div>
+      ` : ''}
+    </div>
+  `;
+}
 
   _extractContentBlocks() {
     const blocks = [];

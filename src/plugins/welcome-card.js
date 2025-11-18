@@ -30,11 +30,6 @@ class WelcomeCard extends BasePlugin {
         options: ['左对齐', '居中', '右对齐'],
         default: '居中'
       },
-      show_time_period: {
-        type: 'boolean',
-        label: '显示时段问候',
-        default: true
-      },
       show_decoration: {
         type: 'boolean',
         label: '显示装饰元素',
@@ -45,10 +40,11 @@ class WelcomeCard extends BasePlugin {
     entity_requirements: {
       welcome_message: {
         name: '欢迎消息',
-        description: '自定义欢迎消息，可输入文本或选择实体',
+        description: '自定义欢迎消息，可输入文本或实体ID',
         type: 'text', 
         required: false,
-        default: ''
+        default: '',
+        example: 'sensor.daily_quote 或 直接输入文本'
       }
     }
   };
@@ -58,18 +54,14 @@ class WelcomeCard extends BasePlugin {
     const welcomeMessage = this._getWelcomeMessage(hass, entities);
     const cardStyle = config.card_style || '简约现代';
     const alignment = config.text_alignment || '居中';
-    const timePeriod = this._getTimePeriodMessage();
     
     return `
       <div class="cardforge-responsive-container welcome-card style-${this._getStyleClass(cardStyle)} animation-${config.animation_style || '淡入'} alignment-${this._getAlignmentClass(alignment)} ${config.show_decoration ? 'with-decoration' : ''}">
         <div class="welcome-content">
           ${config.show_decoration ? this._renderDecoration(cardStyle) : ''}
           <div class="welcome-text">
-            <h2 class="greeting">${this._getTimeBasedGreeting()}，${userName}！</h2>
+            <h2 class="greeting">${this._getTimeBasedGreeting()}，${userName}</h2>
             <p class="message">${welcomeMessage}</p>
-            ${config.show_time_period ? `
-              <p class="time-period">${timePeriod}</p>
-            ` : ''}
           </div>
         </div>
       </div>
@@ -91,6 +83,21 @@ class WelcomeCard extends BasePlugin {
     }
     
     return welcomeMessage;
+  }
+
+  _getDefaultWelcomeMessage() {
+    const hour = new Date().getHours();
+    if (hour >= 5 && hour < 12) {
+      return '今天也是充满活力的一天！';
+    } else if (hour >= 12 && hour < 14) {
+      return '午餐时间到，记得按时吃饭';
+    } else if (hour >= 14 && hour < 18) {
+      return '下午工作加油！';
+    } else if (hour >= 18 && hour < 22) {
+      return '晚上放松一下';
+    } else {
+      return '夜深了，注意休息';
+    }
   }
 
   _getStyleClass(styleName) {
@@ -171,7 +178,7 @@ class WelcomeCard extends BasePlugin {
       ${this.getBaseStyles(config)}
       .welcome-card {
         padding: var(--cf-spacing-xl);
-        min-height: 200px;
+        min-height: 180px;
         position: relative;
         overflow: hidden;
       }
@@ -212,14 +219,6 @@ class WelcomeCard extends BasePlugin {
         max-width: 400px;
       }
       
-      .time-period {
-        margin: var(--cf-spacing-sm) 0 0 0;
-        color: var(--cf-text-secondary);
-        font-size: 0.9em;
-        font-style: italic;
-        opacity: 0.8;
-      }
-      
       /* 装饰元素 */
       .decoration {
         position: absolute;
@@ -235,8 +234,7 @@ class WelcomeCard extends BasePlugin {
       .style-modern .greeting {
         color: white;
       }
-      .style-modern .message,
-      .style-modern .time-period {
+      .style-modern .message {
         color: rgba(255, 255, 255, 0.9);
       }
       .modern-dots {
@@ -278,8 +276,7 @@ class WelcomeCard extends BasePlugin {
       .style-business .greeting {
         color: white;
       }
-      .style-business .message,
-      .style-business .time-period {
+      .style-business .message {
         color: rgba(255, 255, 255, 0.9);
       }
       .business-lines {
@@ -304,8 +301,7 @@ class WelcomeCard extends BasePlugin {
         color: white;
         text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
       }
-      .style-creative .message,
-      .style-creative .time-period {
+      .style-creative .message {
         color: rgba(255, 255, 255, 0.95);
       }
       .creative-shapes {
@@ -329,8 +325,7 @@ class WelcomeCard extends BasePlugin {
         color: #00ff88;
         text-shadow: 0 0 10px #00ff88;
       }
-      .style-tech .message,
-      .style-tech .time-period {
+      .style-tech .message {
         color: #00ff88;
         opacity: 0.8;
       }
