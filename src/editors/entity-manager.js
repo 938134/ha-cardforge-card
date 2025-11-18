@@ -237,6 +237,22 @@ export class EntityManager extends LitElement {
         margin-top: 4px;
         font-style: italic;
       }
+
+      /* 备用实体输入框 */
+      .entity-input {
+        width: 100%;
+        padding: 12px;
+        border: 1px solid var(--divider-color);
+        border-radius: 4px;
+        background: var(--card-background-color);
+        color: var(--primary-text-color);
+        font-size: 14px;
+      }
+
+      .entity-input:focus {
+        border-color: var(--primary-color);
+        outline: none;
+      }
     `
   ];
 
@@ -244,7 +260,7 @@ export class EntityManager extends LitElement {
     super();
     this._config = { header: [], content: [], footer: [] };
     this._editingId = null;
-    this._expandedSections = new Set(['content']); // 默认展开内容区域
+    this._expandedSections = new Set(['content']);
   }
 
   willUpdate(changedProperties) {
@@ -443,26 +459,7 @@ export class EntityManager extends LitElement {
         <!-- 第三行：实体选择 -->
         <div class="form-row">
           <div class="form-label">数据源</div>
-          <ha-entity-picker
-            .hass=${this.hass}
-            .value=${item.value}
-            @value-changed=${e => {
-              this._updateItem('value', e.detail.value);
-              // 自动填充实体信息
-              if (e.detail.value) {
-                const info = this._getEntityInfo(e.detail.value);
-                if (info.name && !item.label) {
-                  this._updateItem('label', info.name);
-                }
-                if (info.icon && item.icon === 'mdi:chart-box') {
-                  this._updateItem('icon', info.icon);
-                }
-              }
-            }}
-            label="选择实体"
-            allow-custom-value
-            fullwidth
-          ></ha-entity-picker>
+          ${this._renderEntityPicker(item)}
           ${preview ? html`<div class="entity-preview">当前状态: ${preview}</div>` : ''}
         </div>
 
@@ -480,6 +477,47 @@ export class EntityManager extends LitElement {
         </div>
       </div>
     `;
+  }
+
+  _renderEntityPicker(item) {
+    // 检查 ha-entity-picker 组件是否可用
+    if (customElements.get('ha-entity-picker')) {
+      return html`
+        <ha-entity-picker
+          .hass=${this.hass}
+          .value=${item.value}
+          @value-changed=${e => {
+            this._updateItem('value', e.detail.value);
+            // 自动填充实体信息
+            if (e.detail.value) {
+              const info = this._getEntityInfo(e.detail.value);
+              if (info.name && !item.label) {
+                this._updateItem('label', info.name);
+              }
+              if (info.icon && item.icon === 'mdi:chart-box') {
+                this._updateItem('icon', info.icon);
+              }
+            }
+          }}
+          label="选择实体"
+          allow-custom-value
+          fullwidth
+        ></ha-entity-picker>
+      `;
+    } else {
+      // 备用方案：使用输入框
+      return html`
+        <input
+          class="entity-input"
+          .value=${item.value}
+          @input=${e => this._updateItem('value', e.target.value)}
+          placeholder="输入实体ID，例如：sensor.temperature"
+        />
+        <div style="font-size: 12px; color: var(--secondary-text-color); margin-top: 4px;">
+          提示：输入实体ID或使用实体选择器
+        </div>
+      `;
+    }
   }
 
   _getEntityInfo(entityValue) {
@@ -536,7 +574,7 @@ export class EntityManager extends LitElement {
       icon: 'mdi:chart-box'
     });
     this._editingId = `${sectionType}-${newIndex}`;
-    this._expandedSections.add(sectionType); // 添加时自动展开
+    this._expandedSections.add(sectionType);
     this.requestUpdate();
   }
 
@@ -587,6 +625,14 @@ export class EntityManager extends LitElement {
     this._config[sectionType].splice(index, 1);
     this._editingId = null;
     this._notifyChange();
+  }
+
+  // 确保组件加载
+  firstUpdated() {
+    // 尝试动态加载 ha-entity-picker 如果不存在
+    if (!customElements.get('ha-entity-picker')) {
+      console.warn('ha-entity-picker 组件未加载，使用备用输入框');
+    }
   }
 }
 
