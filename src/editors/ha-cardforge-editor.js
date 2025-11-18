@@ -57,19 +57,20 @@ class HaCardForgeEditor extends LitElement {
       .section-header {
         display: flex;
         align-items: center;
-        gap: var(--cf-spacing-sm);
+        gap: var(--cf-spacing-md);
         margin-bottom: var(--cf-spacing-lg);
-        font-weight: 600;
-        color: var(--cf-text-primary);
-        font-size: 1.1em;
-        padding: var(--cf-spacing-sm) var(--cf-spacing-md);
+        padding: var(--cf-spacing-md);
         background: rgba(var(--cf-rgb-primary), 0.05);
         border-radius: var(--cf-radius-md);
-        border-left: 3px solid var(--cf-primary-color);
+        border-left: 4px solid var(--cf-primary-color);
       }
 
-      .section-icon {
-        font-size: 1.1em;
+      .section-subtitle {
+        font-size: 0.8em;
+        color: var(--cf-text-secondary);
+        font-weight: normal;
+        margin-left: auto;
+        font-style: italic;
       }
 
       .action-buttons {
@@ -77,6 +78,23 @@ class HaCardForgeEditor extends LitElement {
         gap: var(--cf-spacing-md);
         justify-content: flex-end;
         margin-top: var(--cf-spacing-lg);
+      }
+
+      /* 不同区域的视觉区分 */
+      .editor-section:nth-child(1) .section-header {
+        border-left-color: #4CAF50; /* 绿色 - 卡片类型 */
+      }
+
+      .editor-section:nth-child(2) .section-header {
+        border-left-color: #2196F3; /* 蓝色 - 主题样式 */  
+      }
+
+      .editor-section:nth-child(3) .section-header {
+        border-left-color: #FF9800; /* 橙色 - 卡片配置 */
+      }
+
+      .editor-section:nth-child(4) .section-header {
+        border-left-color: #9C27B0; /* 紫色 - 数据源配置 */
       }
 
       /* 深色模式适配 */
@@ -186,18 +204,10 @@ class HaCardForgeEditor extends LitElement {
     return html`
       <div class="editor-container ${this._isDarkMode ? 'cf-dark-mode' : ''}">
         <div class="editor-layout">
-          <!-- 1. 卡片类型区域 -->
           ${this._renderPluginSection()}
-          
-          <!-- 2. 主题样式区域 -->
           ${this._renderThemeSection()}
-          
-          <!-- 3. 卡片配置区域 -->
-          ${this._renderPluginConfigSection()}
-          
-          <!-- 4. 数据源配置区域 -->
-          ${this._renderDatasourceSection()}
-          
+          ${this._renderCardConfigSection()}
+          ${this._renderDataSourceSection()}
         </div>
       </div>
     `;
@@ -218,8 +228,9 @@ class HaCardForgeEditor extends LitElement {
     return html`
       <div class="editor-section">
         <div class="section-header">
-          <span class="section-icon">🎨</span>
+          <ha-icon icon="mdi:palette"></ha-icon>
           <span>卡片类型</span>
+          <span class="section-subtitle">选择要使用的卡片插件</span>
         </div>
         
         <plugin-selector
@@ -237,8 +248,9 @@ class HaCardForgeEditor extends LitElement {
     return html`
       <div class="editor-section">
         <div class="section-header">
-          <span class="section-icon">🎭</span>
+          <ha-icon icon="mdi:format-paint"></ha-icon>
           <span>主题样式</span>
+          <span class="section-subtitle">选择卡片的整体视觉风格</span>
         </div>
         
         <theme-selector
@@ -250,14 +262,15 @@ class HaCardForgeEditor extends LitElement {
     `;
   }
 
-  _renderPluginConfigSection() {
+  _renderCardConfigSection() {
     if (!this.config.plugin || !this._pluginManifest?.config_schema) return '';
     
     return html`
       <div class="editor-section">
         <div class="section-header">
-          <span class="section-icon">⚙️</span>
+          <ha-icon icon="mdi:cog"></ha-icon>
           <span>卡片配置</span>
+          <span class="section-subtitle">配置卡片的功能和外观</span>
         </div>
         
         <config-editor
@@ -269,14 +282,15 @@ class HaCardForgeEditor extends LitElement {
     `;
   }
 
-  _renderDatasourceSection() {
+  _renderDataSourceSection() {
     if (!this.config.plugin || !this._pluginInstance) return '';
 
     return html`
       <div class="editor-section">
         <div class="section-header">
-          <span class="section-icon">🔧</span>
-          <span>内容配置</span>
+          <ha-icon icon="mdi:database"></ha-icon>
+          <span>数据源配置</span>
+          <span class="section-subtitle">配置卡片显示的数据和内容</span>
         </div>
         
         <entity-manager

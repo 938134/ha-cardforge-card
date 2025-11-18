@@ -29,17 +29,33 @@ export class ConfigEditor extends LitElement {
       }
 
       .config-label {
-        font-weight: 500;
-        font-size: 0.9em;
-        color: var(--cf-text-primary);
         display: flex;
         align-items: center;
         gap: var(--cf-spacing-xs);
+        font-weight: 500;
+        font-size: 0.9em;
+        color: var(--cf-text-primary);
         margin-bottom: var(--cf-spacing-xs);
       }
 
       .required-star {
         color: var(--cf-error-color);
+      }
+
+      .field-group {
+        margin-bottom: var(--cf-spacing-xl);
+      }
+
+      .group-header {
+        font-size: 1em;
+        font-weight: 600;
+        color: var(--cf-text-primary);
+        margin-bottom: var(--cf-spacing-md);
+        padding-bottom: var(--cf-spacing-xs);
+        border-bottom: 2px solid var(--cf-border);
+        display: flex;
+        align-items: center;
+        gap: var(--cf-spacing-sm);
       }
 
       .switch-group {
@@ -123,17 +139,59 @@ export class ConfigEditor extends LitElement {
       return html`
         <div class="config-editor">
           <div class="cf-text-sm cf-text-secondary cf-text-center cf-p-md">
-            此插件无需额外配置
+            此卡片无需额外配置
           </div>
         </div>
       `;
     }
 
-    const booleanFields = Object.entries(this.schema).filter(([_, field]) => field.type === 'boolean');
-    const otherFields = Object.entries(this.schema).filter(([_, field]) => field.type !== 'boolean');
+    // 按分组组织配置字段
+    const groupedFields = this._groupFieldsByCategory();
 
     return html`
       <div class="config-editor">
+        ${Object.entries(groupedFields).map(([group, fields]) => 
+          this._renderFieldGroup(group, fields)
+        )}
+      </div>
+    `;
+  }
+
+  _groupFieldsByCategory() {
+    const groups = {
+      appearance: { name: '外观设置', icon: 'mdi:palette', fields: [] },
+      behavior: { name: '行为设置', icon: 'mdi:play', fields: [] },
+      content: { name: '内容设置', icon: 'mdi:format-align-left', fields: [] },
+      layout: { name: '布局设置', icon: 'mdi:view-grid', fields: [] },
+      other: { name: '其他设置', icon: 'mdi:dots-horizontal', fields: [] }
+    };
+
+    Object.entries(this.schema).forEach(([key, field]) => {
+      const group = field.group || 'other';
+      if (groups[group]) {
+        groups[group].fields.push([key, field]);
+      } else {
+        groups.other.fields.push([key, field]);
+      }
+    });
+
+    // 过滤掉空的分组
+    return Object.fromEntries(
+      Object.entries(groups).filter(([_, group]) => group.fields.length > 0)
+    );
+  }
+
+  _renderFieldGroup(groupName, groupData) {
+    const booleanFields = groupData.fields.filter(([_, field]) => field.type === 'boolean');
+    const otherFields = groupData.fields.filter(([_, field]) => field.type !== 'boolean');
+
+    return html`
+      <div class="field-group">
+        <div class="group-header">
+          <ha-icon .icon=${groupData.icon}></ha-icon>
+          <span>${groupData.name}</span>
+        </div>
+
         <!-- 布尔类型配置 -->
         ${booleanFields.length > 0 ? html`
           <div class="switch-group">
