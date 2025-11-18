@@ -55,13 +55,17 @@ class WelcomeCard extends BasePlugin {
     const cardStyle = config.card_style || '简约现代';
     const alignment = config.text_alignment || '居中';
     
+    // 确保有默认值
+    const finalUserName = userName || '朋友';
+    const finalWelcomeMessage = welcomeMessage || this._getDefaultWelcomeMessage();
+    
     return `
       <div class="cardforge-responsive-container welcome-card style-${this._getStyleClass(cardStyle)} animation-${config.animation_style || '淡入'} alignment-${this._getAlignmentClass(alignment)} ${config.show_decoration ? 'with-decoration' : ''}">
         <div class="welcome-content">
           ${config.show_decoration ? this._renderDecoration(cardStyle) : ''}
           <div class="welcome-text">
-            <h2 class="greeting">${this._getTimeBasedGreeting()}，${userName}</h2>
-            <p class="message">${welcomeMessage}</p>
+            <h2 class="greeting">${this._getTimeBasedGreeting()}，${finalUserName}</h2>
+            <p class="message">${finalWelcomeMessage}</p>
           </div>
         </div>
       </div>
@@ -69,7 +73,11 @@ class WelcomeCard extends BasePlugin {
   }
 
   _getWelcomeMessage(hass, entities) {
-    const welcomeMessage = this._getCardValue(hass, entities, 'welcome_message', '');
+    if (!entities || !entities.welcome_message) {
+      return this._getDefaultWelcomeMessage();
+    }
+    
+    const welcomeMessage = entities.welcome_message.state || '';
     
     // 如果配置了实体，尝试获取实体状态
     if (welcomeMessage.includes('.') && hass?.states?.[welcomeMessage]) {
@@ -122,6 +130,7 @@ class WelcomeCard extends BasePlugin {
   }
 
   _renderDecoration(style) {
+    const styleClass = this._getStyleClass(style);
     const decorations = {
       'modern': `
         <div class="decoration modern-dots">
@@ -153,9 +162,9 @@ class WelcomeCard extends BasePlugin {
       `,
       'tech': `
         <div class="decoration tech-grid">
-          <div class="grid-line"></div>
           <div class="grid-dot grid-dot-1"></div>
           <div class="grid-dot grid-dot-2"></div>
+          <div class="grid-dot grid-dot-3"></div>
         </div>
       `,
       'nature': `
@@ -167,7 +176,7 @@ class WelcomeCard extends BasePlugin {
       `
     };
     
-    return decorations[this._getStyleClass(style)] || '';
+    return decorations[styleClass] || '';
   }
 
   getStyles(config) {
@@ -181,6 +190,9 @@ class WelcomeCard extends BasePlugin {
         min-height: 180px;
         position: relative;
         overflow: hidden;
+        display: flex;
+        align-items: center;
+        justify-content: center;
       }
       
       .welcome-content {
@@ -191,6 +203,7 @@ class WelcomeCard extends BasePlugin {
         height: 100%;
         position: relative;
         z-index: 2;
+        width: 100%;
       }
       
       .alignment-left .welcome-content {
@@ -205,7 +218,6 @@ class WelcomeCard extends BasePlugin {
       
       .greeting {
         margin: 0;
-        color: var(--cf-text-primary);
         font-size: 1.8em;
         font-weight: 600;
         line-height: 1.2;
@@ -213,7 +225,6 @@ class WelcomeCard extends BasePlugin {
       
       .message {
         margin: var(--cf-spacing-md) 0 0 0;
-        color: var(--cf-text-secondary);
         font-size: 1.2em;
         line-height: 1.4;
         max-width: 400px;
@@ -226,13 +237,15 @@ class WelcomeCard extends BasePlugin {
         pointer-events: none;
       }
       
-      /* 简约现代风格 */
+      /* ===== 简约现代风格 ===== */
       .style-modern {
         background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
         color: white;
+        border-radius: 16px;
       }
       .style-modern .greeting {
         color: white;
+        text-shadow: 0 2px 4px rgba(0,0,0,0.3);
       }
       .style-modern .message {
         color: rgba(255, 255, 255, 0.9);
@@ -245,14 +258,22 @@ class WelcomeCard extends BasePlugin {
         width: 8px;
         height: 8px;
         border-radius: 50%;
-        background: rgba(255, 255, 255, 0.3);
+        background: rgba(255, 255, 255, 0.5);
         margin-bottom: 6px;
       }
       
-      /* 温馨家居风格 */
+      /* ===== 温馨家居风格 ===== */
       .style-cozy {
         background: linear-gradient(135deg, #ff9a9e 0%, #fecfef 100%);
-        border: 2px solid #ffb7c5;
+        border: 3px solid #ffb7c5;
+        border-radius: 20px;
+        box-shadow: 0 8px 25px rgba(255, 155, 158, 0.3);
+      }
+      .style-cozy .greeting {
+        color: #8b4513;
+      }
+      .style-cozy .message {
+        color: #a0522d;
       }
       .cozy-hearts {
         top: 15px;
@@ -261,73 +282,99 @@ class WelcomeCard extends BasePlugin {
       .cozy-hearts .heart {
         font-size: 1.2em;
         margin-bottom: 4px;
-        opacity: 0.6;
+        opacity: 0.7;
         animation: float 3s ease-in-out infinite;
       }
       .cozy-hearts .heart-2 { animation-delay: 1s; }
       .cozy-hearts .heart-3 { animation-delay: 2s; }
       
-      /* 商务办公风格 */
+      /* ===== 商务办公风格 ===== */
       .style-business {
-        background: linear-gradient(135deg, #2c3e50 0%, #3498db 100%);
+        background: linear-gradient(135deg, #2c3e50 0%, #34495e 100%);
         color: white;
-        border-left: 4px solid #e74c3c;
+        border-left: 6px solid #e74c3c;
+        border-radius: 8px;
+        box-shadow: 0 4px 15px rgba(0,0,0,0.2);
       }
       .style-business .greeting {
         color: white;
+        font-weight: 700;
       }
       .style-business .message {
-        color: rgba(255, 255, 255, 0.9);
+        color: #bdc3c7;
+        font-style: italic;
       }
       .business-lines {
         bottom: 0;
         left: 0;
         right: 0;
-      }
-      .business-lines .line {
-        height: 1px;
-        background: rgba(255, 255, 255, 0.2);
-        margin-bottom: 8px;
+        height: 4px;
+        background: linear-gradient(90deg, #e74c3c, #3498db, #2ecc71);
       }
       
-      /* 创意艺术风格 */
+      /* ===== 创意艺术风格 ===== */
       .style-creative {
         background: linear-gradient(45deg, #ff6b6b, #4ecdc4, #45b7d1, #96ceb4);
         background-size: 400% 400%;
         animation: gradientShift 8s ease infinite;
         color: white;
+        border-radius: 24px;
+        box-shadow: 0 10px 30px rgba(0,0,0,0.2);
       }
       .style-creative .greeting {
         color: white;
         text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        font-weight: 700;
       }
       .style-creative .message {
         color: rgba(255, 255, 255, 0.95);
+        font-weight: 500;
       }
       .creative-shapes {
-        bottom: 15px;
-        right: 15px;
+        bottom: 20px;
+        right: 20px;
       }
       .creative-shapes .shape {
         font-size: 1.5em;
-        opacity: 0.4;
+        opacity: 0.6;
         margin-bottom: 5px;
+        text-shadow: 1px 1px 2px rgba(0,0,0,0.3);
       }
       
-      /* 科技未来风格 */
+      /* ===== 科技未来风格 ===== */
       .style-tech {
         background: #0a0a0a;
         color: #00ff88;
-        border: 1px solid #00ff88;
-        box-shadow: 0 0 15px rgba(0, 255, 136, 0.3);
+        border: 2px solid #00ff88;
+        box-shadow: 
+          0 0 20px rgba(0, 255, 136, 0.5),
+          inset 0 0 20px rgba(0, 255, 136, 0.1);
+        border-radius: 12px;
+        position: relative;
+        overflow: hidden;
+      }
+      .style-tech::before {
+        content: '';
+        position: absolute;
+        top: -50%;
+        left: -50%;
+        width: 200%;
+        height: 200%;
+        background: linear-gradient(45deg, transparent, rgba(0, 255, 136, 0.1), transparent);
+        animation: shine 3s linear infinite;
       }
       .style-tech .greeting {
         color: #00ff88;
         text-shadow: 0 0 10px #00ff88;
+        font-weight: 700;
+        position: relative;
+        z-index: 2;
       }
       .style-tech .message {
         color: #00ff88;
-        opacity: 0.8;
+        opacity: 0.9;
+        position: relative;
+        z-index: 2;
       }
       .tech-grid {
         top: 0;
@@ -341,31 +388,43 @@ class WelcomeCard extends BasePlugin {
       }
       .tech-grid .grid-dot {
         position: absolute;
-        width: 4px;
-        height: 4px;
+        width: 6px;
+        height: 6px;
         background: #00ff88;
         border-radius: 50%;
+        box-shadow: 0 0 8px #00ff88;
       }
       .grid-dot-1 { top: 30px; left: 30px; }
       .grid-dot-2 { bottom: 30px; right: 30px; }
+      .grid-dot-3 { top: 50%; left: 50%; transform: translate(-50%, -50%); }
       
-      /* 自然清新风格 */
+      /* ===== 自然清新风格 ===== */
       .style-nature {
-        background: linear-gradient(135deg, #a8e6cf 0%, #dcedc1 100%);
-        border: 2px solid #81c784;
+        background: linear-gradient(135deg, #a8e6cf 0%, #dcedc1 50%, #ffd3b6 100%);
+        border: 3px solid #81c784;
+        border-radius: 18px;
+        box-shadow: 0 6px 20px rgba(129, 199, 132, 0.3);
+      }
+      .style-nature .greeting {
+        color: #2e7d32;
+        font-weight: 600;
+      }
+      .style-nature .message {
+        color: #388e3c;
       }
       .nature-leaves {
-        top: 10px;
-        right: 10px;
+        top: 15px;
+        right: 15px;
       }
       .nature-leaves .leaf {
-        font-size: 1.3em;
-        opacity: 0.5;
-        margin-bottom: 3px;
+        font-size: 1.5em;
+        opacity: 0.6;
+        margin-bottom: 5px;
         animation: sway 4s ease-in-out infinite;
+        filter: drop-shadow(1px 1px 2px rgba(0,0,0,0.1));
       }
-      .nature-leaves .leaf-2 { animation-delay: 1s; }
-      .nature-leaves .leaf-3 { animation-delay: 2s; }
+      .nature-leaves .leaf-2 { animation-delay: 1.3s; }
+      .nature-leaves .leaf-3 { animation-delay: 2.6s; }
       
       /* 动画效果 */
       .animation-淡入 .welcome-content {
@@ -401,7 +460,7 @@ class WelcomeCard extends BasePlugin {
       }
       @keyframes float {
         0%, 100% { transform: translateY(0px); }
-        50% { transform: translateY(-10px); }
+        50% { transform: translateY(-8px); }
       }
       @keyframes gradientShift {
         0% { background-position: 0% 50%; }
@@ -409,8 +468,12 @@ class WelcomeCard extends BasePlugin {
         100% { background-position: 0% 50%; }
       }
       @keyframes sway {
-        0%, 100% { transform: rotate(-5deg); }
-        50% { transform: rotate(5deg); }
+        0%, 100% { transform: rotate(-8deg) scale(1); }
+        50% { transform: rotate(8deg) scale(1.1); }
+      }
+      @keyframes shine {
+        0% { transform: rotate(0deg); }
+        100% { transform: rotate(360deg); }
       }
 
       /* 响应式设计 */
