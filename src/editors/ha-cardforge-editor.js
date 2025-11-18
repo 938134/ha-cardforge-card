@@ -272,45 +272,53 @@ class HaCardForgeEditor extends LitElement {
   _renderDatasourceSection() {
     if (!this._pluginInstance) return '';
 
-    // 获取所有实体需求（静态 + 动态）
-    const requirements = this._pluginInstance.getAllEntityRequirements(this.config, this.hass);
+    const manifest = this._pluginManifest;
     
+    // 判断插件支持的模式
+    const supportsCustomFields = manifest?.supports_custom_fields;
+    const requirements = this._pluginInstance.getAllEntityRequirements(this.config, this.hass);
+    const hasEntityRequirements = requirements && requirements.length > 0;
+
+    // 如果既不需要自定义字段也没有实体需求，就隐藏整个区域
+    if (!supportsCustomFields && !hasEntityRequirements) return '';
+
     return html`
       <div class="editor-section">
         <div class="section-header">
           <span class="section-icon">🔧</span>
-          <span>数据源配置</span>
+          <span>${supportsCustomFields ? '内容配置' : '数据源配置'}</span>
         </div>
         
         <entity-manager
           .hass=${this.hass}
           .requirements=${requirements}
           .entities=${this.config.entities || {}}
+          .mode=${supportsCustomFields ? 'custom-fields' : 'entity-requirements'}
           @entities-changed=${this._onEntitiesChanged}
         ></entity-manager>
       </div>
     `;
   }
 
-_renderActionButtons() {
-  return html`
-    <div class="editor-section">
-      <div class="action-buttons">
-        <mwc-button 
-          outlined 
-          label="取消" 
-          @click=${this._cancel}
-        ></mwc-button>
-        <mwc-button 
-          raised 
-          label="保存配置" 
-          @click=${this._save}
-          .disabled=${!this.config.plugin}
-        ></mwc-button>
+  _renderActionButtons() {
+    return html`
+      <div class="editor-section">
+        <div class="action-buttons">
+          <mwc-button 
+            outlined 
+            label="取消" 
+            @click=${this._cancel}
+          ></mwc-button>
+          <mwc-button 
+            raised 
+            label="保存配置" 
+            @click=${this._save}
+            .disabled=${!this.config.plugin}
+          ></mwc-button>
+        </div>
       </div>
-    </div>
-  `;
-}
+    `;
+  }
 
   async _onPluginChanged(e) {
     const newConfig = {
