@@ -18,6 +18,7 @@ class PluginRegistry {
     const pluginModules = [
       () => import('../plugins/clock-card.js'),
       () => import('../plugins/welcome-card.js'),
+      () => import('../plugins/poetry-card.js'),
       () => import('../plugins/dashboard-card.js'),
       // 其他插件...
     ];
