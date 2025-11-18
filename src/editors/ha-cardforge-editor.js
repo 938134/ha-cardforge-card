@@ -218,8 +218,6 @@ class HaCardForgeEditor extends LitElement {
           <!-- 4. 数据源配置区域 -->
           ${this._renderDatasourceSection()}
           
-          <!-- 操作按钮 -->
-          ${this._renderActionButtons()}
         </div>
       </div>
     `;
@@ -335,26 +333,6 @@ class HaCardForgeEditor extends LitElement {
           .capabilities=${capabilities}
           @entities-changed=${this._onEntitiesChanged}
         ></entity-manager>
-      </div>
-    `;
-  }
-
-  _renderActionButtons() {
-    return html`
-      <div class="editor-section">
-        <div class="action-buttons">
-          <mwc-button 
-            outlined 
-            label="取消" 
-            @click=${this._cancel}
-          ></mwc-button>
-          <mwc-button 
-            raised 
-            label="保存配置" 
-            @click=${this._save}
-            .disabled=${!this.config.plugin}
-          ></mwc-button>
-        </div>
       </div>
     `;
   }
