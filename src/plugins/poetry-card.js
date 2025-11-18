@@ -61,6 +61,33 @@ class PoetryCard extends BasePlugin {
     }
   };
 
+  // 重写实体需求方法
+  getAllEntityRequirements(config, hass) {
+    // 返回诗词卡片需要的实体字段
+    return [
+      {
+        key: 'title',
+        description: '诗词标题',
+        required: true
+      },
+      {
+        key: 'dynasty', 
+        description: '诗词朝代',
+        required: false
+      },
+      {
+        key: 'author',
+        description: '诗词作者',
+        required: false
+      },
+      {
+        key: 'content',
+        description: '诗词全文',
+        required: true
+      }
+    ];
+  }
+
   getTemplate(config, hass, entities) {
     // 从实体数据中提取诗词信息
     const poetryData = this._extractPoetryData(entities);
@@ -85,25 +112,12 @@ class PoetryCard extends BasePlugin {
   }
 
   _extractPoetryData(entities) {
-    // 通过预定义的字段名来获取诗词数据
-    // 用户在编辑器中需要按照这些字段名来配置实体
+    // 直接从实体中获取数据
     return {
-      title: this._getEntityValue(entities, 'title') || 
-             this._getEntityValue(entities, '诗词标题') || 
-             this._getEntityValue(entities, 'poetry_title'),
-      
-      dynasty: this._getEntityValue(entities, 'dynasty') || 
-               this._getEntityValue(entities, '朝代') || 
-               this._getEntityValue(entities, 'poetry_dynasty'),
-      
-      author: this._getEntityValue(entities, 'author') || 
-              this._getEntityValue(entities, '作者') || 
-              this._getEntityValue(entities, 'poetry_author'),
-      
-      content: this._getEntityValue(entities, 'content') || 
-               this._getEntityValue(entities, '内容') || 
-               this._getEntityValue(entities, '诗词内容') || 
-               this._getEntityValue(entities, 'poetry_content')
+      title: this._getEntityValue(entities, 'title'),
+      dynasty: this._getEntityValue(entities, 'dynasty'),
+      author: this._getEntityValue(entities, 'author'),
+      content: this._getEntityValue(entities, 'content')
     };
   }
 
@@ -212,32 +226,6 @@ class PoetryCard extends BasePlugin {
         </div>
       </div>
     `;
-  }
-
-  // 实体需求定义 - 明确告诉用户需要配置哪些字段
-  getAllEntityRequirements(config, hass) {
-    return [
-      {
-        key: 'title',
-        description: '诗词标题（必需）',
-        required: true
-      },
-      {
-        key: 'dynasty',
-        description: '诗词朝代（可选）',
-        required: false
-      },
-      {
-        key: 'author',
-        description: '诗词作者（可选）',
-        required: false
-      },
-      {
-        key: 'content',
-        description: '诗词全文（必需）',
-        required: true
-      }
-    ];
   }
 
   getStyles(config) {
