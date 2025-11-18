@@ -8,7 +8,8 @@ export class EntityManager extends LitElement {
     config: { type: Object },
     pluginManifest: { type: Object },
     _currentStrategy: { state: true },
-    _contentBlocks: { state: true }
+    _contentBlocks: { state: true },
+    _availableEntities: { state: true }
   };
 
   static styles = [
@@ -168,6 +169,7 @@ export class EntityManager extends LitElement {
     super();
     this._currentStrategy = 'stateless';
     this._contentBlocks = [];
+    this._availableEntities = [];
   }
 
   willUpdate(changedProperties) {
@@ -175,6 +177,26 @@ export class EntityManager extends LitElement {
       this._currentStrategy = this._detectStrategy();
       this._contentBlocks = this._extractContentBlocks();
     }
+    
+    if (changedProperties.has('hass') && this.hass) {
+      this._updateAvailableEntities();
+    }
+  }
+
+  _updateAvailableEntities() {
+    if (!this.hass?.states) {
+      this._availableEntities = [];
+      return;
+    }
+
+    const entities = Object.entries(this.hass.states)
+      .map(([entityId, state]) => ({
+        value: entityId,
+        label: state.attributes?.friendly_name || entityId
+      }))
+      .sort((a, b) => a.label.localeCompare(b.label));
+
+    this._availableEntities = entities;
   }
 
   _detectStrategy() {
@@ -278,39 +300,39 @@ export class EntityManager extends LitElement {
     `;
   }
 
-_renderEntityRequirement(key, requirement) {
-  const currentValue = this.config.entities?.[key] || '';
+  _renderEntityRequirement(key, requirement) {
+    const currentValue = this.config.entities?.[key] || '';
 
-  return html`
-    <div class="entity-requirement ${requirement.required ? 'required' : ''}">
-      <div class="requirement-header">
-        <div class="requirement-info">
-          <h4>${requirement.name}</h4>
-          ${requirement.description ? html`
-            <div class="requirement-description">${requirement.description}</div>
+    return html`
+      <div class="entity-requirement ${requirement.required ? 'required' : ''}">
+        <div class="requirement-header">
+          <div class="requirement-info">
+            <h4>${requirement.name}</h4>
+            ${requirement.description ? html`
+              <div class="requirement-description">${requirement.description}</div>
+            ` : ''}
+          </div>
+          ${requirement.required ? html`
+            <span class="required-badge">必需</span>
           ` : ''}
         </div>
-        ${requirement.required ? html`
-          <span class="required-badge">必需</span>
+
+        <ha-combo-box
+          .items=${this._availableEntities}
+          .value=${currentValue}
+          @value-changed=${e => this._onEntityChanged(key, e.detail.value)}
+          allow-custom-value
+          label=${requirement.name}
+        ></ha-combo-box>
+
+        ${requirement.example ? html`
+          <div class="example-hint">
+            <small>例如: ${requirement.example}</small>
+          </div>
         ` : ''}
       </div>
-
-      <ha-entity-picker
-        .hass=${this.hass}
-        .value=${currentValue}
-        @value-changed=${e => this._onEntityChanged(key, e.detail.value)}
-        allow-custom-value
-        .label=${`选择 ${requirement.name}`}
-      ></ha-entity-picker>
-
-      ${requirement.example ? html`
-        <div class="example-hint">
-          <small>例如: ${requirement.example}</small>
-        </div>
-      ` : ''}
-    </div>
-  `;
-}
+    `;
+  }
 
   _extractContentBlocks() {
     const blocks = [];
