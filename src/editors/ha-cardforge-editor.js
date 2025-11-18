@@ -215,8 +215,8 @@ class HaCardForgeEditor extends LitElement {
           <!-- 3. 卡片配置区域 -->
           ${this._renderPluginConfigSection()}
           
-          <!-- 4. 内容配置区域 -->
-          ${this._renderContentSection()}
+          <!-- 4. 数据源配置区域 -->
+          ${this._renderDatasourceSection()}
           
           <!-- 操作按钮 -->
           ${this._renderActionButtons()}
@@ -291,7 +291,7 @@ class HaCardForgeEditor extends LitElement {
     `;
   }
 
-  _renderContentSection() {
+  _renderDatasourceSection() {
     if (!this.config.plugin || !this._pluginInstance) return '';
 
     const capabilities = this._cardCapabilities;
