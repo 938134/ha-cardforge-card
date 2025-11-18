@@ -88,15 +88,11 @@ export class EntityManager extends LitElement {
       }
       .entity-row:hover .entity-actions { opacity: 1; }
       .empty-state { text-align: center; padding: 20px; color: var(--secondary-text-color); }
-      .edit-form {
-        padding: 16px;
-        background: var(--secondary-background-color);
-        border-top: 1px solid var(--divider-color);
-      }
+      /* 编辑表单样式保持原文件不变 */
+      .edit-form { padding: 16px; background: var(--secondary-background-color); border-top: 1px solid var(--divider-color); }
       .form-field { margin-bottom: 16px; }
       .form-label { display: block; font-weight: 600; font-size: 12px; margin-bottom: 6px; color: var(--primary-text-color); }
       .form-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 16px; }
-      ha-textfield { width: 100%; }
     `
   ];
 
@@ -105,7 +101,7 @@ export class EntityManager extends LitElement {
     this._config = { header: [], content: [], footer: [] };
     this._expandedSections = new Set(['content']);
     this._editingItem = null;
-    this._entityPools = { header: [], content: [], footer: [] };
+    this._entityPools = { header: [], content: [], footer: [] }; // 新增：实体池缓存
   }
 
   willUpdate(changedProperties) {
@@ -134,7 +130,9 @@ export class EntityManager extends LitElement {
 
   _updateEntityPools() {
     if (!this.hass) return;
-    ['header', 'content', 'footer'].forEach(sec => { this._entityPools[sec] = this._config[sec].map(it => this._mapEntityRow(it)); });
+    ['header', 'content', 'footer'].forEach(sec => {
+      this._entityPools[sec] = this._config[sec].map(it => this._mapEntityRow(it));
+    });
   }
 
   _mapEntityRow(item) {
@@ -229,10 +227,11 @@ export class EntityManager extends LitElement {
           </div>
           <div class="entity-actions">
             ${row.canToggle ? html`<ha-switch .checked=${row.state === 'on'} @click=${e => { e.stopPropagation(); this._toggle(e, row.entityId); }}></ha-switch>` : ''}
-            <mwc-icon-button icon="delete" @click=${e => { e.stopPropagation(); this.removeEntity(entityId); }}></mwc-icon-button>
+            <mwc-icon-button icon="delete" @click=${e => { e.stopPropagation(); this.removeEntity(sectionType, index); }}></mwc-icon-button>
           </div>
         </div>`;
     }
+    // 兼容旧文本行
     return html`
       <div class="entity-row" @click=${() => this._startEditItem(sectionType, index)}>
         <div class="entity-icon"><ha-icon .icon=${item.icon}></ha-icon></div>
@@ -258,8 +257,39 @@ export class EntityManager extends LitElement {
     this.dispatchEvent(ev);
   }
 
+  _renderEditForm(sectionType) {
+    if (!this._editingItem || this._editingItem.sectionType !== sectionType) return '';
+    const { index, isNew } = this._editingItem;
+    const item = this._config[sectionType][index] || { label: '', value: '', icon: 'mdi:chart-box' };
+    return html`
+      <div class="edit-form">
+        <div class="form-field">
+          <label class="form-label">显示名称</label>
+          <ha-textfield .value=${item.label} @input=${e => this._updateEditingItem({ label: e.target.value })} placeholder="名称" fullwidth></ha-textfield>
+        </div>
+        <div class="form-field">
+          <label class="form-label">数据源（实体ID或文本）</label>
+          <ha-textfield .value=${item.value} @input=${e => {
+            const val = e.target.value;
+            this._updateEditingItem({ value: val });
+            const info = this._getEntityInfo(val);
+            if (info.name && !item.label) this._updateEditingItem({ label: info.name });
+            if (info.icon) this._updateEditingItem({ icon: info.icon });
+          }} placeholder="light.living_room 或任意文本" fullwidth></ha-textfield>
+          <button class="entity-picker-btn" @click=${this._showEntityPicker}>选择实体</button>
+        </div>
+        <div class="form-field">
+          <label class="form-label">图标</label>
+          <div class="icon-preview"><ha-icon .icon=${item.icon}></ha-icon><span>${item.icon}</span></div>
+        </div>
+        <div class="form-actions">
+          <button @click=${this._cancelEdit}>取消</button>
+          <button @click=${this._saveEdit} ?disabled=${!item.label.trim() || !item.value.trim()}>保存</button>
+        </div>
+      </div>`;
+  }
+
   _startAddItem(sectionType) {
-    if (!this._config[sectionType]) this._config[sectionType] = [];
     this._editingItem = { sectionType, index: this._config[sectionType].length, isNew: true };
     this._config[sectionType].push({ label: '', value: '', icon: 'mdi:chart-box' });
     this._expandedSections.add(sectionType);
@@ -300,29 +330,30 @@ export class EntityManager extends LitElement {
     this._notifyEntitiesChange();
   }
 
-  _renderEditForm(sectionType) {
-    if (!this._editingItem || this._editingItem.sectionType !== sectionType) return html``;
-    const { index } = this._editingItem;
-    const item = this._config[sectionType][index];
-    return html`
-      <div class="edit-form">
-        <div class="form-field">
-          <label class="form-label">显示名称</label>
-          <ha-textfield .value=${item.label} @input=${e => this._updateEditingItem({ label: e.target.value })} placeholder="名称" fullwidth></ha-textfield>
-        </div>
-        <div class="form-field">
-          <label class="form-label">数据源（实体ID 或 文本）</label>
-          <ha-textfield .value=${item.value} @input=${e => this._updateEditingItem({ value: e.target.value }) } placeholder="light.living_room" fullwidth></ha-textfield>
-        </div>
-        <div class="form-field">
-          <label class="form-label">图标（mdi 名称）</label>
-          <ha-textfield .value=${item.icon} @input=${e => this._updateEditingItem({ icon: e.target.value }) } placeholder="mdi:chart-box" fullwidth></ha-textfield>
-        </div>
-        <div class="form-actions">
-          <button @click=${this._cancelEdit}>取消</button>
-          <button @click=${this._saveEdit} ?disabled=${!item.label.trim() || !item.value.trim()}>保存</button>
-        </div>
-      </div>`;
+  _getEntityInfo(entityValue) {
+    if (!entityValue || !this.hass) return { name: '', icon: 'mdi:chart-box' };
+    if (entityValue.includes('.') && this.hass.states[entityValue]) {
+      const st = this.hass.states[entityValue];
+      return { name: st.attributes.friendly_name || entityValue, icon: st.attributes.icon || this._defaultIcon(entityValue) };
+    }
+    return { name: '', icon: 'mdi:chart-box' };
+  }
+
+  _showEntityPicker() {
+    if (!this._editingItem) return;
+    const picker = document.createElement('ha-entity-picker');
+    picker.hass = this.hass;
+    picker.allowCustomValue = true;
+    picker.addEventListener('value-changed', e => {
+      const entityId = e.detail.value;
+      if (entityId) {
+        const info = this._getEntityInfo(entityId);
+        this._updateEditingItem({ value: entityId, label: info.name || entityId, icon: info.icon });
+      }
+      picker.remove();
+    });
+    document.body.appendChild(picker);
+    setTimeout(() => { picker.focus(); picker.open(); }, 100);
   }
 
   static getConfigElement() { return document.createElement('entity-manager-editor'); }
