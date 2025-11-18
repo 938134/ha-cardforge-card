@@ -6,155 +6,248 @@ export class EntityManager extends LitElement {
   static properties = {
     hass: { type: Object },
     entities: { type: Object },
-    _config: { state: true },
-    _expandedSections: { state: true },
-    _editingItem: { state: true }
+    _config: { state: true }
   };
 
   static styles = [
     foundationStyles,
     css`
-      .entity-manager { width: 100%; }
-      .config-section {
+      .entity-manager {
+        width: 100%;
+      }
+
+      /* 官方 Entities 卡片风格 */
+      .entities-section {
         background: var(--card-background-color);
-        border-radius: 12px;
-        margin-bottom: 12px;
-        border: 1px solid var(--divider-color);
+        border-radius: var(--ha-card-border-radius, 12px);
+        padding: 0;
+        margin-bottom: 16px;
+        border: var(--ha-card-border, none);
+        box-shadow: var(--ha-card-box-shadow, 0 2px 4px rgba(0,0,0,0.1));
         overflow: hidden;
       }
+
       .section-header {
         display: flex;
         align-items: center;
         justify-content: space-between;
-        padding: 12px 16px;
+        padding: 16px;
         background: var(--secondary-background-color);
-        cursor: pointer;
-        min-height: 44px;
+        border-bottom: 1px solid var(--divider-color);
       }
+
       .section-title {
         font-weight: 600;
-        font-size: 14px;
+        color: var(--primary-text-color);
+        font-size: 16px;
         display: flex;
         align-items: center;
         gap: 8px;
       }
-      .section-count {
+
+      .add-entity-row {
+        display: flex;
+        align-items: center;
+        padding: 12px 16px;
+        border-bottom: 1px solid var(--divider-color);
+        background: var(--card-background-color);
+        gap: 12px;
+      }
+
+      .add-entity-inputs {
+        flex: 1;
+        display: flex;
+        gap: 12px;
+        align-items: center;
+      }
+
+      .entity-name-input {
+        flex: 1;
+        min-width: 120px;
+      }
+
+      .entity-picker-btn {
         background: var(--primary-color);
         color: white;
-        border-radius: 10px;
-        padding: 2px 8px;
-        font-size: 11px;
-        margin-left: 6px;
+        border: none;
+        border-radius: 4px;
+        padding: 8px 12px;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        gap: 4px;
+        font-size: 12px;
       }
+
       .add-button {
         background: var(--primary-color);
         color: white;
         border: none;
-        border-radius: 6px;
-        padding: 6px 12px;
-        font-size: 12px;
+        border-radius: 4px;
+        padding: 8px 16px;
         cursor: pointer;
+        font-size: 14px;
+        white-space: nowrap;
       }
-      .entities-list { padding: 8px 0; }
+
+      .add-button:disabled {
+        background: var(--disabled-color);
+        cursor: not-allowed;
+      }
+
+      /* 官方实体行样式 */
+      .entities-list {
+        padding: 0;
+      }
+
       .entity-row {
         display: flex;
         align-items: center;
-        padding: 8px 16px;
+        padding: 12px 16px;
         border-bottom: 1px solid var(--divider-color);
-        min-height: 52px;
-        cursor: pointer;
+        transition: background-color 0.3s;
+        min-height: 60px;
       }
-      .entity-row:last-child { border-bottom: none; }
-      .entity-row:hover { background: var(--secondary-background-color); }
+
+      .entity-row:hover {
+        background: var(--secondary-background-color);
+      }
+
+      .entity-row:last-child {
+        border-bottom: none;
+      }
+
       .entity-icon {
-        width: 32px;
-        height: 32px;
+        width: 40px;
+        height: 40px;
         display: flex;
         align-items: center;
         justify-content: center;
         background: var(--primary-color);
-        border-radius: 8px;
-        margin-right: 12px;
+        border-radius: 50%;
+        margin-right: 16px;
         color: white;
+        flex-shrink: 0;
       }
-      .entity-content { flex: 1; min-width: 0; }
-      .entity-name { font-weight: 600; font-size: 13px; margin-bottom: 2px; }
-      .entity-value { font-size: 11px; color: var(--secondary-text-color); font-family: monospace; }
+
+      .entity-content {
+        flex: 1;
+        min-width: 0;
+      }
+
+      .entity-name {
+        font-weight: 500;
+        color: var(--primary-text-color);
+        font-size: 14px;
+        margin-bottom: 4px;
+      }
+
+      .entity-value {
+        font-size: 12px;
+        color: var(--secondary-text-color);
+        font-family: var(--code-font-family, monospace);
+        word-break: break-all;
+      }
+
       .entity-actions {
         display: flex;
-        gap: 4px;
-        opacity: 0;
-        transition: opacity 0.2s ease;
+        gap: 8px;
+        margin-left: 16px;
+        flex-shrink: 0;
       }
-      .entity-row:hover .entity-actions { opacity: 1; }
-      .empty-state { text-align: center; padding: 20px; color: var(--secondary-text-color); }
-      /* 编辑表单样式保持原文件不变 */
-      .edit-form { padding: 16px; background: var(--secondary-background-color); border-top: 1px solid var(--divider-color); }
-      .form-field { margin-bottom: 16px; }
-      .form-label { display: block; font-weight: 600; font-size: 12px; margin-bottom: 6px; color: var(--primary-text-color); }
-      .form-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 16px; }
+
+      .entity-action {
+        background: none;
+        border: none;
+        color: var(--secondary-text-color);
+        cursor: pointer;
+        padding: 8px;
+        border-radius: 4px;
+        transition: all 0.3s;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+
+      .entity-action:hover {
+        background: var(--secondary-background-color);
+        color: var(--primary-color);
+      }
+
+      .empty-state {
+        text-align: center;
+        padding: 40px 20px;
+        color: var(--secondary-text-color);
+      }
+
+      .empty-icon {
+        font-size: 48px;
+        margin-bottom: 16px;
+        opacity: 0.5;
+      }
+
+      .empty-text {
+        font-size: 16px;
+        margin-bottom: 8px;
+      }
     `
   ];
 
   constructor() {
     super();
     this._config = { header: [], content: [], footer: [] };
-    this._expandedSections = new Set(['content']);
-    this._editingItem = null;
-    this._entityPools = { header: [], content: [], footer: [] }; // 新增：实体池缓存
+    this._newItems = {
+      header: { label: '', value: '' },
+      content: { label: '', value: '' },
+      footer: { label: '', value: '' }
+    };
   }
 
   willUpdate(changedProperties) {
-    if (changedProperties.has('entities')) this._parseConfigFromEntities();
-    if (changedProperties.has('hass')) this._updateEntityPools();
+    if (changedProperties.has('entities')) {
+      this._parseConfigFromEntities();
+    }
   }
 
   _parseConfigFromEntities() {
-    if (!this.entities) { this._config = { header: [], content: [], footer: [] }; return; }
+    if (!this.entities) {
+      this._config = { header: [], content: [], footer: [] };
+      return;
+    }
+
     const config = { header: [], content: [], footer: [] };
+    
     Object.keys(this.entities).forEach(key => {
       if (key.startsWith('header_') && !key.includes('_label') && !key.includes('_icon')) {
-        const idx = key.replace('header_', '');
-        config.header.push({ label: this.entities[`header_${idx}_label`] || '标题', value: this.entities[key], icon: this.entities[`header_${idx}_icon`] || 'mdi:format-title' });
+        const index = key.replace('header_', '');
+        config.header.push({
+          label: this.entities[`header_${index}_label`] || '标题',
+          value: this.entities[key],
+          icon: this.entities[`header_${index}_icon`] || 'mdi:format-title'
+        });
       } else if (key.startsWith('content_') && !key.includes('_label') && !key.includes('_icon')) {
-        const idx = key.replace('content_', '');
-        config.content.push({ label: this.entities[`content_${idx}_label`] || `项目 ${idx}`, value: this.entities[key], icon: this.entities[`content_${idx}_icon`] || 'mdi:chart-box' });
+        const index = key.replace('content_', '');
+        config.content.push({
+          label: this.entities[`content_${index}_label`] || `项目 ${index}`,
+          value: this.entities[key],
+          icon: this.entities[`content_${index}_icon`] || 'mdi:chart-box'
+        });
       } else if (key.startsWith('footer_') && !key.includes('_label') && !key.includes('_icon')) {
-        const idx = key.replace('footer_', '');
-        config.footer.push({ label: this.entities[`footer_${idx}_label`] || '页脚', value: this.entities[key], icon: this.entities[`footer_${idx}_icon`] || 'mdi:file-document' });
+        const index = key.replace('footer_', '');
+        config.footer.push({
+          label: this.entities[`footer_${index}_label`] || '页脚',
+          value: this.entities[key],
+          icon: this.entities[`footer_${index}_icon`] || 'mdi:file-document'
+        });
       }
     });
+
     this._config = config;
-    this._updateEntityPools();
-  }
-
-  _updateEntityPools() {
-    if (!this.hass) return;
-    ['header', 'content', 'footer'].forEach(sec => {
-      this._entityPools[sec] = this._config[sec].map(it => this._mapEntityRow(it));
-    });
-  }
-
-  _mapEntityRow(item) {
-    const isEntity = item.value && item.value.includes('.') && this.hass.states[item.value];
-    if (!isEntity) return { ...item, _type: 'text' };
-    const st = this.hass.states[item.value];
-    const icon = st.attributes.icon || this._defaultIcon(item.value);
-    const name = item.label || st.attributes.friendly_name || item.value;
-    const state = st.state;
-    const domain = item.value.split('.')[0];
-    const canToggle = ['switch', 'light', 'input_boolean', 'fan', 'cover'].includes(domain);
-    return { ...item, _type: 'entity', entityId: item.value, icon, name, state, canToggle };
-  }
-
-  _defaultIcon(entityId) {
-    const domain = entityId.split('.')[0];
-    const map = { light: 'mdi:lightbulb', switch: 'mdi:power-plug', sensor: 'mdi:gauge', climate: 'mdi:thermostat', fan: 'mdi:fan', cover: 'mdi:window-open', input_boolean: 'mdi:toggle-switch', automation: 'mdi:robot', script: 'mdi:script-text', person: 'mdi:account', binary_sensor: 'mdi:checkbox-marked-circle', camera: 'mdi:camera', lock: 'mdi:lock', vacuum: 'mdi:robot-vacuum' };
-    return map[domain] || 'mdi:circle';
   }
 
   _getEntitiesFromConfig() {
     const entities = {};
+    
     ['header', 'content', 'footer'].forEach(sectionType => {
       this._config[sectionType].forEach((item, index) => {
         const baseKey = `${sectionType}_${index + 1}`;
@@ -163,18 +256,15 @@ export class EntityManager extends LitElement {
         entities[`${baseKey}_icon`] = item.icon;
       });
     });
+    
     return entities;
   }
 
   _notifyEntitiesChange() {
     const entities = this._getEntitiesFromConfig();
-    this.dispatchEvent(new CustomEvent('entities-changed', { detail: { entities } }));
-  }
-
-  _toggleSection(sectionType) {
-    if (this._expandedSections.has(sectionType)) this._expandedSections.delete(sectionType);
-    else this._expandedSections.add(sectionType);
-    this.requestUpdate();
+    this.dispatchEvent(new CustomEvent('entities-changed', {
+      detail: { entities }
+    }));
   }
 
   render() {
@@ -187,176 +277,188 @@ export class EntityManager extends LitElement {
     `;
   }
 
-  _renderSection(sectionType, icon, title) {
+  _renderSection(sectionType, defaultIcon, title) {
     const items = this._config[sectionType];
-    const isExpanded = this._expandedSections.has(sectionType);
-    const isEditing = this._editingItem?.sectionType === sectionType;
+    const newItem = this._newItems[sectionType];
 
     return html`
-      <div class="config-section">
-        <div class="section-header" @click=${() => this._toggleSection(sectionType)}>
+      <div class="entities-section">
+        <div class="section-header">
           <div class="section-title">
-            <ha-icon .icon=${icon}></ha-icon>
+            <ha-icon .icon=${defaultIcon}></ha-icon>
             ${title}
-            ${items.length > 0 ? html`<span class="section-count">${items.length}</span>` : ''}
           </div>
-          <button class="add-button" @click=${e => { e.stopPropagation(); this._startAddItem(sectionType); }}>添加</button>
         </div>
-        ${isExpanded ? html`
-          <div class="entities-list">
-            ${items.length === 0 ? html`<div class="empty-state">暂无${title}</div>` : items.map((item, index) => this._renderEntityRow(item, index, sectionType))}
+
+        <!-- 添加实体行 -->
+        <div class="add-entity-row">
+          <div class="add-entity-inputs">
+            <ha-textfield
+              class="entity-name-input"
+              .value=${newItem.label}
+              @input=${e => this._updateNewItem(sectionType, 'label', e.target.value)}
+              placeholder="显示名称"
+              outlined
+            ></ha-textfield>
+            
+            <ha-textfield
+              .value=${newItem.value}
+              @input=${e => this._updateNewItem(sectionType, 'value', e.target.value)}
+              placeholder="实体ID、Jinja模板或文本"
+              outlined
+              style="flex: 2;"
+            ></ha-textfield>
+
+            <button class="entity-picker-btn" @click=${() => this._showEntityPicker(sectionType)}>
+              <ha-icon icon="mdi:magnify"></ha-icon>
+              选择实体
+            </button>
           </div>
-        ` : ''}
-        ${isEditing ? this._renderEditForm(sectionType) : ''}
+
+          <button 
+            class="add-button"
+            @click=${() => this._addEntity(sectionType)}
+            ?disabled=${!newItem.label.trim() || !newItem.value.trim()}
+          >
+            添加
+          </button>
+        </div>
+
+        <!-- 实体列表 -->
+        <div class="entities-list">
+          ${items.length === 0 ? this._renderEmptyState(defaultIcon, title) : 
+            items.map((item, index) => this._renderEntityRow(item, index, sectionType))
+          }
+        </div>
+      </div>
+    `;
+  }
+
+  _renderEmptyState(icon, title) {
+    return html`
+      <div class="empty-state">
+        <div class="empty-icon">
+          <ha-icon .icon=${icon}></ha-icon>
+        </div>
+        <div class="empty-text">暂无${title}</div>
+        <div class="empty-hint">在上方输入名称和数据源来添加</div>
       </div>
     `;
   }
 
   _renderEntityRow(item, index, sectionType) {
-    const isEditing = this._editingItem?.sectionType === sectionType && this._editingItem?.index === index;
-    if (isEditing) return '';
+    const entityInfo = this._getEntityInfo(item.value);
+    const displayIcon = item.icon || entityInfo.icon || 'mdi:circle';
 
-    const row = this._entityPools[sectionType]?.[index] || { _type: 'text', ...item };
-    if (row._type === 'entity') {
-      return html`
-        <div class="entity-row" @click=${() => this._moreInfo(row.entityId)}>
-          <div class="entity-icon"><ha-icon .icon=${row.icon}></ha-icon></div>
-          <div class="entity-content">
-            <div class="entity-name">${row.name}</div>
-            <div class="entity-value">${row.state}</div>
-          </div>
-          <div class="entity-actions">
-            ${row.canToggle ? html`<ha-switch .checked=${row.state === 'on'} @click=${e => { e.stopPropagation(); this._toggle(e, row.entityId); }}></ha-switch>` : ''}
-            <mwc-icon-button icon="delete" @click=${e => { e.stopPropagation(); this.removeEntity(sectionType, index); }}></mwc-icon-button>
-          </div>
-        </div>`;
-    }
-    // 兼容旧文本行
     return html`
-      <div class="entity-row" @click=${() => this._startEditItem(sectionType, index)}>
-        <div class="entity-icon"><ha-icon .icon=${item.icon}></ha-icon></div>
+      <div class="entity-row">
+        <div class="entity-icon">
+          <ha-icon .icon=${displayIcon}></ha-icon>
+        </div>
         <div class="entity-content">
           <div class="entity-name">${item.label}</div>
           <div class="entity-value">${item.value}</div>
         </div>
         <div class="entity-actions">
-          <button @click=${e => { e.stopPropagation(); this._removeItem(sectionType, index); }}>删除</button>
+          <button 
+            class="entity-action" 
+            @click=${() => this._removeEntity(sectionType, index)}
+            title="删除"
+          >
+            <ha-icon icon="mdi:delete"></ha-icon>
+          </button>
         </div>
-      </div>`;
+      </div>
+    `;
   }
 
-  _toggle(ev, entityId) {
-    const on = this.hass.states[entityId].state === 'on';
-    const domain = entityId.split('.')[0];
-    this.hass.callService(domain, on ? 'turn_off' : 'turn_on', { entity_id: entityId });
-  }
-
-  _moreInfo(entityId) {
-    const ev = new Event('hass-more-info', { bubbles: true, composed: true });
-    ev.detail = { entityId };
-    this.dispatchEvent(ev);
-  }
-
-  _renderEditForm(sectionType) {
-    if (!this._editingItem || this._editingItem.sectionType !== sectionType) return '';
-    const { index, isNew } = this._editingItem;
-    const item = this._config[sectionType][index] || { label: '', value: '', icon: 'mdi:chart-box' };
-    return html`
-      <div class="edit-form">
-        <div class="form-field">
-          <label class="form-label">显示名称</label>
-          <ha-textfield .value=${item.label} @input=${e => this._updateEditingItem({ label: e.target.value })} placeholder="名称" fullwidth></ha-textfield>
-        </div>
-        <div class="form-field">
-          <label class="form-label">数据源（实体ID或文本）</label>
-          <ha-textfield .value=${item.value} @input=${e => {
-            const val = e.target.value;
-            this._updateEditingItem({ value: val });
-            const info = this._getEntityInfo(val);
-            if (info.name && !item.label) this._updateEditingItem({ label: info.name });
-            if (info.icon) this._updateEditingItem({ icon: info.icon });
-          }} placeholder="light.living_room 或任意文本" fullwidth></ha-textfield>
-          <button class="entity-picker-btn" @click=${this._showEntityPicker}>选择实体</button>
-        </div>
-        <div class="form-field">
-          <label class="form-label">图标</label>
-          <div class="icon-preview"><ha-icon .icon=${item.icon}></ha-icon><span>${item.icon}</span></div>
-        </div>
-        <div class="form-actions">
-          <button @click=${this._cancelEdit}>取消</button>
-          <button @click=${this._saveEdit} ?disabled=${!item.label.trim() || !item.value.trim()}>保存</button>
-        </div>
-      </div>`;
-  }
-
-  _startAddItem(sectionType) {
-    this._editingItem = { sectionType, index: this._config[sectionType].length, isNew: true };
-    this._config[sectionType].push({ label: '', value: '', icon: 'mdi:chart-box' });
-    this._expandedSections.add(sectionType);
+  _updateNewItem(sectionType, field, value) {
+    this._newItems[sectionType][field] = value;
     this.requestUpdate();
   }
 
-  _startEditItem(sectionType, index) {
-    this._editingItem = { sectionType, index, isNew: false };
-    this.requestUpdate();
-  }
+  _addEntity(sectionType) {
+    const newItem = this._newItems[sectionType];
+    if (!newItem.label.trim() || !newItem.value.trim()) return;
 
-  _updateEditingItem(updates) {
-    if (!this._editingItem) return;
-    const { sectionType, index } = this._editingItem;
-    this._config[sectionType][index] = { ...this._config[sectionType][index], ...updates };
-    this.requestUpdate();
-  }
+    const entityInfo = this._getEntityInfo(newItem.value);
+    
+    this._config[sectionType].push({
+      label: newItem.label,
+      value: newItem.value,
+      icon: entityInfo.icon || 'mdi:circle'
+    });
 
-  _saveEdit() {
-    if (!this._editingItem) return;
-    const { sectionType, index } = this._editingItem;
-    const item = this._config[sectionType][index];
-    if (!item.label.trim() || !item.value.trim()) return;
-    this._editingItem = null;
+    // 清空输入框
+    this._newItems[sectionType] = { label: '', value: '' };
     this._notifyEntitiesChange();
   }
 
-  _cancelEdit() {
-    if (!this._editingItem) return;
-    const { sectionType, index, isNew } = this._editingItem;
-    if (isNew) this._config[sectionType].splice(index, 1);
-    this._editingItem = null;
-    this.requestUpdate();
-  }
-
-  _removeItem(sectionType, index) {
+  _removeEntity(sectionType, index) {
     this._config[sectionType].splice(index, 1);
     this._notifyEntitiesChange();
   }
 
   _getEntityInfo(entityValue) {
-    if (!entityValue || !this.hass) return { name: '', icon: 'mdi:chart-box' };
+    if (!entityValue || !this.hass) return { name: '', icon: 'mdi:circle' };
+    
+    // 如果是实体ID
     if (entityValue.includes('.') && this.hass.states[entityValue]) {
-      const st = this.hass.states[entityValue];
-      return { name: st.attributes.friendly_name || entityValue, icon: st.attributes.icon || this._defaultIcon(entityValue) };
+      const entity = this.hass.states[entityValue];
+      return {
+        name: entity.attributes?.friendly_name || entityValue,
+        icon: entity.attributes?.icon || this._getDefaultEntityIcon(entityValue)
+      };
     }
-    return { name: '', icon: 'mdi:chart-box' };
+    
+    return { name: '', icon: 'mdi:circle' };
   }
 
-  _showEntityPicker() {
-    if (!this._editingItem) return;
-    const picker = document.createElement('ha-entity-picker');
-    picker.hass = this.hass;
-    picker.allowCustomValue = true;
-    picker.addEventListener('value-changed', e => {
+  _getDefaultEntityIcon(entityId) {
+    const domain = entityId.split('.')[0];
+    const icons = {
+      light: 'mdi:lightbulb',
+      sensor: 'mdi:gauge',
+      switch: 'mdi:power-plug',
+      climate: 'mdi:thermostat',
+      media_player: 'mdi:television',
+      person: 'mdi:account',
+      binary_sensor: 'mdi:checkbox-marked-circle',
+      input_boolean: 'mdi:toggle-switch',
+      automation: 'mdi:robot',
+      script: 'mdi:script-text'
+    };
+    return icons[domain] || 'mdi:circle';
+  }
+
+  _showEntityPicker(sectionType) {
+    const entityPicker = document.createElement('ha-entity-picker');
+    entityPicker.hass = this.hass;
+    entityPicker.allowCustomValue = true;
+    
+    entityPicker.addEventListener('value-changed', (e) => {
       const entityId = e.detail.value;
       if (entityId) {
-        const info = this._getEntityInfo(entityId);
-        this._updateEditingItem({ value: entityId, label: info.name || entityId, icon: info.icon });
+        const entityInfo = this._getEntityInfo(entityId);
+        this._updateNewItem(sectionType, 'value', entityId);
+        
+        // 如果名称为空，自动填充实体名称
+        if (!this._newItems[sectionType].label.trim()) {
+          this._updateNewItem(sectionType, 'label', entityInfo.name || entityId);
+        }
       }
-      picker.remove();
+      entityPicker.remove();
     });
-    document.body.appendChild(picker);
-    setTimeout(() => { picker.focus(); picker.open(); }, 100);
-  }
 
-  static getConfigElement() { return document.createElement('entity-manager-editor'); }
+    document.body.appendChild(entityPicker);
+    
+    setTimeout(() => {
+      entityPicker.focus();
+      entityPicker.select();
+    }, 100);
+  }
 }
 
-if (!customElements.get('entity-manager')) customElements.define('entity-manager', EntityManager);
+if (!customElements.get('entity-manager')) {
+  customElements.define('entity-manager', EntityManager);
+}
