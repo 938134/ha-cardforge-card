@@ -1,5 +1,4 @@
-// src/editors/entity-manager.js - 重构版本
-
+// src/editors/entity-manager.js
 import { LitElement, html, css } from 'https://unpkg.com/lit@2.8.0/index.js?module';
 import { foundationStyles } from '../core/styles.js';
 
@@ -59,6 +58,7 @@ export class EntityManager extends LitElement {
         align-items: center;
         gap: var(--cf-spacing-sm);
         transition: all var(--cf-transition-fast);
+        cursor: pointer;
       }
 
       .content-block:hover {
@@ -122,17 +122,44 @@ export class EntityManager extends LitElement {
         margin-bottom: var(--cf-spacing-md);
       }
 
-      /* 无状态样式 */
-      .stateless-info {
+      .required-badge {
+        background: var(--cf-error-color);
+        color: white;
+        padding: 2px 8px;
+        border-radius: 12px;
+        font-size: 0.7em;
+        font-weight: 500;
+      }
+
+      .example-hint {
+        margin-top: var(--cf-spacing-sm);
+        color: var(--cf-text-secondary);
+        font-size: 0.8em;
+      }
+
+      .empty-state {
         text-align: center;
         padding: var(--cf-spacing-xl);
         color: var(--cf-text-secondary);
       }
 
-      .stateless-info ha-icon {
+      .empty-state ha-icon {
         font-size: 3em;
         margin-bottom: var(--cf-spacing-md);
         opacity: 0.5;
+      }
+
+      /* 深色模式适配 */
+      @media (prefers-color-scheme: dark) {
+        .content-block {
+          background: var(--cf-dark-surface);
+          border-color: var(--cf-dark-border);
+        }
+
+        .entity-requirement {
+          background: var(--cf-dark-surface);
+          border-color: var(--cf-dark-border);
+        }
       }
     `
   ];
@@ -154,7 +181,6 @@ export class EntityManager extends LitElement {
     const manifest = this.pluginManifest;
     if (!manifest) return 'stateless';
 
-    // 策略检测逻辑
     if (manifest.layout_type === 'free') return 'free_layout';
     if (manifest.entity_requirements && Object.keys(manifest.entity_requirements).length > 0) {
       return 'structured';
@@ -186,8 +212,8 @@ export class EntityManager extends LitElement {
       <div class="strategy-header">
         <ha-icon icon="mdi:view-grid-plus"></ha-icon>
         <div>
-          <h3>自由布局编辑器</h3>
-          <p>可任意添加和排列内容块，构建个性化布局</p>
+          <h3>自由布局</h3>
+          <p>可任意添加和排列内容块</p>
         </div>
       </div>
 
@@ -202,7 +228,7 @@ export class EntityManager extends LitElement {
       ${this._contentBlocks.length === 0 ? html`
         <div class="empty-state">
           <ha-icon icon="mdi:package-variant"></ha-icon>
-          <p>还没有添加任何内容块</p>
+          <p>点击"添加内容块"开始构建布局</p>
         </div>
       ` : ''}
     `;
@@ -216,7 +242,7 @@ export class EntityManager extends LitElement {
         <ha-icon icon="mdi:format-list-checks"></ha-icon>
         <div>
           <h3>数据源配置</h3>
-          <p>为此卡片配置需要的数据源和实体</p>
+          <p>配置卡片需要的数据源</p>
         </div>
       </div>
 
@@ -231,17 +257,11 @@ export class EntityManager extends LitElement {
   _renderStateless() {
     return html`
       <div class="strategy-header">
-        <ha-icon icon="mdi:auto-fix"></ha-icon>
-        <div>
-          <h3>智能数据源</h3>
-          <p>此卡片使用内置数据，无需额外配置</p>
-        </div>
-      </div>
-
-      <div class="stateless-info">
         <ha-icon icon="mdi:chart-donut"></ha-icon>
-        <p>卡片会自动获取和显示相关信息</p>
-        <small>如需自定义数据，请选择其他卡片类型</small>
+        <div>
+          <h3>内置数据</h3>
+          <p>此卡片使用内置数据源</p>
+        </div>
       </div>
     `;
   }

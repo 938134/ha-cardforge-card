@@ -230,11 +230,70 @@ export class BasePlugin {
     
     // 实体ID直接获取状态
     if (source.includes('.') && hass?.states?.[source]) {
-      return hass.states[source].state || defaultValue;
+      const entity = hass.states[source];
+      // 如果是传感器实体，返回状态值
+      if (entity) {
+        return entity.state || defaultValue;
+      }
     }
     
     // 直接文本
     return source;
+  }
+
+  // === 智能数据获取方法 ===
+  
+  _getUserName(hass, defaultValue = '朋友') {
+    // 优先从Home Assistant获取当前用户名
+    if (hass?.user?.name) {
+      return hass.user.name;
+    }
+    return defaultValue;
+  }
+
+  _getTimeBasedGreeting() {
+    const hour = new Date().getHours();
+    if (hour >= 5 && hour < 12) {
+      return '早上好';
+    } else if (hour >= 12 && hour < 14) {
+      return '中午好';
+    } else if (hour >= 14 && hour < 18) {
+      return '下午好';
+    } else if (hour >= 18 && hour < 22) {
+      return '晚上好';
+    } else {
+      return '你好';
+    }
+  }
+
+  _getTimePeriodMessage() {
+    const hour = new Date().getHours();
+    if (hour >= 5 && hour < 12) {
+      return '美好的一天从早晨开始';
+    } else if (hour >= 12 && hour < 14) {
+      return '午间时光，注意休息';
+    } else if (hour >= 14 && hour < 18) {
+      return '下午工作效率最高';
+    } else if (hour >= 18 && hour < 22) {
+      return '晚间放松时间';
+    } else {
+      return '夜深了，早点休息';
+    }
+  }
+
+  _getDefaultWelcomeMessage() {
+    const hour = new Date().getHours();
+    if (hour >= 5 && hour < 12) {
+      return '今天也是充满活力的一天！';
+    } else if (hour >= 12 && hour < 14) {
+      return '午餐时间到，记得按时吃饭';
+    } else if (hour >= 14 && hour < 18) {
+      return '下午工作加油！';
+    } else if (hour >= 18 && hour < 22) {
+      return '晚上放松一下';
+    } else {
+      return '夜深了，注意休息';
+    }
   }
 
   // === 实体显示工具 ===

@@ -11,56 +11,80 @@ class ClockCard extends BasePlugin {
     icon: '🕰️',
     author: 'CardForge',
     
-    // 卡片配置 - 功能和外观
     config_schema: {
       clock_style: {
         type: 'select',
         label: '时钟风格',
-        options: ['现代风格', '经典风格', '简约风格', '毛玻璃风格', '霓虹风格'],
-        default: '现代风格',
-        group: 'appearance'
+        options: ['现代风格', '经典风格', '简约风格', '毛玻璃风格', '霓虹风格', '数字风格'],
+        default: '现代风格'
       },
       show_date: {
         type: 'boolean', 
         label: '显示日期',
-        default: true,
-        group: 'content'
+        default: true
       },
       show_weekday: {
         type: 'boolean',
         label: '显示星期', 
-        default: true,
-        group: 'content'
+        default: true
       },
       time_format: {
         type: 'boolean',
         label: '24小时制',
-        default: true,
-        group: 'behavior'
+        default: true
       },
       enable_animations: {
         type: 'boolean',
         label: '启用动画',
-        default: true,
-        group: 'behavior'
+        default: true
       }
     },
     
-    // 数据源配置 - 此卡片无数据源需求
     entity_requirements: {}
   };
 
+  constructor() {
+    super();
+    this._currentTime = this._getTimeData({});
+    this._intervalId = null;
+  }
+
+  connectedCallback() {
+    super.connectedCallback();
+    // 启动时钟更新
+    this._intervalId = setInterval(() => {
+      this._currentTime = this._getTimeData(this.config || {});
+      this.requestUpdate();
+    }, 1000);
+  }
+
+  disconnectedCallback() {
+    super.disconnectedCallback();
+    if (this._intervalId) {
+      clearInterval(this._intervalId);
+      this._intervalId = null;
+    }
+  }
+
   getTemplate(config, hass, entities) {
-    const timeData = this._getTimeData(config);
+    const timeData = this._currentTime;
     const clockStyle = config.clock_style || '现代风格';
     const showAnimations = config.enable_animations !== false;
 
     return `
       <div class="cardforge-responsive-container clock-card style-${this._getStyleClass(clockStyle)} ${showAnimations ? 'with-animations' : ''}">
         <div class="clock-content">
-          <div class="time-display">${timeData.time}</div>
-          ${config.show_date ? `<div class="date-display">${timeData.date}</div>` : ''}
-          ${config.show_weekday ? `<div class="weekday-display">${timeData.weekday}</div>` : ''}
+          <div class="time-display">
+            <span class="time">${timeData.time}</span>
+            ${!config.time_format ? `<span class="ampm">${timeData.ampm}</span>` : ''}
+          </div>
+
+          ${config.show_date || config.show_weekday ? `
+            <div class="date-section">
+              ${config.show_date ? `<div class="date-display">${timeData.date}</div>` : ''}
+              ${config.show_weekday ? `<div class="weekday-display">${timeData.weekday}</div>` : ''}
+            </div>
+          ` : ''}
         </div>
       </div>
     `;
@@ -76,8 +100,14 @@ class ClockCard extends BasePlugin {
         minute: '2-digit',
         hour12: !timeFormat 
       }),
-      date: now.toLocaleDateString('zh-CN'),
-      weekday: '星期' + '日一二三四五六'[now.getDay()]
+      ampm: now.getHours() >= 12 ? 'PM' : 'AM',
+      date: now.toLocaleDateString('zh-CN', { 
+        year: 'numeric', 
+        month: 'long', 
+        day: 'numeric' 
+      }),
+      weekday: '星期' + '日一二三四五六'[now.getDay()],
+      timestamp: now.getTime()
     };
   }
 
@@ -87,14 +117,26 @@ class ClockCard extends BasePlugin {
       '经典风格': 'classic', 
       '简约风格': 'minimal',
       '毛玻璃风格': 'glass',
-      '霓虹风格': 'neon'
+      '霓虹风格': 'neon',
+      '数字风格': 'digital'
     };
     return styleMap[styleName] || 'modern';
   }
 
   getStyles(config) {
+    const clockStyle = config.clock_style || '现代风格';
+    const styleClass = this._getStyleClass(clockStyle);
+    
     return `
       ${this.getBaseStyles(config)}
+      ${this._getCommonStyles()}
+      ${this._getStyleSpecificStyles(styleClass)}
+      ${this._getResponsiveStyles()}
+    `;
+  }
+
+  _getCommonStyles() {
+    return `
       .clock-card {
         text-align: center;
         padding: var(--cf-spacing-xl);
@@ -103,23 +145,222 @@ class ClockCard extends BasePlugin {
         justify-content: center;
         min-height: 200px;
       }
+
+      .clock-content {
+        width: 100%;
+      }
+
       .time-display {
-        font-size: 2.5em;
+        display: flex;
+        align-items: baseline;
+        justify-content: center;
+        gap: var(--cf-spacing-sm);
+        margin-bottom: var(--cf-spacing-lg);
+      }
+
+      .time {
+        font-size: 3.5em;
         font-weight: 300;
-        margin-bottom: var(--cf-spacing-md);
         color: var(--cf-text-primary);
       }
-      .date-display, .weekday-display {
+
+      .ampm {
+        font-size: 1.2em;
+        color: var(--cf-accent-color);
+        font-weight: 500;
+      }
+
+      .date-section {
+        display: flex;
+        flex-direction: column;
+        gap: var(--cf-spacing-xs);
+      }
+
+      .date-display {
+        font-size: 1.2em;
+        color: var(--cf-text-primary);
+        font-weight: 500;
+      }
+
+      .weekday-display {
         font-size: 1.1em;
         color: var(--cf-text-secondary);
-        margin-bottom: var(--cf-spacing-xs);
       }
+
       .with-animations .clock-content {
-        animation: fadeIn 0.5s ease-in;
+        animation: fadeInUp 0.6s ease-out;
       }
-      @keyframes fadeIn {
-        from { opacity: 0; transform: translateY(10px); }
-        to { opacity: 1; transform: translateY(0); }
+
+      @keyframes fadeInUp {
+        from {
+          opacity: 0;
+          transform: translateY(20px);
+        }
+        to {
+          opacity: 1;
+          transform: translateY(0);
+        }
+      }
+    `;
+  }
+
+  _getStyleSpecificStyles(styleClass) {
+    const styles = {
+      modern: `
+        .style-modern .clock-card {
+          background: linear-gradient(135deg, var(--cf-primary-color) 0%, var(--cf-accent-color) 100%);
+          color: white;
+        }
+        .style-modern .time {
+          font-size: 4em;
+          font-weight: 200;
+          text-shadow: 0 2px 10px rgba(0,0,0,0.3);
+        }
+        .style-modern .date-display,
+        .style-modern .weekday-display {
+          color: rgba(255,255,255,0.9);
+        }
+        .style-modern .ampm {
+          color: rgba(255,255,255,0.8);
+        }
+      `,
+
+      classic: `
+        .style-classic .clock-card {
+          background: var(--cf-surface);
+          border: 3px solid var(--cf-primary-color);
+          box-shadow: var(--cf-shadow-lg);
+        }
+        .style-classic .time {
+          font-family: 'Courier New', monospace;
+          font-size: 3.5em;
+          font-weight: 600;
+          color: var(--cf-primary-color);
+        }
+        .style-classic .ampm {
+          color: var(--cf-accent-color);
+        }
+      `,
+
+      minimal: `
+        .style-minimal .clock-card {
+          background: transparent;
+          border: none;
+          box-shadow: none;
+        }
+        .style-minimal .time {
+          font-size: 4.5em;
+          font-weight: 100;
+          letter-spacing: -2px;
+        }
+        .style-minimal .date-display {
+          font-size: 1.1em;
+          opacity: 0.8;
+        }
+        .style-minimal .weekday-display {
+          font-size: 1em;
+          opacity: 0.7;
+        }
+      `,
+
+      glass: `
+        .style-glass .clock-card {
+          backdrop-filter: blur(20px);
+          background: rgba(255, 255, 255, 0.1);
+          border: 1px solid rgba(255, 255, 255, 0.2);
+          color: white;
+        }
+        .style-glass .time {
+          font-size: 4em;
+          font-weight: 300;
+          text-shadow: 0 2px 4px rgba(0,0,0,0.3);
+        }
+        .style-glass .date-display,
+        .style-glass .weekday-display {
+          color: rgba(255,255,255,0.9);
+        }
+      `,
+
+      neon: `
+        .style-neon .clock-card {
+          background: #1a1a1a;
+          border: 2px solid #00ff88;
+          box-shadow: 
+            0 0 20px #00ff88,
+            inset 0 0 20px rgba(0, 255, 136, 0.1);
+        }
+        .style-neon .time {
+          font-size: 4em;
+          font-weight: 600;
+          color: #00ff88;
+          text-shadow: 
+            0 0 10px #00ff88,
+            0 0 20px #00ff88;
+        }
+        .style-neon .ampm {
+          color: #00ff88;
+          text-shadow: 0 0 5px #00ff88;
+        }
+        .style-neon .date-display,
+        .style-neon .weekday-display {
+          color: #00ff88;
+        }
+      `,
+
+      digital: `
+        .style-digital .clock-card {
+          background: #000;
+          color: #0f0;
+          font-family: 'Courier New', monospace;
+        }
+        .style-digital .time {
+          font-size: 3.5em;
+          font-weight: 600;
+          text-shadow: 0 0 5px #0f0;
+        }
+        .style-digital .ampm {
+          color: #0f0;
+          text-shadow: 0 0 3px #0f0;
+        }
+        .style-digital .date-display {
+          font-size: 1em;
+          opacity: 0.8;
+        }
+      `
+    };
+
+    return styles[styleClass] || styles.modern;
+  }
+
+  _getResponsiveStyles() {
+    return `
+      @media (max-width: 600px) {
+        .clock-card {
+          padding: var(--cf-spacing-lg);
+          min-height: 150px;
+        }
+        .time {
+          font-size: 3em !important;
+        }
+        .date-display {
+          font-size: 1.1em !important;
+        }
+        .weekday-display {
+          font-size: 1em !important;
+        }
+      }
+
+      @media (max-width: 400px) {
+        .time {
+          font-size: 2.5em !important;
+        }
+        .time-display {
+          flex-direction: column;
+          gap: var(--cf-spacing-xs);
+        }
+        .ampm {
+          font-size: 1em;
+        }
       }
     `;
   }
