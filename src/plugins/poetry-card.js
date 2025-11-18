@@ -13,15 +13,9 @@ class PoetryCard extends BasePlugin {
     
     // 卡片能力配置
     capabilities: {
-      supportsTitle: true,
+      supportsTitle: false,
       supportsContent: true,
       supportsFooter: false
-    },
-    
-    // 布局字段定义
-    layout_fields: {
-      title: ['title'],
-      content: ['dynasty', 'author', 'content']
     },
     
     config_schema: {
@@ -56,13 +50,20 @@ class PoetryCard extends BasePlugin {
         label: '字体大小',
         options: ['小', '标准', '大', '特大'],
         default: '标准'
+      },
+      
+      layout_type: {
+        type: 'select',
+        label: '布局方式',
+        options: ['传统布局', '紧凑布局', '现代布局'],
+        default: '传统布局'
       }
     }
   };
 
   getTemplate(config, hass, entities) {
-    // 获取诗词数据
-    const poetryData = this._getPoetryData(entities, config);
+    // 从实体数据中提取诗词信息
+    const poetryData = this._extractPoetryData(entities);
     
     // 验证数据完整性
     const validation = this._validatePoetryData(poetryData);
@@ -72,25 +73,37 @@ class PoetryCard extends BasePlugin {
 
     const cardStyle = config.card_style || '古典风格';
     const textAlign = config.text_align || '居中';
+    const layoutType = config.layout_type || '传统布局';
 
     return `
-      <div class="cardforge-responsive-container poetry-card style-${this._getStyleClass(cardStyle)} align-${this._getAlignClass(textAlign)}">
-        <div class="poetry-content">
-          ${this._renderTitle(poetryData.title, cardStyle)}
-          ${this._renderMetaInfo(poetryData.dynasty, poetryData.author, cardStyle)}
-          ${this._renderContent(poetryData.content, cardStyle)}
+      <div class="cardforge-responsive-container poetry-card style-${this._getStyleClass(cardStyle)} align-${this._getAlignClass(textAlign)} layout-${this._getLayoutClass(layoutType)}">
+        <div class="poetry-container">
+          ${this._renderPoetryContent(poetryData, cardStyle, layoutType)}
         </div>
       </div>
     `;
   }
 
-  _getPoetryData(entities, config) {
-    // 从实体数据中获取诗词信息，支持动态配置
+  _extractPoetryData(entities) {
+    // 通过预定义的字段名来获取诗词数据
+    // 用户在编辑器中需要按照这些字段名来配置实体
     return {
-      title: this._getCardValue(entities, 'title', '无题'),
-      dynasty: this._getCardValue(entities, 'dynasty', '未知朝代'),
-      author: this._getCardValue(entities, 'author', '佚名'),
-      content: this._getCardValue(entities, 'content', '')
+      title: this._getEntityValue(entities, 'title') || 
+             this._getEntityValue(entities, '诗词标题') || 
+             this._getEntityValue(entities, 'poetry_title'),
+      
+      dynasty: this._getEntityValue(entities, 'dynasty') || 
+               this._getEntityValue(entities, '朝代') || 
+               this._getEntityValue(entities, 'poetry_dynasty'),
+      
+      author: this._getEntityValue(entities, 'author') || 
+              this._getEntityValue(entities, '作者') || 
+              this._getEntityValue(entities, 'poetry_author'),
+      
+      content: this._getEntityValue(entities, 'content') || 
+               this._getEntityValue(entities, '内容') || 
+               this._getEntityValue(entities, '诗词内容') || 
+               this._getEntityValue(entities, 'poetry_content')
     };
   }
 
@@ -131,6 +144,37 @@ class PoetryCard extends BasePlugin {
     return alignMap[alignName] || 'center';
   }
 
+  _getLayoutClass(layoutName) {
+    const layoutMap = {
+      '传统布局': 'traditional',
+      '紧凑布局': 'compact',
+      '现代布局': 'modern'
+    };
+    return layoutMap[layoutName] || 'traditional';
+  }
+
+  _renderPoetryContent(poetryData, style, layout) {
+    const { title, dynasty, author, content } = poetryData;
+    
+    // 构建作者朝代信息
+    let authorInfo = '';
+    if (dynasty && author) {
+      authorInfo = `${dynasty} · ${author}`;
+    } else if (dynasty) {
+      authorInfo = dynasty;
+    } else if (author) {
+      authorInfo = author;
+    }
+
+    return `
+      <div class="poetry-content ${style}-content ${layout}-layout">
+        ${this._renderTitle(title, style)}
+        ${authorInfo ? this._renderAuthorInfo(authorInfo, style) : ''}
+        ${this._renderContent(content, style)}
+      </div>
+    `;
+  }
+
   _renderTitle(title, style) {
     if (!title || title.trim() === '') return '';
     
@@ -141,24 +185,10 @@ class PoetryCard extends BasePlugin {
     `;
   }
 
-  _renderMetaInfo(dynasty, author, style) {
-    const hasDynasty = dynasty && dynasty.trim() !== '';
-    const hasAuthor = author && author.trim() !== '';
-    
-    if (!hasDynasty && !hasAuthor) return '';
-    
-    let metaText = '';
-    if (hasDynasty && hasAuthor) {
-      metaText = `${dynasty} · ${author}`;
-    } else if (hasDynasty) {
-      metaText = dynasty;
-    } else {
-      metaText = author;
-    }
-    
+  _renderAuthorInfo(authorInfo, style) {
     return `
-      <div class="poetry-meta ${style}-meta">
-        <span class="meta-text">${this._renderSafeHTML(metaText)}</span>
+      <div class="poetry-author ${style}-author">
+        <span class="author-text">${this._renderSafeHTML(authorInfo)}</span>
       </div>
     `;
   }
@@ -176,12 +206,38 @@ class PoetryCard extends BasePlugin {
       .join('');
     
     return `
-      <div class="poetry-content-text ${style}-content">
+      <div class="poetry-text ${style}-text">
         <div class="content-lines">
           ${formattedContent}
         </div>
       </div>
     `;
+  }
+
+  // 实体需求定义 - 明确告诉用户需要配置哪些字段
+  getAllEntityRequirements(config, hass) {
+    return [
+      {
+        key: 'title',
+        description: '诗词标题（必需）',
+        required: true
+      },
+      {
+        key: 'dynasty',
+        description: '诗词朝代（可选）',
+        required: false
+      },
+      {
+        key: 'author',
+        description: '诗词作者（可选）',
+        required: false
+      },
+      {
+        key: 'content',
+        description: '诗词全文（必需）',
+        required: true
+      }
+    ];
   }
 
   getStyles(config) {
@@ -190,6 +246,7 @@ class PoetryCard extends BasePlugin {
     const showBorder = config.show_border !== false;
     const showBackground = config.show_background !== false;
     const fontSize = config.font_size || '标准';
+    const layoutType = config.layout_type || '传统布局';
 
     const fontSizeMap = {
       '小': '0.9em',
@@ -210,12 +267,19 @@ class PoetryCard extends BasePlugin {
           ${showBorder ? '' : 'border: none !important;'}
         }
 
-        .poetry-content {
+        .poetry-container {
           width: 100%;
           height: 100%;
           display: flex;
+          align-items: center;
+          justify-content: center;
+        }
+
+        .poetry-content {
+          width: 100%;
+          max-width: 600px;
+          display: flex;
           flex-direction: column;
-          gap: var(--cf-spacing-lg);
         }
 
         .align-left { text-align: left; }
@@ -224,7 +288,7 @@ class PoetryCard extends BasePlugin {
 
         /* 通用标题样式 */
         .poetry-title {
-          margin-bottom: var(--cf-spacing-sm);
+          margin-bottom: var(--cf-spacing-md);
         }
 
         .title-text {
@@ -234,19 +298,19 @@ class PoetryCard extends BasePlugin {
           font-size: calc(${baseFontSize} * 1.4);
         }
 
-        /* 通用元信息样式 */
-        .poetry-meta {
+        /* 通用作者信息样式 */
+        .poetry-author {
           margin-bottom: var(--cf-spacing-lg);
           opacity: 0.8;
         }
 
-        .meta-text {
+        .author-text {
           font-style: italic;
           font-size: calc(${baseFontSize} * 0.9);
         }
 
         /* 通用内容样式 */
-        .poetry-content-text {
+        .poetry-text {
           flex: 1;
           display: flex;
           align-items: center;
@@ -267,6 +331,27 @@ class PoetryCard extends BasePlugin {
         .content-line:last-child {
           margin-bottom: 0;
         }
+
+        /* 布局变体 */
+        .layout-traditional .poetry-content {
+          gap: var(--cf-spacing-lg);
+        }
+
+        .layout-compact .poetry-content {
+          gap: var(--cf-spacing-md);
+        }
+
+        .layout-compact .poetry-author {
+          margin-bottom: var(--cf-spacing-md);
+        }
+
+        .layout-modern .poetry-content {
+          gap: var(--cf-spacing-xl);
+        }
+
+        .layout-modern .title-text {
+          font-size: calc(${baseFontSize} * 1.6);
+        }
       `,
 
       classical: `
@@ -283,12 +368,12 @@ class PoetryCard extends BasePlugin {
           padding-bottom: var(--cf-spacing-sm);
         }
 
-        .classical-meta .meta-text {
+        .classical-author .author-text {
           color: #a0522d;
           font-weight: 500;
         }
 
-        .classical-content .content-line {
+        .classical-text .content-line {
           color: #654321;
           font-weight: 500;
           letter-spacing: 0.5px;
@@ -306,12 +391,12 @@ class PoetryCard extends BasePlugin {
           font-weight: 700;
         }
 
-        .minimal-meta .meta-text {
+        .minimal-author .author-text {
           color: var(--cf-text-secondary);
           font-weight: 400;
         }
 
-        .minimal-content .content-line {
+        .minimal-text .content-line {
           color: var(--cf-text-primary);
           font-weight: 400;
         }
@@ -345,12 +430,12 @@ class PoetryCard extends BasePlugin {
           text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
         }
 
-        .ink-wash-meta .meta-text {
+        .ink-wash-author .author-text {
           color: #bdc3c7;
           font-weight: 500;
         }
 
-        .ink-wash-content .content-line {
+        .ink-wash-text .content-line {
           color: #ecf0f1;
           font-weight: 500;
           text-shadow: 1px 1px 2px rgba(0,0,0,0.3);
@@ -392,26 +477,16 @@ class PoetryCard extends BasePlugin {
           background: linear-gradient(90deg, transparent, #d4b88c, transparent);
         }
 
-        .bookish-meta .meta-text {
+        .bookish-author .author-text {
           color: #a0522d;
           font-weight: 500;
           font-family: "KaiTi", "STKaiti", serif;
         }
 
-        .bookish-content .content-line {
+        .bookish-text .content-line {
           color: #654321;
           font-weight: 500;
           font-family: "KaiTi", "STKaiti", serif;
-          position: relative;
-        }
-
-        .bookish-content .content-line::before {
-          content: '❝';
-          position: absolute;
-          left: -25px;
-          top: 0;
-          color: #d4b88c;
-          opacity: 0.6;
         }
       `,
 
@@ -429,11 +504,6 @@ class PoetryCard extends BasePlugin {
           .content-line {
             font-size: calc(${baseFontSize} * 0.9);
             margin-bottom: var(--cf-spacing-sm);
-          }
-
-          .bookish-content .content-line::before {
-            left: -20px;
-            font-size: 0.8em;
           }
         }
 
@@ -501,55 +571,6 @@ class PoetryCard extends BasePlugin {
       ${styles.responsive}
       ${styles.animations}
     `;
-  }
-
-  // 实体需求定义
-  getAllEntityRequirements(config, hass) {
-    const baseRequirements = super.getAllEntityRequirements(config, hass);
-    
-    // 添加诗词特定的实体需求
-    const poetryRequirements = [
-      {
-        key: 'title',
-        description: '诗词标题',
-        required: true
-      },
-      {
-        key: 'dynasty',
-        description: '诗词朝代', 
-        required: false
-      },
-      {
-        key: 'author',
-        description: '诗词作者',
-        required: false
-      },
-      {
-        key: 'content',
-        description: '诗词全文',
-        required: true
-      }
-    ];
-    
-    return [...baseRequirements, ...poetryRequirements];
-  }
-
-  // 数据验证
-  validateEntities(entities, config, hass) {
-    const errors = [];
-    
-    if (!entities.title || !entities.title.state || entities.title.state.trim() === '') {
-      errors.push('诗词标题不能为空');
-    }
-    
-    if (!entities.content || !entities.content.state || entities.content.state.trim() === '') {
-      errors.push('诗词内容不能为空');
-    }
-    
-    return {
-      valid: errors.length === 0,
-      errors: errors
-    };
   }
 }
 
