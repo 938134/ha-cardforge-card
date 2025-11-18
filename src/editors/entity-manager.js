@@ -9,7 +9,8 @@ export class EntityManager extends LitElement {
     entities: { type: Object },
     capabilities: { type: Object },
     _editingItem: { state: true },
-    _expandedSections: { state: true }
+    _expandedSections: { state: true },
+    _tempEntities: { state: true }
   };
 
   static styles = [
@@ -205,26 +206,27 @@ export class EntityManager extends LitElement {
     super();
     this._editingItem = null;
     this._expandedSections = new Set(['content']);
+    this._tempEntities = {};
   }
 
   willUpdate(changedProperties) {
     if (changedProperties.has('entities')) {
-      this.requestUpdate();
+      this._tempEntities = { ...this.entities };
     }
   }
 
   _getEntitiesByPosition(position) {
     const entities = [];
     
-    Object.entries(this.entities || {}).forEach(([key, value]) => {
+    Object.entries(this._tempEntities || {}).forEach(([key, value]) => {
       if (!key.includes('_name') && !key.includes('_icon')) {
         const entityPosition = this._getEntityPosition(key);
         if (entityPosition === position) {
           entities.push({
             key,
             source: value,
-            name: this.entities[`${key}_name`] || this._getDefaultName(key, value),
-            icon: this.entities[`${key}_icon`] || this._getDefaultIcon(value)
+            name: this._tempEntities[`${key}_name`] || this._getDefaultName(key, value),
+            icon: this._tempEntities[`${key}_icon`] || this._getDefaultIcon(value)
           });
         }
       }
@@ -306,7 +308,7 @@ export class EntityManager extends LitElement {
         
         ${isExpanded ? html`
           <div class="entities-list">
-            ${titleEntities.length === 0 ? html`
+            ${titleEntities.length === 0 && !isEditing ? html`
               <div class="empty-state">暂无标题</div>
             ` : titleEntities.map((entity, index) => this._renderEntityRow(entity, index, 'title'))}
           </div>
@@ -342,7 +344,7 @@ export class EntityManager extends LitElement {
         
         ${isExpanded ? html`
           <div class="entities-list">
-            ${contentEntities.length === 0 ? html`
+            ${contentEntities.length === 0 && !isEditing ? html`
               <div class="empty-state">暂无内容项</div>
             ` : contentEntities.map((entity, index) => this._renderEntityRow(entity, index, 'content'))}
           </div>
@@ -378,7 +380,7 @@ export class EntityManager extends LitElement {
         
         ${isExpanded ? html`
           <div class="entities-list">
-            ${footerEntities.length === 0 ? html`
+            ${footerEntities.length === 0 && !isEditing ? html`
               <div class="empty-state">暂无页脚</div>
             ` : footerEntities.map((entity, index) => this._renderEntityRow(entity, index, 'footer'))}
           </div>
@@ -417,9 +419,7 @@ export class EntityManager extends LitElement {
     const editingItem = this._editingItem;
     if (!editingItem || editingItem.position !== position) return '';
 
-    const entities = this._getEntitiesByPosition(position);
-    const entity = entities[editingItem.index];
-    if (!entity) return '';
+    const entity = editingItem.data;
 
     return html`
       <div class="edit-form">
@@ -451,10 +451,6 @@ export class EntityManager extends LitElement {
             }}
             allow-custom-value
           ></ha-entity-picker>
-          <button class="entity-picker-btn" @click=${this._showEntityPicker}>
-            <ha-icon icon="mdi:magnify"></ha-icon>
-            选择实体
-          </button>
         </div>
 
         <div class="form-field">
@@ -497,16 +493,6 @@ export class EntityManager extends LitElement {
     return { name: '', icon: 'mdi:chart-box' };
   }
 
-  _showEntityPicker() {
-    if (!this._editingItem) return;
-
-    const entityPicker = this.shadowRoot?.querySelector('ha-entity-picker');
-    if (entityPicker) {
-      entityPicker.focus();
-      entityPicker.select();
-    }
-  }
-
   _toggleSection(sectionType) {
     if (this._expandedSections.has(sectionType)) {
       this._expandedSections.delete(sectionType);
@@ -518,17 +504,25 @@ export class EntityManager extends LitElement {
 
   _startAddItem(position) {
     const entities = this._getEntitiesByPosition(position);
+    const newKey = `${position}_${Date.now()}`;
+    
     this._editingItem = {
       position,
       index: entities.length,
       isNew: true,
       data: {
-        key: `${position}_${Date.now()}`,
+        key: newKey,
         name: '',
         source: '',
         icon: 'mdi:chart-box'
       }
     };
+    
+    // 立即添加到临时实体中，以便在界面上显示
+    this._tempEntities[newKey] = '';
+    this._tempEntities[`${newKey}_name`] = '';
+    this._tempEntities[`${newKey}_icon`] = 'mdi:chart-box';
+    
     this._expandedSections.add(position);
     this.requestUpdate();
   }
@@ -554,65 +548,56 @@ export class EntityManager extends LitElement {
       ...this._editingItem.data,
       ...updates
     };
+    
+    // 实时更新临时实体
+    const { key } = this._editingItem.data;
+    this._tempEntities[key] = this._editingItem.data.source;
+    this._tempEntities[`${key}_name`] = this._editingItem.data.name;
+    this._tempEntities[`${key}_icon`] = this._editingItem.data.icon;
+    
     this.requestUpdate();
   }
 
   _saveEdit() {
     if (!this._editingItem) return;
     
-    const { position, index, isNew, data } = this._editingItem;
+    const { data } = this._editingItem;
     
     if (!data.name.trim() || !data.source.trim()) {
       return;
     }
 
-    const newEntities = { ...this.entities };
-    
-    if (isNew) {
-      // 新增实体
-      newEntities[data.key] = data.source;
-      newEntities[`${data.key}_name`] = data.name;
-      newEntities[`${data.key}_icon`] = data.icon;
-    } else {
-      // 更新现有实体
-      const oldKey = Object.keys(this.entities || {}).find(key => 
-        !key.includes('_name') && !key.includes('_icon') && 
-        this._getEntityPosition(key) === position
-      );
-      
-      if (oldKey) {
-        // 删除旧数据
-        delete newEntities[oldKey];
-        delete newEntities[`${oldKey}_name`];
-        delete newEntities[`${oldKey}_icon`];
-        
-        // 添加新数据
-        newEntities[data.key] = data.source;
-        newEntities[`${data.key}_name`] = data.name;
-        newEntities[`${data.key}_icon`] = data.icon;
-      }
-    }
-    
+    // 直接使用临时实体
+    this._notifyEntitiesChange(this._tempEntities);
     this._editingItem = null;
-    this._notifyEntitiesChange(newEntities);
   }
 
   _cancelEdit() {
+    if (!this._editingItem) return;
+    
+    const { isNew, data } = this._editingItem;
+    
+    if (isNew) {
+      // 如果是新增，删除临时数据
+      delete this._tempEntities[data.key];
+      delete this._tempEntities[`${data.key}_name`];
+      delete this._tempEntities[`${data.key}_icon`];
+    }
+    
     this._editingItem = null;
     this.requestUpdate();
   }
 
   _removeItem(key) {
-    const newEntities = { ...this.entities };
-    delete newEntities[key];
-    delete newEntities[`${key}_name`];
-    delete newEntities[`${key}_icon`];
-    this._notifyEntitiesChange(newEntities);
+    delete this._tempEntities[key];
+    delete this._tempEntities[`${key}_name`];
+    delete this._tempEntities[`${key}_icon`];
+    this._notifyEntitiesChange(this._tempEntities);
   }
 
-  _notifyEntitiesChange(newEntities) {
+  _notifyEntitiesChange(entities) {
     this.dispatchEvent(new CustomEvent('entities-changed', {
-      detail: { entities: newEntities }
+      detail: { entities }
     }));
   }
 }
