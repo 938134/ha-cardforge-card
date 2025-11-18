@@ -150,14 +150,10 @@ class WelcomeCard extends BasePlugin {
     return renderer.call(this, systemVars, config, greeting);
   }
 
-  // 渲染方法 - 使用统一的模板结构
+  // 渲染方法
   _renderWarmWelcome(systemVars, config, greeting) {
-    return this._renderTemplate({
+    return this._renderTemplate(systemVars, config, greeting, {
       avatar: config.show_avatar,
-      greeting,
-      time: config.show_time,
-      quote: config.show_quote,
-      systemVars,
       avatarSize: 'large',
       greetingSize: 'large',
       layout: 'horizontal'
@@ -165,12 +161,8 @@ class WelcomeCard extends BasePlugin {
   }
 
   _renderMinimalWelcome(systemVars, config, greeting) {
-    return this._renderTemplate({
+    return this._renderTemplate(systemVars, config, greeting, {
       avatar: false,
-      greeting,
-      time: config.show_time,
-      quote: config.show_quote,
-      systemVars,
       greetingSize: 'medium',
       layout: 'centered',
       minimal: true
@@ -178,12 +170,8 @@ class WelcomeCard extends BasePlugin {
   }
 
   _renderBusinessWelcome(systemVars, config, greeting) {
-    return this._renderTemplate({
+    return this._renderTemplate(systemVars, config, greeting, {
       avatar: config.show_avatar,
-      greeting,
-      time: config.show_time,
-      quote: config.show_quote,
-      systemVars,
       avatarSize: 'medium',
       greetingSize: 'medium',
       layout: 'horizontal',
@@ -192,12 +180,8 @@ class WelcomeCard extends BasePlugin {
   }
 
   _renderCreativeWelcome(systemVars, config, greeting) {
-    return this._renderTemplate({
+    return this._renderTemplate(systemVars, config, greeting, {
       avatar: false,
-      greeting,
-      time: config.show_time,
-      quote: config.show_quote,
-      systemVars,
       greetingSize: 'large',
       layout: 'centered',
       creative: true
@@ -205,12 +189,8 @@ class WelcomeCard extends BasePlugin {
   }
 
   _renderDynamicWelcome(systemVars, config, greeting) {
-    return this._renderTemplate({
+    return this._renderTemplate(systemVars, config, greeting, {
       avatar: config.show_avatar,
-      greeting,
-      time: config.show_time,
-      quote: config.show_quote,
-      systemVars,
       avatarSize: 'medium',
       greetingSize: 'medium',
       layout: 'horizontal',
@@ -219,12 +199,8 @@ class WelcomeCard extends BasePlugin {
   }
 
   _renderSmartWelcome(systemVars, config, greeting) {
-    return this._renderTemplate({
+    return this._renderTemplate(systemVars, config, greeting, {
       avatar: config.show_avatar,
-      greeting,
-      time: config.show_time,
-      quote: config.show_quote,
-      systemVars,
       avatarSize: 'medium',
       greetingSize: 'medium',
       layout: 'horizontal',
@@ -233,13 +209,9 @@ class WelcomeCard extends BasePlugin {
   }
 
   // 统一模板渲染方法
-  _renderTemplate(options) {
+  _renderTemplate(systemVars, config, greeting, options) {
     const {
       avatar,
-      greeting,
-      time,
-      quote,
-      systemVars,
       avatarSize = 'medium',
       greetingSize = 'medium',
       layout = 'horizontal',
@@ -267,10 +239,10 @@ class WelcomeCard extends BasePlugin {
         
         <div class="welcome-content">
           ${this._renderGreeting(greeting, greetingClass)}
-          ${time ? this._renderTime(systemVars, layout) : ''}
+          ${config.show_time ? this._renderTime(systemVars, layout) : ''}
         </div>
         
-        ${quote ? this._renderQuote(systemVars, config) : ''}
+        ${config.show_quote ? this._renderQuote(systemVars) : ''}
       </div>
     `;
   }
@@ -304,9 +276,9 @@ class WelcomeCard extends BasePlugin {
     `;
   }
 
-  _renderQuote(systemVars, config) {
-    const quote = this._getDailyQuote(systemVars, config);
-    const author = this._getQuoteAuthor(systemVars, config);
+  _renderQuote(systemVars) {
+    const quote = this._getDailyQuote(systemVars);
+    const author = this._getQuoteAuthor(systemVars);
     
     return `
       <div class="quote-section">
@@ -317,7 +289,7 @@ class WelcomeCard extends BasePlugin {
   }
 
   // 每日一言相关
-  _getDailyQuote(systemVars, config) {
+  _getDailyQuote(systemVars) {
     const quotes = [
       "每一天都是新的开始，用心去感受生活的美好。",
       "保持热爱，奔赴山海。",
@@ -336,8 +308,8 @@ class WelcomeCard extends BasePlugin {
     return quotes[seed % quotes.length];
   }
 
-  _getQuoteAuthor(systemVars, config) {
-    const quote = this._getDailyQuote(systemVars, config);
+  _getQuoteAuthor(systemVars) {
+    const quote = this._getDailyQuote(systemVars);
     if (!quote) return '';
     
     const authorMatch = quote.match(/[——|-]\s*([^——|-]+)$/);
@@ -345,7 +317,6 @@ class WelcomeCard extends BasePlugin {
   }
 
   getStyles(config) {
-    // 样式部分也可以类似重构，但为了保持完整性暂时保留原样
     const styleClass = this._getStyleClass(config.welcome_style);
     const showAnimations = config.enable_animations !== false;
 
@@ -465,7 +436,7 @@ class WelcomeCard extends BasePlugin {
         text-align: right;
       }
 
-      /* 各风格的特殊样式可以在这里添加 */
+      /* 各风格的特殊样式 */
       .minimal .greeting-text {
         font-weight: 300;
       }
@@ -480,6 +451,51 @@ class WelcomeCard extends BasePlugin {
         display: flex;
         align-items: flex-start;
         gap: var(--cf-spacing-md);
+      }
+
+      .business .quote-section::before {
+        content: "💼";
+        font-size: 2em;
+        flex-shrink: 0;
+      }
+
+      .creative .greeting-text {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: var(--cf-spacing-sm);
+      }
+
+      .creative .greeting-text::before {
+        content: "${systemVars.is_morning ? '🌅' : systemVars.is_afternoon ? '☀️' : '🌙'}";
+        font-size: 1.2em;
+      }
+
+      .dynamic .welcome-template {
+        position: relative;
+        overflow: hidden;
+        border-radius: var(--cf-radius-xl);
+      }
+
+      .dynamic .welcome-template::before {
+        content: "";
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: linear-gradient(135deg, 
+          rgba(var(--cf-rgb-primary), 0.1) 0%, 
+          rgba(var(--cf-rgb-accent), 0.1) 100%);
+        animation: ${showAnimations ? 'gradientShift 8s ease infinite' : 'none'};
+        background-size: 200% 200%;
+        z-index: -1;
+      }
+
+      /* 动画定义 */
+      @keyframes gradientShift {
+        0%, 100% { background-position: 0% 50%; }
+        50% { background-position: 100% 50%; }
       }
 
       /* 响应式优化 */
