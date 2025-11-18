@@ -15,16 +15,31 @@ export class BasePlugin {
     const manifest = this.getManifest();
     const defaultCapabilities = {
       supportsTitle: false,
-      supportsContent: false,
-      supportsFooter: false,
-      supportsCustomFields: false,
-      supportsEntities: true,
-      supportsTheme: true
+      supportsContent: false, 
+      supportsFooter: false
     };
     
     return {
       ...defaultCapabilities,
       ...manifest.capabilities
+    };
+  }
+
+  // === 布局字段系统 ===
+  
+  getLayoutFields() {
+    const manifest = this.getManifest();
+    const capabilities = this.getCardCapabilities();
+    
+    const defaultLayout = {
+      title: capabilities.supportsTitle ? ['title'] : [],
+      content: capabilities.supportsContent ? [] : ['content'],
+      footer: capabilities.supportsFooter ? ['footer'] : []
+    };
+    
+    return {
+      ...defaultLayout,
+      ...manifest.layout_fields
     };
   }
 
@@ -44,26 +59,28 @@ export class BasePlugin {
   }
 
   getAllEntityRequirements(config, hass) {
-    const manifest = this.getManifest();
-    const staticRequirements = manifest.entity_requirements || [];
+    const layout = this.getLayoutFields();
+    const allFields = [
+      ...layout.title,
+      ...layout.content, 
+      ...layout.footer
+    ];
+    
     const dynamicRequirements = this.getDynamicEntities(config, hass);
     
-    return [...staticRequirements, ...dynamicRequirements];
+    const layoutRequirements = allFields.map(field => ({
+      key: field,
+      description: field.replace(/_/g, ' '),
+      required: false
+    }));
+    
+    return [...layoutRequirements, ...dynamicRequirements];
   }
 
   validateEntities(entities, config, hass) {
-    const requirements = this.getAllEntityRequirements(config, hass);
-    const errors = [];
-    
-    requirements.forEach(req => {
-      if (req.required && (!entities[req.key] || entities[req.key].trim() === '')) {
-        errors.push(`必需实体 "${req.description}" 不能为空`);
-      }
-    });
-    
     return {
-      valid: errors.length === 0,
-      errors
+      valid: true,
+      errors: []
     };
   }
 
@@ -96,8 +113,12 @@ export class BasePlugin {
       icon: '📄',
       author: 'CardForge',
       config_schema: {},
-      entity_requirements: [],
-      capabilities: {}
+      capabilities: {},
+      layout_fields: {
+        title: [],
+        content: [],
+        footer: []
+      }
     };
     
     const merged = { ...defaultManifest, ...customManifest };
