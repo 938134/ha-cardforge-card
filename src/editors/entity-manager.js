@@ -78,9 +78,11 @@ export class EntityManager extends LitElement {
       .entity-item.editing {
         border-color: var(--primary-color);
         box-shadow: 0 0 0 2px rgba(var(--primary-color), 0.1);
+        flex-direction: column;
+        align-items: stretch;
       }
 
-      .entity-item:hover {
+      .entity-item:hover:not(.editing) {
         border-color: var(--primary-color);
       }
 
@@ -490,12 +492,7 @@ export class EntityManager extends LitElement {
 
           <div class="form-field">
             <label class="form-label">数据源</label>
-            <ha-entity-picker
-              .hass=${this.hass}
-              .value=${entityData.source}
-              @value-changed=${e => this._onEntityPickerChange(e.detail.value, entityData)}
-              allow-custom-value
-            ></ha-entity-picker>
+            ${this._renderEntityPicker(entityData, true)}
             ${this._getEntityPreview(entityData.source) ? 
               html`<div class="entity-preview">当前状态: ${this._getEntityPreview(entityData.source)}</div>` : ''}
           </div>
@@ -545,12 +542,7 @@ export class EntityManager extends LitElement {
 
           <div class="form-field">
             <label class="form-label">数据源</label>
-            <ha-entity-picker
-              .hass=${this.hass}
-              .value=${entityData?.source || ''}
-              @value-changed=${e => this._onNewEntityPickerChange(e.detail.value)}
-              allow-custom-value
-            ></ha-entity-picker>
+            ${this._renderEntityPicker(entityData, false)}
             ${entityData?.source && this._getEntityPreview(entityData.source) ? 
               html`<div class="entity-preview">当前状态: ${this._getEntityPreview(entityData.source)}</div>` : ''}
           </div>
@@ -567,6 +559,38 @@ export class EntityManager extends LitElement {
           </div>
         </div>
       </div>
+    `;
+  }
+
+  _renderEntityPicker(entityData, isEditing) {
+    // 检查 ha-entity-picker 是否可用
+    if (!customElements.get('ha-entity-picker')) {
+      return html`
+        <ha-textfield
+          .value=${entityData?.source || ''}
+          @input=${e => isEditing ? 
+            this._updateEntityData('source', e.target.value) : 
+            this._updateNewEntityData('source', e.target.value)}
+          placeholder="输入实体ID，例如：sensor.temperature"
+          outlined
+        ></ha-textfield>
+      `;
+    }
+
+    return html`
+      <ha-entity-picker
+        .hass=${this.hass}
+        .value=${entityData?.source || ''}
+        @value-changed=${e => {
+          if (isEditing) {
+            this._onEntityPickerChange(e.detail.value, entityData);
+          } else {
+            this._onNewEntityPickerChange(e.detail.value);
+          }
+        }}
+        .label=${"选择实体或输入实体ID"}
+        allow-custom-value
+      ></ha-entity-picker>
     `;
   }
 
@@ -650,23 +674,25 @@ export class EntityManager extends LitElement {
       this._newEntityData = this._getEntityData(this._editingKey);
     }
     this._newEntityData[field] = value;
+    this.requestUpdate();
   }
 
   _updateNewEntityData(field, value) {
     if (!this._newEntityData) return;
     this._newEntityData[field] = value;
+    this.requestUpdate();
   }
 
   _onEntityPickerChange(entityId, currentData) {
     this._updateEntityData('source', entityId);
     
     // 自动填充实体信息
-    if (entityId && (!currentData.name || !currentData.icon)) {
+    if (entityId) {
       const info = this._getEntityInfo(entityId);
-      if (info.name && !currentData.name) {
+      if (info.name && (!currentData.name || currentData.name === this._getDefaultName(currentData.key, entityId))) {
         this._updateEntityData('name', info.name);
       }
-      if (info.icon && currentData.icon === 'mdi:chart-box') {
+      if (info.icon && (currentData.icon === 'mdi:chart-box' || currentData.icon === this._getDefaultIcon(currentData.source))) {
         this._updateEntityData('icon', info.icon);
       }
     }
@@ -676,7 +702,7 @@ export class EntityManager extends LitElement {
     this._updateNewEntityData('source', entityId);
     
     // 自动填充实体信息
-    if (entityId && (!this._newEntityData.name || !this._newEntityData.icon)) {
+    if (entityId) {
       const info = this._getEntityInfo(entityId);
       if (info.name && !this._newEntityData.name) {
         this._updateNewEntityData('name', info.name);
@@ -736,16 +762,28 @@ export class EntityManager extends LitElement {
   _cancelEdit() {
     this._editingKey = null;
     this._newEntityData = null;
+    this.requestUpdate();
   }
 
   _cancelAdd() {
     this._newEntityData = null;
+    this.requestUpdate();
   }
 
   _notifyEntitiesChange(newEntities) {
     this.dispatchEvent(new CustomEvent('entities-changed', {
       detail: { entities: newEntities }
     }));
+  }
+
+  firstUpdated() {
+    // 检查组件是否可用
+    if (!customElements.get('ha-entity-picker')) {
+      console.warn('ha-entity-picker 组件未加载，使用备用输入框');
+    }
+    if (!customElements.get('ha-icon-picker')) {
+      console.warn('ha-icon-picker 组件未加载，图标选择功能不可用');
+    }
   }
 }
 
