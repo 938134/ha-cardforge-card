@@ -10,7 +10,8 @@ export class EntityManager extends LitElement {
     _currentStrategy: { state: true },
     _contentBlocks: { state: true },
     _availableEntities: { state: true },
-    _editingBlock: { state: true }
+    _editingBlock: { state: true },
+    _showBlockEditor: { state: true }
   };
 
   static styles = [
@@ -23,48 +24,67 @@ export class EntityManager extends LitElement {
         gap: var(--cf-spacing-lg);
       }
 
-      /* 标题和页脚配置 */
-      .header-footer-config {
+      /* 标题和页脚字段 */
+      .header-fields {
         display: grid;
         grid-template-columns: 1fr 1fr;
         gap: var(--cf-spacing-md);
         margin-bottom: var(--cf-spacing-lg);
       }
 
-      .header-footer-field {
-        display: flex;
-        flex-direction: column;
-        gap: var(--cf-spacing-sm);
+      .field-card {
+        background: var(--cf-surface);
+        border: 1px solid var(--cf-border);
+        border-radius: var(--cf-radius-md);
+        padding: var(--cf-spacing-md);
+        display: grid;
+        grid-template-columns: 25% 75%;
+        gap: var(--cf-spacing-md);
+        align-items: center;
+      }
+
+      .field-card.required {
+        border-left: 3px solid var(--cf-error-color);
       }
 
       .field-label {
-        font-weight: 500;
+        display: flex;
+        align-items: center;
+        gap: var(--cf-spacing-xs);
         font-size: 0.9em;
+        font-weight: 500;
         color: var(--cf-text-primary);
       }
 
-      /* 内容块管理 */
+      .required-mark {
+        color: var(--cf-error-color);
+        font-weight: 600;
+      }
+
+      .field-input {
+        width: 100%;
+      }
+
+      /* 内容块管理区域 */
       .blocks-section {
         margin-top: var(--cf-spacing-lg);
       }
 
-      .blocks-header {
+      .section-title {
+        font-size: 1.1em;
+        font-weight: 600;
+        color: var(--cf-text-primary);
+        margin-bottom: var(--cf-spacing-md);
         display: flex;
         align-items: center;
         justify-content: space-between;
-        margin-bottom: var(--cf-spacing-md);
-      }
-
-      .section-title {
-        font-weight: 600;
-        color: var(--cf-text-primary);
       }
 
       .content-blocks-grid {
         display: grid;
-        grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+        grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
         gap: var(--cf-spacing-md);
-        margin-bottom: var(--cf-spacing-lg);
+        margin-bottom: var(--cf-spacing-md);
       }
 
       .content-block {
@@ -77,7 +97,7 @@ export class EntityManager extends LitElement {
         gap: var(--cf-spacing-sm);
         transition: all var(--cf-transition-fast);
         cursor: pointer;
-        min-height: 70px;
+        min-height: 60px;
         position: relative;
       }
 
@@ -87,20 +107,52 @@ export class EntityManager extends LitElement {
         box-shadow: var(--cf-shadow-sm);
       }
 
-      .content-block.editing {
+      .content-block:hover .block-actions {
+        opacity: 1;
+      }
+
+      .block-actions {
+        position: absolute;
+        top: var(--cf-spacing-xs);
+        right: var(--cf-spacing-xs);
+        display: flex;
+        gap: var(--cf-spacing-xs);
+        opacity: 0;
+        transition: opacity var(--cf-transition-fast);
+      }
+
+      .block-action {
+        width: 24px;
+        height: 24px;
+        border-radius: var(--cf-radius-sm);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: var(--cf-background);
+        border: 1px solid var(--cf-border);
+        cursor: pointer;
+        font-size: 0.8em;
+        transition: all var(--cf-transition-fast);
+      }
+
+      .block-action:hover {
+        background: var(--cf-primary-color);
+        color: white;
         border-color: var(--cf-primary-color);
-        background: rgba(var(--cf-rgb-primary), 0.05);
+      }
+
+      .block-action.delete:hover {
+        background: var(--cf-error-color);
+        border-color: var(--cf-error-color);
       }
 
       .block-icon {
-        font-size: 1.5em;
+        font-size: 1.2em;
         opacity: 0.7;
-        flex-shrink: 0;
       }
 
       .block-info {
         flex: 1;
-        min-width: 0;
       }
 
       .block-title {
@@ -108,44 +160,12 @@ export class EntityManager extends LitElement {
         font-weight: 500;
         color: var(--cf-text-primary);
         margin-bottom: 2px;
-        white-space: nowrap;
-        overflow: hidden;
-        text-overflow: ellipsis;
       }
 
       .block-preview {
         font-size: 0.8em;
         color: var(--cf-text-secondary);
         opacity: 0.7;
-        white-space: nowrap;
-        overflow: hidden;
-        text-overflow: ellipsis;
-      }
-
-      .block-actions {
-        display: flex;
-        gap: var(--cf-spacing-xs);
-        opacity: 0;
-        transition: opacity var(--cf-transition-fast);
-      }
-
-      .content-block:hover .block-actions {
-        opacity: 1;
-      }
-
-      .action-btn {
-        padding: var(--cf-spacing-xs);
-        border: none;
-        background: transparent;
-        color: var(--cf-text-secondary);
-        cursor: pointer;
-        border-radius: var(--cf-radius-sm);
-        transition: all var(--cf-transition-fast);
-      }
-
-      .action-btn:hover {
-        background: var(--cf-primary-color);
-        color: white;
       }
 
       .add-block-btn {
@@ -170,24 +190,57 @@ export class EntityManager extends LitElement {
         background: rgba(var(--cf-rgb-primary), 0.05);
       }
 
-      /* 块编辑器模态框 */
-      .block-editor {
-        background: var(--cf-surface);
-        border: 1px solid var(--cf-border);
-        border-radius: var(--cf-radius-md);
+      /* 内容块编辑器模态框 */
+      .block-editor-modal {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.5);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 1000;
         padding: var(--cf-spacing-lg);
-        margin-top: var(--cf-spacing-md);
+      }
+
+      .block-editor {
+        background: var(--cf-background);
+        border-radius: var(--cf-radius-lg);
+        padding: var(--cf-spacing-lg);
+        width: 100%;
+        max-width: 500px;
+        max-height: 80vh;
+        overflow-y: auto;
+        box-shadow: var(--cf-shadow-xl);
       }
 
       .editor-header {
         display: flex;
         align-items: center;
         justify-content: space-between;
-        margin-bottom: var(--cf-spacing-md);
+        margin-bottom: var(--cf-spacing-lg);
+        padding-bottom: var(--cf-spacing-md);
+        border-bottom: 1px solid var(--cf-border);
       }
 
       .editor-title {
+        font-size: 1.2em;
         font-weight: 600;
+        color: var(--cf-text-primary);
+      }
+
+      .close-button {
+        background: none;
+        border: none;
+        font-size: 1.2em;
+        cursor: pointer;
+        color: var(--cf-text-secondary);
+        padding: var(--cf-spacing-xs);
+      }
+
+      .close-button:hover {
         color: var(--cf-text-primary);
       }
 
@@ -197,15 +250,15 @@ export class EntityManager extends LitElement {
         gap: var(--cf-spacing-md);
       }
 
-      .form-field {
+      .form-group {
         display: flex;
         flex-direction: column;
         gap: var(--cf-spacing-sm);
       }
 
       .form-label {
-        font-weight: 500;
         font-size: 0.9em;
+        font-weight: 500;
         color: var(--cf-text-primary);
       }
 
@@ -214,6 +267,38 @@ export class EntityManager extends LitElement {
         gap: var(--cf-spacing-md);
         justify-content: flex-end;
         margin-top: var(--cf-spacing-lg);
+        padding-top: var(--cf-spacing-md);
+        border-top: 1px solid var(--cf-border);
+      }
+
+      /* 提示卡片样式 */
+      .info-card {
+        background: var(--cf-surface);
+        border: 1px solid var(--cf-border);
+        border-radius: var(--cf-radius-md);
+        padding: var(--cf-spacing-lg);
+        text-align: center;
+        margin-top: var(--cf-spacing-lg);
+      }
+
+      .info-icon {
+        font-size: 2em;
+        margin-bottom: var(--cf-spacing-md);
+        opacity: 0.7;
+      }
+
+      .info-title {
+        font-size: 1.1em;
+        font-weight: 600;
+        color: var(--cf-text-primary);
+        margin-bottom: var(--cf-spacing-sm);
+      }
+
+      .info-description {
+        font-size: 0.9em;
+        color: var(--cf-text-secondary);
+        line-height: 1.4;
+        margin: 0;
       }
 
       /* 空状态样式 */
@@ -223,7 +308,7 @@ export class EntityManager extends LitElement {
         color: var(--cf-text-secondary);
         border: 2px dashed var(--cf-border);
         border-radius: var(--cf-radius-md);
-        margin: var(--cf-spacing-md) 0;
+        margin-bottom: var(--cf-spacing-md);
       }
 
       .empty-icon {
@@ -239,32 +324,50 @@ export class EntityManager extends LitElement {
 
       /* 深色模式适配 */
       @media (prefers-color-scheme: dark) {
+        .field-card,
         .content-block,
+        .info-card,
         .block-editor {
           background: var(--cf-dark-surface);
           border-color: var(--cf-dark-border);
         }
+
+        .block-editor-modal {
+          background: rgba(0, 0, 0, 0.7);
+        }
       }
 
       /* 响应式优化 */
-      @media (max-width: 768px) {
-        .header-footer-config {
+      @media (max-width: 600px) {
+        .header-fields {
           grid-template-columns: 1fr;
         }
 
+        .field-card {
+          grid-template-columns: 1fr;
+          gap: var(--cf-spacing-sm);
+        }
+
         .content-blocks-grid {
-          grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+          grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+          gap: var(--cf-spacing-sm);
         }
 
         .content-block {
-          min-height: 60px;
+          min-height: 55px;
           padding: var(--cf-spacing-sm);
         }
-      }
 
-      @media (max-width: 480px) {
-        .content-blocks-grid {
-          grid-template-columns: 1fr;
+        .info-card {
+          padding: var(--cf-spacing-md);
+        }
+
+        .block-editor-modal {
+          padding: var(--cf-spacing-md);
+        }
+
+        .block-editor {
+          padding: var(--cf-spacing-md);
         }
       }
     `
@@ -276,6 +379,7 @@ export class EntityManager extends LitElement {
     this._contentBlocks = [];
     this._availableEntities = [];
     this._editingBlock = null;
+    this._showBlockEditor = false;
   }
 
   willUpdate(changedProperties) {
@@ -289,12 +393,38 @@ export class EntityManager extends LitElement {
     }
   }
 
-  // ... _updateAvailableEntities, _detectStrategy 方法保持不变 ...
+  _updateAvailableEntities() {
+    if (!this.hass?.states) {
+      this._availableEntities = [];
+      return;
+    }
+
+    const entities = Object.entries(this.hass.states)
+      .map(([entityId, state]) => ({
+        value: entityId,
+        label: state.attributes?.friendly_name || entityId
+      }))
+      .sort((a, b) => a.label.localeCompare(b.label));
+
+    this._availableEntities = entities;
+  }
+
+  _detectStrategy() {
+    const manifest = this.pluginManifest;
+    if (!manifest) return 'stateless';
+
+    if (manifest.layout_type === 'free') return 'free_layout';
+    if (manifest.entity_requirements && Object.keys(manifest.entity_requirements).length > 0) {
+      return 'structured';
+    }
+    return 'stateless';
+  }
 
   render() {
     return html`
       <div class="entity-manager">
         ${this._renderStrategyContent()}
+        ${this._renderBlockEditor()}
         ${this._renderInfoCard()}
       </div>
     `;
@@ -314,19 +444,19 @@ export class EntityManager extends LitElement {
   _renderFreeLayout() {
     return html`
       <div>
-        <!-- 标题和页脚配置 -->
-        ${this._renderHeaderFooterConfig()}
+        <!-- 标题和页脚字段 -->
+        ${this._renderHeaderFields()}
         
         <!-- 内容块管理 -->
         <div class="blocks-section">
-          <div class="blocks-header">
-            <div class="section-title">内容块管理</div>
-            <div class="cf-text-sm cf-text-secondary">${this._contentBlocks.length} 个内容块</div>
+          <div class="section-title">
+            <span>内容块管理</span>
+            <span class="cf-text-sm cf-text-secondary">${this._contentBlocks.length} 个内容块</span>
           </div>
           
           <div class="content-blocks-grid">
             ${this._contentBlocks.map(block => this._renderContentBlock(block))}
-            <button class="add-block-btn" @click=${this._showBlockCreator}>
+            <button class="add-block-btn" @click=${this._addContentBlock}>
               <ha-icon icon="mdi:plus"></ha-icon>
               添加内容块
             </button>
@@ -339,171 +469,310 @@ export class EntityManager extends LitElement {
             </div>
           ` : ''}
         </div>
-
-        <!-- 块编辑器 -->
-        ${this._editingBlock ? this._renderBlockEditor() : ''}
       </div>
     `;
   }
 
-  _renderHeaderFooterConfig() {
-    const title = this.config.entities?.title || '';
-    const footer = this.config.entities?.footer || '';
+  _renderHeaderFields() {
+    const capabilities = this.pluginManifest?.capabilities || {};
+    
+    if (!capabilities.supportsTitle && !capabilities.supportsFooter) {
+      return '';
+    }
 
     return html`
-      <div class="header-footer-config">
-        <div class="header-footer-field">
-          <label class="field-label">标题</label>
-          <ha-textfield
-            .value=${title}
-            @input=${e => this._onHeaderFooterChanged('title', e.target.value)}
-            placeholder="输入卡片标题..."
-            outlined
-          ></ha-textfield>
-        </div>
+      <div class="header-fields">
+        ${capabilities.supportsTitle ? html`
+          <div class="field-card">
+            <div class="field-label">标题</div>
+            <div class="field-input">
+              <ha-textfield
+                .value=${this.config.entities?.title || ''}
+                @input=${e => this._onHeaderFieldChanged('title', e.target.value)}
+                label="卡片标题"
+                fullwidth
+              ></ha-textfield>
+            </div>
+          </div>
+          
+          <div class="field-card">
+            <div class="field-label">副标题</div>
+            <div class="field-input">
+              <ha-textfield
+                .value=${this.config.entities?.subtitle || ''}
+                @input=${e => this._onHeaderFieldChanged('subtitle', e.target.value)}
+                label="副标题（可选）"
+                fullwidth
+              ></ha-textfield>
+            </div>
+          </div>
+        ` : ''}
         
-        <div class="header-footer-field">
-          <label class="field-label">页脚</label>
-          <ha-textfield
-            .value=${footer}
-            @input=${e => this._onHeaderFooterChanged('footer', e.target.value)}
-            placeholder="输入页脚文本..."
-            outlined
-          ></ha-textfield>
-        </div>
+        ${capabilities.supportsFooter ? html`
+          <div class="field-card">
+            <div class="field-label">页脚</div>
+            <div class="field-input">
+              <ha-textfield
+                .value=${this.config.entities?.footer || ''}
+                @input=${e => this._onHeaderFieldChanged('footer', e.target.value)}
+                label="页脚文本"
+                fullwidth
+              ></ha-textfield>
+            </div>
+          </div>
+        ` : ''}
       </div>
     `;
+  }
+
+  _renderStructured() {
+    const requirements = this.pluginManifest?.entity_requirements || {};
+
+    return html`
+      <div>
+        ${Object.entries(requirements).map(([key, requirement]) => 
+          this._renderEntityField(key, requirement)
+        )}
+      </div>
+    `;
+  }
+
+  _renderStateless() {
+    return html``;
   }
 
   _renderContentBlock(block) {
-    const isEditing = this._editingBlock?.id === block.id;
-    
     return html`
-      <div class="content-block ${isEditing ? 'editing' : ''}" 
-           @click=${() => this._editContentBlock(block)}>
+      <div class="content-block" @click=${() => this._editContentBlock(block)}>
+        <div class="block-actions">
+          <div class="block-action edit" @click=${(e) => { e.stopPropagation(); this._editContentBlock(block); }}>
+            <ha-icon icon="mdi:pencil" style="font-size: 14px;"></ha-icon>
+          </div>
+          <div class="block-action delete" @click=${(e) => { e.stopPropagation(); this._deleteContentBlock(block.id); }}>
+            <ha-icon icon="mdi:delete" style="font-size: 14px;"></ha-icon>
+          </div>
+        </div>
         <ha-icon class="block-icon" .icon=${this._getBlockIcon(block.type)}></ha-icon>
         <div class="block-info">
           <div class="block-title">${this._getBlockTypeName(block.type)}</div>
           <div class="block-preview">${this._getBlockPreview(block)}</div>
         </div>
-        <div class="block-actions">
-          <button class="action-btn" @click=${(e) => this._deleteContentBlock(e, block.id)}>
-            <ha-icon icon="mdi:delete"></ha-icon>
-          </button>
+      </div>
+    `;
+  }
+
+  _renderEntityField(key, requirement) {
+    const currentValue = this.config.entities?.[key] || '';
+
+    return html`
+      <div class="field-card ${requirement.required ? 'required' : ''}">
+        <div class="field-label">
+          ${requirement.name}
+          ${requirement.required ? html`<span class="required-mark">(*)</span>` : ''}
+        </div>
+        <div class="field-input">
+          <ha-combo-box
+            .items=${this._availableEntities}
+            .value=${currentValue}
+            @value-changed=${e => this._onEntityChanged(key, e.detail.value)}
+            allow-custom-value
+            label=${`选择 ${requirement.name}`}
+          ></ha-combo-box>
         </div>
       </div>
     `;
   }
 
   _renderBlockEditor() {
-    if (!this._editingBlock) return '';
+    if (!this._showBlockEditor) return '';
+
+    const blockTypes = [
+      { value: 'text', label: '文本块', icon: 'mdi:text' },
+      { value: 'sensor', label: '传感器', icon: 'mdi:gauge' },
+      { value: 'weather', label: '天气', icon: 'mdi:weather-cloudy' },
+      { value: 'switch', label: '开关', icon: 'mdi:power' }
+    ];
 
     return html`
-      <div class="block-editor">
-        <div class="editor-header">
-          <div class="editor-title">编辑内容块</div>
-          <button class="action-btn" @click=${this._closeBlockEditor}>
-            <ha-icon icon="mdi:close"></ha-icon>
-          </button>
-        </div>
-        
-        <div class="editor-form">
-          <div class="form-field">
-            <label class="form-label">内容块类型</label>
-            <ha-combo-box
-              .items=${this._getBlockTypeOptions()}
-              .value=${this._editingBlock.type}
-              @value-changed=${e => this._onBlockTypeChanged(e.detail.value)}
-              allow-custom-value
-            ></ha-combo-box>
+      <div class="block-editor-modal" @click=${this._closeBlockEditor}>
+        <div class="block-editor" @click=${e => e.stopPropagation()}>
+          <div class="editor-header">
+            <div class="editor-title">
+              ${this._editingBlock ? '编辑内容块' : '添加内容块'}
+            </div>
+            <button class="close-button" @click=${this._closeBlockEditor}>
+              <ha-icon icon="mdi:close"></ha-icon>
+            </button>
           </div>
           
-          <div class="form-field">
-            <label class="form-label">内容</label>
-            ${this._editingBlock.type === 'sensor' || this._editingBlock.type === 'entity' ? html`
+          <div class="editor-form">
+            <div class="form-group">
+              <label class="form-label">内容块类型</label>
               <ha-combo-box
-                .items=${this._availableEntities}
-                .value=${this._editingBlock.content}
-                @value-changed=${e => this._onBlockContentChanged(e.detail.value)}
-                allow-custom-value
-                label="选择实体"
+                .items=${blockTypes}
+                .value=${this._editingBlock?.type || 'text'}
+                @value-changed=${e => this._onBlockTypeChange(e.detail.value)}
+                label="选择内容块类型"
               ></ha-combo-box>
-            ` : html`
-              <ha-textfield
-                .value=${this._editingBlock.content}
-                @input=${e => this._onBlockContentChanged(e.target.value)}
-                placeholder="输入内容..."
-                outlined
-                fullwidth
-              ></ha-textfield>
-            `}
+            </div>
+            
+            <div class="form-group">
+              <label class="form-label">
+                ${this._editingBlock?.type === 'text' ? '文本内容' : 
+                  this._editingBlock?.type === 'sensor' ? '传感器实体' :
+                  this._editingBlock?.type === 'weather' ? '天气实体' :
+                  this._editingBlock?.type === 'switch' ? '开关实体' : '内容'}
+              </label>
+              ${this._editingBlock?.type === 'text' ? html`
+                <ha-textarea
+                  .value=${this._editingBlock?.content || ''}
+                  @input=${e => this._onBlockContentChange(e.target.value)}
+                  label="输入文本内容"
+                  rows="3"
+                ></ha-textarea>
+              ` : html`
+                <ha-combo-box
+                  .items=${this._availableEntities}
+                  .value=${this._editingBlock?.content || ''}
+                  @value-changed=${e => this._onBlockContentChange(e.detail.value)}
+                  label="选择实体"
+                  allow-custom-value
+                ></ha-combo-box>
+              `}
+            </div>
+            
+            ${this._editingBlock?.type === 'text' ? html`
+              <div class="form-group">
+                <label class="form-label">自定义样式（可选）</label>
+                <ha-textfield
+                  .value=${this._editingBlock?.config?.background || ''}
+                  @input=${e => this._onBlockStyleChange('background', e.target.value)}
+                  label="背景颜色"
+                  placeholder="#f0f0f0 或 rgba(255,255,255,0.8)"
+                ></ha-textfield>
+                <ha-textfield
+                  .value=${this._editingBlock?.config?.textColor || ''}
+                  @input=${e => this._onBlockStyleChange('textColor', e.target.value)}
+                  label="文字颜色"
+                  placeholder="#333333"
+                ></ha-textfield>
+              </div>
+            ` : ''}
           </div>
           
           <div class="editor-actions">
             <mwc-button @click=${this._closeBlockEditor}>取消</mwc-button>
-            <mwc-button @click=${this._saveBlockEditor} raised>保存</mwc-button>
+            <mwc-button raised @click=${this._saveContentBlock}>
+              ${this._editingBlock ? '保存' : '添加'}
+            </mwc-button>
           </div>
         </div>
       </div>
     `;
   }
 
-  _getBlockTypeOptions() {
-    return [
-      { value: 'text', label: '文本块' },
-      { value: 'sensor', label: '传感器' },
-      { value: 'entity', label: '实体状态' },
-      { value: 'markdown', label: 'Markdown' }
-    ];
+  _renderInfoCard() {
+    const strategyInfo = this._getStrategyInfo();
+    
+    return html`
+      <div class="info-card">
+        <ha-icon class="info-icon" .icon=${strategyInfo.icon}></ha-icon>
+        <div class="info-title">${strategyInfo.name}</div>
+        <p class="info-description">${strategyInfo.description}</p>
+      </div>
+    `;
   }
 
-  _showBlockCreator() {
-    const newBlockId = `block_${Date.now()}`;
-    this._editingBlock = {
-      id: newBlockId,
-      type: 'text',
-      content: '新内容块',
-      isNew: true
+  _getStrategyInfo() {
+    const strategyInfo = {
+      free_layout: {
+        name: '自由布局模式',
+        description: '可任意添加和排列内容块，构建个性化布局。支持标题、页脚自定义。',
+        icon: 'mdi:view-grid-plus'
+      },
+      structured: {
+        name: '智能数据源',
+        description: '配置所需的数据源实体，系统将自动获取并展示数据',
+        icon: 'mdi:database-cog'
+      },
+      stateless: {
+        name: '智能数据源',
+        description: '此卡片使用内置数据源，无需额外配置实体。系统会自动提供相关数据展示。',
+        icon: 'mdi:chart-donut'
+      }
     };
+
+    return strategyInfo[this._currentStrategy] || strategyInfo.stateless;
   }
 
-  _editContentBlock(block) {
-    this._editingBlock = { ...block };
+  _extractContentBlocks(entities = this.config.entities) {
+    const blocks = [];
+    Object.entries(entities || {}).forEach(([key, value]) => {
+      if (key.endsWith('_type') && !key.startsWith('_')) {
+        const blockId = key.replace('_type', '');
+        const configKey = `${blockId}_config`;
+        
+        try {
+          blocks.push({
+            id: blockId,
+            type: value,
+            content: entities[blockId] || '',
+            config: entities[configKey] ? JSON.parse(entities[configKey]) : {},
+            order: parseInt(entities[`${blockId}_order`]) || 0
+          });
+        } catch (e) {
+          console.warn(`解析内容块配置失败: ${blockId}`, e);
+        }
+      }
+    });
+
+    return blocks.sort((a, b) => a.order - b.order);
   }
 
-  _closeBlockEditor() {
-    this._editingBlock = null;
+  _getBlockIcon(blockType) {
+    const icons = {
+      text: 'mdi:text',
+      sensor: 'mdi:gauge',
+      weather: 'mdi:weather-cloudy',
+      switch: 'mdi:power',
+      image: 'mdi:image'
+    };
+    return icons[blockType] || 'mdi:cube';
   }
 
-  _saveBlockEditor() {
-    if (!this._editingBlock) return;
+  _getBlockTypeName(blockType) {
+    const names = {
+      text: '文本块',
+      sensor: '传感器',
+      weather: '天气',
+      switch: '开关',
+      image: '图片'
+    };
+    return names[blockType] || '内容块';
+  }
 
-    const newEntities = { ...this.config.entities };
-    
-    // 更新内容块数据
-    newEntities[this._editingBlock.id] = this._editingBlock.content;
-    newEntities[`${this._editingBlock.id}_type`] = this._editingBlock.type;
+  _getBlockPreview(block) {
+    if (block.type === 'text') {
+      return block.content.substring(0, 15) + (block.content.length > 15 ? '...' : '');
+    }
+    if (['sensor', 'weather', 'switch'].includes(block.type) && block.content) {
+      return block.content.split('.')[1] || block.content;
+    }
+    return '点击编辑';
+  }
 
+  _onHeaderFieldChanged(field, value) {
     this.dispatchEvent(new CustomEvent('entities-changed', {
-      detail: { entities: newEntities }
-    }));
-
-    this._editingBlock = null;
-  }
-
-  _deleteContentBlock(e, blockId) {
-    e.stopPropagation();
-    
-    const newEntities = { ...this.config.entities };
-    delete newEntities[blockId];
-    delete newEntities[`${blockId}_type`];
-
-    this.dispatchEvent(new CustomEvent('entities-changed', {
-      detail: { entities: newEntities }
+      detail: {
+        entities: {
+          ...this.config.entities,
+          [field]: value
+        }
+      }
     }));
   }
 
-  _onHeaderFooterChanged(key, value) {
+  _onEntityChanged(key, value) {
     this.dispatchEvent(new CustomEvent('entities-changed', {
       detail: {
         entities: {
@@ -514,21 +783,94 @@ export class EntityManager extends LitElement {
     }));
   }
 
-  _onBlockTypeChanged(type) {
+  _addContentBlock() {
+    const blockId = `block_${Date.now()}`;
+    this._editingBlock = {
+      id: blockId,
+      type: 'text',
+      content: '',
+      config: {},
+      order: this._contentBlocks.length
+    };
+    this._showBlockEditor = true;
+  }
+
+  _editContentBlock(block) {
+    this._editingBlock = { ...block };
+    this._showBlockEditor = true;
+  }
+
+  _deleteContentBlock(blockId) {
+    if (!confirm('确定要删除这个内容块吗？')) {
+      return;
+    }
+
+    const newEntities = { ...this.config.entities };
+    
+    // 删除与内容块相关的所有字段
+    Object.keys(newEntities).forEach(key => {
+      if (key.startsWith(blockId)) {
+        delete newEntities[key];
+      }
+    });
+
+    this.dispatchEvent(new CustomEvent('entities-changed', {
+      detail: { entities: newEntities }
+    }));
+  }
+
+  _closeBlockEditor() {
+    this._showBlockEditor = false;
+    this._editingBlock = null;
+  }
+
+  _onBlockTypeChange(type) {
     if (this._editingBlock) {
       this._editingBlock.type = type;
-      this.requestUpdate();
+      // 如果切换到非文本类型，清空自定义样式
+      if (type !== 'text') {
+        this._editingBlock.config = {};
+      }
     }
   }
 
-  _onBlockContentChanged(content) {
+  _onBlockContentChange(content) {
     if (this._editingBlock) {
       this._editingBlock.content = content;
-      this.requestUpdate();
     }
   }
 
-  // ... 其他辅助方法保持不变 ...
+  _onBlockStyleChange(styleKey, value) {
+    if (this._editingBlock) {
+      this._editingBlock.config = {
+        ...this._editingBlock.config,
+        [styleKey]: value
+      };
+    }
+  }
+
+  _saveContentBlock() {
+    if (!this._editingBlock) return;
+
+    const newEntities = { ...this.config.entities };
+    const blockId = this._editingBlock.id;
+
+    // 保存内容块数据
+    newEntities[blockId] = this._editingBlock.content;
+    newEntities[`${blockId}_type`] = this._editingBlock.type;
+    newEntities[`${blockId}_order`] = this._editingBlock.order.toString();
+    
+    // 保存配置（如果有）
+    if (Object.keys(this._editingBlock.config).length > 0) {
+      newEntities[`${blockId}_config`] = JSON.stringify(this._editingBlock.config);
+    }
+
+    this.dispatchEvent(new CustomEvent('entities-changed', {
+      detail: { entities: newEntities }
+    }));
+
+    this._closeBlockEditor();
+  }
 }
 
 if (!customElements.get('entity-manager')) {

@@ -378,6 +378,31 @@ export class BasePlugin {
     return condition ? template : '';
   }
 
+  _renderCardHeader(config, entities) {
+    const title = entities.title || config.title;
+    if (!title) return '';
+    
+    const subtitle = entities.subtitle || config.subtitle;
+    
+    return `
+      <div class="cardforge-header">
+        <div class="cardforge-title">${this._renderSafeHTML(title)}</div>
+        ${subtitle ? `<div class="cardforge-subtitle">${this._renderSafeHTML(subtitle)}</div>` : ''}
+      </div>
+    `;
+  }
+  
+  _renderCardFooter(config, entities) {
+    const footer = entities.footer || config.footer;
+    if (!footer) return '';
+    
+    return `
+      <div class="cardforge-footer">
+        <div class="footer-text">${this._renderSafeHTML(footer)}</div>
+      </div>
+    `;
+  }
+  
   _safeParseFloat(value, defaultValue = 0) {
     if (value === null || value === undefined) return defaultValue;
     const num = parseFloat(value);
