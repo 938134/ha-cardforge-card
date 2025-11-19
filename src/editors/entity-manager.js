@@ -17,57 +17,50 @@ export class EntityManager extends LitElement {
     css`
       .entity-manager {
         width: 100%;
+        display: flex;
+        flex-direction: column;
+        gap: var(--cf-spacing-lg);
       }
 
-      .strategy-indicator {
-        display: flex;
-        align-items: center;
-        gap: var(--cf-spacing-md);
-        margin-bottom: var(--cf-spacing-lg);
-        padding: var(--cf-spacing-md);
-        background: rgba(var(--cf-rgb-primary), 0.05);
+      /* 字段卡片样式 */
+      .field-card {
+        background: var(--cf-surface);
+        border: 1px solid var(--cf-border);
         border-radius: var(--cf-radius-md);
-        border-left: 4px solid var(--cf-primary-color);
+        padding: var(--cf-spacing-md);
+        display: grid;
+        grid-template-columns: 25% 75%;
+        gap: var(--cf-spacing-md);
+        align-items: center;
       }
 
-      .strategy-info {
-        flex: 1;
+      .field-card.required {
+        border-left: 3px solid var(--cf-error-color);
       }
 
-      .strategy-title {
-        font-size: 1em;
-        font-weight: 600;
-        color: var(--cf-text-primary);
-        margin: 0 0 var(--cf-spacing-xs) 0;
-      }
-
-      .strategy-description {
-        font-size: 0.85em;
-        color: var(--cf-text-secondary);
-        margin: 0;
-        line-height: 1.4;
-      }
-
-      /* 自由布局样式 */
-      .free-layout-section {
-        margin-bottom: var(--cf-spacing-lg);
-      }
-
-      .section-title {
-        font-size: 0.95em;
-        font-weight: 600;
-        color: var(--cf-text-primary);
-        margin-bottom: var(--cf-spacing-md);
+      .field-label {
         display: flex;
         align-items: center;
-        gap: var(--cf-spacing-sm);
+        gap: var(--cf-spacing-xs);
+        font-size: 0.9em;
+        font-weight: 500;
+        color: var(--cf-text-primary);
       }
 
+      .required-mark {
+        color: var(--cf-error-color);
+        font-weight: 600;
+      }
+
+      .field-input {
+        width: 100%;
+      }
+
+      /* 内容块样式 */
       .content-blocks-grid {
         display: grid;
         grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
         gap: var(--cf-spacing-md);
-        margin-bottom: var(--cf-spacing-lg);
       }
 
       .content-block {
@@ -133,98 +126,37 @@ export class EntityManager extends LitElement {
         background: rgba(var(--cf-rgb-primary), 0.05);
       }
 
-      /* 结构化实体样式 */
-      .structured-section {
-        display: flex;
-        flex-direction: column;
-        gap: var(--cf-spacing-md);
-      }
-
-      .entity-field {
+      /* 提示卡片样式 */
+      .info-card {
         background: var(--cf-surface);
         border: 1px solid var(--cf-border);
         border-radius: var(--cf-radius-md);
-        padding: var(--cf-spacing-md);
-      }
-
-      .entity-field.required {
-        border-left: 3px solid var(--cf-error-color);
-      }
-
-      .field-header {
-        display: flex;
-        justify-content: space-between;
-        align-items: flex-start;
-        margin-bottom: var(--cf-spacing-sm);
-      }
-
-      .field-info {
-        flex: 1;
-      }
-
-      .field-name {
-        font-size: 0.95em;
-        font-weight: 600;
-        color: var(--cf-text-primary);
-        margin: 0 0 4px 0;
-        display: flex;
-        align-items: center;
-        gap: var(--cf-spacing-sm);
-      }
-
-      .field-description {
-        font-size: 0.8em;
-        color: var(--cf-text-secondary);
-        line-height: 1.3;
-        margin: 0;
-      }
-
-      .required-badge {
-        background: var(--cf-error-color);
-        color: white;
-        padding: 2px 6px;
-        border-radius: 10px;
-        font-size: 0.7em;
-        font-weight: 500;
-        white-space: nowrap;
-      }
-
-      .optional-badge {
-        background: var(--cf-text-secondary);
-        color: white;
-        padding: 2px 6px;
-        border-radius: 10px;
-        font-size: 0.7em;
-        font-weight: 500;
-        white-space: nowrap;
-      }
-
-      /* 无状态样式 */
-      .stateless-section {
+        padding: var(--cf-spacing-lg);
         text-align: center;
-        padding: var(--cf-spacing-xl);
-        color: var(--cf-text-secondary);
+        margin-top: var(--cf-spacing-lg);
       }
 
-      .stateless-icon {
-        font-size: 2.5em;
+      .info-icon {
+        font-size: 2em;
         margin-bottom: var(--cf-spacing-md);
-        opacity: 0.5;
+        opacity: 0.7;
       }
 
-      .stateless-title {
+      .info-title {
         font-size: 1.1em;
         font-weight: 600;
-        margin-bottom: var(--cf-spacing-sm);
         color: var(--cf-text-primary);
+        margin-bottom: var(--cf-spacing-sm);
       }
 
-      .stateless-description {
+      .info-description {
         font-size: 0.9em;
+        color: var(--cf-text-secondary);
         line-height: 1.4;
         margin: 0;
       }
 
+      /* 空状态样式 */
       .empty-state {
         text-align: center;
         padding: var(--cf-spacing-xl);
@@ -244,12 +176,9 @@ export class EntityManager extends LitElement {
 
       /* 深色模式适配 */
       @media (prefers-color-scheme: dark) {
-        .content-block {
-          background: var(--cf-dark-surface);
-          border-color: var(--cf-dark-border);
-        }
-
-        .entity-field {
+        .field-card,
+        .content-block,
+        .info-card {
           background: var(--cf-dark-surface);
           border-color: var(--cf-dark-border);
         }
@@ -257,6 +186,11 @@ export class EntityManager extends LitElement {
 
       /* 响应式优化 */
       @media (max-width: 600px) {
+        .field-card {
+          grid-template-columns: 1fr;
+          gap: var(--cf-spacing-sm);
+        }
+
         .content-blocks-grid {
           grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
           gap: var(--cf-spacing-sm);
@@ -267,14 +201,8 @@ export class EntityManager extends LitElement {
           padding: var(--cf-spacing-sm);
         }
 
-        .field-header {
-          flex-direction: column;
-          gap: var(--cf-spacing-xs);
-        }
-
-        .required-badge,
-        .optional-badge {
-          align-self: flex-start;
+        .info-card {
+          padding: var(--cf-spacing-md);
         }
       }
     `
@@ -328,22 +256,8 @@ export class EntityManager extends LitElement {
   render() {
     return html`
       <div class="entity-manager">
-        ${this._renderStrategyIndicator()}
         ${this._renderStrategyContent()}
-      </div>
-    `;
-  }
-
-  _renderStrategyIndicator() {
-    const strategyInfo = this._getStrategyInfo();
-    
-    return html`
-      <div class="strategy-indicator">
-        <ha-icon .icon=${strategyInfo.icon}></ha-icon>
-        <div class="strategy-info">
-          <div class="strategy-title">${strategyInfo.name}</div>
-          <div class="strategy-description">${strategyInfo.description}</div>
-        </div>
+        ${this._renderInfoCard()}
       </div>
     `;
   }
@@ -361,12 +275,7 @@ export class EntityManager extends LitElement {
 
   _renderFreeLayout() {
     return html`
-      <div class="free-layout-section">
-        <div class="section-title">
-          <ha-icon icon="mdi:view-grid-plus"></ha-icon>
-          内容块管理
-        </div>
-
+      <div>
         <div class="content-blocks-grid">
           ${this._contentBlocks.map(block => this._renderContentBlock(block))}
           <button class="add-block-btn" @click=${this._addContentBlock}>
@@ -389,12 +298,7 @@ export class EntityManager extends LitElement {
     const requirements = this.pluginManifest?.entity_requirements || {};
 
     return html`
-      <div class="structured-section">
-        <div class="section-title">
-          <ha-icon icon="mdi:database-cog"></ha-icon>
-          数据源配置
-        </div>
-
+      <div>
         ${Object.entries(requirements).map(([key, requirement]) => 
           this._renderEntityField(key, requirement)
         )}
@@ -403,16 +307,8 @@ export class EntityManager extends LitElement {
   }
 
   _renderStateless() {
-    return html`
-      <div class="stateless-section">
-        <ha-icon class="stateless-icon" icon="mdi:chart-donut"></ha-icon>
-        <div class="stateless-title">智能数据源</div>
-        <p class="stateless-description">
-          此卡片使用内置数据源，无需额外配置实体。<br>
-          系统会自动提供相关数据展示。
-        </p>
-      </div>
-    `;
+    // 无状态模式只显示提示卡片
+    return html``;
   }
 
   _renderContentBlock(block) {
@@ -431,36 +327,32 @@ export class EntityManager extends LitElement {
     const currentValue = this.config.entities?.[key] || '';
 
     return html`
-      <div class="entity-field ${requirement.required ? 'required' : ''}">
-        <div class="field-header">
-          <div class="field-info">
-            <div class="field-name">
-              ${requirement.name}
-              ${requirement.required ? html`
-                <span class="required-badge">必需</span>
-              ` : html`
-                <span class="optional-badge">可选</span>
-              `}
-            </div>
-            ${requirement.description ? html`
-              <p class="field-description">${requirement.description}</p>
-            ` : ''}
-          </div>
+      <div class="field-card ${requirement.required ? 'required' : ''}">
+        <div class="field-label">
+          ${requirement.name}
+          ${requirement.required ? html`<span class="required-mark">(*)</span>` : ''}
         </div>
+        <div class="field-input">
+          <ha-combo-box
+            .items=${this._availableEntities}
+            .value=${currentValue}
+            @value-changed=${e => this._onEntityChanged(key, e.detail.value)}
+            allow-custom-value
+            label=${`选择 ${requirement.name}`}
+          ></ha-combo-box>
+        </div>
+      </div>
+    `;
+  }
 
-        <ha-combo-box
-          .items=${this._availableEntities}
-          .value=${currentValue}
-          @value-changed=${e => this._onEntityChanged(key, e.detail.value)}
-          allow-custom-value
-          label=${`选择 ${requirement.name}`}
-        ></ha-combo-box>
-
-        ${requirement.example ? html`
-          <div style="margin-top: var(--cf-spacing-xs);">
-            <small style="color: var(--cf-text-secondary);">例如: ${requirement.example}</small>
-          </div>
-        ` : ''}
+  _renderInfoCard() {
+    const strategyInfo = this._getStrategyInfo();
+    
+    return html`
+      <div class="info-card">
+        <ha-icon class="info-icon" .icon=${strategyInfo.icon}></ha-icon>
+        <div class="info-title">${strategyInfo.name}</div>
+        <p class="info-description">${strategyInfo.description}</p>
       </div>
     `;
   }
@@ -473,13 +365,13 @@ export class EntityManager extends LitElement {
         icon: 'mdi:view-grid-plus'
       },
       structured: {
-        name: '数据源配置模式', 
-        description: '为此卡片配置需要的数据源和实体',
+        name: '智能数据源',
+        description: '配置所需的数据源实体，系统将自动获取并展示数据',
         icon: 'mdi:database-cog'
       },
       stateless: {
-        name: '智能数据源模式',
-        description: '此卡片使用内置数据源，无需额外配置',
+        name: '智能数据源',
+        description: '此卡片使用内置数据源，无需额外配置实体。系统会自动提供相关数据展示。',
         icon: 'mdi:chart-donut'
       }
     };
