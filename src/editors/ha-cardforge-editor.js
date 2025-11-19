@@ -90,11 +90,15 @@ class HaCardForgeEditor extends LitElement {
       }
 
       .editor-section:nth-child(3) .section-header {
-        border-left-color: #FF9800; /* 橙色 - 卡片配置 */
+        border-left-color: #FF9800; /* 橙色 - 基础设置 */
       }
 
       .editor-section:nth-child(4) .section-header {
-        border-left-color: #9C27B0; /* 紫色 - 数据源配置 */
+        border-left-color: #9C27B0; /* 紫色 - 高级设置 */
+      }
+
+      .editor-section:nth-child(5) .section-header {
+        border-left-color: #607D8B; /* 蓝色灰 - 数据源配置 */
       }
 
       /* 深色模式适配 */
@@ -206,7 +210,8 @@ class HaCardForgeEditor extends LitElement {
         <div class="editor-layout">
           ${this._renderPluginSection()}
           ${this._renderThemeSection()}
-          ${this._renderCardConfigSection()}
+          ${this._renderBaseConfigSection()}      <!-- 基础设置在前 -->
+          ${this._renderAdvancedConfigSection()}  <!-- 高级设置在后 -->
           ${this._renderDataSourceSection()}
         </div>
       </div>
@@ -262,9 +267,46 @@ class HaCardForgeEditor extends LitElement {
     `;
   }
 
-_renderCardConfigSection() {
-return ''
-}
+  _renderBaseConfigSection() {
+    // 基础设置始终显示（只要有插件选中）
+    if (!this.config.plugin) return '';
+    
+    return html`
+      <div class="editor-section">
+        <div class="section-header">
+          <ha-icon icon="mdi:tune"></ha-icon>
+          <span>基础设置</span>
+          <span class="section-subtitle">调整基本外观和动画设置</span>
+        </div>
+        
+        <config-editor
+          .schema=${{}}  <!-- 空schema，让config-editor只显示统一配置 -->
+          .config=${this.config}
+          @config-changed=${this._onConfigChanged}
+        ></config-editor>
+      </div>
+    `;
+  }
+
+  _renderAdvancedConfigSection() {
+    if (!this.config.plugin || !this._pluginManifest?.config_schema) return '';
+    
+    return html`
+      <div class="editor-section">
+        <div class="section-header">
+          <ha-icon icon="mdi:cog"></ha-icon>
+          <span>高级设置</span>
+          <span class="section-subtitle">配置卡片特定功能</span>
+        </div>
+        
+        <config-editor
+          .schema=${this._pluginManifest.config_schema}
+          .config=${this.config}
+          @config-changed=${this._onConfigChanged}
+        ></config-editor>
+      </div>
+    `;
+  }
 
   _renderDataSourceSection() {
     if (!this.config.plugin || !this._pluginInstance) return '';

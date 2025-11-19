@@ -210,7 +210,10 @@ export class ConfigEditor extends LitElement {
   }
 
   render() {
-    if (!this.schema || Object.keys(this.schema).length === 0) {
+    // 如果没有特定schema，只显示统一配置
+    const effectiveSchema = Object.keys(this.schema || {}).length > 0 ? this.schema : this._unifiedSchema;
+    
+    if (Object.keys(effectiveSchema).length === 0) {
       return html`
         <div class="config-editor">
           <div class="cf-text-sm cf-text-secondary cf-text-center cf-p-md">
@@ -221,7 +224,7 @@ export class ConfigEditor extends LitElement {
     }
 
     // 合并统一配置和卡片特定配置
-    const mergedSchema = this._mergeSchemas();
+    const mergedSchema = this._mergeSchemas(effectiveSchema);
     
     return html`
       <div class="config-editor">
@@ -230,10 +233,10 @@ export class ConfigEditor extends LitElement {
     `;
   }
 
-  _mergeSchemas() {
+  _mergeSchemas(schema = this.schema) {
     const merged = {};
     
-    // 添加基础设置分类
+    // 1. 先添加基础设置分类（统一配置）
     const baseFields = {};
     Object.entries(this._unifiedSchema).forEach(([key, field]) => {
       baseFields[key] = field;
@@ -243,9 +246,9 @@ export class ConfigEditor extends LitElement {
       merged['基础设置'] = baseFields;
     }
     
-    // 添加卡片特定配置到"高级设置"分类
+    // 2. 再添加卡片特定配置到"高级设置"分类
     const cardSpecificFields = {};
-    Object.entries(this.schema).forEach(([key, field]) => {
+    Object.entries(schema).forEach(([key, field]) => {
       if (!this._isUnifiedField(key)) {
         cardSpecificFields[key] = field;
       }
