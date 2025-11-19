@@ -5,7 +5,8 @@ import { themeManager } from '../themes/index.js';
 import { foundationStyles } from '../core/styles.js';
 import './plugin-selector.js';
 import './theme-selector.js';
-import './config-editor.js';
+import './base-config-editor.js';
+import './advanced-config-editor.js';
 import './entity-manager.js';
 
 class HaCardForgeEditor extends LitElement {
@@ -268,7 +269,6 @@ class HaCardForgeEditor extends LitElement {
   }
 
   _renderBaseConfigSection() {
-    // 基础设置始终显示（只要有插件选中）
     if (!this.config.plugin) return '';
     
     return html`
@@ -279,15 +279,14 @@ class HaCardForgeEditor extends LitElement {
           <span class="section-subtitle">调整基本外观和动画设置</span>
         </div>
         
-        <config-editor
-          .schema=${{}}  <!-- 空schema，让config-editor只显示统一配置 -->
+        <base-config-editor
           .config=${this.config}
           @config-changed=${this._onConfigChanged}
-        ></config-editor>
+        ></base-config-editor>
       </div>
     `;
   }
-
+  
   _renderAdvancedConfigSection() {
     if (!this.config.plugin || !this._pluginManifest?.config_schema) return '';
     
@@ -299,11 +298,11 @@ class HaCardForgeEditor extends LitElement {
           <span class="section-subtitle">配置卡片特定功能</span>
         </div>
         
-        <config-editor
+        <advanced-config-editor
           .schema=${this._pluginManifest.config_schema}
           .config=${this.config}
           @config-changed=${this._onConfigChanged}
-        ></config-editor>
+        ></advanced-config-editor>
       </div>
     `;
   }
