@@ -206,6 +206,7 @@ class HaCardForgeEditor extends LitElement {
         <div class="editor-layout">
           ${this._renderPluginSection()}
           ${this._renderThemeSection()}
+          ${this._renderCardConfigSection()}
           ${this._renderDataSourceSection()}
         </div>
       </div>
@@ -261,6 +262,9 @@ class HaCardForgeEditor extends LitElement {
     `;
   }
 
+_renderCardConfigSection() {
+return ''
+}
 
   _renderDataSourceSection() {
     if (!this.config.plugin || !this._pluginInstance) return '';
