@@ -49,13 +49,16 @@ class DashboardCard extends BasePlugin {
   };
 
   getTemplate(config, hass, entities) {
-    console.log('DashboardCard entities:', entities); // 调试日志
+    console.log('DashboardCard config:', config);
+    console.log('DashboardCard entities:', entities);
     const blocks = this._extractContentBlocks(entities);
+    console.log('Extracted blocks:', blocks);
+    
     const columns = config.columns || 3;
     
-    const header = config.show_header !== false ? this._renderHeader(config, entities) : '';
+    const header = config.show_header !== false ? this._renderHeader(config, hass, entities) : '';
     const content = this._renderContent(blocks, columns, hass, config);
-    const footer = config.show_footer ? this._renderFooter(config, entities) : '';
+    const footer = config.show_footer ? this._renderFooter(config, hass, entities) : '';
     
     return this._renderCardContainer(`
       ${header}
@@ -64,9 +67,11 @@ class DashboardCard extends BasePlugin {
     `, 'dashboard-card', config);
   }
 
-  _renderHeader(config, entities) {
-    const title = this._getCardValue(null, entities, 'title') || '仪表盘';
-    const subtitle = this._getCardValue(null, entities, 'subtitle');
+  _renderHeader(config, hass, entities) {
+    const title = this._getCardValue(hass, entities, 'title') || '仪表盘';
+    const subtitle = this._getCardValue(hass, entities, 'subtitle');
+    
+    console.log('Rendering header - title:', title, 'subtitle:', subtitle);
     
     return `
       <div class="dashboard-header">
@@ -77,6 +82,8 @@ class DashboardCard extends BasePlugin {
   }
 
   _renderContent(blocks, columns, hass, config) {
+    console.log('Rendering content blocks:', blocks);
+    
     if (blocks.length === 0) {
       return `
         <div class="dashboard-empty">
@@ -95,8 +102,10 @@ class DashboardCard extends BasePlugin {
     `;
   }
 
-  _renderFooter(config, entities) {
-    const footerText = this._getCardValue(null, entities, 'footer') || '';
+  _renderFooter(config, hass, entities) {
+    const footerText = this._getCardValue(hass, entities, 'footer') || '';
+    
+    console.log('Rendering footer:', footerText);
     
     return footerText ? `
       <div class="dashboard-footer">
@@ -108,7 +117,12 @@ class DashboardCard extends BasePlugin {
   _extractContentBlocks(entities) {
     const blocks = [];
     
-    if (!entities) return blocks;
+    if (!entities) {
+      console.log('No entities found');
+      return blocks;
+    }
+    
+    console.log('Extracting blocks from entities:', entities);
     
     Object.entries(entities).forEach(([key, value]) => {
       // 只处理内容块类型字段，排除标题、页脚等特殊字段
@@ -117,16 +131,21 @@ class DashboardCard extends BasePlugin {
         
         const blockId = key.replace('_type', '');
         
+        console.log(`Found block: ${blockId}, type value:`, value);
+        
         // 确保值是一个字符串
-        const blockType = String(value || 'text');
-        const blockContent = String(entities[blockId] || '');
+        const blockType = this._ensureString(value);
+        const blockContent = this._ensureString(entities[blockId] || '');
+        
+        console.log(`Block ${blockId}: type=${blockType}, content=${blockContent}`);
         
         let blockConfig = {};
         const configKey = `${blockId}_config`;
         if (entities[configKey]) {
           try {
             // 确保配置是字符串再解析
-            const configStr = String(entities[configKey]);
+            const configStr = this._ensureString(entities[configKey]);
+            console.log(`Parsing config for ${blockId}:`, configStr);
             blockConfig = JSON.parse(configStr);
           } catch (e) {
             console.warn(`解析内容块配置失败: ${blockId}`, e);
@@ -145,11 +164,26 @@ class DashboardCard extends BasePlugin {
       }
     });
     
+    console.log('Final blocks:', blocks);
     return blocks.sort((a, b) => a.order - b.order);
   }
 
+  _ensureString(value) {
+    if (value === null || value === undefined) return '';
+    if (typeof value === 'string') return value;
+    if (typeof value === 'object') {
+      // 如果是对象，尝试转换为字符串
+      try {
+        return JSON.stringify(value);
+      } catch (e) {
+        return String(value);
+      }
+    }
+    return String(value);
+  }
+
   _renderContentBlock(block, hass) {
-    console.log('Rendering block:', block); // 调试日志
+    console.log('Rendering block:', block);
     
     const blockConfig = block.config || {};
     const backgroundColor = blockConfig.background || '';
@@ -169,10 +203,10 @@ class DashboardCard extends BasePlugin {
   }
 
   _renderBlockContent(block, hass) {
-    const blockType = String(block.type || 'text');
-    const content = String(block.content || '');
+    const blockType = this._ensureString(block.type || 'text');
+    const content = this._ensureString(block.content || '');
     
-    console.log(`Rendering block type: ${blockType}, content: ${content}`); // 调试日志
+    console.log(`Rendering block type: ${blockType}, content: ${content}`);
     
     switch (blockType) {
       case 'text':
