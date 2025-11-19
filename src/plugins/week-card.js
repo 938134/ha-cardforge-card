@@ -364,4 +364,12 @@ class WeekCard extends BasePlugin {
         
         .day-tag {
           padding: 6px 10px;
-          font-size: 0.
+          font-size: 0.9em;
+        }
+      }
+    `;
+  }
+}
+
+export default WeekCard;
+export const manifest = WeekCard.manifest;
