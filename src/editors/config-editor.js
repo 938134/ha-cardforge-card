@@ -159,7 +159,7 @@ export class ConfigEditor extends LitElement {
 
   _getUnifiedSchema() {
     return {
-      '字体与排版': {
+      '基础设置': {
         font_size: {
           type: 'select',
           label: '字体大小',
@@ -173,9 +173,7 @@ export class ConfigEditor extends LitElement {
           options: ['左对齐', '居中', '右对齐'],
           default: '居中',
           icon: '↔️'
-        }
-      },
-      '布局与间距': {
+        },
         spacing: {
           type: 'select',
           label: '内容间距',
@@ -184,7 +182,7 @@ export class ConfigEditor extends LitElement {
           icon: '📐'
         }
       },
-      '边框与外观': {
+      '外观设置': {
         border_style: {
           type: 'select',
           label: '边框样式',
@@ -255,7 +253,7 @@ export class ConfigEditor extends LitElement {
       merged[category] = { ...fields };
     });
     
-    // 添加卡片特定配置到"卡片设置"分类
+    // 添加卡片特定配置到"高级设置"分类
     const cardSpecificFields = {};
     Object.entries(this.schema).forEach(([key, field]) => {
       if (!this._isUnifiedField(key)) {
@@ -264,7 +262,7 @@ export class ConfigEditor extends LitElement {
     });
     
     if (Object.keys(cardSpecificFields).length > 0) {
-      merged['卡片设置'] = cardSpecificFields;
+      merged['高级设置'] = cardSpecificFields;
     }
     
     return merged;
@@ -312,22 +310,20 @@ export class ConfigEditor extends LitElement {
 
   _getCategoryIcon(category) {
     const icons = {
-      '字体与排版': '📝',
-      '布局与间距': '📐',
-      '边框与外观': '🎨',
+      '基础设置': '⚙️',
+      '外观设置': '🎨',
       '动画效果': '✨',
-      '卡片设置': '⚙️'
+      '高级设置': '🔧'
     };
     return icons[category] || '📁';
   }
 
   _getCategoryDescription(category) {
     const descriptions = {
-      '字体与排版': '调整文字大小和对齐方式',
-      '布局与间距': '控制内容布局和间距',
-      '边框与外观': '自定义边框和颜色主题',
-      '动画效果': '设置进入动画效果',
-      '卡片设置': '卡片特定功能配置'
+      '基础设置': '调整基本文字和布局设置',
+      '外观设置': '自定义卡片外观样式',
+      '动画效果': '设置卡片动画效果',
+      '高级设置': '卡片特定功能配置'
     };
     return descriptions[category] || '';
   }

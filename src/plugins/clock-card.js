@@ -263,7 +263,7 @@ class ClockCard extends BasePlugin {
     const clockStyle = config.clock_style || '液态金属';
     const styleClass = this._getStyleClass(clockStyle);
     
-    // 使用增强的基类样式
+    // 使用增强的基类样式 - 这里确保主题系统正常工作
     const baseStyles = this.getEnhancedBaseStyles(config);
     
     return `
@@ -279,6 +279,7 @@ class ClockCard extends BasePlugin {
       .style-liquid {
         background: linear-gradient(135deg, #1a1a1a 0%, #2d2d2d 50%, #1a1a1a 100%);
         color: #e0e0e0;
+        border: 1px solid #333;
       }
 
       .liquid-layout {
@@ -331,6 +332,7 @@ class ClockCard extends BasePlugin {
         background: #0a0a0a;
         color: #00ff88;
         font-family: 'Courier New', monospace;
+        border: 1px solid #00ff88;
       }
 
       .cyber-layout {
@@ -409,6 +411,7 @@ class ClockCard extends BasePlugin {
       .style-mechanical {
         background: linear-gradient(135deg, #3e2723 0%, #5d4037 100%);
         color: #d7ccc8;
+        border: 1px solid #5d4037;
       }
 
       .mechanical-layout {
@@ -513,6 +516,7 @@ class ClockCard extends BasePlugin {
         background: linear-gradient(135deg, #f5f5dc 0%, #e8e4d9 100%);
         color: #2c1810;
         font-family: 'STKaiti', 'KaiTi', 'SimSun', serif;
+        border: 1px solid #8B4513;
       }
 
       .ink-layout {
@@ -577,6 +581,7 @@ class ClockCard extends BasePlugin {
       .style-hologram {
         background: #000;
         color: #00ffff;
+        border: 1px solid #00ffff;
       }
 
       .hologram-layout {
@@ -652,6 +657,7 @@ class ClockCard extends BasePlugin {
       .style-minimal {
         background: #ffffff;
         color: #333;
+        border: 1px solid #e0e0e0;
       }
 
       .minimal-layout {

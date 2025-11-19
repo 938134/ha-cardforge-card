@@ -377,8 +377,9 @@ class WelcomeCard extends BasePlugin {
 
       /* ===== 温馨问候样式 ===== */
       .style-warm {
-        background: linear-gradient(135deg, #ff9a9e 0%, #fecfef 50%, #fecfef 100%);
-        color: #5a2a2a;
+        background: linear-gradient(135deg, var(--cf-primary-color) 0%, var(--cf-accent-color) 100%);
+        color: white;
+        border: 1px solid rgba(255,255,255,0.2);
       }
 
       .warm-layout {
@@ -431,11 +432,11 @@ class WelcomeCard extends BasePlugin {
       }
 
       .warm-quote {
-        background: rgba(255, 255, 255, 0.3);
+        background: rgba(255, 255, 255, 0.2);
         backdrop-filter: blur(10px);
         border-radius: var(--cf-radius-lg);
         padding: var(--cf-spacing-lg);
-        border: 1px solid rgba(255, 255, 255, 0.2);
+        border: 1px solid rgba(255, 255, 255, 0.3);
         max-width: 500px;
         margin-top: var(--cf-spacing-lg);
       }
@@ -453,8 +454,9 @@ class WelcomeCard extends BasePlugin {
 
       /* ===== 励志名言样式 ===== */
       .style-inspire {
-        background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
-        color: white;
+        background: linear-gradient(135deg, #2c3e50 0%, #34495e 100%);
+        color: #ecf0f1;
+        border: 1px solid #34495e;
       }
 
       .inspire-layout {
@@ -523,6 +525,7 @@ class WelcomeCard extends BasePlugin {
         background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
         color: white;
         font-family: 'STKaiti', 'KaiTi', 'SimSun', serif;
+        border: 1px solid #764ba2;
       }
 
       .poetic-layout {

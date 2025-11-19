@@ -390,72 +390,64 @@ export class BasePlugin {
     return isNaN(num) ? defaultValue : num;
   }
 
-  // === 统一的配置架构 ===
-  getUnifiedConfigSchema() {
-    return {
-      // 字体配置
-      font_size: {
-        type: 'select',
-        label: '字体大小',
-        options: ['较小', '正常', '较大', '超大'],
-        default: '正常'
-      },
-      
-      // 对齐配置
-      text_alignment: {
-        type: 'select',
-        label: '文字对齐',
-        options: ['左对齐', '居中', '右对齐'],
-        default: '居中'
-      },
-      
-      // 间距配置
-      spacing: {
-        type: 'select',
-        label: '内容间距',
-        options: ['紧凑', '正常', '宽松', '超宽'],
-        default: '正常'
-      },
-      
-      // 边框配置
-      border_style: {
-        type: 'select',
-        label: '边框样式',
-        options: ['无', '细线', '粗线', '虚线', '阴影', '发光'],
-        default: '无'
-      },
-      
-      border_radius: {
-        type: 'select',
-        label: '圆角大小',
-        options: ['无圆角', '小圆角', '中圆角', '大圆角', '圆形'],
-        default: '中圆角'
-      },
-      
-      // 颜色主题
-      color_theme: {
-        type: 'select',
-        label: '颜色主题',
-        options: ['跟随系统', '浅色', '深色', '主色', '强调色', '渐变'],
-        default: '跟随系统'
-      },
-      
-      // 动画配置
-      animation_style: {
-        type: 'select',
-        label: '动画效果',
-        options: ['无', '淡入', '滑动', '缩放', '弹跳', '打字机', '逐字显示'],
-        default: '淡入'
-      },
-      
-      animation_duration: {
-        type: 'select',
-        label: '动画时长',
-        options: ['快速', '正常', '慢速'],
-        default: '正常'
-      }
-    };
-  }
+
+getUnifiedConfigSchema() {
+  return {
+    // 基础设置
+    font_size: {
+      type: 'select',
+      label: '字体大小',
+      options: ['较小', '正常', '较大', '超大'],
+      default: '正常'
+    },
+    text_alignment: {
+      type: 'select',
+      label: '文字对齐',
+      options: ['左对齐', '居中', '右对齐'],
+      default: '居中'
+    },
+    spacing: {
+      type: 'select',
+      label: '内容间距',
+      options: ['紧凑', '正常', '宽松', '超宽'],
+      default: '正常'
+    },
+    
+    // 外观设置
+    border_style: {
+      type: 'select',
+      label: '边框样式',
+      options: ['无', '细线', '粗线', '虚线', '阴影', '发光'],
+      default: '无'
+    },
+    border_radius: {
+      type: 'select',
+      label: '圆角大小',
+      options: ['无圆角', '小圆角', '中圆角', '大圆角', '圆形'],
+      default: '中圆角'
+    },
+    color_theme: {
+      type: 'select',
+      label: '颜色主题',
+      options: ['跟随系统', '浅色', '深色', '主色', '强调色', '渐变'],
+      default: '跟随系统'
+    },
+    
+    // 动画效果
+    animation_style: {
+      type: 'select',
+      label: '动画效果',
+      options: ['无', '淡入', '滑动', '缩放', '弹跳', '打字机', '逐字显示'],
+      default: '淡入'
+    },
+    animation_duration: {
+      type: 'select',
+      label: '动画时长',
+      options: ['快速', '正常', '慢速'],
+      default: '正常'
+    }
+  };
+}
 
   // === 字体系统 ===
   getFontSystem(config) {
