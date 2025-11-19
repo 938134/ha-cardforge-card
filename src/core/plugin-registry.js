@@ -19,6 +19,8 @@ class PluginRegistry {
       () => import('../plugins/clock-card.js'),
       () => import('../plugins/welcome-card.js'),
       () => import('../plugins/dashboard-card.js'),
+      () => import('../plugins/week-card.js'),
+      () => import('../plugins/poetry-card.js'),
       // 其他插件...
     ];
 

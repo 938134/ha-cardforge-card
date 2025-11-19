@@ -6,7 +6,7 @@ class WelcomeCard extends BasePlugin {
     id: 'welcome-card',
     name: '欢迎卡片',
     version: '1.0.0',
-    description: '个性化欢迎卡片，多种风格可选',
+    description: '智能欢迎卡片，显示时间、日期和个性化问候',
     category: '信息',
     icon: '👋',
     author: 'CardForge',
@@ -15,36 +15,43 @@ class WelcomeCard extends BasePlugin {
       card_style: {
         type: 'select',
         label: '卡片风格',
-        options: ['简约现代', '温馨家居', '商务办公', '创意艺术', '科技未来', '自然清新'],
-        default: '简约现代'
+        options: ['数字时钟', '优雅日历', '商务仪表', '创意时间轴', '极简信息', '自然时光'],
+        default: '数字时钟'
       },
       animation_style: {
         type: 'select',
         label: '动画效果',
-        options: ['无', '淡入', '滑动', '缩放', '弹跳'],
+        options: ['无', '淡入', '滑动', '缩放', '打字机'],
         default: '淡入'
       },
-      text_alignment: {
-        type: 'select',
-        label: '文本对齐',
-        options: ['左对齐', '居中', '右对齐'],
-        default: '居中'
-      },
-      show_decoration: {
+      show_weather: {
         type: 'boolean',
-        label: '显示装饰元素',
-        default: true
+        label: '显示天气信息',
+        default: false
+      },
+      show_quote: {
+        type: 'boolean',
+        label: '显示每日一言',
+        default: false
       }
     },
     
     entity_requirements: {
       welcome_message: {
         name: '欢迎消息',
-        description: '自定义欢迎消息，可输入文本或实体ID',
+        description: '个性化欢迎消息，可输入文本或实体ID',
         type: 'text', 
         required: false,
         default: '',
         example: 'sensor.daily_quote 或 直接输入文本'
+      },
+      weather_entity: {
+        name: '天气实体',
+        description: '显示天气信息的实体',
+        type: 'sensor',
+        required: false,
+        default: '',
+        example: 'weather.home'
       }
     }
   };
@@ -52,24 +59,255 @@ class WelcomeCard extends BasePlugin {
   getTemplate(config, hass, entities) {
     const userName = this._getUserName(hass);
     const welcomeMessage = this._getWelcomeMessage(hass, entities);
-    const cardStyle = config.card_style || '简约现代';
-    const alignment = config.text_alignment || '居中';
-    
-    // 确保有默认值
-    const finalUserName = userName || '朋友';
-    const finalWelcomeMessage = welcomeMessage || this._getDefaultWelcomeMessage();
+    const timeData = this._getTimeData();
+    const cardStyle = config.card_style || '数字时钟';
     
     return `
-      <div class="cardforge-responsive-container welcome-card style-${this._getStyleClass(cardStyle)} animation-${config.animation_style || '淡入'} alignment-${this._getAlignmentClass(alignment)} ${config.show_decoration ? 'with-decoration' : ''}">
-        <div class="welcome-content">
-          ${config.show_decoration ? this._renderDecoration(cardStyle) : ''}
-          <div class="welcome-text">
-            <h2 class="greeting">${this._getTimeBasedGreeting()}，${finalUserName}</h2>
-            <p class="message">${finalWelcomeMessage}</p>
+      <div class="cardforge-responsive-container welcome-card style-${this._getStyleClass(cardStyle)} animation-${config.animation_style || '淡入'}">
+        ${this._renderCardContent(cardStyle, userName, welcomeMessage, timeData, config, hass, entities)}
+      </div>
+    `;
+  }
+
+  _getTimeData() {
+    const now = new Date();
+    const weekdays = ['星期日', '星期一', '星期二', '星期三', '星期四', '星期五', '星期六'];
+    
+    return {
+      time: now.toLocaleTimeString('zh-CN', { 
+        hour: '2-digit', 
+        minute: '2-digit',
+        hour12: false 
+      }),
+      date: now.toLocaleDateString('zh-CN', {
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric'
+      }),
+      weekday: weekdays[now.getDay()],
+      hour: now.getHours(),
+      minute: String(now.getMinutes()).padStart(2, '0'),
+      second: String(now.getSeconds()).padStart(2, '0')
+    };
+  }
+
+  _renderCardContent(style, userName, welcomeMessage, timeData, config, hass, entities) {
+    const styleClass = this._getStyleClass(style);
+    
+    const renderers = {
+      'digital': () => this._renderDigitalClock(userName, welcomeMessage, timeData, config, hass, entities),
+      'elegant': () => this._renderElegantCalendar(userName, welcomeMessage, timeData, config, hass, entities),
+      'business': () => this._renderBusinessDashboard(userName, welcomeMessage, timeData, config, hass, entities),
+      'creative': () => this._renderCreativeTimeline(userName, welcomeMessage, timeData, config, hass, entities),
+      'minimal': () => this._renderMinimalInfo(userName, welcomeMessage, timeData, config, hass, entities),
+      'nature': () => this._renderNatureTime(userName, welcomeMessage, timeData, config, hass, entities)
+    };
+    
+    return renderers[styleClass] ? renderers[styleClass]() : renderers['digital']();
+  }
+
+  /* ===== 数字时钟风格 ===== */
+  _renderDigitalClock(userName, welcomeMessage, timeData, config, hass, entities) {
+    const weatherInfo = config.show_weather ? this._getWeatherInfo(hass, entities) : null;
+    
+    return `
+      <div class="digital-clock-layout">
+        <div class="time-display">
+          <div class="time-main">${timeData.time}</div>
+          <div class="time-seconds">${timeData.second}</div>
+        </div>
+        <div class="info-panel">
+          <div class="date-week">
+            <div class="date">${timeData.date}</div>
+            <div class="weekday">${timeData.weekday}</div>
+          </div>
+          <div class="greeting-section">
+            <div class="greeting">${this._getTimeBasedGreeting()}，${userName}</div>
+            <div class="message">${welcomeMessage}</div>
+          </div>
+          ${weatherInfo ? `
+            <div class="weather-info">
+              <div class="weather-icon">${weatherInfo.icon}</div>
+              <div class="weather-temp">${weatherInfo.temperature}°</div>
+            </div>
+          ` : ''}
+        </div>
+      </div>
+    `;
+  }
+
+  /* ===== 优雅日历风格 ===== */
+  _renderElegantCalendar(userName, welcomeMessage, timeData, config, hass, entities) {
+    return `
+      <div class="elegant-calendar-layout">
+        <div class="calendar-header">
+          <div class="month-year">${timeData.date.split('年')[0]}年</div>
+          <div class="day-date">
+            <div class="day-number">${new Date().getDate()}</div>
+            <div class="month-name">${timeData.date.split('年')[1].split('月')[0]}月</div>
+          </div>
+        </div>
+        <div class="calendar-content">
+          <div class="time-section">
+            <div class="elegant-time">${timeData.time}</div>
+            <div class="weekday">${timeData.weekday}</div>
+          </div>
+          <div class="greeting-section">
+            <div class="greeting">${this._getTimeBasedGreeting()}，${userName}</div>
+            <div class="message">${welcomeMessage}</div>
           </div>
         </div>
       </div>
     `;
+  }
+
+  /* ===== 商务仪表风格 ===== */
+  _renderBusinessDashboard(userName, welcomeMessage, timeData, config, hass, entities) {
+    const progress = ((timeData.hour * 60 + parseInt(timeData.minute)) / (24 * 60)) * 100;
+    
+    return `
+      <div class="business-dashboard-layout">
+        <div class="dashboard-header">
+          <div class="business-time">${timeData.time}</div>
+          <div class="business-date">${timeData.date}</div>
+        </div>
+        <div class="progress-section">
+          <div class="day-progress">
+            <div class="progress-bar">
+              <div class="progress-fill" style="width: ${progress}%"></div>
+            </div>
+            <div class="progress-labels">
+              <span>今日进度</span>
+              <span>${Math.round(progress)}%</span>
+            </div>
+          </div>
+        </div>
+        <div class="business-content">
+          <div class="greeting">${this._getTimeBasedGreeting()}，${userName}</div>
+          <div class="message">${welcomeMessage}</div>
+          <div class="weekday-badge">${timeData.weekday}</div>
+        </div>
+      </div>
+    `;
+  }
+
+  /* ===== 创意时间轴风格 ===== */
+  _renderCreativeTimeline(userName, welcomeMessage, timeData, config, hass, entities) {
+    const timePeriod = this._getTimePeriod();
+    
+    return `
+      <div class="creative-timeline-layout">
+        <div class="timeline-track">
+          <div class="timeline-marker" style="left: ${(timeData.hour * 60 + parseInt(timeData.minute)) / (24 * 60) * 100}%">
+            <div class="marker-time">${timeData.time}</div>
+          </div>
+        </div>
+        <div class="timeline-content">
+          <div class="creative-date">
+            <div class="date-main">${timeData.date}</div>
+            <div class="weekday">${timeData.weekday}</div>
+          </div>
+          <div class="creative-greeting">
+            <div class="greeting-large">${this._getTimeBasedGreeting()}</div>
+            <div class="user-name">${userName}</div>
+          </div>
+          <div class="timeline-message">${welcomeMessage}</div>
+          <div class="time-period">${timePeriod}</div>
+        </div>
+      </div>
+    `;
+  }
+
+  /* ===== 极简信息风格 ===== */
+  _renderMinimalInfo(userName, welcomeMessage, timeData, config, hass, entities) {
+    return `
+      <div class="minimal-info-layout">
+        <div class="minimal-time">${timeData.time}</div>
+        <div class="minimal-date">${timeData.date}</div>
+        <div class="minimal-greeting">
+          <span class="greeting-text">${this._getTimeBasedGreeting()}</span>
+          <span class="user-name">${userName}</span>
+        </div>
+        <div class="minimal-message">${welcomeMessage}</div>
+        <div class="minimal-weekday">${timeData.weekday}</div>
+      </div>
+    `;
+  }
+
+  /* ===== 自然时光风格 ===== */
+  _renderNatureTime(userName, welcomeMessage, timeData, config, hass, entities) {
+    const season = this._getSeason();
+    const natureIcon = this._getNatureIcon(timeData.hour);
+    
+    return `
+      <div class="nature-time-layout">
+        <div class="nature-header">
+          <div class="nature-icon">${natureIcon}</div>
+          <div class="nature-time">${timeData.time}</div>
+        </div>
+        <div class="nature-content">
+          <div class="season-badge">${season}</div>
+          <div class="nature-date">${timeData.date}</div>
+          <div class="nature-greeting">
+            <div class="greeting">${this._getTimeBasedGreeting()}，${userName}</div>
+            <div class="message">${welcomeMessage}</div>
+          </div>
+          <div class="nature-weekday">${timeData.weekday}</div>
+        </div>
+      </div>
+    `;
+  }
+
+  _getSeason() {
+    const month = new Date().getMonth() + 1;
+    if (month >= 3 && month <= 5) return '🌱 春季';
+    if (month >= 6 && month <= 8) return '🌞 夏季';
+    if (month >= 9 && month <= 11) return '🍂 秋季';
+    return '⛄ 冬季';
+  }
+
+  _getNatureIcon(hour) {
+    if (hour >= 5 && hour < 8) return '🌅';
+    if (hour >= 8 && hour < 12) return '☀️';
+    if (hour >= 12 && hour < 14) return '🌤️';
+    if (hour >= 14 && hour < 18) return '⛅';
+    if (hour >= 18 && hour < 20) return '🌇';
+    return '🌙';
+  }
+
+  _getTimePeriod() {
+    const hour = new Date().getHours();
+    if (hour >= 5 && hour < 12) return '清晨时光';
+    if (hour >= 12 && hour < 14) return '午间时刻';
+    if (hour >= 14 && hour < 18) return '下午时分';
+    if (hour >= 18 && hour < 22) return '傍晚时分';
+    return '深夜时刻';
+  }
+
+  _getWeatherInfo(hass, entities) {
+    const weatherEntity = entities.weather_entity?.state;
+    if (weatherEntity && hass?.states?.[weatherEntity]) {
+      const weather = hass.states[weatherEntity];
+      return {
+        temperature: weather.attributes.temperature || '--',
+        icon: this._getWeatherIcon(weather.state)
+      };
+    }
+    return null;
+  }
+
+  _getWeatherIcon(condition) {
+    const icons = {
+      'sunny': '☀️',
+      'clear': '☀️',
+      'partlycloudy': '⛅',
+      'cloudy': '☁️',
+      'rainy': '🌧️',
+      'snowy': '❄️',
+      'windy': '💨',
+      'fog': '🌫️'
+    };
+    return icons[condition] || '🌈';
   }
 
   _getWelcomeMessage(hass, entities) {
@@ -79,418 +317,454 @@ class WelcomeCard extends BasePlugin {
     
     const welcomeMessage = entities.welcome_message.state || '';
     
-    // 如果配置了实体，尝试获取实体状态
     if (welcomeMessage.includes('.') && hass?.states?.[welcomeMessage]) {
       const entity = hass.states[welcomeMessage];
       return entity.state || this._getDefaultWelcomeMessage();
     }
     
-    // 如果为空，使用默认问候语
-    if (!welcomeMessage) {
-      return this._getDefaultWelcomeMessage();
-    }
-    
-    return welcomeMessage;
-  }
-
-  _getDefaultWelcomeMessage() {
-    const hour = new Date().getHours();
-    if (hour >= 5 && hour < 12) {
-      return '今天也是充满活力的一天！';
-    } else if (hour >= 12 && hour < 14) {
-      return '午餐时间到，记得按时吃饭';
-    } else if (hour >= 14 && hour < 18) {
-      return '下午工作加油！';
-    } else if (hour >= 18 && hour < 22) {
-      return '晚上放松一下';
-    } else {
-      return '夜深了，注意休息';
-    }
+    return welcomeMessage || this._getDefaultWelcomeMessage();
   }
 
   _getStyleClass(styleName) {
     const styleMap = {
-      '简约现代': 'modern',
-      '温馨家居': 'cozy', 
-      '商务办公': 'business',
-      '创意艺术': 'creative',
-      '科技未来': 'tech',
-      '自然清新': 'nature'
+      '数字时钟': 'digital',
+      '优雅日历': 'elegant', 
+      '商务仪表': 'business',
+      '创意时间轴': 'creative',
+      '极简信息': 'minimal',
+      '自然时光': 'nature'
     };
-    return styleMap[styleName] || 'modern';
-  }
-
-  _getAlignmentClass(alignment) {
-    const alignmentMap = {
-      '左对齐': 'left',
-      '居中': 'center', 
-      '右对齐': 'right'
-    };
-    return alignmentMap[alignment] || 'center';
-  }
-
-  _renderDecoration(style) {
-    const styleClass = this._getStyleClass(style);
-    const decorations = {
-      'modern': `
-        <div class="decoration modern-dots">
-          <div class="dot dot-1"></div>
-          <div class="dot dot-2"></div>
-          <div class="dot dot-3"></div>
-        </div>
-      `,
-      'cozy': `
-        <div class="decoration cozy-hearts">
-          <div class="heart heart-1">❤</div>
-          <div class="heart heart-2">💛</div>
-          <div class="heart heart-3">💙</div>
-        </div>
-      `,
-      'business': `
-        <div class="decoration business-lines">
-          <div class="line line-1"></div>
-          <div class="line line-2"></div>
-          <div class="line line-3"></div>
-        </div>
-      `,
-      'creative': `
-        <div class="decoration creative-shapes">
-          <div class="shape shape-1">✦</div>
-          <div class="shape shape-2">❖</div>
-          <div class="shape shape-3">◈</div>
-        </div>
-      `,
-      'tech': `
-        <div class="decoration tech-grid">
-          <div class="grid-dot grid-dot-1"></div>
-          <div class="grid-dot grid-dot-2"></div>
-          <div class="grid-dot grid-dot-3"></div>
-        </div>
-      `,
-      'nature': `
-        <div class="decoration nature-leaves">
-          <div class="leaf leaf-1">🍃</div>
-          <div class="leaf leaf-2">🌿</div>
-          <div class="leaf leaf-3">🍀</div>
-        </div>
-      `
-    };
-    
-    return decorations[styleClass] || '';
+    return styleMap[styleName] || 'digital';
   }
 
   getStyles(config) {
-    const cardStyle = config.card_style || '简约现代';
-    const alignment = config.text_alignment || '居中';
+    const cardStyle = config.card_style || '数字时钟';
+    const styleClass = this._getStyleClass(cardStyle);
     
     return `
       ${this.getBaseStyles(config)}
       .welcome-card {
         padding: var(--cf-spacing-xl);
-        min-height: 180px;
+        min-height: 220px;
         position: relative;
         overflow: hidden;
-        display: flex;
-        align-items: center;
-        justify-content: center;
       }
       
-      .welcome-content {
+      /* ===== 数字时钟风格 ===== */
+      .style-digital {
+        background: linear-gradient(135deg, #0c0c0c 0%, #2d2d2d 100%);
+        color: #00ff88;
+        font-family: 'Courier New', monospace;
+      }
+      .digital-clock-layout {
+        display: flex;
+        align-items: center;
+        gap: var(--cf-spacing-xl);
+        height: 100%;
+      }
+      .time-display {
+        display: flex;
+        align-items: baseline;
+        gap: var(--cf-spacing-sm);
+      }
+      .time-main {
+        font-size: 3.5em;
+        font-weight: 700;
+        text-shadow: 0 0 20px #00ff88;
+      }
+      .time-seconds {
+        font-size: 1.2em;
+        opacity: 0.7;
+      }
+      .info-panel {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        gap: var(--cf-spacing-md);
+      }
+      .date-week {
+        display: flex;
+        justify-content: space-between;
+        font-size: 1.1em;
+        opacity: 0.9;
+      }
+      .greeting-section .greeting {
+        font-size: 1.4em;
+        font-weight: 600;
+        margin-bottom: var(--cf-spacing-xs);
+      }
+      .greeting-section .message {
+        opacity: 0.8;
+        font-size: 1em;
+      }
+      .weather-info {
+        display: flex;
+        align-items: center;
+        gap: var(--cf-spacing-sm);
+        margin-top: var(--cf-spacing-md);
+      }
+      .weather-icon {
+        font-size: 1.5em;
+      }
+      .weather-temp {
+        font-size: 1.2em;
+        font-weight: 600;
+      }
+      
+      /* ===== 优雅日历风格 ===== */
+      .style-elegant {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        font-family: 'Georgia', serif;
+      }
+      .elegant-calendar-layout {
+        display: grid;
+        grid-template-columns: 1fr 2fr;
+        gap: var(--cf-spacing-xl);
+        height: 100%;
+        align-items: center;
+      }
+      .calendar-header {
+        text-align: center;
+        border-right: 2px solid rgba(255,255,255,0.3);
+        padding-right: var(--cf-spacing-xl);
+      }
+      .month-year {
+        font-size: 1.2em;
+        opacity: 0.8;
+        margin-bottom: var(--cf-spacing-sm);
+      }
+      .day-date {
         display: flex;
         flex-direction: column;
         align-items: center;
-        justify-content: center;
-        height: 100%;
-        position: relative;
-        z-index: 2;
-        width: 100%;
       }
-      
-      .alignment-left .welcome-content {
-        align-items: flex-start;
-        text-align: left;
-      }
-      
-      .alignment-right .welcome-content {
-        align-items: flex-end;
-        text-align: right;
-      }
-      
-      .greeting {
-        margin: 0;
-        font-size: 1.8em;
-        font-weight: 600;
-        line-height: 1.2;
-      }
-      
-      .message {
-        margin: var(--cf-spacing-md) 0 0 0;
-        font-size: 1.2em;
-        line-height: 1.4;
-        max-width: 400px;
-      }
-      
-      /* 装饰元素 */
-      .decoration {
-        position: absolute;
-        z-index: 1;
-        pointer-events: none;
-      }
-      
-      /* ===== 简约现代风格 ===== */
-      .style-modern {
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-        color: white;
-        border-radius: 16px;
-      }
-      .style-modern .greeting {
-        color: white;
-        text-shadow: 0 2px 4px rgba(0,0,0,0.3);
-      }
-      .style-modern .message {
-        color: rgba(255, 255, 255, 0.9);
-      }
-      .modern-dots {
-        top: 20px;
-        right: 20px;
-      }
-      .modern-dots .dot {
-        width: 8px;
-        height: 8px;
-        border-radius: 50%;
-        background: rgba(255, 255, 255, 0.5);
-        margin-bottom: 6px;
-      }
-      
-      /* ===== 温馨家居风格 ===== */
-      .style-cozy {
-        background: linear-gradient(135deg, #ff9a9e 0%, #fecfef 100%);
-        border: 3px solid #ffb7c5;
-        border-radius: 20px;
-        box-shadow: 0 8px 25px rgba(255, 155, 158, 0.3);
-      }
-      .style-cozy .greeting {
-        color: #8b4513;
-      }
-      .style-cozy .message {
-        color: #a0522d;
-      }
-      .cozy-hearts {
-        top: 15px;
-        left: 15px;
-      }
-      .cozy-hearts .heart {
-        font-size: 1.2em;
-        margin-bottom: 4px;
-        opacity: 0.7;
-        animation: float 3s ease-in-out infinite;
-      }
-      .cozy-hearts .heart-2 { animation-delay: 1s; }
-      .cozy-hearts .heart-3 { animation-delay: 2s; }
-      
-      /* ===== 商务办公风格 ===== */
-      .style-business {
-        background: linear-gradient(135deg, #2c3e50 0%, #34495e 100%);
-        color: white;
-        border-left: 6px solid #e74c3c;
-        border-radius: 8px;
-        box-shadow: 0 4px 15px rgba(0,0,0,0.2);
-      }
-      .style-business .greeting {
-        color: white;
+      .day-number {
+        font-size: 3em;
         font-weight: 700;
+        line-height: 1;
       }
-      .style-business .message {
-        color: #bdc3c7;
+      .month-name {
+        font-size: 1.1em;
+        opacity: 0.9;
+      }
+      .time-section {
+        margin-bottom: var(--cf-spacing-lg);
+      }
+      .elegant-time {
+        font-size: 2.2em;
+        font-weight: 600;
+        margin-bottom: var(--cf-spacing-xs);
+      }
+      .weekday {
+        font-size: 1.1em;
+        opacity: 0.8;
         font-style: italic;
       }
-      .business-lines {
-        bottom: 0;
-        left: 0;
-        right: 0;
-        height: 4px;
-        background: linear-gradient(90deg, #e74c3c, #3498db, #2ecc71);
+      .greeting-section .greeting {
+        font-size: 1.3em;
+        margin-bottom: var(--cf-spacing-sm);
       }
       
-      /* ===== 创意艺术风格 ===== */
+      /* ===== 商务仪表风格 ===== */
+      .style-business {
+        background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+        color: white;
+        font-family: 'Arial', sans-serif;
+      }
+      .business-dashboard-layout {
+        display: flex;
+        flex-direction: column;
+        height: 100%;
+      }
+      .dashboard-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: baseline;
+        margin-bottom: var(--cf-spacing-lg);
+      }
+      .business-time {
+        font-size: 2.5em;
+        font-weight: 700;
+      }
+      .business-date {
+        font-size: 1.1em;
+        opacity: 0.9;
+      }
+      .progress-section {
+        margin-bottom: var(--cf-spacing-lg);
+      }
+      .day-progress {
+        display: flex;
+        flex-direction: column;
+        gap: var(--cf-spacing-sm);
+      }
+      .progress-bar {
+        height: 6px;
+        background: rgba(255,255,255,0.2);
+        border-radius: 3px;
+        overflow: hidden;
+      }
+      .progress-fill {
+        height: 100%;
+        background: linear-gradient(90deg, #4CAF50, #8BC34A);
+        border-radius: 3px;
+        transition: width 0.3s ease;
+      }
+      .progress-labels {
+        display: flex;
+        justify-content: space-between;
+        font-size: 0.9em;
+        opacity: 0.8;
+      }
+      .business-content {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+      }
+      .business-content .greeting {
+        font-size: 1.4em;
+        font-weight: 600;
+        margin-bottom: var(--cf-spacing-sm);
+      }
+      .weekday-badge {
+        align-self: flex-start;
+        background: rgba(255,255,255,0.2);
+        padding: 4px 12px;
+        border-radius: 12px;
+        font-size: 0.9em;
+        margin-top: var(--cf-spacing-md);
+      }
+      
+      /* ===== 创意时间轴风格 ===== */
       .style-creative {
         background: linear-gradient(45deg, #ff6b6b, #4ecdc4, #45b7d1, #96ceb4);
         background-size: 400% 400%;
         animation: gradientShift 8s ease infinite;
         color: white;
-        border-radius: 24px;
-        box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+        font-family: 'Segoe UI', sans-serif;
       }
-      .style-creative .greeting {
-        color: white;
-        text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
-        font-weight: 700;
+      .creative-timeline-layout {
+        display: flex;
+        flex-direction: column;
+        height: 100%;
       }
-      .style-creative .message {
-        color: rgba(255, 255, 255, 0.95);
-        font-weight: 500;
-      }
-      .creative-shapes {
-        bottom: 20px;
-        right: 20px;
-      }
-      .creative-shapes .shape {
-        font-size: 1.5em;
-        opacity: 0.6;
-        margin-bottom: 5px;
-        text-shadow: 1px 1px 2px rgba(0,0,0,0.3);
-      }
-      
-      /* ===== 科技未来风格 ===== */
-      .style-tech {
-        background: #0a0a0a;
-        color: #00ff88;
-        border: 2px solid #00ff88;
-        box-shadow: 
-          0 0 20px rgba(0, 255, 136, 0.5),
-          inset 0 0 20px rgba(0, 255, 136, 0.1);
-        border-radius: 12px;
+      .timeline-track {
+        height: 4px;
+        background: rgba(255,255,255,0.3);
+        border-radius: 2px;
+        margin-bottom: var(--cf-spacing-xl);
         position: relative;
-        overflow: hidden;
       }
-      .style-tech::before {
-        content: '';
+      .timeline-marker {
         position: absolute;
-        top: -50%;
-        left: -50%;
-        width: 200%;
-        height: 200%;
-        background: linear-gradient(45deg, transparent, rgba(0, 255, 136, 0.1), transparent);
-        animation: shine 3s linear infinite;
-      }
-      .style-tech .greeting {
-        color: #00ff88;
-        text-shadow: 0 0 10px #00ff88;
-        font-weight: 700;
-        position: relative;
-        z-index: 2;
-      }
-      .style-tech .message {
-        color: #00ff88;
-        opacity: 0.9;
-        position: relative;
-        z-index: 2;
-      }
-      .tech-grid {
-        top: 0;
-        left: 0;
-        right: 0;
-        bottom: 0;
-        background: 
-          linear-gradient(90deg, rgba(0, 255, 136, 0.1) 1px, transparent 1px),
-          linear-gradient(180deg, rgba(0, 255, 136, 0.1) 1px, transparent 1px);
-        background-size: 20px 20px;
-      }
-      .tech-grid .grid-dot {
-        position: absolute;
-        width: 6px;
-        height: 6px;
-        background: #00ff88;
+        top: 50%;
+        transform: translate(-50%, -50%);
+        background: white;
+        width: 12px;
+        height: 12px;
         border-radius: 50%;
-        box-shadow: 0 0 8px #00ff88;
+        box-shadow: 0 0 10px rgba(0,0,0,0.3);
       }
-      .grid-dot-1 { top: 30px; left: 30px; }
-      .grid-dot-2 { bottom: 30px; right: 30px; }
-      .grid-dot-3 { top: 50%; left: 50%; transform: translate(-50%, -50%); }
-      
-      /* ===== 自然清新风格 ===== */
-      .style-nature {
-        background: linear-gradient(135deg, #a8e6cf 0%, #dcedc1 50%, #ffd3b6 100%);
-        border: 3px solid #81c784;
-        border-radius: 18px;
-        box-shadow: 0 6px 20px rgba(129, 199, 132, 0.3);
+      .marker-time {
+        position: absolute;
+        top: -30px;
+        left: 50%;
+        transform: translateX(-50%);
+        background: rgba(0,0,0,0.7);
+        padding: 4px 8px;
+        border-radius: 6px;
+        font-size: 0.8em;
+        white-space: nowrap;
       }
-      .style-nature .greeting {
-        color: #2e7d32;
+      .timeline-content {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+      }
+      .creative-date {
+        display: flex;
+        justify-content: space-between;
+        align-items: baseline;
+        margin-bottom: var(--cf-spacing-lg);
+      }
+      .date-main {
+        font-size: 1.3em;
         font-weight: 600;
       }
-      .style-nature .message {
+      .creative-greeting {
+        margin-bottom: var(--cf-spacing-md);
+      }
+      .greeting-large {
+        font-size: 1.8em;
+        font-weight: 700;
+        margin-bottom: var(--cf-spacing-xs);
+      }
+      .user-name {
+        font-size: 1.2em;
+        opacity: 0.9;
+      }
+      .timeline-message {
+        font-size: 1.1em;
+        margin-bottom: var(--cf-spacing-sm);
+        line-height: 1.4;
+      }
+      .time-period {
+        font-size: 0.9em;
+        opacity: 0.8;
+        font-style: italic;
+      }
+      
+      /* ===== 极简信息风格 ===== */
+      .style-minimal {
+        background: #ffffff;
+        color: #333333;
+        border: 2px solid #e0e0e0;
+        font-family: 'Helvetica Neue', sans-serif;
+      }
+      .minimal-info-layout {
+        display: grid;
+        grid-template-rows: auto auto 1fr auto;
+        gap: var(--cf-spacing-md);
+        height: 100%;
+      }
+      .minimal-time {
+        font-size: 2.8em;
+        font-weight: 300;
+        letter-spacing: -1px;
+      }
+      .minimal-date {
+        font-size: 1.1em;
+        color: #666;
+      }
+      .minimal-greeting {
+        display: flex;
+        align-items: baseline;
+        gap: var(--cf-spacing-sm);
+        font-size: 1.3em;
+      }
+      .greeting-text {
+        font-weight: 500;
+      }
+      .user-name {
+        color: #666;
+      }
+      .minimal-message {
+        color: #666;
+        line-height: 1.4;
+      }
+      .minimal-weekday {
+        justify-self: end;
+        color: #999;
+        font-size: 0.9em;
+      }
+      
+      /* ===== 自然时光风格 ===== */
+      .style-nature {
+        background: linear-gradient(135deg, #a8e6cf 0%, #dcedc1 100%);
+        color: #2e7d32;
+        font-family: 'Arial', sans-serif;
+      }
+      .nature-time-layout {
+        display: grid;
+        grid-template-columns: auto 1fr;
+        gap: var(--cf-spacing-lg);
+        height: 100%;
+        align-items: center;
+      }
+      .nature-header {
+        text-align: center;
+      }
+      .nature-icon {
+        font-size: 3em;
+        margin-bottom: var(--cf-spacing-sm);
+      }
+      .nature-time {
+        font-size: 1.4em;
+        font-weight: 600;
+      }
+      .nature-content {
+        display: flex;
+        flex-direction: column;
+        gap: var(--cf-spacing-sm);
+      }
+      .season-badge {
+        align-self: flex-start;
+        background: rgba(46, 125, 50, 0.1);
+        padding: 4px 12px;
+        border-radius: 12px;
+        font-size: 0.9em;
+      }
+      .nature-date {
+        font-size: 1.1em;
+        font-weight: 500;
+      }
+      .nature-greeting .greeting {
+        font-size: 1.3em;
+        font-weight: 600;
+        margin-bottom: var(--cf-spacing-xs);
+      }
+      .nature-greeting .message {
         color: #388e3c;
       }
-      .nature-leaves {
-        top: 15px;
-        right: 15px;
+      .nature-weekday {
+        color: #4caf50;
+        font-style: italic;
       }
-      .nature-leaves .leaf {
-        font-size: 1.5em;
-        opacity: 0.6;
-        margin-bottom: 5px;
-        animation: sway 4s ease-in-out infinite;
-        filter: drop-shadow(1px 1px 2px rgba(0,0,0,0.1));
-      }
-      .nature-leaves .leaf-2 { animation-delay: 1.3s; }
-      .nature-leaves .leaf-3 { animation-delay: 2.6s; }
       
       /* 动画效果 */
-      .animation-淡入 .welcome-content {
-        animation: fadeIn 0.8s ease-in;
-      }
-      .animation-滑动 .welcome-content {
-        animation: slideIn 0.6s ease-out;
-      }
-      .animation-缩放 .welcome-content {
-        animation: scaleIn 0.5s ease-out;
-      }
-      .animation-弹跳 .welcome-content {
-        animation: bounceIn 0.8s ease-out;
-      }
-      
-      @keyframes fadeIn {
-        from { opacity: 0; }
-        to { opacity: 1; }
-      }
-      @keyframes slideIn {
-        from { opacity: 0; transform: translateY(30px); }
-        to { opacity: 1; transform: translateY(0); }
-      }
-      @keyframes scaleIn {
-        from { opacity: 0; transform: scale(0.8); }
-        to { opacity: 1; transform: scale(1); }
-      }
-      @keyframes bounceIn {
-        0% { opacity: 0; transform: scale(0.3); }
-        50% { opacity: 1; transform: scale(1.05); }
-        70% { transform: scale(0.9); }
-        100% { transform: scale(1); }
-      }
-      @keyframes float {
-        0%, 100% { transform: translateY(0px); }
-        50% { transform: translateY(-8px); }
-      }
       @keyframes gradientShift {
         0% { background-position: 0% 50%; }
         50% { background-position: 100% 50%; }
         100% { background-position: 0% 50%; }
       }
-      @keyframes sway {
-        0%, 100% { transform: rotate(-8deg) scale(1); }
-        50% { transform: rotate(8deg) scale(1.1); }
+      
+      .animation-打字机 .greeting {
+        overflow: hidden;
+        border-right: 2px solid;
+        white-space: nowrap;
+        animation: typing 3.5s steps(40, end), blink-caret 0.75s step-end infinite;
       }
-      @keyframes shine {
-        0% { transform: rotate(0deg); }
-        100% { transform: rotate(360deg); }
+      
+      @keyframes typing {
+        from { width: 0 }
+        to { width: 100% }
+      }
+      
+      @keyframes blink-caret {
+        from, to { border-color: transparent }
+        50% { border-color: currentColor; }
       }
 
       /* 响应式设计 */
       @media (max-width: 600px) {
         .welcome-card {
           padding: var(--cf-spacing-lg);
-          min-height: 160px;
+          min-height: 200px;
         }
-        .greeting {
-          font-size: 1.5em;
+        .digital-clock-layout {
+          flex-direction: column;
+          gap: var(--cf-spacing-lg);
+          text-align: center;
         }
-        .message {
-          font-size: 1em;
-          margin-top: var(--cf-spacing-sm);
+        .time-main {
+          font-size: 2.8em;
         }
-        .decoration {
-          display: ${config.show_decoration ? 'block' : 'none'};
+        .elegant-calendar-layout {
+          grid-template-columns: 1fr;
+          gap: var(--cf-spacing-lg);
+        }
+        .calendar-header {
+          border-right: none;
+          border-bottom: 2px solid rgba(255,255,255,0.3);
+          padding-right: 0;
+          padding-bottom: var(--cf-spacing-lg);
+        }
+        .nature-time-layout {
+          grid-template-columns: 1fr;
+          text-align: center;
         }
       }
     `;

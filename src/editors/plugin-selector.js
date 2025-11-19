@@ -70,19 +70,8 @@ export class PluginSelector extends LitElement {
         line-height: 1.2;
       }
 
-      .plugin-description {
-        font-size: 0.7em;
-        color: var(--cf-text-secondary);
-        margin-top: var(--cf-spacing-xs);
-        line-height: 1.3;
-        display: -webkit-box;
-        -webkit-line-clamp: 2;
-        -webkit-box-orient: vertical;
-        overflow: hidden;
-      }
-
-      .plugin-item.selected .plugin-description {
-        color: rgba(255, 255, 255, 0.8);
+      .plugin-item.selected .plugin-name {
+        color: white;
       }
 
       /* 深色模式适配 */
@@ -111,10 +100,6 @@ export class PluginSelector extends LitElement {
 
         .plugin-name {
           font-size: 0.85em;
-        }
-
-        .plugin-description {
-          font-size: 0.65em;
         }
       }
 
@@ -178,7 +163,6 @@ export class PluginSelector extends LitElement {
           >
             <div class="plugin-icon">${plugin.icon}</div>
             <div class="plugin-name">${plugin.name}</div>
-            <div class="plugin-description">${plugin.description}</div>
           </div>
         `)}
       </div>
