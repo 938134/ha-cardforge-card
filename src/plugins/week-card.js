@@ -21,7 +21,7 @@ class WeekCard extends BasePlugin {
       animation_style: {
         type: 'select',
         label: '动画效果',
-        options: ['无', '淡入', '缩放',弹跳', '翻转', '渐显'],
+        options: ['无', '淡入', '缩放', '弹跳', '翻转', '渐显'],
         default: '淡入'
       },
       show_week_progress: {
