@@ -726,7 +726,14 @@ export class EntityManager extends LitElement {
   }
 
   _getEntityValue(key) {
-    return this.config.entities?.[key] || '';
+    const value = this.config.entities?.[key];
+    
+    // 如果值是对象，提取状态或_source
+    if (value && typeof value === 'object') {
+      return value.state || value._source || '';
+    }
+    
+    return value || '';
   }
 
   _extractContentBlocks() {
@@ -740,15 +747,34 @@ export class EntityManager extends LitElement {
         
         const blockId = key.replace('_type', '');
         
-        // 确保值是正确的类型
-        const blockType = this._ensureString(value || 'text');
-        const blockContent = this._ensureString(entities[blockId] || '');
+        // 处理类型值
+        let blockType = 'text';
+        if (typeof value === 'string') {
+          blockType = value;
+        } else if (value && typeof value === 'object') {
+          blockType = value.state || 'text';
+        }
+        
+        // 处理内容值
+        let blockContent = '';
+        const contentValue = entities[blockId];
+        if (typeof contentValue === 'string') {
+          blockContent = contentValue;
+        } else if (contentValue && typeof contentValue === 'object') {
+          blockContent = contentValue.state || contentValue._source || '';
+        }
         
         let blockConfig = {};
         const configKey = `${blockId}_config`;
         if (entities[configKey]) {
           try {
-            const configStr = this._ensureString(entities[configKey]);
+            const configValue = entities[configKey];
+            let configStr = '';
+            if (typeof configValue === 'string') {
+              configStr = configValue;
+            } else if (configValue && typeof configValue === 'object') {
+              configStr = JSON.stringify(configValue);
+            }
             blockConfig = JSON.parse(configStr);
           } catch (e) {
             console.warn(`解析内容块配置失败: ${blockId}`, e);
@@ -756,7 +782,15 @@ export class EntityManager extends LitElement {
           }
         }
         
-        const order = parseInt(entities[`${blockId}_order`]) || 0;
+        const orderValue = entities[`${blockId}_order`];
+        let order = 0;
+        if (typeof orderValue === 'number') {
+          order = orderValue;
+        } else if (typeof orderValue === 'string') {
+          order = parseInt(orderValue) || 0;
+        } else if (orderValue && typeof orderValue === 'object') {
+          order = parseInt(orderValue.state) || 0;
+        }
         
         blocks.push({
           id: blockId,
@@ -769,20 +803,6 @@ export class EntityManager extends LitElement {
     });
 
     return blocks.sort((a, b) => a.order - b.order);
-  }
-
-  _ensureString(value) {
-    if (value === null || value === undefined) return '';
-    if (typeof value === 'string') return value;
-    if (typeof value === 'object') {
-      // 如果是对象，尝试转换为字符串
-      try {
-        return JSON.stringify(value);
-      } catch (e) {
-        return String(value);
-      }
-    }
-    return String(value);
   }
 
   _getBlockIcon(blockType) {
@@ -809,11 +829,11 @@ export class EntityManager extends LitElement {
 
   _getBlockPreview(block) {
     if (block.type === 'text') {
-      const content = this._ensureString(block.content || '');
+      const content = block.content || '';
       return content.substring(0, 15) + (content.length > 15 ? '...' : '');
     }
     if (['sensor', 'weather', 'switch'].includes(block.type) && block.content) {
-      const content = this._ensureString(block.content || '');
+      const content = block.content || '';
       return content.split('.')[1] || content;
     }
     return '点击编辑';
@@ -824,7 +844,7 @@ export class EntityManager extends LitElement {
       detail: {
         entities: {
           ...this.config.entities,
-          [field]: this._ensureString(value || '')
+          [field]: value || ''
         }
       }
     }));
@@ -835,7 +855,7 @@ export class EntityManager extends LitElement {
       detail: {
         entities: {
           ...this.config.entities,
-          [key]: this._ensureString(value || '')
+          [key]: value || ''
         }
       }
     }));
@@ -884,7 +904,7 @@ export class EntityManager extends LitElement {
 
   _onBlockTypeChange(type) {
     if (this._editingBlock) {
-      this._editingBlock.type = this._ensureString(type || 'text');
+      this._editingBlock.type = type || 'text';
       // 如果切换到非文本类型，清空自定义样式
       if (type !== 'text') {
         this._editingBlock.config = {};
@@ -894,7 +914,7 @@ export class EntityManager extends LitElement {
 
   _onBlockContentChange(content) {
     if (this._editingBlock) {
-      this._editingBlock.content = this._ensureString(content || '');
+      this._editingBlock.content = content || '';
     }
   }
 
@@ -902,7 +922,7 @@ export class EntityManager extends LitElement {
     if (this._editingBlock) {
       this._editingBlock.config = {
         ...this._editingBlock.config,
-        [styleKey]: this._ensureString(value || '')
+        [styleKey]: value || ''
       };
     }
   }
@@ -913,10 +933,10 @@ export class EntityManager extends LitElement {
     const newEntities = { ...this.config.entities };
     const blockId = this._editingBlock.id;
 
-    // 保存内容块数据 - 确保所有值都是字符串
-    newEntities[blockId] = this._ensureString(this._editingBlock.content || '');
-    newEntities[`${blockId}_type`] = this._ensureString(this._editingBlock.type || 'text');
-    newEntities[`${blockId}_order`] = this._ensureString(this._editingBlock.order || '0');
+    // 保存内容块数据
+    newEntities[blockId] = this._editingBlock.content || '';
+    newEntities[`${blockId}_type`] = this._editingBlock.type || 'text';
+    newEntities[`${blockId}_order`] = String(this._editingBlock.order || '0');
     
     // 保存配置（如果有）
     if (Object.keys(this._editingBlock.config).length > 0) {

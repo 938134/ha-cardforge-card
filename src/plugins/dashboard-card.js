@@ -51,6 +51,8 @@ class DashboardCard extends BasePlugin {
   getTemplate(config, hass, entities) {
     console.log('DashboardCard config:', config);
     console.log('DashboardCard entities:', entities);
+    console.log('DashboardCard hass states:', hass?.states);
+    
     const blocks = this._extractContentBlocks(entities);
     console.log('Extracted blocks:', blocks);
     
@@ -133,9 +135,24 @@ class DashboardCard extends BasePlugin {
         
         console.log(`Found block: ${blockId}, type value:`, value);
         
-        // 确保值是一个字符串
-        const blockType = this._ensureString(value);
-        const blockContent = this._ensureString(entities[blockId] || '');
+        // 处理类型值 - 可能是字符串或对象
+        let blockType = 'text';
+        if (typeof value === 'string') {
+          blockType = value;
+        } else if (value && typeof value === 'object') {
+          // 如果是对象，尝试提取状态
+          blockType = value.state || 'text';
+        }
+        
+        // 处理内容值
+        let blockContent = '';
+        const contentValue = entities[blockId];
+        if (typeof contentValue === 'string') {
+          blockContent = contentValue;
+        } else if (contentValue && typeof contentValue === 'object') {
+          // 如果是对象，尝试提取状态或_source
+          blockContent = contentValue.state || contentValue._source || '';
+        }
         
         console.log(`Block ${blockId}: type=${blockType}, content=${blockContent}`);
         
@@ -143,8 +160,13 @@ class DashboardCard extends BasePlugin {
         const configKey = `${blockId}_config`;
         if (entities[configKey]) {
           try {
-            // 确保配置是字符串再解析
-            const configStr = this._ensureString(entities[configKey]);
+            const configValue = entities[configKey];
+            let configStr = '';
+            if (typeof configValue === 'string') {
+              configStr = configValue;
+            } else if (configValue && typeof configValue === 'object') {
+              configStr = JSON.stringify(configValue);
+            }
             console.log(`Parsing config for ${blockId}:`, configStr);
             blockConfig = JSON.parse(configStr);
           } catch (e) {
@@ -152,7 +174,15 @@ class DashboardCard extends BasePlugin {
           }
         }
         
-        const order = parseInt(entities[`${blockId}_order`]) || 0;
+        const orderValue = entities[`${blockId}_order`];
+        let order = 0;
+        if (typeof orderValue === 'number') {
+          order = orderValue;
+        } else if (typeof orderValue === 'string') {
+          order = parseInt(orderValue) || 0;
+        } else if (orderValue && typeof orderValue === 'object') {
+          order = parseInt(orderValue.state) || 0;
+        }
         
         blocks.push({
           id: blockId,
@@ -166,20 +196,6 @@ class DashboardCard extends BasePlugin {
     
     console.log('Final blocks:', blocks);
     return blocks.sort((a, b) => a.order - b.order);
-  }
-
-  _ensureString(value) {
-    if (value === null || value === undefined) return '';
-    if (typeof value === 'string') return value;
-    if (typeof value === 'object') {
-      // 如果是对象，尝试转换为字符串
-      try {
-        return JSON.stringify(value);
-      } catch (e) {
-        return String(value);
-      }
-    }
-    return String(value);
   }
 
   _renderContentBlock(block, hass) {
@@ -203,22 +219,34 @@ class DashboardCard extends BasePlugin {
   }
 
   _renderBlockContent(block, hass) {
-    const blockType = this._ensureString(block.type || 'text');
-    const content = this._ensureString(block.content || '');
+    const blockType = block.type || 'text';
+    const content = block.content || '';
     
     console.log(`Rendering block type: ${blockType}, content: ${content}`);
+    
+    // 处理实体内容
+    let displayContent = content;
+    let entityState = null;
+    
+    // 如果内容看起来像实体ID（包含点号），尝试从hass获取状态
+    if (content && content.includes('.') && hass?.states) {
+      entityState = hass.states[content];
+      if (entityState) {
+        displayContent = entityState.state;
+        console.log(`Found entity state for ${content}:`, entityState.state);
+      }
+    }
     
     switch (blockType) {
       case 'text':
         return `
           <div class="text-content">
-            <div class="text-block">${this._renderSafeHTML(content)}</div>
+            <div class="text-block">${this._renderSafeHTML(displayContent)}</div>
           </div>
         `;
         
       case 'sensor':
-        const entity = hass?.states[content];
-        if (!entity) {
+        if (!entityState) {
           return `
             <div class="sensor-block unavailable">
               <div class="sensor-value">--</div>
@@ -228,9 +256,9 @@ class DashboardCard extends BasePlugin {
           `;
         }
         
-        const sensorValue = entity.state || '未知';
-        const unit = entity.attributes?.unit_of_measurement || '';
-        const friendlyName = entity.attributes?.friendly_name || content.split('.')[1] || content;
+        const sensorValue = entityState.state || '未知';
+        const unit = entityState.attributes?.unit_of_measurement || '';
+        const friendlyName = entityState.attributes?.friendly_name || content.split('.')[1] || content;
         
         return `
           <div class="sensor-block">
@@ -240,8 +268,7 @@ class DashboardCard extends BasePlugin {
         `;
         
       case 'weather':
-        const weatherEntity = hass?.states[content];
-        if (!weatherEntity) {
+        if (!entityState) {
           return `
             <div class="weather-block unavailable">
               <div class="weather-temp">--</div>
@@ -250,8 +277,8 @@ class DashboardCard extends BasePlugin {
           `;
         }
         
-        const temperature = weatherEntity.attributes?.temperature || '--';
-        const condition = weatherEntity.state || '未知';
+        const temperature = entityState.attributes?.temperature || '--';
+        const condition = entityState.state || '未知';
         
         return `
           <div class="weather-block">
@@ -261,8 +288,7 @@ class DashboardCard extends BasePlugin {
         `;
         
       case 'switch':
-        const switchEntity = hass?.states[content];
-        if (!switchEntity) {
+        if (!entityState) {
           return `
             <div class="switch-block unavailable">
               <div class="switch-state">--</div>
@@ -271,8 +297,8 @@ class DashboardCard extends BasePlugin {
           `;
         }
         
-        const isOn = switchEntity.state === 'on';
-        const switchName = switchEntity.attributes?.friendly_name || content.split('.')[1] || content;
+        const isOn = entityState.state === 'on';
+        const switchName = entityState.attributes?.friendly_name || content.split('.')[1] || content;
         
         return `
           <div class="switch-block ${isOn ? 'on' : 'off'}">
@@ -286,10 +312,56 @@ class DashboardCard extends BasePlugin {
           <div class="unknown-block">
             <div class="unknown-icon">❓</div>
             <div class="unknown-text">未知类型: ${blockType}</div>
-            <div class="unknown-content">${this._renderSafeHTML(content)}</div>
+            <div class="unknown-content">${this._renderSafeHTML(displayContent)}</div>
           </div>
         `;
     }
+  }
+
+  // 重写 _getCardValue 方法以正确处理实体对象
+  _getCardValue(hass, entities, key, defaultValue = '') {
+    const source = this._getEntityValue(entities, key);
+    
+    console.log(`Getting card value for ${key}:`, source);
+    
+    if (!source) return defaultValue;
+    
+    // 如果source是对象，尝试提取状态或_source
+    if (typeof source === 'object') {
+      const stateValue = source.state || source._source || defaultValue;
+      console.log(`Extracted value from object:`, stateValue);
+      
+      // 如果提取的值是实体ID，尝试从hass获取状态
+      if (stateValue && stateValue.includes('.') && hass?.states?.[stateValue]) {
+        const entity = hass.states[stateValue];
+        return entity.state || stateValue;
+      }
+      
+      return stateValue;
+    }
+    
+    // 如果source是字符串且是实体ID，尝试从hass获取状态
+    if (typeof source === 'string' && source.includes('.') && hass?.states?.[source]) {
+      const entity = hass.states[source];
+      return entity.state || source;
+    }
+    
+    return source;
+  }
+
+  // 重写 _getEntityValue 方法以正确处理实体对象
+  _getEntityValue(entities, key, defaultValue = '') {
+    if (!entities || !entities[key]) return defaultValue;
+    
+    const value = entities[key];
+    console.log(`Getting entity value for ${key}:`, value);
+    
+    // 如果值是对象，尝试提取状态或_source
+    if (typeof value === 'object') {
+      return value.state || value._source || defaultValue;
+    }
+    
+    return value;
   }
 
   getStyles(config) {
