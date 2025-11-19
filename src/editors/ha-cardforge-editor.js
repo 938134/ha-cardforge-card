@@ -262,6 +262,26 @@ class HaCardForgeEditor extends LitElement {
     `;
   }
 
+_renderCardConfigSection() {
+  if (!this.config.plugin || !this._pluginManifest?.config_schema) return '';
+  
+  return html`
+    <div class="editor-section">
+      <div class="section-header">
+        <ha-icon icon="mdi:cog"></ha-icon>
+        <span>基础设置</span>  <!-- 更新：高级设置 -> 基础设置 -->
+        <span class="section-subtitle">调整基本外观和动画设置</span>  <!-- 更新描述 -->
+      </div>
+      
+      <config-editor
+        .schema=${this._pluginManifest.config_schema}
+        .config=${this.config}
+        @config-changed=${this._onConfigChanged}
+      ></config-editor>
+    </div>
+  `;
+}
+
   _renderDataSourceSection() {
     if (!this.config.plugin || !this._pluginInstance) return '';
 
