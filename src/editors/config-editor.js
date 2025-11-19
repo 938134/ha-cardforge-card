@@ -5,7 +5,8 @@ import { foundationStyles } from '../core/styles.js';
 export class ConfigEditor extends LitElement {
   static properties = {
     schema: { type: Object },
-    config: { type: Object }
+    config: { type: Object },
+    _unifiedSchema: { state: true }
   };
 
   static styles = [
@@ -76,6 +77,39 @@ export class ConfigEditor extends LitElement {
         width: 100%;
       }
 
+      /* 配置分类样式 */
+      .config-category {
+        margin-bottom: var(--cf-spacing-xl);
+      }
+
+      .category-header {
+        display: flex;
+        align-items: center;
+        gap: var(--cf-spacing-sm);
+        padding: var(--cf-spacing-md);
+        background: rgba(var(--cf-rgb-primary), 0.05);
+        border-radius: var(--cf-radius-md);
+        margin-bottom: var(--cf-spacing-lg);
+        border-left: 4px solid var(--cf-primary-color);
+      }
+
+      .category-icon {
+        font-size: 1.2em;
+        opacity: 0.8;
+      }
+
+      .category-title {
+        font-weight: 600;
+        font-size: 1em;
+        color: var(--cf-text-primary);
+      }
+
+      .category-description {
+        font-size: 0.85em;
+        color: var(--cf-text-secondary);
+        margin-left: auto;
+      }
+
       /* ha-combo-box 样式修复 */
       ha-combo-box {
         width: 100%;
@@ -118,6 +152,80 @@ export class ConfigEditor extends LitElement {
     `
   ];
 
+  constructor() {
+    super();
+    this._unifiedSchema = this._getUnifiedSchema();
+  }
+
+  _getUnifiedSchema() {
+    return {
+      '字体与排版': {
+        font_size: {
+          type: 'select',
+          label: '字体大小',
+          options: ['较小', '正常', '较大', '超大'],
+          default: '正常',
+          icon: '📝'
+        },
+        text_alignment: {
+          type: 'select',
+          label: '文字对齐',
+          options: ['左对齐', '居中', '右对齐'],
+          default: '居中',
+          icon: '↔️'
+        }
+      },
+      '布局与间距': {
+        spacing: {
+          type: 'select',
+          label: '内容间距',
+          options: ['紧凑', '正常', '宽松', '超宽'],
+          default: '正常',
+          icon: '📐'
+        }
+      },
+      '边框与外观': {
+        border_style: {
+          type: 'select',
+          label: '边框样式',
+          options: ['无', '细线', '粗线', '虚线', '阴影', '发光'],
+          default: '无',
+          icon: '🔲'
+        },
+        border_radius: {
+          type: 'select',
+          label: '圆角大小',
+          options: ['无圆角', '小圆角', '中圆角', '大圆角', '圆形'],
+          default: '中圆角',
+          icon: '⭕'
+        },
+        color_theme: {
+          type: 'select',
+          label: '颜色主题',
+          options: ['跟随系统', '浅色', '深色', '主色', '强调色', '渐变'],
+          default: '跟随系统',
+          icon: '🎨'
+        }
+      },
+      '动画效果': {
+        animation_style: {
+          type: 'select',
+          label: '动画效果',
+          options: ['无', '淡入', '滑动', '缩放', '弹跳', '打字机', '逐字显示'],
+          default: '淡入',
+          icon: '✨'
+        },
+        animation_duration: {
+          type: 'select',
+          label: '动画时长',
+          options: ['快速', '正常', '慢速'],
+          default: '正常',
+          icon: '⏱️'
+        }
+      }
+    };
+  }
+
   render() {
     if (!this.schema || Object.keys(this.schema).length === 0) {
       return html`
@@ -129,26 +237,99 @@ export class ConfigEditor extends LitElement {
       `;
     }
 
-    const booleanFields = Object.entries(this.schema).filter(([_, field]) => field.type === 'boolean');
-    const otherFields = Object.entries(this.schema).filter(([_, field]) => field.type !== 'boolean');
-
+    // 合并统一配置和卡片特定配置
+    const mergedSchema = this._mergeSchemas();
+    
     return html`
       <div class="config-editor">
-        <!-- 布尔类型配置 -->
-        ${booleanFields.length > 0 ? html`
-          <div class="switch-group">
-            ${booleanFields.map(([key, field]) => this._renderBooleanField(key, field))}
-          </div>
-        ` : ''}
-        
-        <!-- 其他类型配置 -->
-        ${otherFields.length > 0 ? html`
-          <div class="config-grid">
-            ${otherFields.map(([key, field]) => this._renderOtherField(key, field))}
-          </div>
-        ` : ''}
+        ${this._renderCategorizedFields(mergedSchema)}
       </div>
     `;
+  }
+
+  _mergeSchemas() {
+    const merged = {};
+    
+    // 添加统一配置分类
+    Object.entries(this._unifiedSchema).forEach(([category, fields]) => {
+      merged[category] = { ...fields };
+    });
+    
+    // 添加卡片特定配置到"卡片设置"分类
+    const cardSpecificFields = {};
+    Object.entries(this.schema).forEach(([key, field]) => {
+      if (!this._isUnifiedField(key)) {
+        cardSpecificFields[key] = field;
+      }
+    });
+    
+    if (Object.keys(cardSpecificFields).length > 0) {
+      merged['卡片设置'] = cardSpecificFields;
+    }
+    
+    return merged;
+  }
+
+  _isUnifiedField(key) {
+    const unifiedFields = Object.values(this._unifiedSchema).flatMap(category => 
+      Object.keys(category)
+    );
+    return unifiedFields.includes(key);
+  }
+
+  _renderCategorizedFields(categorizedSchema) {
+    return Object.entries(categorizedSchema).map(([category, fields]) => {
+      if (Object.keys(fields).length === 0) return '';
+      
+      const booleanFields = Object.entries(fields).filter(([_, field]) => field.type === 'boolean');
+      const otherFields = Object.entries(fields).filter(([_, field]) => field.type !== 'boolean');
+
+      return html`
+        <div class="config-category">
+          <div class="category-header">
+            <span class="category-icon">${this._getCategoryIcon(category)}</span>
+            <span class="category-title">${category}</span>
+            <span class="category-description">${this._getCategoryDescription(category)}</span>
+          </div>
+          
+          <!-- 布尔类型配置 -->
+          ${booleanFields.length > 0 ? html`
+            <div class="switch-group">
+              ${booleanFields.map(([key, field]) => this._renderBooleanField(key, field))}
+            </div>
+          ` : ''}
+          
+          <!-- 其他类型配置 -->
+          ${otherFields.length > 0 ? html`
+            <div class="config-grid">
+              ${otherFields.map(([key, field]) => this._renderOtherField(key, field))}
+            </div>
+          ` : ''}
+        </div>
+      `;
+    });
+  }
+
+  _getCategoryIcon(category) {
+    const icons = {
+      '字体与排版': '📝',
+      '布局与间距': '📐',
+      '边框与外观': '🎨',
+      '动画效果': '✨',
+      '卡片设置': '⚙️'
+    };
+    return icons[category] || '📁';
+  }
+
+  _getCategoryDescription(category) {
+    const descriptions = {
+      '字体与排版': '调整文字大小和对齐方式',
+      '布局与间距': '控制内容布局和间距',
+      '边框与外观': '自定义边框和颜色主题',
+      '动画效果': '设置进入动画效果',
+      '卡片设置': '卡片特定功能配置'
+    };
+    return descriptions[category] || '';
   }
 
   _renderBooleanField(key, field) {

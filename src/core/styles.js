@@ -42,6 +42,7 @@ export const foundationStyles = css`
     --cf-radius-md: 6px;
     --cf-radius-lg: 8px;
     --cf-radius-xl: 12px;
+    --cf-radius-full: 50%;
     
     /* 阴影系统 */
     --cf-shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.1);
@@ -129,6 +130,22 @@ export const foundationStyles = css`
     justify-content: space-between;
   }
 
+  /* ===== 对齐系统样式 ===== */
+  .alignment-left { 
+    text-align: left; 
+    align-items: flex-start;
+  }
+  
+  .alignment-center { 
+    text-align: center; 
+    align-items: center;
+  }
+  
+  .alignment-right { 
+    text-align: right; 
+    align-items: flex-end;
+  }
+
   /* ===== 布局工具类 ===== */
   .cf-grid { display: grid; gap: var(--cf-spacing-md); }
   .cf-grid-auto { grid-template-columns: repeat(auto-fit, minmax(64px, 1fr)); }
@@ -214,6 +231,27 @@ export const foundationStyles = css`
     opacity: 0.7;
     margin: 0;
     color: var(--cf-text-secondary);
+  }
+
+  /* ===== 布局组件样式 ===== */
+  .cardforge-section {
+    margin-bottom: var(--cf-spacing-lg);
+  }
+
+  .cardforge-section-title {
+    margin-bottom: var(--cf-spacing-md);
+    font-weight: 600;
+    opacity: 0.9;
+    color: var(--cf-text-primary);
+  }
+
+  .cardforge-section-content {
+    flex: 1;
+  }
+
+  .cardforge-flex {
+    display: flex;
+    gap: var(--cf-spacing-md);
   }
 
   /* ===== 状态样式 ===== */
