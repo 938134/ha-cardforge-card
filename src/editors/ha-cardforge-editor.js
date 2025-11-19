@@ -269,8 +269,8 @@ _renderCardConfigSection() {
     <div class="editor-section">
       <div class="section-header">
         <ha-icon icon="mdi:cog"></ha-icon>
-        <span>高级设置</span>  <!-- 更新：卡片配置 -> 高级设置 -->
-        <span class="section-subtitle">配置卡片特定功能</span>  <!-- 更新描述 -->
+        <span>基础设置</span>  <!-- 更新：高级设置 -> 基础设置 -->
+        <span class="section-subtitle">调整基本外观和动画设置</span>  <!-- 更新描述 -->
       </div>
       
       <config-editor

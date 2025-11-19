@@ -58,7 +58,7 @@ export class ConfigEditor extends LitElement {
         border-radius: var(--cf-radius-md);
         background: var(--cf-surface);
         transition: all var(--cf-transition-fast);
-        min-height: 48px;
+        min-height: 52px;
       }
 
       .switch-item:hover {
@@ -76,13 +76,6 @@ export class ConfigEditor extends LitElement {
         width: 100%;
       }
 
-      /* 紧凑布局 */
-      .compact-layout {
-        display: grid;
-        grid-template-columns: repeat(2, 1fr);
-        gap: var(--cf-spacing-md);
-      }
-
       /* 配置分类样式 */
       .config-category {
         margin-bottom: var(--cf-spacing-lg);
@@ -92,7 +85,7 @@ export class ConfigEditor extends LitElement {
         display: flex;
         align-items: center;
         gap: var(--cf-spacing-sm);
-        padding: var(--cf-spacing-sm) var(--cf-spacing-md);
+        padding: var(--cf-spacing-md);
         background: rgba(var(--cf-rgb-primary), 0.05);
         border-radius: var(--cf-radius-md);
         margin-bottom: var(--cf-spacing-md);
@@ -100,14 +93,20 @@ export class ConfigEditor extends LitElement {
       }
 
       .category-icon {
-        font-size: 1.1em;
+        font-size: 1.2em;
         opacity: 0.8;
       }
 
       .category-title {
         font-weight: 600;
-        font-size: 0.95em;
+        font-size: 1em;
         color: var(--cf-text-primary);
+      }
+
+      .category-description {
+        font-size: 0.85em;
+        color: var(--cf-text-secondary);
+        margin-left: auto;
       }
 
       /* ha-combo-box 样式修复 */
@@ -134,8 +133,7 @@ export class ConfigEditor extends LitElement {
 
       /* 响应式优化 */
       @media (max-width: 1024px) {
-        .config-grid,
-        .compact-layout {
+        .config-grid {
           grid-template-columns: 1fr;
           gap: var(--cf-spacing-md);
         }
@@ -146,8 +144,7 @@ export class ConfigEditor extends LitElement {
       }
 
       @media (max-width: 768px) {
-        .config-grid,
-        .compact-layout {
+        .config-grid {
           gap: var(--cf-spacing-sm);
         }
       }
@@ -161,55 +158,53 @@ export class ConfigEditor extends LitElement {
 
   _getUnifiedSchema() {
     return {
-      '基础设置': {
-        font_size: {
-          type: 'select',
-          label: '字体大小',
-          options: ['较小', '正常', '较大', '超大'],
-          default: '正常'
-        },
-        text_alignment: {
-          type: 'select',
-          label: '文字对齐',
-          options: ['左对齐', '居中', '右对齐'],
-          default: '居中'
-        },
-        spacing: {
-          type: 'select',
-          label: '内容间距',
-          options: ['紧凑', '正常', '宽松', '超宽'],
-          default: '正常'
-        },
-        border_style: {
-          type: 'select',
-          label: '边框样式',
-          options: ['无', '细线', '粗线', '虚线', '阴影', '发光'],
-          default: '无'
-        },
-        border_radius: {
-          type: 'select',
-          label: '圆角大小',
-          options: ['无圆角', '小圆角', '中圆角', '大圆角', '圆形'],
-          default: '中圆角'
-        },
-        color_theme: {
-          type: 'select',
-          label: '颜色主题',
-          options: ['跟随系统', '浅色', '深色', '主色', '强调色', '渐变'],
-          default: '跟随系统'
-        },
-        animation_style: {
-          type: 'select',
-          label: '动画效果',
-          options: ['无', '淡入', '滑动', '缩放', '弹跳', '打字机', '逐字显示'],
-          default: '淡入'
-        },
-        animation_duration: {
-          type: 'select',
-          label: '动画时长',
-          options: ['快速', '正常', '慢速'],
-          default: '正常'
-        }
+      'font_size': {
+        type: 'select',
+        label: '字体大小',
+        options: ['较小', '正常', '较大', '超大'],
+        default: '正常'
+      },
+      'text_alignment': {
+        type: 'select',
+        label: '文字对齐',
+        options: ['左对齐', '居中', '右对齐'],
+        default: '居中'
+      },
+      'spacing': {
+        type: 'select',
+        label: '内容间距',
+        options: ['紧凑', '正常', '宽松', '超宽'],
+        default: '正常'
+      },
+      'border_style': {
+        type: 'select',
+        label: '边框样式',
+        options: ['无', '细线', '粗线', '虚线', '阴影', '发光'],
+        default: '无'
+      },
+      'border_radius': {
+        type: 'select',
+        label: '圆角大小',
+        options: ['无圆角', '小圆角', '中圆角', '大圆角', '圆形'],
+        default: '中圆角'
+      },
+      'color_theme': {
+        type: 'select',
+        label: '颜色主题',
+        options: ['跟随系统', '浅色', '深色', '主色', '强调色', '渐变'],
+        default: '跟随系统'
+      },
+      'animation_style': {
+        type: 'select',
+        label: '动画效果',
+        options: ['无', '淡入', '滑动', '缩放', '弹跳', '打字机', '逐字显示'],
+        default: '淡入'
+      },
+      'animation_duration': {
+        type: 'select',
+        label: '动画时长',
+        options: ['快速', '正常', '慢速'],
+        default: '正常'
       }
     };
   }
@@ -238,10 +233,15 @@ export class ConfigEditor extends LitElement {
   _mergeSchemas() {
     const merged = {};
     
-    // 添加统一配置分类
-    Object.entries(this._unifiedSchema).forEach(([category, fields]) => {
-      merged[category] = { ...fields };
+    // 添加基础设置分类
+    const baseFields = {};
+    Object.entries(this._unifiedSchema).forEach(([key, field]) => {
+      baseFields[key] = field;
     });
+    
+    if (Object.keys(baseFields).length > 0) {
+      merged['基础设置'] = baseFields;
+    }
     
     // 添加卡片特定配置到"高级设置"分类
     const cardSpecificFields = {};
@@ -259,10 +259,7 @@ export class ConfigEditor extends LitElement {
   }
 
   _isUnifiedField(key) {
-    const unifiedFields = Object.values(this._unifiedSchema).flatMap(category => 
-      Object.keys(category)
-    );
-    return unifiedFields.includes(key);
+    return Object.keys(this._unifiedSchema).includes(key);
   }
 
   _renderCategorizedFields(categorizedSchema) {
@@ -277,28 +274,22 @@ export class ConfigEditor extends LitElement {
           <div class="category-header">
             <span class="category-icon">${this._getCategoryIcon(category)}</span>
             <span class="category-title">${category}</span>
+            <span class="category-description">${this._getCategoryDescription(category)}</span>
           </div>
           
-          <!-- 基础设置使用紧凑布局 -->
-          ${category === '基础设置' ? html`
-            <div class="compact-layout">
-              ${otherFields.map(([key, field]) => this._renderOtherField(key, field))}
+          <!-- 布尔类型配置 -->
+          ${booleanFields.length > 0 ? html`
+            <div class="switch-group">
               ${booleanFields.map(([key, field]) => this._renderBooleanField(key, field))}
             </div>
-          ` : html`
-            <!-- 其他分类保持原有布局 -->
-            ${booleanFields.length > 0 ? html`
-              <div class="switch-group">
-                ${booleanFields.map(([key, field]) => this._renderBooleanField(key, field))}
-              </div>
-            ` : ''}
-            
-            ${otherFields.length > 0 ? html`
-              <div class="config-grid">
-                ${otherFields.map(([key, field]) => this._renderOtherField(key, field))}
-              </div>
-            ` : ''}
-          `}
+          ` : ''}
+          
+          <!-- 其他类型配置 -->
+          ${otherFields.length > 0 ? html`
+            <div class="config-grid">
+              ${otherFields.map(([key, field]) => this._renderOtherField(key, field))}
+            </div>
+          ` : ''}
         </div>
       `;
     });
@@ -310,6 +301,14 @@ export class ConfigEditor extends LitElement {
       '高级设置': '🔧'
     };
     return icons[category] || '📁';
+  }
+
+  _getCategoryDescription(category) {
+    const descriptions = {
+      '基础设置': '调整基本外观和动画设置',
+      '高级设置': '配置卡片特定功能'
+    };
+    return descriptions[category] || '';
   }
 
   _renderBooleanField(key, field) {
