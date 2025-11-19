@@ -49,19 +49,24 @@ class DashboardCard extends BasePlugin {
   };
 
   getTemplate(config, hass, entities) {
+    console.log('DashboardCard entities:', entities); // 调试日志
     const blocks = this._extractContentBlocks(entities);
     const columns = config.columns || 3;
     
+    const header = config.show_header !== false ? this._renderHeader(config, entities) : '';
+    const content = this._renderContent(blocks, columns, hass, config);
+    const footer = config.show_footer ? this._renderFooter(config, entities) : '';
+    
     return this._renderCardContainer(`
-      ${this._renderIf(config.show_header !== false, this._renderHeader(config, entities))}
-      ${this._renderContent(blocks, columns, hass, config)}
-      ${this._renderIf(config.show_footer, this._renderFooter(config, entities))}
+      ${header}
+      ${content}
+      ${footer}
     `, 'dashboard-card', config);
   }
 
   _renderHeader(config, entities) {
-    const title = entities.title || config.title || '仪表盘';
-    const subtitle = entities.subtitle || config.subtitle;
+    const title = this._getCardValue(null, entities, 'title') || '仪表盘';
+    const subtitle = this._getCardValue(null, entities, 'subtitle');
     
     return `
       <div class="dashboard-header">
@@ -84,14 +89,14 @@ class DashboardCard extends BasePlugin {
     return `
       <div class="dashboard-content">
         <div class="dashboard-grid columns-${columns}">
-          ${blocks.map(block => this._renderContentBlock(block, hass, config)).join('')}
+          ${blocks.map(block => this._renderContentBlock(block, hass)).join('')}
         </div>
       </div>
     `;
   }
 
   _renderFooter(config, entities) {
-    const footerText = entities.footer || config.footer || '';
+    const footerText = this._getCardValue(null, entities, 'footer') || '';
     
     return footerText ? `
       <div class="dashboard-footer">
@@ -102,69 +107,117 @@ class DashboardCard extends BasePlugin {
 
   _extractContentBlocks(entities) {
     const blocks = [];
-    Object.entries(entities || {}).forEach(([key, value]) => {
-      if (key.endsWith('_type') && !key.startsWith('_')) {
-        const blockId = key.replace('_type', '');
-        const configKey = `${blockId}_config`;
+    
+    if (!entities) return blocks;
+    
+    Object.entries(entities).forEach(([key, value]) => {
+      // 只处理内容块类型字段，排除标题、页脚等特殊字段
+      if (key.endsWith('_type') && 
+          !['title', 'subtitle', 'footer', '_layout_columns', '_layout_style', '_layout_spacing'].some(prefix => key.startsWith(prefix))) {
         
-        try {
-          blocks.push({
-            id: blockId,
-            type: value,
-            content: entities[blockId] || '',
-            config: entities[configKey] ? JSON.parse(entities[configKey]) : {},
-            order: parseInt(entities[`${blockId}_order`]) || 0
-          });
-        } catch (e) {
-          console.warn(`解析内容块配置失败: ${blockId}`, e);
+        const blockId = key.replace('_type', '');
+        
+        // 确保值是一个字符串
+        const blockType = String(value || 'text');
+        const blockContent = String(entities[blockId] || '');
+        
+        let blockConfig = {};
+        const configKey = `${blockId}_config`;
+        if (entities[configKey]) {
+          try {
+            // 确保配置是字符串再解析
+            const configStr = String(entities[configKey]);
+            blockConfig = JSON.parse(configStr);
+          } catch (e) {
+            console.warn(`解析内容块配置失败: ${blockId}`, e);
+          }
         }
+        
+        const order = parseInt(entities[`${blockId}_order`]) || 0;
+        
+        blocks.push({
+          id: blockId,
+          type: blockType,
+          content: blockContent,
+          config: blockConfig,
+          order: order
+        });
       }
     });
     
     return blocks.sort((a, b) => a.order - b.order);
   }
 
-  _renderContentBlock(block, hass, config) {
+  _renderContentBlock(block, hass) {
+    console.log('Rendering block:', block); // 调试日志
+    
     const blockConfig = block.config || {};
     const backgroundColor = blockConfig.background || '';
     const textColor = blockConfig.textColor || '';
     const customClass = blockConfig.class || '';
     
+    const style = [];
+    if (backgroundColor) style.push(`background: ${backgroundColor}`);
+    if (textColor) style.push(`color: ${textColor}`);
+    
     return `
       <div class="dashboard-block block-${block.type} ${customClass}" 
-           style="${backgroundColor ? `background: ${backgroundColor};` : ''} ${textColor ? `color: ${textColor};` : ''}">
-        ${this._renderBlockContent(block, hass, config)}
+           style="${style.join('; ')}">
+        ${this._renderBlockContent(block, hass)}
       </div>
     `;
   }
 
-  _renderBlockContent(block, hass, config) {
-    switch (block.type) {
+  _renderBlockContent(block, hass) {
+    const blockType = String(block.type || 'text');
+    const content = String(block.content || '');
+    
+    console.log(`Rendering block type: ${blockType}, content: ${content}`); // 调试日志
+    
+    switch (blockType) {
       case 'text':
         return `
           <div class="text-content">
-            <div class="text-block">${this._renderSafeHTML(block.content)}</div>
+            <div class="text-block">${this._renderSafeHTML(content)}</div>
           </div>
         `;
         
       case 'sensor':
-        const entity = hass?.states[block.content];
-        const sensorValue = entity?.state || '未知';
-        const unit = entity?.attributes?.unit_of_measurement || '';
-        const friendlyName = entity?.attributes?.friendly_name || block.content.split('.')[1] || block.content;
+        const entity = hass?.states[content];
+        if (!entity) {
+          return `
+            <div class="sensor-block unavailable">
+              <div class="sensor-value">--</div>
+              <div class="sensor-name">${content.split('.')[1] || content}</div>
+              <div class="sensor-status">实体未找到</div>
+            </div>
+          `;
+        }
+        
+        const sensorValue = entity.state || '未知';
+        const unit = entity.attributes?.unit_of_measurement || '';
+        const friendlyName = entity.attributes?.friendly_name || content.split('.')[1] || content;
         
         return `
           <div class="sensor-block">
             <div class="sensor-value">${sensorValue}${unit}</div>
             <div class="sensor-name">${friendlyName}</div>
-            ${entity?.attributes?.icon ? `<div class="sensor-icon">${entity.attributes.icon}</div>` : ''}
           </div>
         `;
         
       case 'weather':
-        const weatherEntity = hass?.states[block.content];
-        const temperature = weatherEntity?.attributes?.temperature || '--';
-        const condition = weatherEntity?.state || '未知';
+        const weatherEntity = hass?.states[content];
+        if (!weatherEntity) {
+          return `
+            <div class="weather-block unavailable">
+              <div class="weather-temp">--</div>
+              <div class="weather-condition">实体未找到</div>
+            </div>
+          `;
+        }
+        
+        const temperature = weatherEntity.attributes?.temperature || '--';
+        const condition = weatherEntity.state || '未知';
         
         return `
           <div class="weather-block">
@@ -174,9 +227,18 @@ class DashboardCard extends BasePlugin {
         `;
         
       case 'switch':
-        const switchEntity = hass?.states[block.content];
-        const isOn = switchEntity?.state === 'on';
-        const switchName = switchEntity?.attributes?.friendly_name || block.content.split('.')[1] || block.content;
+        const switchEntity = hass?.states[content];
+        if (!switchEntity) {
+          return `
+            <div class="switch-block unavailable">
+              <div class="switch-state">--</div>
+              <div class="switch-name">${content.split('.')[1] || content}</div>
+            </div>
+          `;
+        }
+        
+        const isOn = switchEntity.state === 'on';
+        const switchName = switchEntity.attributes?.friendly_name || content.split('.')[1] || content;
         
         return `
           <div class="switch-block ${isOn ? 'on' : 'off'}">
@@ -189,7 +251,8 @@ class DashboardCard extends BasePlugin {
         return `
           <div class="unknown-block">
             <div class="unknown-icon">❓</div>
-            <div class="unknown-text">未知类型: ${block.type}</div>
+            <div class="unknown-text">未知类型: ${blockType}</div>
+            <div class="unknown-content">${this._renderSafeHTML(content)}</div>
           </div>
         `;
     }
@@ -271,11 +334,16 @@ class DashboardCard extends BasePlugin {
       .text-block {
         font-size: 0.9em;
         line-height: 1.4;
+        word-break: break-word;
       }
       
-      .sensor-block {
+      .sensor-block, .weather-block, .switch-block {
         text-align: center;
         width: 100%;
+      }
+      
+      .sensor-block.unavailable, .weather-block.unavailable, .switch-block.unavailable {
+        opacity: 0.6;
       }
       
       .sensor-value {
@@ -291,14 +359,10 @@ class DashboardCard extends BasePlugin {
         margin-top: var(--cf-spacing-xs);
       }
       
-      .sensor-icon {
-        font-size: 1.2em;
-        margin-bottom: var(--cf-spacing-xs);
-      }
-      
-      .weather-block {
-        text-align: center;
-        width: 100%;
+      .sensor-status {
+        font-size: 0.7em;
+        color: var(--cf-error-color);
+        margin-top: var(--cf-spacing-xs);
       }
       
       .weather-temp {
@@ -311,11 +375,6 @@ class DashboardCard extends BasePlugin {
         font-size: 0.9em;
         color: var(--cf-text-secondary);
         margin-top: var(--cf-spacing-xs);
-      }
-      
-      .switch-block {
-        text-align: center;
-        width: 100%;
       }
       
       .switch-block.on {
@@ -345,6 +404,7 @@ class DashboardCard extends BasePlugin {
       .unknown-block {
         text-align: center;
         color: var(--cf-text-secondary);
+        padding: var(--cf-spacing-sm);
       }
       
       .unknown-icon {
@@ -353,7 +413,14 @@ class DashboardCard extends BasePlugin {
       }
       
       .unknown-text {
+        font-size: 0.9em;
+        margin-bottom: var(--cf-spacing-xs);
+      }
+      
+      .unknown-content {
         font-size: 0.8em;
+        opacity: 0.7;
+        word-break: break-all;
       }
       
       .dashboard-footer {
