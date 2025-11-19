@@ -60,6 +60,10 @@ export const foundationStyles = css`
     --cf-transition-slow: 0.4s ease;
     --cf-ease-out: cubic-bezier(0.4, 0, 0.2, 1);
     --cf-ease-in-out: cubic-bezier(0.4, 0, 0.2, 1);
+
+    /* 卡片容器默认样式 */
+    --cardforge-container-padding: var(--cf-spacing-lg);
+    --cardforge-container-min-height: 80px;
   }
 
   /* ===== 深色模式适配 ===== */
@@ -92,6 +96,37 @@ export const foundationStyles = css`
     --cf-shadow-sm: var(--cf-dark-shadow-sm) !important;
     --cf-shadow-md: var(--cf-dark-shadow-md) !important;
     --cf-shadow-lg: var(--cf-dark-shadow-lg) !important;
+  }
+
+  /* ===== 统一卡片容器样式 ===== */
+  .cardforge-card-container {
+    display: flex;
+    flex-direction: column;
+    min-height: var(--cardforge-container-min-height);
+    height: auto;
+    padding: var(--cardforge-container-padding);
+    container-type: inline-size;
+    container-name: cardforge-container;
+    position: relative;
+    overflow: hidden;
+    box-sizing: border-box;
+  }
+
+  .cardforge-content {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    gap: var(--cf-spacing-md);
+  }
+
+  .cardforge-content-centered {
+    align-items: center;
+    text-align: center;
+  }
+
+  .cardforge-content-spaced {
+    justify-content: space-between;
   }
 
   /* ===== 布局工具类 ===== */
@@ -143,6 +178,44 @@ export const foundationStyles = css`
   .cf-font-semibold { font-weight: 600; }
   .cf-font-bold { font-weight: 700; }
 
+  /* ===== 统一文本样式系统 ===== */
+  .cardforge-title {
+    font-size: 1.4em;
+    font-weight: 600;
+    line-height: 1.2;
+    margin: 0;
+    color: var(--cf-text-primary);
+  }
+
+  .cardforge-subtitle {
+    font-size: 1em;
+    opacity: 0.8;
+    margin: 0;
+    color: var(--cf-text-secondary);
+  }
+
+  .cardforge-text-large {
+    font-size: 2.5em;
+    font-weight: 300;
+    line-height: 1;
+    margin: 0;
+    color: var(--cf-text-primary);
+  }
+
+  .cardforge-text-medium {
+    font-size: 1.2em;
+    line-height: 1.4;
+    margin: 0;
+    color: var(--cf-text-primary);
+  }
+
+  .cardforge-text-small {
+    font-size: 0.9em;
+    opacity: 0.7;
+    margin: 0;
+    color: var(--cf-text-secondary);
+  }
+
   /* ===== 状态样式 ===== */
   .cf-status-on { color: var(--cf-success-color); }
   .cf-status-off { color: var(--cf-text-secondary); }
@@ -176,4 +249,56 @@ export const foundationStyles = css`
   .cf-animate-fadeIn { animation: cf-fadeIn 0.25s var(--cf-ease-out); }
   .cf-animate-slideIn { animation: cf-slideIn 0.25s var(--cf-ease-out); }
   .cf-animate-pulse { animation: cf-pulse 2s infinite; }
+
+  /* 统一卡片动画 */
+  .cardforge-animate-fadeIn { animation: cf-fadeIn 0.6s var(--cf-ease-out); }
+  .cardforge-animate-slideUp { 
+    animation: cf-fadeIn 0.5s var(--cf-ease-out);
+    transform: translateY(0);
+  }
+  .cardforge-animate-scale {
+    animation: cardforgeScale 0.4s var(--cf-ease-out);
+  }
+
+  @keyframes cardforgeScale {
+    from { 
+      opacity: 0;
+      transform: scale(0.9);
+    }
+    to { 
+      opacity: 1;
+      transform: scale(1);
+    }
+  }
+
+  /* ===== 响应式容器查询 ===== */
+  @container cardforge-container (max-width: 400px) {
+    .cardforge-card-container {
+      padding: var(--cf-spacing-md);
+    }
+    
+    .cardforge-text-large {
+      font-size: 2em;
+    }
+    
+    .cardforge-text-medium {
+      font-size: 1.1em;
+    }
+    
+    .cf-grid-2,
+    .cf-grid-3,
+    .cf-grid-4 {
+      grid-template-columns: 1fr;
+    }
+  }
+
+  @container cardforge-container (max-width: 300px) {
+    .cardforge-card-container {
+      padding: var(--cf-spacing-sm);
+    }
+    
+    .cardforge-text-large {
+      font-size: 1.8em;
+    }
+  }
 `;

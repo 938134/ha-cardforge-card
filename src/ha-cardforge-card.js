@@ -19,6 +19,7 @@ class HaCardForgeCard extends LitElement {
     css`
       .cardforge-container {
         position: relative;
+        height: 100%;
         min-height: 80px;
       }
 
@@ -69,6 +70,15 @@ class HaCardForgeCard extends LitElement {
         .cardforge-empty-message {
           color: var(--cf-dark-text-secondary);
         }
+      }
+
+      /* 确保卡片容器正确继承高度 */
+      ha-card {
+        height: 100%;
+      }
+
+      .cardforge-container > * {
+        height: 100%;
       }
     `
   ];
@@ -186,10 +196,12 @@ class HaCardForgeCard extends LitElement {
     if (this._error) {
       return html`
         <ha-card>
-          <div class="cf-flex cf-flex-center cf-flex-column cf-p-xl">
-            <div class="cf-error cf-text-xl cf-mb-md">❌</div>
-            <div class="cf-text-lg cf-font-bold cf-mb-sm">卡片加载失败</div>
-            <div class="cf-text-sm cf-text-secondary">${this._error.message}</div>
+          <div class="cardforge-container">
+            <div class="cf-flex cf-flex-center cf-flex-column cf-p-xl">
+              <div class="cf-error cf-text-xl cf-mb-md">❌</div>
+              <div class="cf-text-lg cf-font-bold cf-mb-sm">卡片加载失败</div>
+              <div class="cf-text-sm cf-text-secondary">${this._error.message}</div>
+            </div>
           </div>
         </ha-card>
       `;
@@ -198,9 +210,11 @@ class HaCardForgeCard extends LitElement {
     if (this._loading || !this._plugin) {
       return html`
         <ha-card>
-          <div class="cf-flex cf-flex-center cf-flex-column cf-p-xl">
-            <ha-circular-progress indeterminate></ha-circular-progress>
-            <div class="cf-text-md cf-mt-md">加载中...</div>
+          <div class="cardforge-container">
+            <div class="cf-flex cf-flex-center cf-flex-column cf-p-xl">
+              <ha-circular-progress indeterminate></ha-circular-progress>
+              <div class="cf-text-md cf-mt-md">加载中...</div>
+            </div>
           </div>
         </ha-card>
       `;
@@ -225,10 +239,12 @@ class HaCardForgeCard extends LitElement {
       console.error('插件渲染失败:', error);
       return html`
         <ha-card>
-          <div class="cf-flex cf-flex-center cf-flex-column cf-p-xl">
-            <div class="cf-warning cf-text-xl cf-mb-md">⚠️</div>
-            <div class="cf-text-lg cf-font-bold cf-mb-sm">插件渲染错误</div>
-            <div class="cf-text-sm cf-text-secondary">${error.message}</div>
+          <div class="cardforge-container">
+            <div class="cf-flex cf-flex-center cf-flex-column cf-p-xl">
+              <div class="cf-warning cf-text-xl cf-mb-md">⚠️</div>
+              <div class="cf-text-lg cf-font-bold cf-mb-sm">插件渲染错误</div>
+              <div class="cf-text-sm cf-text-secondary">${error.message}</div>
+            </div>
           </div>
         </ha-card>
       `;
@@ -256,6 +272,13 @@ class HaCardForgeCard extends LitElement {
   }
 
   getCardSize() {
+    // 根据插件类型返回合适的卡片大小
+    if (this._plugin) {
+      const manifest = this._plugin.getManifest?.();
+      if (manifest?.category === '时间') return 2;
+      if (manifest?.category === '信息') return 3;
+      if (manifest?.category === '文化') return 4;
+    }
     return 3;
   }
 }

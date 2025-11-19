@@ -390,67 +390,181 @@ export class BasePlugin {
     return isNaN(num) ? defaultValue : num;
   }
 
-  // === 基础样式系统 ===
+  // === 统一卡片容器系统 ===
   
   getBaseStyles(config) {
     const themeId = config.theme || 'auto';
     const themeStyles = themeManager.getThemeStyles(themeId, config);
     
     return `
-      :host {
-        --card-bg-light: var(--card-background-color, #ffffff);
-        --card-text-light: var(--primary-text-color, #333333);
-        --card-border-light: var(--divider-color, #e0e0e0);
-        --card-bg-dark: #1a1a1a;
-        --card-text-dark: #e0e0e0;
-        --card-border-dark: #404040;
-      }
-      
-      .cardforge-responsive-container {
+      /* 统一卡片容器 */
+      .cardforge-card-container {
         display: flex;
         flex-direction: column;
         min-height: 80px;
-        gap: var(--cf-spacing-md);
+        height: auto;
         padding: var(--cf-spacing-lg);
-        background: var(--card-bg-light);
-        color: var(--card-text-light);
-        border: 1px solid var(--card-border-light);
-        border-radius: var(--cf-radius-lg);
         container-type: inline-size;
         container-name: cardforge-container;
+        position: relative;
+        overflow: hidden;
       }
-      
-      @media (prefers-color-scheme: dark) {
-        .cardforge-responsive-container {
-          background: var(--card-bg-dark);
-          color: var(--card-text-dark);
-          border-color: var(--card-border-dark);
-        }
-      }
-      
-      .cardforge-content-grid {
-        display: grid;
-        grid-template-columns: 1fr;
+
+      /* 内容布局系统 */
+      .cardforge-content {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
         gap: var(--cf-spacing-md);
       }
-      
-      .layout-single-column .cardforge-content-grid {
-        grid-template-columns: 1fr;
+
+      .cardforge-content-centered {
+        align-items: center;
+        text-align: center;
       }
-      
-      .layout-two-columns .cardforge-content-grid {
-        grid-template-columns: 1fr;
+
+      .cardforge-content-spaced {
+        justify-content: space-between;
       }
-      
-      @container cardforge-container (min-width: 600px) {
-        .layout-two-columns .cardforge-content-grid {
-          grid-template-columns: 1fr 1fr;
+
+      /* 响应式网格系统 */
+      .cardforge-grid {
+        display: grid;
+        gap: var(--cf-spacing-md);
+      }
+
+      .cardforge-grid-auto {
+        grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+      }
+
+      .cardforge-grid-2 {
+        grid-template-columns: repeat(2, 1fr);
+      }
+
+      .cardforge-grid-3 {
+        grid-template-columns: repeat(3, 1fr);
+      }
+
+      /* 文本样式系统 */
+      .cardforge-title {
+        font-size: 1.4em;
+        font-weight: 600;
+        line-height: 1.2;
+        margin: 0;
+      }
+
+      .cardforge-subtitle {
+        font-size: 1em;
+        opacity: 0.8;
+        margin: 0;
+      }
+
+      .cardforge-text-large {
+        font-size: 2.5em;
+        font-weight: 300;
+        line-height: 1;
+        margin: 0;
+      }
+
+      .cardforge-text-medium {
+        font-size: 1.2em;
+        line-height: 1.4;
+        margin: 0;
+      }
+
+      .cardforge-text-small {
+        font-size: 0.9em;
+        opacity: 0.7;
+        margin: 0;
+      }
+
+      /* 动画系统 */
+      .cardforge-animate-fadeIn {
+        animation: cardforgeFadeIn 0.6s ease-out;
+      }
+
+      .cardforge-animate-slideUp {
+        animation: cardforgeSlideUp 0.5s ease-out;
+      }
+
+      .cardforge-animate-scale {
+        animation: cardforgeScale 0.4s ease-out;
+      }
+
+      @keyframes cardforgeFadeIn {
+        from { opacity: 0; }
+        to { opacity: 1; }
+      }
+
+      @keyframes cardforgeSlideUp {
+        from { 
+          opacity: 0;
+          transform: translateY(20px);
+        }
+        to { 
+          opacity: 1;
+          transform: translateY(0);
         }
       }
-      
-      .cardforge-responsive-container {
+
+      @keyframes cardforgeScale {
+        from { 
+          opacity: 0;
+          transform: scale(0.9);
+        }
+        to { 
+          opacity: 1;
+          transform: scale(1);
+        }
+      }
+
+      /* 响应式设计 */
+      @container cardforge-container (max-width: 400px) {
+        .cardforge-grid-2,
+        .cardforge-grid-3 {
+          grid-template-columns: 1fr;
+        }
+        
+        .cardforge-text-large {
+          font-size: 2em;
+        }
+      }
+
+      /* 应用主题样式 */
+      .cardforge-card-container {
         ${themeStyles}
       }
     `;
+  }
+
+  // === 统一模板渲染方法 ===
+  
+  _renderCardContainer(content, className = '', config = {}) {
+    const animationClass = config.animation_style ? `cardforge-animate-${this._getAnimationClass(config.animation_style)}` : '';
+    return `
+      <div class="cardforge-card-container ${className} ${animationClass}">
+        <div class="cardforge-content">
+          ${content}
+        </div>
+      </div>
+    `;
+  }
+
+  _getAnimationClass(animationStyle) {
+    const animationMap = {
+      '无': '',
+      '淡入': 'fadeIn',
+      '滑动': 'slideUp', 
+      '缩放': 'scale',
+      '弹跳': 'scale',
+      '翻转': 'scale',
+      '渐显': 'fadeIn',
+      '卷轴展开': 'slideUp',
+      '毛笔书写': 'fadeIn',
+      '逐字显示': 'fadeIn',
+      '打字机': 'fadeIn'
+    };
+    return animationMap[animationStyle] || 'fadeIn';
   }
 }
