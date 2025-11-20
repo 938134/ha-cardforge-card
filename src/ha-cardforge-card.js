@@ -2,6 +2,9 @@
 import { LitElement, html, css } from 'https://unpkg.com/lit@2.8.0/index.js?module';
 import { unsafeHTML } from 'https://unpkg.com/lit-html/directives/unsafe-html.js?module';
 import { PluginRegistry } from './core/plugin-registry.js';
+import { entityManager } from './core/entity-manager.js';
+import { configManager } from './core/config-manager.js';
+import { layoutEngine } from './core/layout-engine.js';
 import { foundationStyles } from './core/styles.js';
 
 class HaCardForgeCard extends LitElement {
@@ -45,31 +48,9 @@ class HaCardForgeCard extends LitElement {
         animation: cardforge-spin 1s linear infinite;
       }
 
-      .cardforge-error-message,
-      .cardforge-loading-text,
-      .cardforge-empty-message {
-        font-size: 0.85em;
-        color: var(--cf-text-secondary);
-        line-height: 1.4;
-      }
-
       @keyframes cardforge-spin {
         0% { transform: rotate(0deg); }
         100% { transform: rotate(360deg); }
-      }
-
-      /* 深色模式适配 */
-      @media (prefers-color-scheme: dark) {
-        .cardforge-loading-spinner {
-          border-color: var(--cf-dark-border);
-          border-top-color: var(--cf-primary-color);
-        }
-
-        .cardforge-error-message,
-        .cardforge-loading-text,
-        .cardforge-empty-message {
-          color: var(--cf-dark-text-secondary);
-        }
       }
 
       /* 确保卡片容器正确继承高度 */
@@ -103,14 +84,27 @@ class HaCardForgeCard extends LitElement {
       // 初始化插件系统
       await PluginRegistry.initialize();
       
+      // 设置管理器
+      entityManager.setHass(this.hass);
+      configManager.resetConfig();
+      
       // 加载插件
       this._plugin = await this._loadPlugin(this.config.plugin);
       
-      // 验证插件配置
-      this._validatePluginConfig();
-      
-      // 更新实体数据
-      this._updateEntities();
+      if (this._plugin) {
+        // 设置实体策略
+        const manifest = this._plugin.getManifest();
+        entityManager.setStrategy(
+          this._detectStrategy(manifest), 
+          manifest
+        );
+        
+        // 处理实体数据
+        this._entities = entityManager.processEntities(this.config.entities, this.hass);
+        
+        // 验证配置
+        this._validatePluginConfig();
+      }
       
     } catch (error) {
       console.error('卡片加载失败:', error);
@@ -135,13 +129,24 @@ class HaCardForgeCard extends LitElement {
     };
   }
 
+  _detectStrategy(manifest) {
+    if (!manifest) return 'stateless';
+    if (manifest.layout_type === 'free') return 'free_layout';
+    if (manifest.entity_requirements) return 'structured';
+    return 'stateless';
+  }
+
   _validatePluginConfig() {
     if (!this._plugin) return;
     
     try {
       const manifest = this._plugin.getManifest();
-      this._plugin._validateConfig(this.config, manifest);
-      this.config = this._plugin._applyConfigDefaults(this.config, manifest);
+      if (manifest.config_schema) {
+        const validation = configManager.validateConfig('advanced', this.config);
+        if (!validation.valid) {
+          console.warn('插件配置验证警告:', validation.errors);
+        }
+      }
     } catch (error) {
       console.warn('插件配置验证警告:', error.message);
     }
@@ -164,32 +169,6 @@ class HaCardForgeCard extends LitElement {
     
     this._pluginCache.set(pluginId, plugin);
     return plugin;
-  }
-
-  _updateEntities() {
-    this._entities = {};
-    
-    if (!this.hass || !this.config.entities) {
-      return;
-    }
-
-    // 移除Jinja解析，直接使用实体值
-    Object.entries(this.config.entities).forEach(([key, entitySource]) => {
-      if (entitySource && !key.includes('_name') && !key.includes('_icon')) {
-        // 如果是实体ID，尝试获取状态，否则使用原值
-        let state = entitySource;
-        if (entitySource.includes('.') && this.hass?.states?.[entitySource]) {
-          state = this.hass.states[entitySource].state || entitySource;
-        }
-        
-        this._entities[key] = {
-          state: state,
-          attributes: {},
-          _source: entitySource,
-          _isEntity: entitySource.includes('.')
-        };
-      }
-    });
   }
 
   render() {
@@ -221,7 +200,9 @@ class HaCardForgeCard extends LitElement {
     }
     
     try {
-      const template = this._plugin.getTemplate(this.config, this.hass, this._entities);
+      // 使用管理器获取处理后的实体数据
+      const processedEntities = entityManager.getAllEntities();
+      const template = this._plugin.getTemplate(this.config, this.hass, processedEntities);
       const styles = this._plugin.getStyles(this.config);
 
       return html`
@@ -253,8 +234,13 @@ class HaCardForgeCard extends LitElement {
 
   updated(changedProperties) {
     if (changedProperties.has('hass')) {
-      this._updateEntities();
-      this.requestUpdate();
+      entityManager.setHass(this.hass);
+      
+      // 重新处理实体数据
+      if (this._plugin && this.config.entities) {
+        this._entities = entityManager.processEntities(this.config.entities, this.hass);
+        this.requestUpdate();
+      }
     }
   }
 
@@ -272,7 +258,6 @@ class HaCardForgeCard extends LitElement {
   }
 
   getCardSize() {
-    // 根据插件类型返回合适的卡片大小
     if (this._plugin) {
       const manifest = this._plugin.getManifest?.();
       if (manifest?.category === '时间') return 2;
