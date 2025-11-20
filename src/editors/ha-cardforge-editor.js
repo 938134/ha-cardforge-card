@@ -6,7 +6,7 @@ import { designSystem } from '../core/design-system.js';
 import './plugin-selector.js';
 import './theme-selector.js';
 import './config-editors.js';
-import './entity-manager.js';
+import './layout-editors.js';
 
 class HaCardForgeEditor extends LitElement {
   static properties = {
