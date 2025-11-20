@@ -1,38 +1,7 @@
 // src/plugins/poetry-card.js
 import { BasePlugin } from '../core/base-plugin.js';
 
-export default class PoetryCard extends BasePlugin {
-  static manifest = {
-    id: 'poetry-card',
-    name: '诗词卡片',
-    description: '每日经典诗词欣赏',
-    icon: '📜',
-    category: '文化',
-    version: '1.0.0',
-    author: 'CardForge',
-    config_schema: {
-      show_author: {
-        type: 'boolean',
-        label: '显示作者',
-        default: true
-      },
-      show_dynasty: {
-        type: 'boolean',
-        label: '显示朝代',
-        default: true
-      },
-      auto_refresh: {
-        type: 'boolean',
-        label: '自动刷新',
-        default: false
-      }
-    },
-    capabilities: {
-      supportsTitle: true,
-      supportsFooter: true
-    }
-  };
-
+class PoetryCard extends BasePlugin {
   getTemplate(config, hass, entities) {
     const poetry = this._getDailyPoetry();
     
@@ -115,3 +84,38 @@ export default class PoetryCard extends BasePlugin {
     return poetries[index];
   }
 }
+
+// 正确导出 manifest 和默认类
+PoetryCard.manifest = {
+  id: 'poetry-card',
+  name: '诗词卡片',
+  description: '每日经典诗词欣赏',
+  icon: '📜',
+  category: '文化',
+  version: '1.0.0',
+  author: 'CardForge',
+  config_schema: {
+    show_author: {
+      type: 'boolean',
+      label: '显示作者',
+      default: true
+    },
+    show_dynasty: {
+      type: 'boolean',
+      label: '显示朝代',
+      default: true
+    },
+    auto_refresh: {
+      type: 'boolean',
+      label: '自动刷新',
+      default: false
+    }
+  },
+  capabilities: {
+    supportsTitle: true,
+    supportsFooter: true
+  }
+};
+
+export { PoetryCard as default, PoetryCard };
+export const manifest = PoetryCard.manifest;

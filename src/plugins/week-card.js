@@ -1,33 +1,7 @@
 // src/plugins/week-card.js
 import { BasePlugin } from '../core/base-plugin.js';
 
-export default class WeekCard extends BasePlugin {
-  static manifest = {
-    id: 'week-card',
-    name: '周历卡片',
-    description: '显示当前周数和日期进度',
-    icon: '📅',
-    category: '时间',
-    version: '1.0.0',
-    author: 'CardForge',
-    config_schema: {
-      show_progress: {
-        type: 'boolean',
-        label: '显示周进度',
-        default: true
-      },
-      show_year_progress: {
-        type: 'boolean',
-        label: '显示年进度',
-        default: false
-      }
-    },
-    capabilities: {
-      supportsTitle: true,
-      supportsFooter: true
-    }
-  };
-
+class WeekCard extends BasePlugin {
   getTemplate(config, hass, entities) {
     const now = new Date();
     const weekNumber = this._getWeekNumber(now);
@@ -126,3 +100,33 @@ export default class WeekCard extends BasePlugin {
     `;
   }
 }
+
+// 正确导出 manifest 和默认类
+WeekCard.manifest = {
+  id: 'week-card',
+  name: '周历卡片',
+  description: '显示当前周数和日期进度',
+  icon: '📅',
+  category: '时间',
+  version: '1.0.0',
+  author: 'CardForge',
+  config_schema: {
+    show_progress: {
+      type: 'boolean',
+      label: '显示周进度',
+      default: true
+    },
+    show_year_progress: {
+      type: 'boolean',
+      label: '显示年进度',
+      default: false
+    }
+  },
+  capabilities: {
+    supportsTitle: true,
+    supportsFooter: true
+  }
+};
+
+export { WeekCard as default, WeekCard };
+export const manifest = WeekCard.manifest;

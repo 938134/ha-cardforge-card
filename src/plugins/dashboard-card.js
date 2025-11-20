@@ -1,39 +1,10 @@
 // src/plugins/dashboard-card.js
 import { BasePlugin } from '../core/base-plugin.js';
 
-export default class DashboardCard extends BasePlugin {
-  static manifest = {
-    id: 'dashboard-card',
-    name: '仪表盘卡片',
-    description: '多数据源仪表盘展示',
-    icon: '📊',
-    category: '信息',
-    version: '1.0.0',
-    author: 'CardForge',
-    layout_type: 'free',
-    allow_custom_entities: true,
-    config_schema: {
-      columns: {
-        type: 'select',
-        label: '列数',
-        options: ['2列', '3列', '4列'],
-        default: '3列'
-      },
-      show_icons: {
-        type: 'boolean',
-        label: '显示图标',
-        default: true
-      }
-    },
-    capabilities: {
-      supportsTitle: true,
-      supportsFooter: false
-    }
-  };
-
+class DashboardCard extends BasePlugin {
   getTemplate(config, hass, entities) {
     const contentBlocks = this.processEntities(entities, config, hass);
-    const columns = parseInt(config.columns) || 3;
+    const columns = this._getColumnCount(config.columns);
 
     let dashboardContent = '';
     
@@ -56,6 +27,15 @@ export default class DashboardCard extends BasePlugin {
 
   getStyles(config) {
     return this.getBaseStyles(config);
+  }
+
+  _getColumnCount(columnConfig) {
+    const columnMap = {
+      '2列': 2,
+      '3列': 3,
+      '4列': 4
+    };
+    return columnMap[columnConfig] || 3;
   }
 
   _renderDashboardGrid(blocks, columns, showIcons) {
@@ -122,3 +102,36 @@ export default class DashboardCard extends BasePlugin {
     return names[type] || '数据';
   }
 }
+
+// 正确导出 manifest 和默认类
+DashboardCard.manifest = {
+  id: 'dashboard-card',
+  name: '仪表盘卡片',
+  description: '多数据源仪表盘展示',
+  icon: '📊',
+  category: '信息',
+  version: '1.0.0',
+  author: 'CardForge',
+  layout_type: 'free',
+  allow_custom_entities: true,
+  config_schema: {
+    columns: {
+      type: 'select',
+      label: '列数',
+      options: ['2列', '3列', '4列'],
+      default: '3列'
+    },
+    show_icons: {
+      type: 'boolean',
+      label: '显示图标',
+      default: true
+    }
+  },
+  capabilities: {
+    supportsTitle: true,
+    supportsFooter: false
+  }
+};
+
+export { DashboardCard as default, DashboardCard };
+export const manifest = DashboardCard.manifest;
