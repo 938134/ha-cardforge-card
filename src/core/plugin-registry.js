@@ -9,6 +9,7 @@ class PluginRegistry {
     try {
       await this._discoverPlugins();
       this._initialized = true;
+      console.log(`✅ 插件系统初始化完成，加载 ${this._plugins.size} 个插件`);
     } catch (error) {
       console.error('❌ 插件注册表初始化失败:', error);
     }
@@ -21,7 +22,6 @@ class PluginRegistry {
       () => import('../plugins/dashboard-card.js'),
       () => import('../plugins/week-card.js'),
       () => import('../plugins/poetry-card.js'),
-      // 其他插件...
     ];
 
     for (const importFn of pluginModules) {
@@ -86,6 +86,11 @@ class PluginRegistry {
   static createPluginInstance(pluginId) {
     const PluginClass = this.getPluginClass(pluginId);
     return PluginClass ? new PluginClass() : null;
+  }
+
+  static getPluginManifest(pluginId) {
+    const plugin = this._plugins.get(pluginId);
+    return plugin ? plugin.manifest : null;
   }
 }
 

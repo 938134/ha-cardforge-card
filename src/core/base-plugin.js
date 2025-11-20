@@ -1,5 +1,8 @@
 // src/core/base-plugin.js
-import { themeManager } from './theme-manager.js';
+import { themeManager } from '../themes/index.js';
+import { LayoutStrategy } from './layout-strategy.js';
+import { EntityProcessor } from './entity-processor.js';
+import { ConfigManager } from './config-manager.js';
 
 export class BasePlugin {
   constructor() {
@@ -8,7 +11,7 @@ export class BasePlugin {
     }
   }
 
-  // === 必须实现的接口 ===
+  // === 核心接口（必须实现） ===
   getTemplate(config, hass, entities) {
     throw new Error('必须实现 getTemplate 方法');
   }
@@ -17,21 +20,14 @@ export class BasePlugin {
     throw new Error('必须实现 getStyles 方法');
   }
 
-  // === 默认的 getManifest 实现 ===
+  // === Manifest 系统 ===
   getManifest() {
-    // 如果子类没有定义静态 manifest，抛出错误
     if (!this.constructor.manifest) {
-      throw new Error(`插件 ${this.constructor.name} 必须定义静态 manifest 属性`);
+      throw new Error(`插件 ${this.constructor.name} 必须定义 manifest`);
     }
     return this._mergeManifest(this.constructor.manifest);
   }
 
-  // === 可选的生命周期方法 ===
-  onConfigChange(newConfig, oldConfig) {}
-  onEntitiesChange(newEntities, oldEntities) {}
-  onThemeChange(newTheme, oldTheme) {}
-
-  // === Manifest 工具方法 ===
   _validateManifest(manifest) {
     const requiredFields = ['id', 'name', 'version', 'description', 'category', 'icon'];
     const missingFields = requiredFields.filter(field => !manifest[field]);
@@ -57,10 +53,7 @@ export class BasePlugin {
         title: [],
         content: [],
         footer: []
-      },
-      layout_type: 'auto',
-      allow_custom_entities: false,
-      entity_requirements: {}
+      }
     };
     
     const merged = { ...defaultManifest, ...customManifest };
@@ -68,81 +61,61 @@ export class BasePlugin {
     return merged;
   }
 
+  // === 布局策略系统 ===
+  getLayoutMode() {
+    const manifest = this.getManifest();
+    return LayoutStrategy.detectMode(manifest);
+  }
+
+  getLayoutInfo() {
+    const manifest = this.getManifest();
+    return LayoutStrategy.getStrategyInfo(manifest);
+  }
+
+  validateEntities(entities, config, hass) {
+    const mode = this.getLayoutMode();
+    const manifest = this.getManifest();
+    return LayoutStrategy.validateEntities(mode, entities, manifest);
+  }
+
+  processEntities(entities, config, hass) {
+    const mode = this.getLayoutMode();
+    const manifest = this.getManifest();
+    return LayoutStrategy.processEntities(mode, entities, manifest, hass);
+  }
+
+  // === 卡片能力系统 ===
+  getCardCapabilities() {
+    const manifest = this.getManifest();
+    const defaultCapabilities = {
+      supportsTitle: false,
+      supportsContent: false, 
+      supportsFooter: false
+    };
+    
+    return {
+      ...defaultCapabilities,
+      ...manifest.capabilities
+    };
+  }
+
   // === 配置验证 ===
   _validateConfig(config, manifest) {
-    const errors = [];
-    const schema = manifest.config_schema || {};
-    
-    Object.entries(schema).forEach(([key, field]) => {
-      const value = config[key];
-      
-      if (field.required && (!value || value === '')) {
-        errors.push(`必需字段 "${field.label}" 不能为空`);
-        return;
-      }
-      
-      if (value && field.type) {
-        switch (field.type) {
-          case 'number':
-            if (isNaN(Number(value))) {
-              errors.push(`字段 "${field.label}" 必须是数字`);
-            }
-            break;
-          case 'boolean':
-            if (typeof value !== 'boolean') {
-              errors.push(`字段 "${field.label}" 必须是布尔值`);
-            }
-            break;
-          case 'select':
-            if (field.options && !field.options.includes(value)) {
-              errors.push(`字段 "${field.label}" 必须是有效选项`);
-            }
-            break;
-        }
-      }
-    });
-    
-    if (errors.length > 0) {
-      throw new Error(`配置验证失败: ${errors.join('; ')}`);
-    }
-    return true;
+    return ConfigManager.validateConfig(config, manifest.config_schema);
   }
 
   _applyConfigDefaults(config, manifest) {
-    const defaults = {};
-    const schema = manifest.config_schema || {};
-    
-    Object.entries(schema).forEach(([key, field]) => {
-      defaults[key] = field.default !== undefined ? field.default : '';
-    });
-    
-    return { ...defaults, ...config };
+    return ConfigManager.applyDefaults(config, manifest.config_schema);
   }
 
-  // === 数据获取工具方法 ===
+  // === 数据获取 ===
   _getCardValue(hass, entities, key, defaultValue = '') {
     const source = this._getEntityValue(entities, key);
-    return this._getFlexibleValue(hass, source, defaultValue);
+    return EntityProcessor.getFlexibleValue(hass, source, defaultValue);
   }
 
   _getEntityValue(entities, key, defaultValue = '') {
-    if (entities && typeof entities[key] === 'object') {
-      return entities[key]?.state || defaultValue;
-    }
-    return entities?.[key] || defaultValue;
-  }
-
-  _getFlexibleValue(hass, source, defaultValue = '') {
-    if (!source) return defaultValue;
-    
-    // 实体ID直接获取状态
-    if (source.includes('.') && hass?.states?.[source]) {
-      const entity = hass.states[source];
-      return entity.state || defaultValue;
-    }
-    
-    // 直接文本
-    return source;
+    return EntityProcessor._getStringValue(entities[key]) || defaultValue;
   }
 
   // === 智能数据获取方法 ===
@@ -168,6 +141,21 @@ export class BasePlugin {
     }
   }
 
+  _getTimePeriodMessage() {
+    const hour = new Date().getHours();
+    if (hour >= 5 && hour < 12) {
+      return '美好的一天从早晨开始';
+    } else if (hour >= 12 && hour < 14) {
+      return '午间时光，注意休息';
+    } else if (hour >= 14 && hour < 18) {
+      return '下午工作效率最高';
+    } else if (hour >= 18 && hour < 22) {
+      return '晚间放松时间';
+    } else {
+      return '夜深了，早点休息';
+    }
+  }
+
   _getDefaultWelcomeMessage() {
     const hour = new Date().getHours();
     if (hour >= 5 && hour < 12) {
@@ -183,30 +171,40 @@ export class BasePlugin {
     }
   }
 
+  // === 实体显示工具 ===
+  _getEntityDisplayName(entityConfig, hass) {
+    return EntityProcessor.getEntityDisplayName(entityConfig, hass);
+  }
+
+  _getEntityIcon(entityConfig, hass) {
+    return EntityProcessor.getEntityIcon(entityConfig, hass);
+  }
+
   // === 错误处理模板 ===
   _renderError(message, icon = '❌') {
     return `
-      <div class="cardforge-error-container">
-        <div class="cardforge-error-icon">${icon}</div>
-        <div class="cardforge-error-message">${this._renderSafeHTML(message)}</div>
+      <div class="cardforge-error-container cf-flex cf-flex-center cf-flex-column cf-p-lg">
+        <div class="cf-error cf-text-xl cf-mb-md">${icon}</div>
+        <div class="cf-text-lg cf-font-bold cf-mb-sm">卡片加载失败</div>
+        <div class="cf-text-sm cf-text-secondary">${this._renderSafeHTML(message)}</div>
       </div>
     `;
   }
 
   _renderLoading(message = '加载中...') {
     return `
-      <div class="cardforge-loading-container">
-        <div class="cardforge-loading-spinner"></div>
-        <div class="cardforge-loading-text">${this._renderSafeHTML(message)}</div>
+      <div class="cardforge-loading-container cf-flex cf-flex-center cf-flex-column cf-p-lg">
+        <ha-circular-progress indeterminate></ha-circular-progress>
+        <div class="cf-text-md cf-mt-md">${this._renderSafeHTML(message)}</div>
       </div>
     `;
   }
 
   _renderEmpty(message = '暂无数据', icon = '📭') {
     return `
-      <div class="cardforge-empty-container">
-        <div class="cardforge-empty-icon">${icon}</div>
-        <div class="cardforge-empty-message">${this._renderSafeHTML(message)}</div>
+      <div class="cardforge-empty-container cf-flex cf-flex-center cf-flex-column cf-p-lg">
+        <div class="cf-text-xl cf-mb-md">${icon}</div>
+        <div class="cf-text-sm cf-text-secondary">${this._renderSafeHTML(message)}</div>
       </div>
     `;
   }
@@ -226,24 +224,91 @@ export class BasePlugin {
     return condition ? template : '';
   }
 
-  _safeParseFloat(value, defaultValue = 0) {
-    if (value === null || value === undefined) return defaultValue;
-    const num = parseFloat(value);
-    return isNaN(num) ? defaultValue : num;
-  }
-
-  _safeParseInt(value, defaultValue = 0) {
-    if (value === null || value === undefined) return defaultValue;
-    const num = parseInt(value);
-    return isNaN(num) ? defaultValue : num;
-  }
-
   // === 统一卡片容器系统 ===
+  _renderCardContainer(content, className = '', config = {}) {
+    const alignment = config.text_alignment || 'center';
+    const alignmentClass = `cf-text-${alignment === '左对齐' ? 'left' : alignment === '右对齐' ? 'right' : 'center'}`;
+    const animationClass = config.animation_style && config.animation_style !== '无' ? 'cardforge-animate-fadeIn' : '';
+    
+    return `
+      <div class="cardforge-card-container ${className} ${alignmentClass} ${animationClass}">
+        <div class="cardforge-content">
+          ${content}
+        </div>
+      </div>
+    `;
+  }
+
+  _renderCardHeader(config, entities) {
+    const capabilities = this.getCardCapabilities();
+    if (!capabilities.supportsTitle) return '';
+
+    const title = this._getCardValue(this.hass, entities, 'title', config.title);
+    if (!title) return '';
+
+    const subtitle = this._getCardValue(this.hass, entities, 'subtitle', config.subtitle);
+    
+    return `
+      <div class="cardforge-header">
+        <div class="cardforge-title">${this._renderSafeHTML(title)}</div>
+        ${subtitle ? `<div class="cardforge-subtitle">${this._renderSafeHTML(subtitle)}</div>` : ''}
+      </div>
+    `;
+  }
+  
+  _renderCardFooter(config, entities) {
+    const capabilities = this.getCardCapabilities();
+    if (!capabilities.supportsFooter) return '';
+
+    const footer = this._getCardValue(this.hass, entities, 'footer', config.footer);
+    if (!footer) return '';
+
+    return `
+      <div class="cardforge-footer">
+        <div class="footer-text cf-text-small">${this._renderSafeHTML(footer)}</div>
+      </div>
+    `;
+  }
+
+  // === 辅助布局方法 ===
+  renderSection(title, content, className = '') {
+    return `
+      <div class="cardforge-section ${className}">
+        ${title ? `<div class="cardforge-section-title cardforge-title">${title}</div>` : ''}
+        <div class="cardforge-section-content">
+          ${content}
+        </div>
+      </div>
+    `;
+  }
+
+  renderGrid(items, columns = 3, className = '') {
+    return `
+      <div class="cf-grid cf-grid-${columns} ${className}">
+        ${items.join('')}
+      </div>
+    `;
+  }
+
+  renderFlex(items, direction = 'row', justify = 'center', align = 'center', className = '') {
+    return `
+      <div class="cf-flex ${className}" 
+           style="flex-direction: ${direction}; justify-content: ${justify}; align-items: ${align};">
+        ${items.join('')}
+      </div>
+    `;
+  }
+
+  // === 统一样式系统 ===
   getBaseStyles(config) {
     const themeId = config.theme || 'auto';
     const themeStyles = themeManager.getThemeStyles(themeId, config);
+    const styleConfig = ConfigManager.getStyleConfig(config);
+    const cssVariables = ConfigManager.generateCSSVariables(styleConfig);
     
     return `
+      ${cssVariables}
+      
       /* 统一卡片容器 */
       .cardforge-card-container {
         display: flex;
@@ -266,46 +331,21 @@ export class BasePlugin {
         gap: var(--cf-spacing-md);
       }
 
-      .cardforge-content-centered {
-        align-items: center;
-        text-align: center;
+      /* 布局组件 */
+      .cardforge-section {
+        margin-bottom: var(--cf-spacing-lg);
       }
 
-      .cardforge-content-spaced {
-        justify-content: space-between;
-      }
-
-      /* 文本样式系统 */
-      .cardforge-title {
-        font-size: 1.4em;
+      .cardforge-section-title {
+        margin-bottom: var(--cf-spacing-md);
         font-weight: 600;
-        line-height: 1.2;
-        margin: 0;
+        opacity: 0.9;
       }
 
-      .cardforge-subtitle {
-        font-size: 1em;
-        opacity: 0.8;
-        margin: 0;
-      }
-
-      .cardforge-text-large {
-        font-size: 2.5em;
-        font-weight: 300;
-        line-height: 1;
-        margin: 0;
-      }
-
-      .cardforge-text-medium {
-        font-size: 1.2em;
-        line-height: 1.4;
-        margin: 0;
-      }
-
-      .cardforge-text-small {
-        font-size: 0.9em;
-        opacity: 0.7;
-        margin: 0;
+      .cardforge-footer {
+        margin-top: var(--cf-spacing-lg);
+        padding-top: var(--cf-spacing-md);
+        border-top: 1px solid var(--cf-border);
       }
 
       /* 应用主题样式 */
@@ -315,35 +355,12 @@ export class BasePlugin {
     `;
   }
 
-  // === 统一模板渲染方法 ===
-  _renderCardContainer(content, className = '') {
-    return `
-      <div class="cardforge-card-container ${className}">
-        <div class="cardforge-content">
-          ${content}
-        </div>
-      </div>
-    `;
+  // 数值安全转换
+  _safeParseFloat(value, defaultValue = 0) {
+    return EntityProcessor.safeParseFloat(value, defaultValue);
   }
 
-  _renderCardHeader(title, subtitle = '') {
-    if (!title) return '';
-    
-    return `
-      <div class="cardforge-header">
-        <div class="cardforge-title">${this._renderSafeHTML(title)}</div>
-        ${subtitle ? `<div class="cardforge-subtitle">${this._renderSafeHTML(subtitle)}</div>` : ''}
-      </div>
-    `;
-  }
-  
-  _renderCardFooter(footer) {
-    if (!footer) return '';
-    
-    return `
-      <div class="cardforge-footer">
-        <div class="footer-text">${this._renderSafeHTML(footer)}</div>
-      </div>
-    `;
+  _safeParseInt(value, defaultValue = 0) {
+    return EntityProcessor.safeParseInt(value, defaultValue);
   }
 }

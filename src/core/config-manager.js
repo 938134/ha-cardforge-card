@@ -1,176 +1,197 @@
 // src/core/config-manager.js
 export class ConfigManager {
-    constructor() {
-      this._config = {
-        base: {},
-        advanced: {},
-        layout: {},
-        theme: 'auto'
-      };
-      this._schema = {};
-      this._listeners = new Map();
-    }
-  
-    // === 配置分区管理 ===
-    updateConfig(section, changes) {
-      const oldConfig = { ...this._config[section] };
-      this._config[section] = { ...oldConfig, ...changes };
+  // 统一配置schema
+  static getUnifiedSchema() {
+    return {
+      // 基础设置
+      'font_size': {
+        type: 'select',
+        label: '字体大小',
+        options: ['较小', '正常', '较大', '超大'],
+        default: '正常'
+      },
+      'text_alignment': {
+        type: 'select',
+        label: '文字对齐',
+        options: ['左对齐', '居中', '右对齐'],
+        default: '居中'
+      },
+      'spacing': {
+        type: 'select',
+        label: '内容间距',
+        options: ['紧凑', '正常', '宽松', '超宽'],
+        default: '正常'
+      },
       
-      // 验证配置
-      const validation = this.validateConfig(section, this._config[section]);
-      if (!validation.valid) {
-        console.warn('配置验证失败:', validation.errors);
-        // 回滚变更
-        this._config[section] = oldConfig;
-        return { success: false, errors: validation.errors };
-      }
+      // 外观设置
+      'border_style': {
+        type: 'select',
+        label: '边框样式',
+        options: ['无', '细线', '粗线', '虚线', '阴影', '发光'],
+        default: '无'
+      },
+      'border_radius': {
+        type: 'select',
+        label: '圆角大小',
+        options: ['无圆角', '小圆角', '中圆角', '大圆角', '圆形'],
+        default: '中圆角'
+      },
+      'color_theme': {
+        type: 'select',
+        label: '颜色主题',
+        options: ['跟随系统', '浅色', '深色', '主色', '强调色', '渐变'],
+        default: '跟随系统'
+      },
       
-      // 触发变更事件
-      this._emitChange(section, this._config[section], oldConfig);
-      
-      return { success: true, config: this._config[section] };
-    }
-  
-    getConfig(section = null) {
-      if (section) {
-        return this._config[section];
+      // 动画效果
+      'animation_style': {
+        type: 'select',
+        label: '动画效果',
+        options: ['无', '淡入', '滑动', '缩放', '弹跳', '打字机', '逐字显示'],
+        default: '淡入'
+      },
+      'animation_duration': {
+        type: 'select',
+        label: '动画时长',
+        options: ['快速', '正常', '慢速'],
+        default: '正常'
       }
-      return this.getFullConfig();
-    }
-  
-    getFullConfig() {
-      return {
-        ...this._config.base,
-        ...this._config.advanced,
-        ...this._config.layout,
-        theme: this._config.theme
-      };
-    }
-  
-    // === 主题管理 ===
-    setTheme(theme) {
-      const oldTheme = this._config.theme;
-      this._config.theme = theme;
-      this._emitChange('theme', theme, oldTheme);
-    }
-  
-    getTheme() {
-      return this._config.theme;
-    }
-  
-    // === 配置验证 ===
-    setSchema(section, schema) {
-      this._schema[section] = schema;
-    }
-  
-    validateConfig(section, config) {
-      const schema = this._schema[section];
-      if (!schema) return { valid: true, errors: [] };
-  
-      const errors = [];
-      
-      Object.entries(schema).forEach(([key, field]) => {
-        const value = config[key];
-        
-        if (field.required && (value === undefined || value === null || value === '')) {
-          errors.push(`字段 "${field.label}" 是必需的`);
-          return;
-        }
-        
-        if (value !== undefined && value !== null && field.type) {
-          switch (field.type) {
-            case 'number':
-              if (isNaN(Number(value))) {
-                errors.push(`字段 "${field.label}" 必须是数字`);
-              }
-              break;
-            case 'boolean':
-              if (typeof value !== 'boolean') {
-                errors.push(`字段 "${field.label}" 必须是布尔值`);
-              }
-              break;
-            case 'select':
-              if (field.options && !field.options.includes(value)) {
-                errors.push(`字段 "${field.label}" 必须是有效选项: ${field.options.join(', ')}`);
-              }
-              break;
-          }
-        }
-      });
-      
-      return { valid: errors.length === 0, errors };
-    }
-  
-    // === 事件系统 ===
-    onConfigChange(section, callback) {
-      if (!this._listeners.has(section)) {
-        this._listeners.set(section, new Set());
-      }
-      this._listeners.get(section).add(callback);
-      
-      // 返回取消监听函数
-      return () => {
-        const listeners = this._listeners.get(section);
-        if (listeners) {
-          listeners.delete(callback);
-        }
-      };
-    }
-  
-    _emitChange(section, newConfig, oldConfig) {
-      const listeners = this._listeners.get(section);
-      if (listeners) {
-        listeners.forEach(callback => {
-          try {
-            callback(newConfig, oldConfig, section);
-          } catch (error) {
-            console.error('配置变更监听器错误:', error);
-          }
-        });
-      }
-    }
-  
-    // === 配置持久化 ===
-    saveToLocalStorage(key) {
-      try {
-        localStorage.setItem(`cardforge_config_${key}`, JSON.stringify(this._config));
-        return true;
-      } catch (error) {
-        console.error('保存配置到本地存储失败:', error);
-        return false;
-      }
-    }
-  
-    loadFromLocalStorage(key) {
-      try {
-        const saved = localStorage.getItem(`cardforge_config_${key}`);
-        if (saved) {
-          this._config = { ...this._config, ...JSON.parse(saved) };
-          return true;
-        }
-      } catch (error) {
-        console.error('从本地存储加载配置失败:', error);
-      }
-      return false;
-    }
-  
-    // === 工具方法 ===
-    resetConfig(section = null) {
-      if (section) {
-        const oldConfig = this._config[section];
-        this._config[section] = {};
-        this._emitChange(section, {}, oldConfig);
-      } else {
-        const oldConfig = { ...this._config };
-        this._config = { base: {}, advanced: {}, layout: {}, theme: 'auto' };
-        this._emitChange('all', this._config, oldConfig);
-      }
-    }
-  
-    hasChanges(originalConfig) {
-      return JSON.stringify(this.getFullConfig()) !== JSON.stringify(originalConfig);
-    }
+    };
   }
-  
-  // 创建全局实例
-  export const configManager = new ConfigManager();
+
+  // 样式配置
+  static getStyleConfig(config) {
+    const schema = this.getUnifiedSchema();
+    const styleConfig = {};
+    
+    Object.keys(schema).forEach(key => {
+      styleConfig[key] = config[key] !== undefined ? config[key] : schema[key].default;
+    });
+    
+    return styleConfig;
+  }
+
+  // 布局配置
+  static getLayoutConfig(config, mode) {
+    const baseConfig = {
+      mode,
+      columns: config.columns || 3,
+      style: config.layout_style || 'grid',
+      gap: config.layout_gap || 'normal'
+    };
+    
+    // 根据模式添加特定配置
+    if (mode === 'free') {
+      baseConfig.blocks = config.blocks || [];
+      baseConfig.allowCustomBlocks = config.allow_custom_blocks !== false;
+    }
+    
+    return baseConfig;
+  }
+
+  // 实体配置
+  static getEntityConfig(config, mode) {
+    const entityConfig = {
+      mode,
+      entities: config.entities || {},
+      strategy: mode
+    };
+    
+    if (mode === 'free') {
+      entityConfig.contentBlocks = config.content_blocks || [];
+      entityConfig.layout = config.layout || {};
+    } else {
+      entityConfig.requirements = config.entity_requirements || {};
+    }
+    
+    return entityConfig;
+  }
+
+  // 合并配置
+  static mergeConfigs(baseConfig, updates) {
+    const merged = { ...baseConfig };
+    
+    Object.entries(updates).forEach(([key, value]) => {
+      if (value !== undefined && value !== null) {
+        if (typeof value === 'object' && !Array.isArray(value)) {
+          merged[key] = { ...merged[key], ...value };
+        } else {
+          merged[key] = value;
+        }
+      }
+    });
+    
+    return merged;
+  }
+
+  // 配置验证
+  static validateConfig(config, schema) {
+    const errors = [];
+    const warnings = [];
+    
+    Object.entries(schema || {}).forEach(([key, field]) => {
+      const value = config[key];
+      
+      if (field.required && (value === undefined || value === null || value === '')) {
+        errors.push(`必需字段 "${field.label}" 不能为空`);
+        return;
+      }
+      
+      if (value !== undefined && value !== null && field.type) {
+        switch (field.type) {
+          case 'number':
+            if (isNaN(Number(value))) {
+              errors.push(`字段 "${field.label}" 必须是数字`);
+            }
+            break;
+          case 'select':
+            if (field.options && !field.options.includes(value)) {
+              warnings.push(`字段 "${field.label}" 的值不在推荐选项中`);
+            }
+            break;
+        }
+      }
+    });
+    
+    return { valid: errors.length === 0, errors, warnings };
+  }
+
+  // 应用配置默认值
+  static applyDefaults(config, schema) {
+    const defaults = {};
+    
+    Object.entries(schema || {}).forEach(([key, field]) => {
+      defaults[key] = field.default !== undefined ? field.default : '';
+    });
+    
+    return this.mergeConfigs(defaults, config);
+  }
+
+  // 生成CSS变量
+  static generateCSSVariables(styleConfig) {
+    const fontSizeMap = {
+      '较小': { title: '1.2em', content: '0.9em', large: '2em' },
+      '正常': { title: '1.4em', content: '1em', large: '2.5em' },
+      '较大': { title: '1.6em', content: '1.1em', large: '3em' },
+      '超大': { title: '1.8em', content: '1.2em', large: '3.5em' }
+    };
+    
+    const spacingMap = {
+      '紧凑': 'var(--cf-spacing-sm)',
+      '正常': 'var(--cf-spacing-md)',
+      '宽松': 'var(--cf-spacing-lg)',
+      '超宽': 'var(--cf-spacing-xl)'
+    };
+    
+    const fontSize = fontSizeMap[styleConfig.font_size] || fontSizeMap['正常'];
+    const spacing = spacingMap[styleConfig.spacing] || spacingMap['正常'];
+    
+    return `
+      .cardforge-title { font-size: ${fontSize.title}; }
+      .cardforge-text-medium { font-size: ${fontSize.content}; }
+      .cardforge-text-large { font-size: ${fontSize.large}; }
+      .cardforge-content { gap: ${spacing}; }
+      .cardforge-grid { gap: ${spacing}; }
+    `;
+  }
+}

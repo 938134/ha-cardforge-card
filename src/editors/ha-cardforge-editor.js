@@ -1,18 +1,12 @@
 // src/editors/ha-cardforge-editor.js
 import { LitElement, html, css } from 'https://unpkg.com/lit@2.8.0/index.js?module';
 import { PluginRegistry } from '../core/plugin-registry.js';
-import { themeManager } from '../core/theme-manager.js';
-import { entityManager } from '../core/entity-manager.js';
-import { configManager } from '../core/config-manager.js';
-import { layoutEngine } from '../core/layout-engine.js';
-import { entityStrategies } from '../core/entity-strategies.js';
-import { foundationStyles } from '../core/styles.js';
+import { themeManager } from '../themes/index.js';
+import { designSystem } from '../core/design-system.js';
 import './plugin-selector.js';
 import './theme-selector.js';
-import './base-config-editor.js';
-import './advanced-config-editor.js';
-import './entity-strategy-editor.js';
-import './layout-editor.js';
+import './config-editors.js';
+import './entity-manager.js';
 
 class HaCardForgeEditor extends LitElement {
   static properties = {
@@ -22,13 +16,19 @@ class HaCardForgeEditor extends LitElement {
     _themes: { state: true },
     _selectedPlugin: { state: true },
     _initialized: { state: true },
-    _currentStrategy: { state: true },
-    _strategyData: { state: true }
+    _isDarkMode: { state: true },
+    _pluginManifest: { state: true },
+    _pluginInstance: { state: true }
   };
 
   static styles = [
-    foundationStyles,
+    designSystem,
     css`
+      :host {
+        display: block;
+        max-width: 100%;
+      }
+
       .editor-container {
         background: var(--cf-background);
         border-radius: var(--cf-radius-lg);
@@ -37,10 +37,17 @@ class HaCardForgeEditor extends LitElement {
         overflow: hidden;
       }
 
+      .editor-layout {
+        display: flex;
+        flex-direction: column;
+        gap: 0;
+      }
+
       .editor-section {
         background: var(--cf-surface);
         padding: var(--cf-spacing-lg);
         border-bottom: 1px solid var(--cf-border);
+        position: relative;
       }
 
       .editor-section:last-child {
@@ -57,6 +64,75 @@ class HaCardForgeEditor extends LitElement {
         border-radius: var(--cf-radius-md);
         border-left: 4px solid var(--cf-primary-color);
       }
+
+      .section-subtitle {
+        font-size: 0.8em;
+        color: var(--cf-text-secondary);
+        font-weight: normal;
+        margin-left: auto;
+        font-style: italic;
+      }
+
+      .action-buttons {
+        display: flex;
+        gap: var(--cf-spacing-md);
+        justify-content: flex-end;
+        margin-top: var(--cf-spacing-lg);
+      }
+
+      /* 不同区域的视觉区分 */
+      .editor-section:nth-child(1) .section-header {
+        border-left-color: #4CAF50; /* 绿色 - 卡片类型 */
+      }
+
+      .editor-section:nth-child(2) .section-header {
+        border-left-color: #2196F3; /* 蓝色 - 主题样式 */  
+      }
+
+      .editor-section:nth-child(3) .section-header {
+        border-left-color: #FF9800; /* 橙色 - 基础设置 */
+      }
+
+      .editor-section:nth-child(4) .section-header {
+        border-left-color: #9C27B0; /* 紫色 - 高级设置 */
+      }
+
+      .editor-section:nth-child(5) .section-header {
+        border-left-color: #607D8B; /* 蓝色灰 - 数据源配置 */
+      }
+
+      /* 深色模式适配 */
+      @media (prefers-color-scheme: dark) {
+        .editor-container {
+          background: var(--cf-dark-background);
+          border-color: var(--cf-dark-border);
+        }
+
+        .editor-section {
+          background: var(--cf-dark-surface);
+          border-bottom-color: var(--cf-dark-border);
+        }
+
+        .section-header {
+          background: rgba(var(--cf-rgb-primary), 0.1);
+          color: var(--cf-dark-text);
+        }
+      }
+
+      .cf-dark-mode .editor-container {
+        background: var(--cf-dark-background) !important;
+        border-color: var(--cf-dark-border) !important;
+      }
+
+      .cf-dark-mode .editor-section {
+        background: var(--cf-dark-surface) !important;
+        border-bottom-color: var(--cf-dark-border) !important;
+      }
+
+      .cf-dark-mode .section-header {
+        background: rgba(var(--cf-rgb-primary), 0.1) !important;
+        color: var(--cf-dark-text) !important;
+      }
     `
   ];
 
@@ -72,25 +148,41 @@ class HaCardForgeEditor extends LitElement {
     this._themes = [];
     this._selectedPlugin = null;
     this._initialized = false;
-    this._currentStrategy = 'stateless';
-    this._strategyData = {};
+    this._isDarkMode = false;
+    this._pluginManifest = null;
+    this._pluginInstance = null;
   }
 
   async firstUpdated() {
-    // 初始化核心系统
     await PluginRegistry.initialize();
     await themeManager.initialize();
     
     this._plugins = PluginRegistry.getAllPlugins();
     this._themes = themeManager.getAllThemes();
-    
-    // 设置管理器
-    entityManager.setHass(this.hass);
-    
+    this._detectDarkMode();
     this._initialized = true;
     
     if (this.config.plugin) {
-      await this._loadPluginInstance();
+      this._loadPluginInstance();
+    }
+  }
+
+  _detectDarkMode() {
+    this._isDarkMode = 
+      document.body.classList.contains('dark') ||
+      window.matchMedia('(prefers-color-scheme: dark)').matches;
+    
+    if (this._isDarkMode) {
+      this.classList.add('cf-dark-mode');
+    }
+  }
+
+  async _loadPluginInstance() {
+    this._selectedPlugin = PluginRegistry.getPlugin(this.config.plugin);
+    this._pluginManifest = this._selectedPlugin?.manifest || null;
+    
+    if (this._selectedPlugin) {
+      this._pluginInstance = PluginRegistry.createPluginInstance(this.config.plugin);
     }
   }
 
@@ -108,37 +200,20 @@ class HaCardForgeEditor extends LitElement {
     }
   }
 
-  async _loadPluginInstance() {
-    this._selectedPlugin = PluginRegistry.getPlugin(this.config.plugin);
-    
-    if (this._selectedPlugin) {
-      // 设置实体策略
-      const strategyType = entityStrategies.detectStrategy(this._selectedPlugin.manifest);
-      this._currentStrategy = strategyType;
-      
-      const strategy = entityManager.setStrategy(strategyType, this._selectedPlugin.manifest);
-      this._strategyData = strategy.process(this.config.entities, this.hass);
-      
-      // 设置配置管理器 schema
-      if (this._selectedPlugin.manifest.config_schema) {
-        configManager.setSchema('advanced', this._selectedPlugin.manifest.config_schema);
-      }
-    }
-  }
-
   render() {
     if (!this._initialized) {
       return this._renderLoading();
     }
 
     return html`
-      <div class="editor-container">
-        ${this._renderPluginSection()}
-        ${this._renderThemeSection()}
-        ${this._renderBaseConfigSection()}
-        ${this._renderAdvancedConfigSection()}
-        ${this._renderEntityStrategySection()}
-        ${this._renderLayoutSection()}
+      <div class="editor-container ${this._isDarkMode ? 'cf-dark-mode' : ''}">
+        <div class="editor-layout">
+          ${this._renderPluginSection()}
+          ${this._renderThemeSection()}
+          ${this._renderBaseConfigSection()}      <!-- 基础设置在前 -->
+          ${this._renderAdvancedConfigSection()}  <!-- 高级设置在后 -->
+          ${this._renderDataSourceSection()}
+        </div>
       </div>
     `;
   }
@@ -160,7 +235,9 @@ class HaCardForgeEditor extends LitElement {
         <div class="section-header">
           <ha-icon icon="mdi:palette"></ha-icon>
           <span>卡片类型</span>
+          <span class="section-subtitle">选择要使用的卡片插件</span>
         </div>
+        
         <plugin-selector
           .plugins=${this._plugins}
           .selectedPlugin=${this.config.plugin}
@@ -178,7 +255,9 @@ class HaCardForgeEditor extends LitElement {
         <div class="section-header">
           <ha-icon icon="mdi:format-paint"></ha-icon>
           <span>主题样式</span>
+          <span class="section-subtitle">选择卡片的整体视觉风格</span>
         </div>
+        
         <theme-selector
           .themes=${this._themes}
           .selectedTheme=${this.config.theme}
@@ -196,143 +275,127 @@ class HaCardForgeEditor extends LitElement {
         <div class="section-header">
           <ha-icon icon="mdi:tune"></ha-icon>
           <span>基础设置</span>
+          <span class="section-subtitle">调整基本外观和动画设置</span>
         </div>
+        
         <base-config-editor
           .config=${this.config}
-          @config-changed=${this._onBaseConfigChanged}
+          @config-changed=${this._onConfigChanged}
         ></base-config-editor>
       </div>
     `;
   }
-
+  
   _renderAdvancedConfigSection() {
-    if (!this.config.plugin || !this._selectedPlugin?.manifest.config_schema) return '';
+    if (!this.config.plugin || !this._pluginManifest?.config_schema) return '';
     
     return html`
       <div class="editor-section">
         <div class="section-header">
           <ha-icon icon="mdi:cog"></ha-icon>
           <span>高级设置</span>
+          <span class="section-subtitle">配置卡片特定功能</span>
         </div>
+        
         <advanced-config-editor
-          .schema=${this._selectedPlugin.manifest.config_schema}
+          .schema=${this._pluginManifest.config_schema}
           .config=${this.config}
-          @config-changed=${this._onAdvancedConfigChanged}
+          @config-changed=${this._onConfigChanged}
         ></advanced-config-editor>
       </div>
     `;
   }
 
-  _renderEntityStrategySection() {
-    if (!this.config.plugin) return '';
+  _renderDataSourceSection() {
+    if (!this.config.plugin || !this._pluginInstance) return '';
 
     return html`
       <div class="editor-section">
         <div class="section-header">
           <ha-icon icon="mdi:database"></ha-icon>
           <span>数据源配置</span>
+          <span class="section-subtitle">配置卡片显示的数据和内容</span>
         </div>
-        <entity-strategy-editor
-          .strategyType=${this._currentStrategy}
-          .strategyData=${this._strategyData}
+        
+        <entity-manager
           .hass=${this.hass}
+          .config=${this.config}
+          .pluginManifest=${this._pluginManifest}
           @entities-changed=${this._onEntitiesChanged}
-        ></entity-strategy-editor>
-      </div>
-    `;
-  }
-
-  _renderLayoutSection() {
-    if (!this.config.plugin || this._currentStrategy !== 'free_layout') return '';
-
-    return html`
-      <div class="editor-section">
-        <div class="section-header">
-          <ha-icon icon="mdi:view-grid"></ha-icon>
-          <span>布局设置</span>
-        </div>
-        <layout-editor
-          .layoutConfig=${this._strategyData.layout || {}}
-          @layout-changed=${this._onLayoutChanged}
-        ></layout-editor>
+        ></entity-manager>
       </div>
     `;
   }
 
   async _onPluginChanged(e) {
-    this.config = {
+    const newConfig = {
       type: 'custom:ha-cardforge-card',
       plugin: e.detail.pluginId,
       entities: {},
       theme: 'auto'
     };
 
+    this.config = newConfig;
     await this._loadPluginInstance();
-    this._notifyConfigUpdate();
+    
+    setTimeout(() => {
+      this._notifyConfigUpdate();
+    }, 0);
   }
 
   _onThemeChanged(e) {
-    this.config.theme = e.detail.theme;
-    configManager.setTheme(e.detail.theme);
+    this.config = {
+      ...this.config,
+      theme: e.detail.theme
+    };
     this._notifyConfigUpdate();
   }
 
-  _onBaseConfigChanged(e) {
-    const result = configManager.updateConfig('base', e.detail.config);
-    if (result.success) {
-      this.config = { ...this.config, ...e.detail.config };
-      this._notifyConfigUpdate();
-    }
-  }
-
-  _onAdvancedConfigChanged(e) {
-    const result = configManager.updateConfig('advanced', e.detail.config);
-    if (result.success) {
-      this.config = { ...this.config, ...e.detail.config };
-      this._notifyConfigUpdate();
-    }
+  _onConfigChanged(e) {
+    this.config = {
+      ...this.config,
+      ...e.detail.config
+    };
+    this._notifyConfigUpdate();
   }
 
   _onEntitiesChanged(e) {
     this.config.entities = e.detail.entities;
-    
-    // 重新处理实体数据
-    if (entityManager.getCurrentStrategy()) {
-      this._strategyData = entityManager.processEntities(this.config.entities, this.hass);
-    }
-    
     this._notifyConfigUpdate();
   }
 
-  _onLayoutChanged(e) {
-    if (this._strategyData.layout) {
-      this._strategyData.layout = { ...this._strategyData.layout, ...e.detail.layout };
-      
-      // 更新配置中的布局设置
-      this.config.entities = {
-        ...this.config.entities,
-        _layout_columns: this._strategyData.layout.columns,
-        _layout_style: this._strategyData.layout.style,
-        _layout_spacing: this._strategyData.layout.spacing
-      };
-      
-      this._notifyConfigUpdate();
-    }
-  }
-
   _notifyConfigUpdate() {
-    const fullConfig = configManager.getFullConfig();
     const configToSend = {
       type: 'custom:ha-cardforge-card',
-      ...fullConfig,
-      plugin: this.config.plugin,
-      entities: this.config.entities
+      ...this.config
     };
     
     this.dispatchEvent(new CustomEvent('config-changed', {
       detail: { config: configToSend }
     }));
     this.requestUpdate();
+  }
+
+  _save() {
+    const configToSend = {
+      type: 'custom:ha-cardforge-card',
+      ...this.config
+    };
+    
+    this.dispatchEvent(new CustomEvent('config-changed', {
+      detail: { config: configToSend }
+    }));
+    this.dispatchEvent(new CustomEvent('config-saved'));
+  }
+
+  _cancel() {
+    this.dispatchEvent(new CustomEvent('config-cancelled'));
+  }
+
+  updated(changedProperties) {
+    if (changedProperties.has('hass')) {
+      this.requestUpdate();
+    }
   }
 }
 

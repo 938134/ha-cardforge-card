@@ -1,6 +1,6 @@
 // src/editors/theme-selector.js
 import { LitElement, html, css } from 'https://unpkg.com/lit@2.8.0/index.js?module';
-import { foundationStyles } from '../core/styles.js';
+import { designSystem } from '../core/design-system.js';
 
 export class ThemeSelector extends LitElement {
   static properties = {
@@ -9,7 +9,7 @@ export class ThemeSelector extends LitElement {
   };
 
   static styles = [
-    foundationStyles,
+    designSystem,
     css`
       .theme-selector {
         width: 100%;
@@ -71,15 +71,6 @@ export class ThemeSelector extends LitElement {
         line-height: 1.2;
       }
 
-      /* 深色模式适配 */
-      @media (prefers-color-scheme: dark) {
-        .theme-item {
-          background: var(--cf-dark-surface);
-          border-color: var(--cf-dark-border);
-        }
-      }
-
-      /* 响应式优化 */
       @media (max-width: 600px) {
         .theme-grid {
           grid-template-columns: repeat(auto-fit, minmax(90px, 1fr));

@@ -1,22 +1,14 @@
 // src/main.js
 import { HaCardForgeCard } from './ha-cardforge-card.js';
 import { HaCardForgeEditor } from './editors/ha-cardforge-editor.js';
-import { EntityStrategyEditor } from './editors/entity-strategy-editor.js';
-import { LayoutEditor } from './editors/layout-editor.js';
 
-// 注册所有自定义元素
-const elements = {
-  'ha-cardforge-card': HaCardForgeCard,
-  'ha-cardforge-editor': HaCardForgeEditor,
-  'entity-strategy-editor': EntityStrategyEditor,
-  'layout-editor': LayoutEditor
-};
+if (!customElements.get('ha-cardforge-card')) {
+  customElements.define('ha-cardforge-card', HaCardForgeCard);
+}
 
-Object.entries(elements).forEach(([tag, constructor]) => {
-  if (!customElements.get(tag)) {
-    customElements.define(tag, constructor);
-  }
-});
+if (!customElements.get('ha-cardforge-editor')) {
+  customElements.define('ha-cardforge-editor', HaCardForgeEditor);
+}
 
 if (window.customCards) {
   window.customCards.push({
@@ -28,4 +20,4 @@ if (window.customCards) {
   });
 }
 
-console.log('🎉 卡片工坊初始化完成 - 新架构版本');
+console.log('🎉 卡片工坊初始化完成');

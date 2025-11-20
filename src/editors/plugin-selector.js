@@ -1,6 +1,6 @@
 // src/editors/plugin-selector.js
 import { LitElement, html, css } from 'https://unpkg.com/lit@2.8.0/index.js?module';
-import { foundationStyles } from '../core/styles.js';
+import { designSystem } from '../core/design-system.js';
 
 export class PluginSelector extends LitElement {
   static properties = {
@@ -11,7 +11,7 @@ export class PluginSelector extends LitElement {
   };
 
   static styles = [
-    foundationStyles,
+    designSystem,
     css`
       .plugin-selector {
         width: 100%;
@@ -74,15 +74,12 @@ export class PluginSelector extends LitElement {
         color: white;
       }
 
-      /* 深色模式适配 */
-      @media (prefers-color-scheme: dark) {
-        .plugin-item {
-          background: var(--cf-dark-surface);
-          border-color: var(--cf-dark-border);
-        }
+      .empty-state {
+        text-align: center;
+        padding: var(--cf-spacing-xl);
+        color: var(--cf-text-secondary);
       }
 
-      /* 响应式优化 */
       @media (max-width: 600px) {
         .plugin-grid {
           grid-template-columns: repeat(auto-fit, minmax(90px, 1fr));
@@ -148,8 +145,10 @@ export class PluginSelector extends LitElement {
   _renderPluginList() {
     if (this._filteredPlugins.length === 0) {
       return html`
-        <div class="cf-flex cf-flex-center cf-p-lg">
-          <div class="cf-text-sm cf-text-secondary">未找到匹配的插件</div>
+        <div class="empty-state">
+          <ha-icon icon="mdi:package-variant" style="font-size: 3em; opacity: 0.5; margin-bottom: var(--cf-spacing-md);"></ha-icon>
+          <div class="cf-text-md cf-mb-sm">未找到匹配的插件</div>
+          <div class="cf-text-sm cf-text-secondary">尝试使用不同的搜索关键词</div>
         </div>
       `;
     }

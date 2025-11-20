@@ -18,7 +18,6 @@ class ThemeManager {
   }
 
   async _discoverThemes() {
-    // 主题文件映射
     const themeFiles = {
       'auto': () => import('../themes/auto-theme.js'),
       'glass': () => import('../themes/glass-theme.js'),

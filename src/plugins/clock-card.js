@@ -1,15 +1,14 @@
 // src/plugins/clock-card.js
 import { BasePlugin } from '../core/base-plugin.js';
 
-class ClockCard extends BasePlugin {
-  // 静态 manifest 属性
+export default class ClockCard extends BasePlugin {
   static manifest = {
     id: 'clock-card',
     name: '时钟卡片',
-    version: '1.0.0',
     description: '显示当前时间和日期',
+    icon: '⏰',
     category: '时间',
-    icon: '🕒',
+    version: '1.0.0',
     author: 'CardForge',
     config_schema: {
       show_date: {
@@ -32,90 +31,54 @@ class ClockCard extends BasePlugin {
     capabilities: {
       supportsTitle: true,
       supportsFooter: false
-    },
-    layout_type: 'stateless'
+    }
   };
 
   getTemplate(config, hass, entities) {
     const now = new Date();
-    const showDate = config.show_date !== false;
-    const showSeconds = config.show_seconds === true;
-    const is12Hour = config.time_format === '12小时制';
+    const timeFormat = config.time_format || '24小时制';
     
-    // 格式化时间
-    let hours = now.getHours();
-    let ampm = '';
-    
-    if (is12Hour) {
-      ampm = hours >= 12 ? ' PM' : ' AM';
-      hours = hours % 12 || 12;
-    }
-    
-    const minutes = now.getMinutes().toString().padStart(2, '0');
-    const seconds = showSeconds ? `:${now.getSeconds().toString().padStart(2, '0')}` : '';
-    const timeString = `${hours}:${minutes}${seconds}${ampm}`;
-    
-    // 格式化日期
-    const dateString = now.toLocaleDateString('zh-CN', {
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric',
-      weekday: 'long'
-    });
+    let timeText = this._formatTime(now, timeFormat, config.show_seconds);
+    let dateText = config.show_date ? this._formatDate(now) : '';
 
-    const title = this._getEntityValue(entities, 'title') || config.title || '当前时间';
-    
     return this._renderCardContainer(`
-      ${this._renderCardHeader(title)}
-      <div class="cardforge-time-content">
-        <div class="cardforge-time">${timeString}</div>
-        ${showDate ? `<div class="cardforge-date">${dateString}</div>` : ''}
+      ${this._renderCardHeader(config, entities)}
+      
+      <div class="cf-flex cf-flex-center cf-flex-column cf-gap-lg">
+        <div class="cardforge-text-large">${timeText}</div>
+        ${dateText ? `<div class="cardforge-text-medium">${dateText}</div>` : ''}
       </div>
-    `, 'cardforge-clock-card');
+      
+      ${this._renderCardFooter(config, entities)}
+    `, 'clock-card', config);
   }
 
   getStyles(config) {
-    return `
-      ${this.getBaseStyles(config)}
-      
-      .cardforge-clock-card {
-        text-align: center;
-      }
-      
-      .cardforge-time-content {
-        flex: 1;
-        display: flex;
-        flex-direction: column;
-        justify-content: center;
-        align-items: center;
-        gap: var(--cf-spacing-md);
-      }
-      
-      .cardforge-time {
-        font-size: 3em;
-        font-weight: 300;
-        line-height: 1;
-        color: var(--cf-primary-color);
-      }
-      
-      .cardforge-date {
-        font-size: 1.2em;
-        opacity: 0.8;
-      }
-      
-      @container cardforge-container (max-width: 400px) {
-        .cardforge-time {
-          font-size: 2.5em;
-        }
-        
-        .cardforge-date {
-          font-size: 1em;
-        }
-      }
-    `;
+    return this.getBaseStyles(config);
+  }
+
+  _formatTime(date, format, showSeconds) {
+    let hours = date.getHours();
+    const minutes = date.getMinutes().toString().padStart(2, '0');
+    const seconds = showSeconds ? ':' + date.getSeconds().toString().padStart(2, '0') : '';
+    
+    if (format === '12小时制') {
+      const ampm = hours >= 12 ? 'PM' : 'AM';
+      hours = hours % 12 || 12;
+      return `${hours}:${minutes}${seconds} ${ampm}`;
+    } else {
+      hours = hours.toString().padStart(2, '0');
+      return `${hours}:${minutes}${seconds}`;
+    }
+  }
+
+  _formatDate(date) {
+    const year = date.getFullYear();
+    const month = (date.getMonth() + 1).toString().padStart(2, '0');
+    const day = date.getDate().toString().padStart(2, '0');
+    const weekdays = ['星期日', '星期一', '星期二', '星期三', '星期四', '星期五', '星期六'];
+    const weekday = weekdays[date.getDay()];
+    
+    return `${year}年${month}月${day}日 ${weekday}`;
   }
 }
-
-// 导出 manifest 和类
-export const manifest = ClockCard.manifest;
-export default ClockCard;
