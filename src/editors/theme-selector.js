@@ -17,8 +17,8 @@ export class ThemeSelector extends LitElement {
 
       .theme-grid {
         display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
-        gap: var(--cf-spacing-md);
+        grid-template-columns: repeat(auto-fit, minmax(80px, 1fr));
+        gap: var(--cf-spacing-sm);
         width: 100%;
       }
 
@@ -27,13 +27,13 @@ export class ThemeSelector extends LitElement {
         flex-direction: column;
         align-items: center;
         justify-content: center;
-        padding: var(--cf-spacing-md);
+        padding: var(--cf-spacing-sm);
         border: 1px solid var(--cf-border);
         border-radius: var(--cf-radius-md);
         cursor: pointer;
-        transition: all var(--cf-transition-normal);
+        transition: all var(--cf-transition-fast);
         background: var(--cf-surface);
-        min-height: 100px;
+        min-height: 70px;
         text-align: center;
         position: relative;
         overflow: hidden;
@@ -41,8 +41,8 @@ export class ThemeSelector extends LitElement {
 
       .theme-item:hover {
         border-color: var(--cf-primary-color);
-        transform: translateY(-2px);
-        box-shadow: var(--cf-shadow-md);
+        transform: translateY(-1px);
+        box-shadow: var(--cf-shadow-sm);
       }
 
       .theme-item.selected {
@@ -54,9 +54,9 @@ export class ThemeSelector extends LitElement {
 
       .theme-preview {
         width: 100%;
-        height: 60px;
+        height: 40px; /* 从60px压缩到40px */
         border-radius: var(--cf-radius-sm);
-        margin-bottom: var(--cf-spacing-sm);
+        margin-bottom: 6px; /* 从sm减少到6px */
         border: 2px solid transparent;
         transition: all var(--cf-transition-fast);
       }
@@ -66,38 +66,61 @@ export class ThemeSelector extends LitElement {
       }
 
       .theme-name {
-        font-size: 0.9em;
+        font-size: 0.9em; /* 保持原有文字大小不变 */
         font-weight: 500;
         line-height: 1.2;
+        max-width: 100%;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
       }
 
-      @media (max-width: 600px) {
+      .theme-item.selected .theme-name {
+        color: white;
+      }
+
+      /* 紧凑模式 - 移动端优化 */
+      @media (max-width: 768px) {
         .theme-grid {
-          grid-template-columns: repeat(auto-fit, minmax(90px, 1fr));
-          gap: var(--cf-spacing-sm);
+          grid-template-columns: repeat(auto-fit, minmax(70px, 1fr));
+          gap: var(--cf-spacing-xs);
         }
 
         .theme-item {
-          min-height: 90px;
-          padding: var(--cf-spacing-sm);
+          min-height: 60px;
+          padding: 6px 4px;
         }
 
         .theme-preview {
-          height: 50px;
+          height: 35px; /* 移动端进一步压缩 */
+          margin-bottom: 4px;
         }
 
         .theme-name {
-          font-size: 0.85em;
+          font-size: 0.85em; /* 移动端稍微减小文字，但比插件选择器大 */
         }
       }
 
-      @media (max-width: 400px) {
+      /* 超小屏幕优化 */
+      @media (max-width: 480px) {
         .theme-grid {
-          grid-template-columns: repeat(2, 1fr);
+          grid-template-columns: repeat(3, 1fr);
         }
 
         .theme-item {
-          min-height: 85px;
+          min-height: 55px;
+        }
+
+        .theme-preview {
+          height: 30px;
+        }
+      }
+
+      /* 深色模式适配 */
+      @media (prefers-color-scheme: dark) {
+        .theme-item {
+          background: var(--cf-dark-surface);
+          border-color: var(--cf-dark-border);
         }
       }
     `
@@ -111,6 +134,7 @@ export class ThemeSelector extends LitElement {
             <div 
               class="theme-item ${this.selectedTheme === theme.id ? 'selected' : ''}"
               @click=${() => this._selectTheme(theme.id)}
+              title="${theme.description}"
             >
               <div class="theme-preview" style="
                 background: ${theme.preview?.background || 'var(--cf-background)'};

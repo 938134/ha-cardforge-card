@@ -53,12 +53,27 @@ export class BasePlugin {
         title: [],
         content: [],
         footer: []
+      },
+      // 默认支持所有功能
+      supported_features: {
+        fonts: true,
+        alignment: true,
+        spacing: true,
+        borders: true,
+        colors: true,
+        animations: true
       }
     };
     
     const merged = { ...defaultManifest, ...customManifest };
     this._validateManifest(merged);
     return merged;
+  }
+
+  // === 获取支持的功能 ===
+  getSupportedFeatures() {
+    const manifest = this.getManifest();
+    return manifest.supported_features || {};
   }
 
   // === 布局策略系统 ===

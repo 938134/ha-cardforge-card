@@ -114,6 +114,14 @@ PoetryCard.manifest = {
   capabilities: {
     supportsTitle: true,
     supportsFooter: true
+  },
+  supported_features: {
+    fonts: false,          // 固定字体，不支持修改
+    alignment: true,       // 支持对齐
+    spacing: true,         // 支持间距
+    borders: false,        // 不支持边框
+    colors: false,         // 固定颜色主题
+    animations: false      // 不支持动画
   }
 };
 

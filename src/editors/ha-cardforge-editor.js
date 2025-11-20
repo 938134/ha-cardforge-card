@@ -274,14 +274,15 @@ class HaCardForgeEditor extends LitElement {
       <div class="editor-section">
         <div class="section-header">
           <ha-icon icon="mdi:tune"></ha-icon>
-          <span>基础设置</span>
-          <span class="section-subtitle">调整基本外观和动画设置</span>
+          <span>卡片设置</span>
+          <span class="section-subtitle">配置卡片外观和功能</span>
         </div>
         
-        <base-config-editor
+        <unified-config-editor
           .config=${this.config}
+          .pluginManifest=${this._pluginManifest}
           @config-changed=${this._onConfigChanged}
-        ></base-config-editor>
+        ></unified-config-editor>
       </div>
     `;
   }
