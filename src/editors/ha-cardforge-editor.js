@@ -3,10 +3,10 @@ import { LitElement, html, css } from 'https://unpkg.com/lit@2.8.0/index.js?modu
 import { PluginRegistry } from '../core/plugin-registry.js';
 import { themeManager } from '../themes/index.js';
 import { designSystem } from '../core/design-system.js';
+import './config-editors.js';
+import './inline-block-editor.js';
 import './plugin-selector.js';
 import './theme-selector.js';
-import './config-editors.js';
-import './layout-editors.js';
 
 class HaCardForgeEditor extends LitElement {
   static properties = {
