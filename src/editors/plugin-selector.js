@@ -18,13 +18,13 @@ export class PluginSelector extends LitElement {
       }
 
       .search-box {
-        margin-bottom: var(--cf-spacing-lg);
+        margin-bottom: var(--cf-spacing-md);
       }
 
       .plugin-grid {
         display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
-        gap: var(--cf-spacing-md);
+        grid-template-columns: repeat(auto-fit, minmax(80px, 1fr));
+        gap: var(--cf-spacing-sm);
         width: 100%;
       }
 
@@ -33,13 +33,13 @@ export class PluginSelector extends LitElement {
         flex-direction: column;
         align-items: center;
         justify-content: center;
-        padding: var(--cf-spacing-md);
+        padding: var(--cf-spacing-sm);
         border: 1px solid var(--cf-border);
         border-radius: var(--cf-radius-md);
         cursor: pointer;
-        transition: all var(--cf-transition-normal);
+        transition: all var(--cf-transition-fast);
         background: var(--cf-surface);
-        min-height: 100px;
+        min-height: 70px;
         text-align: center;
         position: relative;
         overflow: hidden;
@@ -47,8 +47,8 @@ export class PluginSelector extends LitElement {
 
       .plugin-item:hover {
         border-color: var(--cf-primary-color);
-        transform: translateY(-2px);
-        box-shadow: var(--cf-shadow-md);
+        transform: translateY(-1px);
+        box-shadow: var(--cf-shadow-sm);
       }
 
       .plugin-item.selected {
@@ -59,15 +59,19 @@ export class PluginSelector extends LitElement {
       }
 
       .plugin-icon {
-        font-size: 2em;
-        margin-bottom: var(--cf-spacing-sm);
+        font-size: 1.2em;
+        margin-bottom: 4px;
         line-height: 1;
       }
 
       .plugin-name {
-        font-size: 0.9em;
+        font-size: 0.75em;
         font-weight: 500;
         line-height: 1.2;
+        max-width: 100%;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
       }
 
       .plugin-item.selected .plugin-name {
@@ -76,37 +80,48 @@ export class PluginSelector extends LitElement {
 
       .empty-state {
         text-align: center;
-        padding: var(--cf-spacing-xl);
+        padding: var(--cf-spacing-lg);
         color: var(--cf-text-secondary);
       }
 
-      @media (max-width: 600px) {
+      /* 紧凑模式 - 更小的间距和尺寸 */
+      @media (max-width: 768px) {
         .plugin-grid {
-          grid-template-columns: repeat(auto-fit, minmax(90px, 1fr));
-          gap: var(--cf-spacing-sm);
+          grid-template-columns: repeat(auto-fit, minmax(70px, 1fr));
+          gap: var(--cf-spacing-xs);
         }
 
         .plugin-item {
-          min-height: 90px;
-          padding: var(--cf-spacing-sm);
+          min-height: 60px;
+          padding: 6px 4px;
         }
 
         .plugin-icon {
-          font-size: 1.8em;
+          font-size: 1em;
+          margin-bottom: 2px;
         }
 
         .plugin-name {
-          font-size: 0.85em;
+          font-size: 0.7em;
         }
       }
 
-      @media (max-width: 400px) {
+      /* 超小屏幕优化 */
+      @media (max-width: 480px) {
         .plugin-grid {
-          grid-template-columns: repeat(2, 1fr);
+          grid-template-columns: repeat(3, 1fr);
         }
 
         .plugin-item {
-          min-height: 85px;
+          min-height: 55px;
+        }
+      }
+
+      /* 深色模式适配 */
+      @media (prefers-color-scheme: dark) {
+        .plugin-item {
+          background: var(--cf-dark-surface);
+          border-color: var(--cf-dark-border);
         }
       }
     `
@@ -146,9 +161,9 @@ export class PluginSelector extends LitElement {
     if (this._filteredPlugins.length === 0) {
       return html`
         <div class="empty-state">
-          <ha-icon icon="mdi:package-variant" style="font-size: 3em; opacity: 0.5; margin-bottom: var(--cf-spacing-md);"></ha-icon>
-          <div class="cf-text-md cf-mb-sm">未找到匹配的插件</div>
-          <div class="cf-text-sm cf-text-secondary">尝试使用不同的搜索关键词</div>
+          <ha-icon icon="mdi:package-variant" style="font-size: 2em; opacity: 0.5; margin-bottom: var(--cf-spacing-sm);"></ha-icon>
+          <div class="cf-text-sm cf-mb-xs">未找到匹配的插件</div>
+          <div class="cf-text-xs cf-text-secondary">尝试使用不同的搜索关键词</div>
         </div>
       `;
     }
@@ -159,6 +174,7 @@ export class PluginSelector extends LitElement {
           <div 
             class="plugin-item ${this.selectedPlugin === plugin.id ? 'selected' : ''}"
             @click=${() => this._selectPlugin(plugin)}
+            title="${plugin.description}"
           >
             <div class="plugin-icon">${plugin.icon}</div>
             <div class="plugin-name">${plugin.name}</div>

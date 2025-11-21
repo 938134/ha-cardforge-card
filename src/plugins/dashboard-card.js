@@ -1,39 +1,11 @@
 // src/plugins/dashboard-card.js
 import { BasePlugin } from '../core/base-plugin.js';
+import { BlockManager } from '../core/block-manager.js';
 
-export default class DashboardCard extends BasePlugin {
-  static manifest = {
-    id: 'dashboard-card',
-    name: '仪表盘卡片',
-    description: '多数据源仪表盘展示',
-    icon: '📊',
-    category: '信息',
-    version: '1.0.0',
-    author: 'CardForge',
-    layout_type: 'free',
-    allow_custom_entities: true,
-    config_schema: {
-      columns: {
-        type: 'select',
-        label: '列数',
-        options: ['2列', '3列', '4列'],
-        default: '3列'
-      },
-      show_icons: {
-        type: 'boolean',
-        label: '显示图标',
-        default: true
-      }
-    },
-    capabilities: {
-      supportsTitle: true,
-      supportsFooter: false
-    }
-  };
-
+class DashboardCard extends BasePlugin {
   getTemplate(config, hass, entities) {
     const contentBlocks = this.processEntities(entities, config, hass);
-    const columns = parseInt(config.columns) || 3;
+    const columns = this._getColumnCount(config.columns);
 
     let dashboardContent = '';
     
@@ -55,41 +27,118 @@ export default class DashboardCard extends BasePlugin {
   }
 
   getStyles(config) {
-    return this.getBaseStyles(config);
+    const baseStyles = this.getBaseStyles(config);
+    
+    return `
+      ${baseStyles}
+      
+      .dashboard-item {
+        background: rgba(var(--cf-rgb-primary), 0.05);
+        border: 1px solid var(--cf-border);
+        border-radius: var(--cf-radius-md);
+        padding: var(--cf-spacing-lg);
+        text-align: center;
+        transition: all var(--cf-transition-fast);
+        min-height: 100px;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+      }
+      
+      .dashboard-item:hover {
+        border-color: var(--cf-primary-color);
+        transform: translateY(-2px);
+        box-shadow: var(--cf-shadow-sm);
+      }
+      
+      .item-label {
+        font-size: 0.9em;
+        color: var(--cf-text-secondary);
+        margin-bottom: var(--cf-spacing-sm);
+      }
+      
+      .item-value {
+        font-size: 1.5em;
+        font-weight: 600;
+        color: var(--cf-text-primary);
+      }
+      
+      .dashboard-grid {
+        gap: var(--cf-spacing-md);
+      }
+      
+      @container cardforge-container (max-width: 400px) {
+        .dashboard-grid {
+          grid-template-columns: 1fr !important;
+        }
+        
+        .dashboard-item {
+          padding: var(--cf-spacing-md);
+          min-height: 80px;
+        }
+        
+        .item-value {
+          font-size: 1.2em;
+        }
+      }
+    `;
+  }
+
+  _getColumnCount(columnConfig) {
+    const columnMap = {
+      '2列': 2,
+      '3列': 3,
+      '4列': 4
+    };
+    return columnMap[columnConfig] || 3;
   }
 
   _renderDashboardGrid(blocks, columns, showIcons) {
-    const gridItems = blocks.map(block => {
-      let value = block.content;
-      let icon = '';
-      let unit = '';
-
-      if (block.realTimeData) {
-        value = block.realTimeData.state;
-        const attributes = block.realTimeData.attributes || {};
-        unit = attributes.unit_of_measurement || '';
-        
-        if (showIcons) {
-          icon = attributes.icon ? `<ha-icon icon="${attributes.icon}"></ha-icon>` : this._getDefaultIcon(block.type);
-        }
-      } else if (showIcons) {
-        icon = this._getDefaultIcon(block.type);
-      }
-
-      return `
-        <div class="cf-flex cf-flex-center cf-flex-column cf-p-md" style="
-          background: rgba(var(--cf-rgb-primary), 0.05); 
-          border-radius: var(--cf-radius-md);
-          border: 1px solid var(--cf-border);
-        ">
-          ${icon ? `<div class="cf-mb-sm" style="font-size: 1.5em;">${icon}</div>` : ''}
-          <div class="cardforge-text-medium cf-font-semibold">${this._getBlockTypeName(block.type)}</div>
-          <div class="cardforge-text-large cf-mt-sm">${value} ${unit}</div>
-        </div>
-      `;
-    });
-
+    const gridItems = blocks.map(block => this._renderDashboardItem(block, showIcons));
+    
     return this.renderGrid(gridItems, columns, 'dashboard-grid');
+  }
+
+  _renderDashboardItem(block, showIcons) {
+    const value = block.realTimeData?.state || block.content;
+    const unit = block.realTimeData?.attributes?.unit_of_measurement || '';
+    const icon = showIcons ? this._getBlockIcon(block) : '';
+    const label = BlockManager.getBlockDisplayName(block);
+    
+    return `
+      <div class="dashboard-item">
+        ${icon}
+        <div class="item-label">${label}</div>
+        <div class="item-value">${value} ${unit}</div>
+        ${this._renderTrendIndicator(block)}
+      </div>
+    `;
+  }
+
+  _getBlockIcon(block) {
+    if (block.realTimeData?.attributes?.icon) {
+      return `<ha-icon icon="${block.realTimeData.attributes.icon}" style="font-size: 1.5em; margin-bottom: var(--cf-spacing-sm);"></ha-icon>`;
+    }
+    
+    const defaultIcons = {
+      text: '📝',
+      sensor: '📊',
+      weather: '🌤️',
+      switch: '🔌'
+    };
+    
+    const icon = defaultIcons[block.type] || '📦';
+    return `<div style="font-size: 1.5em; margin-bottom: var(--cf-spacing-sm);">${icon}</div>`;
+  }
+
+  _renderTrendIndicator(block) {
+    if (block.type !== 'sensor' || !block.realTimeData) return '';
+    
+    const attributes = block.realTimeData.attributes || {};
+    if (!attributes.unit_of_measurement) return '';
+    
+    return '';
   }
 
   _renderEmptyState() {
@@ -101,24 +150,37 @@ export default class DashboardCard extends BasePlugin {
       </div>
     `;
   }
-
-  _getDefaultIcon(type) {
-    const icons = {
-      text: '📝',
-      sensor: '📊',
-      weather: '🌤️',
-      switch: '🔌'
-    };
-    return icons[type] || '📦';
-  }
-
-  _getBlockTypeName(type) {
-    const names = {
-      text: '文本',
-      sensor: '传感器', 
-      weather: '天气',
-      switch: '开关'
-    };
-    return names[type] || '数据';
-  }
 }
+
+// 正确导出 manifest 和默认类
+DashboardCard.manifest = {
+  id: 'dashboard-card',
+  name: '仪表盘卡片',
+  description: '多数据源仪表盘展示',
+  icon: '📊',
+  category: '信息',
+  version: '1.0.0',
+  author: 'CardForge',
+  layout_type: 'free',
+  allow_custom_entities: true,
+  config_schema: {
+    columns: {
+      type: 'select',
+      label: '列数',
+      options: ['2列', '3列', '4列'],
+      default: '3列'
+    },
+    show_icons: {
+      type: 'boolean',
+      label: '显示图标',
+      default: true
+    }
+  },
+  capabilities: {
+    supportsTitle: true,
+    supportsFooter: false
+  }
+};
+
+export { DashboardCard as default, DashboardCard };
+export const manifest = DashboardCard.manifest;

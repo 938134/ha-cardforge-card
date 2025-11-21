@@ -11,7 +11,6 @@ class ThemeManager {
     try {
       await this._discoverThemes();
       this._initialized = true;
-      console.log(`✅ 主题系统初始化完成，加载 ${this.themes.size} 个主题`);
     } catch (error) {
       console.error('❌ 主题系统初始化失败:', error);
     }

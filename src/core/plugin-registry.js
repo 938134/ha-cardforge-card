@@ -9,7 +9,6 @@ class PluginRegistry {
     try {
       await this._discoverPlugins();
       this._initialized = true;
-      console.log(`✅ 插件系统初始化完成，加载 ${this._plugins.size} 个插件`);
     } catch (error) {
       console.error('❌ 插件注册表初始化失败:', error);
     }
@@ -57,7 +56,6 @@ class PluginRegistry {
           class: PluginClass,
           manifest: module.manifest
         });
-        console.log(`✅ 注册插件: ${pluginId}`);
       } else {
         console.warn(`插件 ${pluginId} 接口不完整，跳过`);
       }

@@ -200,4 +200,49 @@ export const designSystem = css`
       grid-template-columns: 1fr;
     }
   }
+
+  /* ===== 布局组件样式 ===== */
+  .cardforge-section {
+    margin-bottom: var(--cf-spacing-lg);
+  }
+
+  .cardforge-section-title {
+    margin-bottom: var(--cf-spacing-md);
+    font-weight: 600;
+    opacity: 0.9;
+  }
+
+  .cardforge-footer {
+    margin-top: var(--cf-spacing-lg);
+    padding-top: var(--cf-spacing-md);
+    border-top: 1px solid var(--cf-border);
+  }
+
+  /* ===== 错误和加载状态 ===== */
+  .cardforge-error-container,
+  .cardforge-loading-container,
+  .cardforge-empty-container {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: var(--cf-spacing-md);
+    min-height: 80px;
+    text-align: center;
+  }
+
+  .cardforge-loading-spinner {
+    width: 24px;
+    height: 24px;
+    border: 2px solid var(--cf-border);
+    border-top: 2px solid var(--cf-primary-color);
+    border-radius: 50%;
+    animation: cardforge-spin 1s linear infinite;
+  }
+
+  @keyframes cardforge-spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+  }
 `;

@@ -1,39 +1,7 @@
 // src/plugins/clock-card.js
 import { BasePlugin } from '../core/base-plugin.js';
 
-export default class ClockCard extends BasePlugin {
-  static manifest = {
-    id: 'clock-card',
-    name: '时钟卡片',
-    description: '显示当前时间和日期',
-    icon: '⏰',
-    category: '时间',
-    version: '1.0.0',
-    author: 'CardForge',
-    config_schema: {
-      show_date: {
-        type: 'boolean',
-        label: '显示日期',
-        default: true
-      },
-      show_seconds: {
-        type: 'boolean', 
-        label: '显示秒数',
-        default: false
-      },
-      time_format: {
-        type: 'select',
-        label: '时间格式',
-        options: ['12小时制', '24小时制'],
-        default: '24小时制'
-      }
-    },
-    capabilities: {
-      supportsTitle: true,
-      supportsFooter: false
-    }
-  };
-
+class ClockCard extends BasePlugin {
   getTemplate(config, hass, entities) {
     const now = new Date();
     const timeFormat = config.time_format || '24小时制';
@@ -82,3 +50,39 @@ export default class ClockCard extends BasePlugin {
     return `${year}年${month}月${day}日 ${weekday}`;
   }
 }
+
+// 正确导出 manifest 和默认类
+ClockCard.manifest = {
+  id: 'clock-card',
+  name: '时钟卡片',
+  description: '显示当前时间和日期',
+  icon: '⏰',
+  category: '时间',
+  version: '1.0.0',
+  author: 'CardForge',
+  config_schema: {
+    show_date: {
+      type: 'boolean',
+      label: '显示日期',
+      default: true
+    },
+    show_seconds: {
+      type: 'boolean', 
+      label: '显示秒数',
+      default: false
+    },
+    time_format: {
+      type: 'select',
+      label: '时间格式',
+      options: ['12小时制', '24小时制'],
+      default: '24小时制'
+    }
+  },
+  capabilities: {
+    supportsTitle: true,
+    supportsFooter: false
+  }
+};
+
+export { ClockCard as default, ClockCard };
+export const manifest = ClockCard.manifest;

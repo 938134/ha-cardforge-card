@@ -1,7 +1,7 @@
 // src/core/base-plugin.js
 import { themeManager } from '../themes/index.js';
-import { LayoutStrategy } from './layout-strategy.js';
-import { EntityProcessor } from './entity-processor.js';
+import { LayoutEngine } from './layout-engine.js';
+import { BlockManager } from './block-manager.js';
 import { ConfigManager } from './config-manager.js';
 
 export class BasePlugin {
@@ -49,10 +49,13 @@ export class BasePlugin {
       author: 'CardForge',
       config_schema: {},
       capabilities: {},
-      layout_fields: {
-        title: [],
-        content: [],
-        footer: []
+      supported_features: {
+        fonts: true,
+        alignment: true,
+        spacing: true,
+        borders: true,
+        colors: true,
+        animations: true
       }
     };
     
@@ -61,27 +64,26 @@ export class BasePlugin {
     return merged;
   }
 
-  // === 布局策略系统 ===
-  getLayoutMode() {
+  // === 获取支持的功能 ===
+  getSupportedFeatures() {
     const manifest = this.getManifest();
-    return LayoutStrategy.detectMode(manifest);
+    return manifest.supported_features || {};
   }
 
-  getLayoutInfo() {
+  // === 布局引擎系统 ===
+  getLayoutMode() {
     const manifest = this.getManifest();
-    return LayoutStrategy.getStrategyInfo(manifest);
+    return LayoutEngine.detectMode(manifest);
   }
 
   validateEntities(entities, config, hass) {
-    const mode = this.getLayoutMode();
     const manifest = this.getManifest();
-    return LayoutStrategy.validateEntities(mode, entities, manifest);
+    return LayoutEngine.validate(entities, manifest);
   }
 
   processEntities(entities, config, hass) {
-    const mode = this.getLayoutMode();
     const manifest = this.getManifest();
-    return LayoutStrategy.processEntities(mode, entities, manifest, hass);
+    return LayoutEngine.process(entities, manifest, hass);
   }
 
   // === 卡片能力系统 ===
@@ -111,102 +113,29 @@ export class BasePlugin {
   // === 数据获取 ===
   _getCardValue(hass, entities, key, defaultValue = '') {
     const source = this._getEntityValue(entities, key);
-    return EntityProcessor.getFlexibleValue(hass, source, defaultValue);
+    return this._getFlexibleValue(hass, source, defaultValue);
   }
 
   _getEntityValue(entities, key, defaultValue = '') {
-    return EntityProcessor._getStringValue(entities[key]) || defaultValue;
+    if (!entities || !entities[key]) return defaultValue;
+    
+    const value = entities[key];
+    if (typeof value === 'string') return value;
+    if (typeof value === 'object') return value._source || value.state || '';
+    return String(value);
   }
 
-  // === 智能数据获取方法 ===
-  _getUserName(hass, defaultValue = '朋友') {
-    if (hass?.user?.name) {
-      return hass.user.name;
+  _getFlexibleValue(hass, source, defaultValue = '') {
+    if (!source) return defaultValue;
+    
+    // 实体ID直接获取状态
+    if (source.includes('.') && hass?.states?.[source]) {
+      const entity = hass.states[source];
+      return entity.state || defaultValue;
     }
-    return defaultValue;
-  }
-
-  _getTimeBasedGreeting() {
-    const hour = new Date().getHours();
-    if (hour >= 5 && hour < 12) {
-      return '早上好';
-    } else if (hour >= 12 && hour < 14) {
-      return '中午好';
-    } else if (hour >= 14 && hour < 18) {
-      return '下午好';
-    } else if (hour >= 18 && hour < 22) {
-      return '晚上好';
-    } else {
-      return '你好';
-    }
-  }
-
-  _getTimePeriodMessage() {
-    const hour = new Date().getHours();
-    if (hour >= 5 && hour < 12) {
-      return '美好的一天从早晨开始';
-    } else if (hour >= 12 && hour < 14) {
-      return '午间时光，注意休息';
-    } else if (hour >= 14 && hour < 18) {
-      return '下午工作效率最高';
-    } else if (hour >= 18 && hour < 22) {
-      return '晚间放松时间';
-    } else {
-      return '夜深了，早点休息';
-    }
-  }
-
-  _getDefaultWelcomeMessage() {
-    const hour = new Date().getHours();
-    if (hour >= 5 && hour < 12) {
-      return '今天也是充满活力的一天！';
-    } else if (hour >= 12 && hour < 14) {
-      return '午餐时间到，记得按时吃饭';
-    } else if (hour >= 14 && hour < 18) {
-      return '下午工作加油！';
-    } else if (hour >= 18 && hour < 22) {
-      return '晚上放松一下';
-    } else {
-      return '夜深了，注意休息';
-    }
-  }
-
-  // === 实体显示工具 ===
-  _getEntityDisplayName(entityConfig, hass) {
-    return EntityProcessor.getEntityDisplayName(entityConfig, hass);
-  }
-
-  _getEntityIcon(entityConfig, hass) {
-    return EntityProcessor.getEntityIcon(entityConfig, hass);
-  }
-
-  // === 错误处理模板 ===
-  _renderError(message, icon = '❌') {
-    return `
-      <div class="cardforge-error-container cf-flex cf-flex-center cf-flex-column cf-p-lg">
-        <div class="cf-error cf-text-xl cf-mb-md">${icon}</div>
-        <div class="cf-text-lg cf-font-bold cf-mb-sm">卡片加载失败</div>
-        <div class="cf-text-sm cf-text-secondary">${this._renderSafeHTML(message)}</div>
-      </div>
-    `;
-  }
-
-  _renderLoading(message = '加载中...') {
-    return `
-      <div class="cardforge-loading-container cf-flex cf-flex-center cf-flex-column cf-p-lg">
-        <ha-circular-progress indeterminate></ha-circular-progress>
-        <div class="cf-text-md cf-mt-md">${this._renderSafeHTML(message)}</div>
-      </div>
-    `;
-  }
-
-  _renderEmpty(message = '暂无数据', icon = '📭') {
-    return `
-      <div class="cardforge-empty-container cf-flex cf-flex-center cf-flex-column cf-p-lg">
-        <div class="cf-text-xl cf-mb-md">${icon}</div>
-        <div class="cf-text-sm cf-text-secondary">${this._renderSafeHTML(message)}</div>
-      </div>
-    `;
+    
+    // 直接文本
+    return source;
   }
 
   // === 工具方法 ===
@@ -303,51 +232,8 @@ export class BasePlugin {
   getBaseStyles(config) {
     const themeId = config.theme || 'auto';
     const themeStyles = themeManager.getThemeStyles(themeId, config);
-    const styleConfig = ConfigManager.getStyleConfig(config);
-    const cssVariables = ConfigManager.generateCSSVariables(styleConfig);
     
     return `
-      ${cssVariables}
-      
-      /* 统一卡片容器 */
-      .cardforge-card-container {
-        display: flex;
-        flex-direction: column;
-        min-height: 80px;
-        height: auto;
-        padding: var(--cf-spacing-lg);
-        container-type: inline-size;
-        container-name: cardforge-container;
-        position: relative;
-        overflow: hidden;
-      }
-
-      /* 内容布局系统 */
-      .cardforge-content {
-        flex: 1;
-        display: flex;
-        flex-direction: column;
-        justify-content: center;
-        gap: var(--cf-spacing-md);
-      }
-
-      /* 布局组件 */
-      .cardforge-section {
-        margin-bottom: var(--cf-spacing-lg);
-      }
-
-      .cardforge-section-title {
-        margin-bottom: var(--cf-spacing-md);
-        font-weight: 600;
-        opacity: 0.9;
-      }
-
-      .cardforge-footer {
-        margin-top: var(--cf-spacing-lg);
-        padding-top: var(--cf-spacing-md);
-        border-top: 1px solid var(--cf-border);
-      }
-
       /* 应用主题样式 */
       .cardforge-card-container {
         ${themeStyles}
@@ -357,10 +243,14 @@ export class BasePlugin {
 
   // 数值安全转换
   _safeParseFloat(value, defaultValue = 0) {
-    return EntityProcessor.safeParseFloat(value, defaultValue);
+    if (value === null || value === undefined) return defaultValue;
+    const num = parseFloat(value);
+    return isNaN(num) ? defaultValue : num;
   }
 
   _safeParseInt(value, defaultValue = 0) {
-    return EntityProcessor.safeParseInt(value, defaultValue);
+    if (value === null || value === undefined) return defaultValue;
+    const num = parseInt(value);
+    return isNaN(num) ? defaultValue : num;
   }
 }

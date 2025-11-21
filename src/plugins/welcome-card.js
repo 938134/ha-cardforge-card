@@ -1,35 +1,7 @@
 // src/plugins/welcome-card.js
 import { BasePlugin } from '../core/base-plugin.js';
 
-export default class WelcomeCard extends BasePlugin {
-  static manifest = {
-    id: 'welcome-card',
-    name: '欢迎卡片',
-    description: '个性化欢迎信息和时间问候',
-    icon: '👋',
-    category: '信息',
-    version: '1.0.0',
-    author: 'CardForge',
-    layout_type: 'free',
-    allow_custom_entities: true,
-    config_schema: {
-      show_weather: {
-        type: 'boolean',
-        label: '显示天气信息',
-        default: false
-      },
-      show_quote: {
-        type: 'boolean',
-        label: '显示每日语录',
-        default: true
-      }
-    },
-    capabilities: {
-      supportsTitle: true,
-      supportsFooter: true
-    }
-  };
-
+class WelcomeCard extends BasePlugin {
   getTemplate(config, hass, entities) {
     const userName = this._getUserName(hass);
     const greeting = this._getTimeBasedGreeting();
@@ -58,6 +30,43 @@ export default class WelcomeCard extends BasePlugin {
 
   getStyles(config) {
     return this.getBaseStyles(config);
+  }
+
+  _getUserName(hass, defaultValue = '朋友') {
+    if (hass?.user?.name) {
+      return hass.user.name;
+    }
+    return defaultValue;
+  }
+
+  _getTimeBasedGreeting() {
+    const hour = new Date().getHours();
+    if (hour >= 5 && hour < 12) {
+      return '早上好';
+    } else if (hour >= 12 && hour < 14) {
+      return '中午好';
+    } else if (hour >= 14 && hour < 18) {
+      return '下午好';
+    } else if (hour >= 18 && hour < 22) {
+      return '晚上好';
+    } else {
+      return '你好';
+    }
+  }
+
+  _getTimePeriodMessage() {
+    const hour = new Date().getHours();
+    if (hour >= 5 && hour < 12) {
+      return '美好的一天从早晨开始';
+    } else if (hour >= 12 && hour < 14) {
+      return '午间时光，注意休息';
+    } else if (hour >= 14 && hour < 18) {
+      return '下午工作效率最高';
+    } else if (hour >= 18 && hour < 22) {
+      return '晚间放松时间';
+    } else {
+      return '夜深了，早点休息';
+    }
   }
 
   _renderCustomBlocks(blocks) {
@@ -104,3 +113,30 @@ export default class WelcomeCard extends BasePlugin {
     return names[type] || '内容';
   }
 }
+
+// 正确导出 manifest 和默认类
+WelcomeCard.manifest = {
+  id: 'welcome-card',
+  name: '欢迎卡片',
+  description: '个性化欢迎信息和时间问候',
+  icon: '👋',
+  category: '信息',
+  version: '1.0.0',
+  author: 'CardForge',
+  layout_type: 'free',
+  allow_custom_entities: true,
+  config_schema: {
+    show_quote: {
+      type: 'boolean',
+      label: '显示每日语录',
+      default: true
+    }
+  },
+  capabilities: {
+    supportsTitle: true,
+    supportsFooter: true
+  }
+};
+
+export { WelcomeCard as default, WelcomeCard };
+export const manifest = WelcomeCard.manifest;

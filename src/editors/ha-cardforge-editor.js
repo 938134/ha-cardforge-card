@@ -4,7 +4,7 @@ import { PluginRegistry } from '../core/plugin-registry.js';
 import { themeManager } from '../themes/index.js';
 import { designSystem } from '../core/design-system.js';
 import './config-editors.js';
-import './inline-block-editor.js';
+import './layout-editor.js';
 import './plugin-selector.js';
 import './theme-selector.js';
 
@@ -210,8 +210,8 @@ class HaCardForgeEditor extends LitElement {
         <div class="editor-layout">
           ${this._renderPluginSection()}
           ${this._renderThemeSection()}
-          ${this._renderBaseConfigSection()}      <!-- 基础设置在前 -->
-          ${this._renderAdvancedConfigSection()}  <!-- 高级设置在后 -->
+          ${this._renderBaseConfigSection()}
+          ${this._renderAdvancedConfigSection()}
           ${this._renderDataSourceSection()}
         </div>
       </div>
@@ -267,24 +267,25 @@ class HaCardForgeEditor extends LitElement {
     `;
   }
 
-  _renderBaseConfigSection() {
-    if (!this.config.plugin) return '';
-    
-    return html`
-      <div class="editor-section">
-        <div class="section-header">
-          <ha-icon icon="mdi:tune"></ha-icon>
-          <span>基础设置</span>
-          <span class="section-subtitle">调整基本外观和动画设置</span>
-        </div>
-        
-        <base-config-editor
-          .config=${this.config}
-          @config-changed=${this._onConfigChanged}
-        ></base-config-editor>
+_renderBaseConfigSection() {
+  if (!this.config.plugin) return '';
+  
+  return html`
+    <div class="editor-section">
+      <div class="section-header">
+        <ha-icon icon="mdi:tune"></ha-icon>
+        <span>卡片设置</span>
+        <span class="section-subtitle">配置卡片外观和功能</span>
       </div>
-    `;
-  }
+      
+      <config-editor
+        .config=${this.config}
+        .pluginManifest=${this._pluginManifest}
+        @config-changed=${this._onConfigChanged}
+      ></config-editor>
+    </div>
+  `;
+}
   
   _renderAdvancedConfigSection() {
     if (!this.config.plugin || !this._pluginManifest?.config_schema) return '';
@@ -317,12 +318,12 @@ class HaCardForgeEditor extends LitElement {
           <span class="section-subtitle">配置卡片显示的数据和内容</span>
         </div>
         
-        <entity-manager
+        <layout-editor
           .hass=${this.hass}
           .config=${this.config}
           .pluginManifest=${this._pluginManifest}
           @entities-changed=${this._onEntitiesChanged}
-        ></entity-manager>
+        ></layout-editor>
       </div>
     `;
   }
