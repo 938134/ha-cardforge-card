@@ -70,31 +70,29 @@ export class BasePlugin {
     return field?.default !== undefined ? field.default : defaultValue;
   }
 
-  renderConfigEditor(config, onConfigChange) {
-    const schema = this.getConfigSchema();
-    if (!schema || Object.keys(schema).length === 0) {
-      return this._renderNoConfig();
-    }
-
-    const fields = Object.entries(schema).map(([key, field]) => 
-      this._renderConfigField(key, field, config, onConfigChange)
-    ).join('');
-
-    return `
-      <div class="plugin-config-editor">
-        ${fields}
-      </div>
-    `;
+renderConfigEditor(config, onConfigChange) {
+  const schema = this.getConfigSchema();
+  if (!schema || Object.keys(schema).length === 0) {
+    return this._renderNoConfig();
   }
 
-  _renderNoConfig() {
-    return `
-      <div class="config-empty-state">
-        <ha-icon icon="mdi:check-circle"></ha-icon>
-        <div>此卡片无需额外配置</div>
-      </div>
-    `;
-  }
+  // 使用新的配置编辑器组件
+  return `
+    <config-editor 
+      .schema="${JSON.stringify(schema).replace(/"/g, '&quot;')}"
+      .config="${JSON.stringify(config).replace(/"/g, '&quot;')}"
+    ></config-editor>
+  `;
+}
+
+_renderNoConfig() {
+  return `
+    <div class="config-empty-state">
+      <ha-icon icon="mdi:check-circle"></ha-icon>
+      <div>此卡片无需额外配置</div>
+    </div>
+  `;
+}
 
   _renderConfigField(key, field, config, onConfigChange) {
     const currentValue = this.getConfigValue(config, key);
