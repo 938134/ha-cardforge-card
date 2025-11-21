@@ -65,15 +65,15 @@ class ClockCard extends BasePlugin {
     // 根据风格选择不同的渲染方法
     switch (style) {
       case '经典表盘':
-        return this._renderAnalogClock(now, config, showDate, showWeekday, showLunar, timeFormat);
+        return this._renderAnalogClock(now, config, hass, entities, showDate, showWeekday, showLunar, timeFormat);
       case '科技感':
-        return this._renderTechClock(now, config, showDate, showWeekday, showLunar, showSeconds, timeFormat);
+        return this._renderTechClock(now, config, hass, entities, showDate, showWeekday, showLunar, showSeconds, timeFormat);
       case '复古风格':
-        return this._renderVintageClock(now, config, showDate, showWeekday, showLunar, timeFormat);
+        return this._renderVintageClock(now, config, hass, entities, showDate, showWeekday, showLunar, timeFormat);
       case '极简文字':
-        return this._renderMinimalClock(now, config, showDate, showWeekday, showLunar, showSeconds, timeFormat);
+        return this._renderMinimalClock(now, config, hass, entities, showDate, showWeekday, showLunar, showSeconds, timeFormat);
       default: // 简约数字
-        return this._renderDigitalClock(now, config, showDate, showWeekday, showLunar, showSeconds, timeFormat);
+        return this._renderDigitalClock(now, config, hass, entities, showDate, showWeekday, showLunar, showSeconds, timeFormat);
     }
   }
 
@@ -96,7 +96,7 @@ class ClockCard extends BasePlugin {
   }
 
   // === 简约数字风格 ===
-  _renderDigitalClock(now, config, showDate, showWeekday, showLunar, showSeconds, timeFormat) {
+  _renderDigitalClock(now, config, hass, entities, showDate, showWeekday, showLunar, showSeconds, timeFormat) {
     const timeText = this._formatTime(now, timeFormat, showSeconds);
     const dateText = showDate ? this._formatDate(now) : '';
     const weekdayText = showWeekday ? this._formatWeekday(now) : '';
@@ -163,7 +163,7 @@ class ClockCard extends BasePlugin {
   }
 
   // === 经典表盘风格 ===
-  _renderAnalogClock(now, config, showDate, showWeekday, showLunar, timeFormat) {
+  _renderAnalogClock(now, config, hass, entities, showDate, showWeekday, showLunar, timeFormat) {
     const hours = now.getHours() % 12;
     const minutes = now.getMinutes();
     const seconds = now.getSeconds();
@@ -325,7 +325,7 @@ class ClockCard extends BasePlugin {
   }
 
   // === 科技感风格 ===
-  _renderTechClock(now, config, showDate, showWeekday, showLunar, showSeconds, timeFormat) {
+  _renderTechClock(now, config, hass, entities, showDate, showWeekday, showLunar, showSeconds, timeFormat) {
     const timeText = this._formatTime(now, timeFormat, showSeconds);
     const dateText = showDate ? this._formatDate(now) : '';
     const weekdayText = showWeekday ? this._formatWeekday(now) : '';
@@ -427,7 +427,7 @@ class ClockCard extends BasePlugin {
   }
 
   // === 复古风格 ===
-  _renderVintageClock(now, config, showDate, showWeekday, showLunar, timeFormat) {
+  _renderVintageClock(now, config, hass, entities, showDate, showWeekday, showLunar, timeFormat) {
     const timeText = this._formatTime(now, timeFormat, false);
     const dateText = showDate ? this._formatDate(now) : '';
     const weekdayText = showWeekday ? this._formatWeekday(now) : '';
@@ -522,7 +522,7 @@ class ClockCard extends BasePlugin {
   }
 
   // === 极简文字风格 ===
-  _renderMinimalClock(now, config, showDate, showWeekday, showLunar, showSeconds, timeFormat) {
+  _renderMinimalClock(now, config, hass, entities, showDate, showWeekday, showLunar, showSeconds, timeFormat) {
     const timeText = this._formatTime(now, timeFormat, showSeconds);
     const dateText = showDate ? this._formatDate(now) : '';
     const weekdayText = showWeekday ? this._formatWeekday(now) : '';
