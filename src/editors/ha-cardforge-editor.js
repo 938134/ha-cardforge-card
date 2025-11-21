@@ -354,33 +354,32 @@ class HaCardForgeEditor extends LitElement {
     }
   }
 
-  _renderPluginConfig() {
-    if (!this._pluginInstance || !this.config.plugin) return;
-    
-    const container = this.shadowRoot.getElementById('plugin-config-container');
-    if (!container) return;
-    
-    const schema = this._pluginInstance.getConfigSchema();
-    if (!schema || Object.keys(schema).length === 0) {
-      container.innerHTML = `
-        <div class="config-empty-state cf-flex cf-flex-center cf-flex-column cf-p-lg">
-          <ha-icon icon="mdi:check-circle" style="color: var(--cf-success-color); font-size: 3em; margin-bottom: var(--cf-spacing-md);"></ha-icon>
-          <div class="cf-text-sm cf-text-secondary">此卡片无需额外配置</div>
-        </div>
-      `;
-      return;
-    }
-    
-    const configHTML = this._pluginInstance.renderConfigEditor(
-      this.config,
-      (key, value) => this._onPluginConfigChanged(key, value)
-    );
-    
-    container.innerHTML = configHTML;
-    
-    // 重新绑定事件（因为innerHTML会清除事件）
-    this._bindConfigEvents();
+_renderPluginConfig() {
+  if (!this._pluginInstance || !this.config.plugin) return;
+  
+  const container = this.shadowRoot.getElementById('plugin-config-container');
+  if (!container) return;
+  
+  const schema = this._pluginInstance.getConfigSchema();
+  if (!schema || Object.keys(schema).length === 0) {
+    container.innerHTML = `
+      <div class="config-empty-state cf-flex cf-flex-center cf-flex-column cf-p-lg">
+        <ha-icon icon="mdi:check-circle" style="color: var(--cf-success-color); font-size: 3em; margin-bottom: var(--cf-spacing-md);"></ha-icon>
+        <div class="cf-text-sm cf-text-secondary">此卡片无需额外配置</div>
+      </div>
+    `;
+    return;
   }
+  
+  // 使用新的配置编辑器
+  container.innerHTML = `
+    <config-editor
+      .schema=${schema}
+      .config=${this.config}
+      @config-changed=${(e) => this._onPluginConfigChanged(e.detail.config)}
+    ></config-editor>
+  `;
+}
 
   _bindConfigEvents() {
     const container = this.shadowRoot.getElementById('plugin-config-container');
@@ -411,16 +410,13 @@ class HaCardForgeEditor extends LitElement {
     });
   }
 
-  _onPluginConfigChanged(key, value) {
-    this.config = {
-      ...this.config,
-      [key]: value
-    };
-    this._notifyConfigUpdate();
-    
-    // 重新渲染配置界面以反映变化
-    setTimeout(() => this._renderPluginConfig(), 0);
-  }
+_onPluginConfigChanged(configChanges) {
+  this.config = {
+    ...this.config,
+    ...configChanges
+  };
+  this._notifyConfigUpdate();
+}
 
   _notifyConfigUpdate() {
     const configToSend = {
