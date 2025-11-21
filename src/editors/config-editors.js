@@ -1,114 +1,8 @@
-// src/editors/config-editors.js
+// src/editors/config-editor.js
 import { LitElement, html, css } from 'https://unpkg.com/lit@2.8.0/index.js?module';
 import { designSystem } from '../core/design-system.js';
 
-export class BaseConfigEditor extends LitElement {
-  static properties = {
-    config: { type: Object }
-  };
-
-  static styles = [
-    designSystem,
-    css`
-      .config-editor {
-        width: 100%;
-      }
-
-      .simple-config-grid {
-        display: grid;
-        grid-template-columns: repeat(2, 1fr);
-        gap: var(--cf-spacing-md);
-        width: 100%;
-      }
-
-      .config-field {
-        display: flex;
-        flex-direction: column;
-        gap: var(--cf-spacing-sm);
-      }
-
-      .config-label {
-        font-weight: 500;
-        font-size: 0.9em;
-        color: var(--cf-text-primary);
-        margin-bottom: var(--cf-spacing-xs);
-      }
-
-      .empty-state {
-        text-align: center;
-        padding: var(--cf-spacing-xl);
-        color: var(--cf-text-secondary);
-      }
-
-      @media (max-width: 768px) {
-        .simple-config-grid {
-          grid-template-columns: 1fr;
-        }
-      }
-    `
-  ];
-
-  render() {
-    // 基础配置只有主题和动画
-    const baseSchema = {
-      'theme': {
-        type: 'select',
-        label: '主题风格',
-        options: ['自动', '浅色', '深色', '毛玻璃', '渐变', '霓虹', '水墨'],
-        default: '自动'
-      },
-      'animation': {
-        type: 'select',
-        label: '入场动画',
-        options: ['无', '淡入', '上浮', '缩放'],
-        default: '淡入'
-      }
-    };
-
-    return html`
-      <div class="config-editor">
-        <div class="simple-config-grid">
-          ${Object.entries(baseSchema).map(([key, field]) => 
-            this._renderField(key, field)
-          )}
-        </div>
-      </div>
-    `;
-  }
-
-  _renderField(key, field) {
-    const currentValue = this.config[key] !== undefined ? this.config[key] : field.default;
-
-    const items = field.options.map(option => ({
-      value: option,
-      label: option
-    }));
-    
-    return html`
-      <div class="config-field">
-        <label class="config-label">${field.label}</label>
-        <ha-combo-box
-          .items=${items}
-          .value=${currentValue}
-          @value-changed=${e => this._onConfigChanged(key, e.detail.value)}
-          allow-custom-value
-        ></ha-combo-box>
-      </div>
-    `;
-  }
-
-  _onConfigChanged(key, value) {
-    this.dispatchEvent(new CustomEvent('config-changed', {
-      detail: { 
-        config: {
-          [key]: value
-        }
-      }
-    }));
-  }
-}
-
-export class AdvancedConfigEditor extends LitElement {
+export class ConfigEditor extends LitElement {
   static properties = {
     schema: { type: Object },
     config: { type: Object }
@@ -121,7 +15,7 @@ export class AdvancedConfigEditor extends LitElement {
         width: 100%;
       }
 
-      .plugin-config-grid {
+      .config-grid {
         display: grid;
         grid-template-columns: repeat(2, 1fr);
         gap: var(--cf-spacing-md);
@@ -132,6 +26,10 @@ export class AdvancedConfigEditor extends LitElement {
         display: flex;
         flex-direction: column;
         gap: var(--cf-spacing-sm);
+        padding: var(--cf-spacing-md);
+        border: 1px solid var(--cf-border);
+        border-radius: var(--cf-radius-md);
+        background: var(--cf-surface);
       }
 
       .config-label {
@@ -141,27 +39,46 @@ export class AdvancedConfigEditor extends LitElement {
         margin-bottom: var(--cf-spacing-xs);
       }
 
-      .switch-item {
+      .config-description {
+        font-size: 0.8em;
+        color: var(--cf-text-secondary);
+        line-height: 1.4;
+      }
+
+      .boolean-fields {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: var(--cf-spacing-md);
+        margin-bottom: var(--cf-spacing-lg);
+      }
+
+      .boolean-field {
         display: flex;
         align-items: center;
         justify-content: space-between;
-        padding: var(--cf-spacing-sm) var(--cf-spacing-md);
+        padding: var(--cf-spacing-md);
         border: 1px solid var(--cf-border);
         border-radius: var(--cf-radius-md);
         background: var(--cf-surface);
+        cursor: pointer;
         transition: all var(--cf-transition-fast);
-        min-height: 52px;
       }
 
-      .switch-item:hover {
+      .boolean-field:hover {
         border-color: var(--cf-primary-color);
         background: rgba(var(--cf-rgb-primary), 0.03);
       }
 
-      .switch-label {
+      .boolean-label {
         font-size: 0.9em;
         color: var(--cf-text-primary);
         flex: 1;
+      }
+
+      .other-fields {
+        display: flex;
+        flex-direction: column;
+        gap: var(--cf-spacing-md);
       }
 
       .empty-state {
@@ -170,8 +87,22 @@ export class AdvancedConfigEditor extends LitElement {
         color: var(--cf-text-secondary);
       }
 
+      /* 深色模式适配 */
+      @media (prefers-color-scheme: dark) {
+        .config-field,
+        .boolean-field {
+          background: var(--cf-dark-surface);
+          border-color: var(--cf-dark-border);
+        }
+      }
+
+      /* 响应式优化 */
       @media (max-width: 768px) {
-        .plugin-config-grid {
+        .config-grid {
+          grid-template-columns: 1fr;
+        }
+
+        .boolean-fields {
           grid-template-columns: 1fr;
         }
       }
@@ -180,29 +111,22 @@ export class AdvancedConfigEditor extends LitElement {
 
   render() {
     if (!this.schema || Object.keys(this.schema).length === 0) {
-      return html`
-        <div class="config-editor">
-          <div class="empty-state">
-            <ha-icon icon="mdi:check-circle" style="color: var(--cf-success-color);"></ha-icon>
-            <div class="cf-text-sm cf-mt-sm">此卡片无需额外配置</div>
-          </div>
-        </div>
-      `;
+      return this._renderEmptyState();
     }
 
-    const booleanFields = Object.entries(this.schema).filter(([_, field]) => field.type === 'boolean');
-    const otherFields = Object.entries(this.schema).filter(([_, field]) => field.type !== 'boolean');
+    const booleanFields = this._getBooleanFields();
+    const otherFields = this._getOtherFields();
 
     return html`
       <div class="config-editor">
         ${booleanFields.length > 0 ? html`
-          <div class="plugin-config-grid">
+          <div class="boolean-fields">
             ${booleanFields.map(([key, field]) => this._renderBooleanField(key, field))}
           </div>
         ` : ''}
         
         ${otherFields.length > 0 ? html`
-          <div class="plugin-config-grid">
+          <div class="other-fields">
             ${otherFields.map(([key, field]) => this._renderOtherField(key, field))}
           </div>
         ` : ''}
@@ -210,15 +134,33 @@ export class AdvancedConfigEditor extends LitElement {
     `;
   }
 
+  _getBooleanFields() {
+    return Object.entries(this.schema).filter(([_, field]) => field.type === 'boolean');
+  }
+
+  _getOtherFields() {
+    return Object.entries(this.schema).filter(([_, field]) => field.type !== 'boolean');
+  }
+
+  _renderEmptyState() {
+    return html`
+      <div class="empty-state">
+        <ha-icon icon="mdi:check-circle" style="color: var(--cf-success-color); font-size: 3em; margin-bottom: var(--cf-spacing-md);"></ha-icon>
+        <div class="cf-text-sm cf-text-secondary">此卡片无需额外配置</div>
+      </div>
+    `;
+  }
+
   _renderBooleanField(key, field) {
     const currentValue = this.config[key] !== undefined ? this.config[key] : field.default;
-    
+
     return html`
-      <div class="switch-item">
-        <span class="switch-label">${field.label}</span>
+      <div class="boolean-field" @click=${() => this._toggleBoolean(key, !currentValue)}>
+        <span class="boolean-label">${field.label}</span>
         <ha-switch
           .checked=${!!currentValue}
-          @change=${e => this._onConfigChanged(key, e.target.checked)}
+          @click=${(e) => e.stopPropagation()}
+          @change=${(e) => this._toggleBoolean(key, e.target.checked)}
         ></ha-switch>
       </div>
     `;
@@ -227,25 +169,79 @@ export class AdvancedConfigEditor extends LitElement {
   _renderOtherField(key, field) {
     const currentValue = this.config[key] !== undefined ? this.config[key] : field.default;
 
+    switch (field.type) {
+      case 'select':
+        return this._renderSelectField(key, field, currentValue);
+      case 'number':
+        return this._renderNumberField(key, field, currentValue);
+      default:
+        return this._renderTextField(key, field, currentValue);
+    }
+  }
+
+  _renderSelectField(key, field, currentValue) {
     const items = field.options.map(option => ({
       value: option,
       label: option
     }));
-    
+
     return html`
       <div class="config-field">
         <label class="config-label">${field.label}</label>
         <ha-combo-box
           .items=${items}
           .value=${currentValue}
-          @value-changed=${e => this._onConfigChanged(key, e.detail.value)}
+          @value-changed=${e => this._onFieldChanged(key, e.detail.value)}
           allow-custom-value
         ></ha-combo-box>
+        ${field.description ? html`
+          <div class="config-description">${field.description}</div>
+        ` : ''}
       </div>
     `;
   }
 
-  _onConfigChanged(key, value) {
+  _renderNumberField(key, field, currentValue) {
+    return html`
+      <div class="config-field">
+        <label class="config-label">${field.label}</label>
+        <ha-textfield
+          .value=${currentValue}
+          @input=${e => this._onFieldChanged(key, e.target.value)}
+          type="number"
+          min=${field.min || ''}
+          max=${field.max || ''}
+          outlined
+        ></ha-textfield>
+        ${field.description ? html`
+          <div class="config-description">${field.description}</div>
+        ` : ''}
+      </div>
+    `;
+  }
+
+  _renderTextField(key, field, currentValue) {
+    return html`
+      <div class="config-field">
+        <label class="config-label">${field.label}</label>
+        <ha-textfield
+          .value=${currentValue}
+          @input=${e => this._onFieldChanged(key, e.target.value)}
+          placeholder=${field.placeholder || ''}
+          outlined
+        ></ha-textfield>
+        ${field.description ? html`
+          <div class="config-description">${field.description}</div>
+        ` : ''}
+      </div>
+    `;
+  }
+
+  _toggleBoolean(key, value) {
+    this._onFieldChanged(key, value);
+  }
+
+  _onFieldChanged(key, value) {
     this.dispatchEvent(new CustomEvent('config-changed', {
       detail: { 
         config: {
@@ -256,11 +252,6 @@ export class AdvancedConfigEditor extends LitElement {
   }
 }
 
-// 注册自定义元素
-if (!customElements.get('base-config-editor')) {
-  customElements.define('base-config-editor', BaseConfigEditor);
-}
-
-if (!customElements.get('advanced-config-editor')) {
-  customElements.define('advanced-config-editor', AdvancedConfigEditor);
+if (!customElements.get('config-editor')) {
+  customElements.define('config-editor', ConfigEditor);
 }
