@@ -3,10 +3,10 @@ import { LitElement, html, css } from 'https://unpkg.com/lit@2.8.0/index.js?modu
 import { PluginRegistry } from '../core/plugin-registry.js';
 import { themeManager } from '../themes/index.js';
 import { designSystem } from '../core/design-system.js';
-
-import './inline-block-editor.js';
 import './plugin-selector.js';
 import './theme-selector.js';
+import './inline-block-editor.js';
+import './config-editor.js';
 
 class HaCardForgeEditor extends LitElement {
   static properties = {
@@ -72,44 +72,6 @@ class HaCardForgeEditor extends LitElement {
         font-style: italic;
       }
 
-      /* 配置编辑器样式 */
-      .plugin-config-editor {
-        display: flex;
-        flex-direction: column;
-        gap: var(--cf-spacing-lg);
-      }
-
-      .config-field {
-        padding: var(--cf-spacing-md);
-        border: 1px solid var(--cf-border);
-        border-radius: var(--cf-radius-md);
-        background: var(--cf-surface);
-      }
-
-      .config-label {
-        display: flex;
-        align-items: center;
-        gap: var(--cf-spacing-md);
-        font-weight: 500;
-        color: var(--cf-text-primary);
-        margin-bottom: var(--cf-spacing-sm);
-      }
-
-      .config-description {
-        font-size: 0.8em;
-        color: var(--cf-text-secondary);
-        margin-top: var(--cf-spacing-xs);
-        line-height: 1.4;
-      }
-
-      .config-select,
-      .config-number,
-      .config-text {
-        display: flex;
-        flex-direction: column;
-        gap: var(--cf-spacing-sm);
-      }
-
       .config-empty-state {
         text-align: center;
         padding: var(--cf-spacing-xl);
@@ -148,11 +110,6 @@ class HaCardForgeEditor extends LitElement {
         .section-header {
           background: rgba(var(--cf-rgb-primary), 0.1);
           color: var(--cf-dark-text);
-        }
-
-        .config-field {
-          background: var(--cf-dark-surface);
-          border-color: var(--cf-dark-border);
         }
       }
     `
@@ -354,69 +311,40 @@ class HaCardForgeEditor extends LitElement {
     }
   }
 
-_renderPluginConfig() {
-  if (!this._pluginInstance || !this.config.plugin) return;
-  
-  const container = this.shadowRoot.getElementById('plugin-config-container');
-  if (!container) return;
-  
-  const schema = this._pluginInstance.getConfigSchema();
-  if (!schema || Object.keys(schema).length === 0) {
-    container.innerHTML = `
-      <div class="config-empty-state cf-flex cf-flex-center cf-flex-column cf-p-lg">
-        <ha-icon icon="mdi:check-circle" style="color: var(--cf-success-color); font-size: 3em; margin-bottom: var(--cf-spacing-md);"></ha-icon>
-        <div class="cf-text-sm cf-text-secondary">此卡片无需额外配置</div>
-      </div>
-    `;
-    return;
-  }
-  
-  // 使用新的配置编辑器
-  container.innerHTML = `
-    <config-editor
-      .schema=${schema}
-      .config=${this.config}
-      @config-changed=${(e) => this._onPluginConfigChanged(e.detail.config)}
-    ></config-editor>
-  `;
-}
-
-  _bindConfigEvents() {
+  _renderPluginConfig() {
+    if (!this._pluginInstance || !this.config.plugin) return;
+    
     const container = this.shadowRoot.getElementById('plugin-config-container');
     if (!container) return;
     
-    // 绑定switch事件
-    container.querySelectorAll('ha-switch').forEach(switchEl => {
-      switchEl.addEventListener('change', (e) => {
-        const key = e.target.closest('.config-field').dataset.key;
-        this._onPluginConfigChanged(key, e.target.checked);
-      });
-    });
+    const schema = this._pluginInstance.getConfigSchema();
+    if (!schema || Object.keys(schema).length === 0) {
+      container.innerHTML = `
+        <div class="config-empty-state cf-flex cf-flex-center cf-flex-column cf-p-lg">
+          <ha-icon icon="mdi:check-circle" style="color: var(--cf-success-color); font-size: 3em; margin-bottom: var(--cf-spacing-md);"></ha-icon>
+          <div class="cf-text-sm cf-text-secondary">此卡片无需额外配置</div>
+        </div>
+      `;
+      return;
+    }
     
-    // 绑定select事件
-    container.querySelectorAll('ha-select').forEach(selectEl => {
-      selectEl.addEventListener('selected', (e) => {
-        const key = e.target.closest('.config-field').dataset.key;
-        this._onPluginConfigChanged(key, e.target.value);
-      });
-    });
-    
-    // 绑定textfield事件
-    container.querySelectorAll('ha-textfield').forEach(textfieldEl => {
-      textfieldEl.addEventListener('input', (e) => {
-        const key = e.target.closest('.config-field').dataset.key;
-        this._onPluginConfigChanged(key, e.target.value);
-      });
-    });
+    // 使用新的配置编辑器
+    container.innerHTML = `
+      <config-editor
+        .schema=${schema}
+        .config=${this.config}
+        @config-changed=${(e) => this._onPluginConfigChanged(e.detail.config)}
+      ></config-editor>
+    `;
   }
 
-_onPluginConfigChanged(configChanges) {
-  this.config = {
-    ...this.config,
-    ...configChanges
-  };
-  this._notifyConfigUpdate();
-}
+  _onPluginConfigChanged(configChanges) {
+    this.config = {
+      ...this.config,
+      ...configChanges
+    };
+    this._notifyConfigUpdate();
+  }
 
   _notifyConfigUpdate() {
     const configToSend = {
