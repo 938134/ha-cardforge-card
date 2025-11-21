@@ -1,7 +1,7 @@
 // src/plugins/clock-card.js
 import { BasePlugin } from '../core/base-plugin.js';
 
-export default class ClockCard extends BasePlugin {
+class ClockCard extends BasePlugin {
   static manifest = {
     id: 'clock-card',
     name: '时间卡片',
@@ -631,3 +631,7 @@ export default class ClockCard extends BasePlugin {
     return `${lunarMonths[monthIndex % 12]}${lunarDays[dayIndex % 30]}`;
   }
 }
+
+// 正确的导出方式
+export { ClockCard as default };
+export const manifest = ClockCard.manifest;
