@@ -2,7 +2,6 @@
 import { themeManager } from '../themes/index.js';
 import { LayoutStrategy } from './layout-strategy.js';
 import { EntityProcessor } from './entity-processor.js';
-import { ConfigManager } from './config-manager.js';
 
 export class BasePlugin {
   constructor() {
@@ -46,23 +45,7 @@ export class BasePlugin {
       description: '',
       category: 'general',
       icon: '📄',
-      author: 'CardForge',
-      config_schema: {},
-      capabilities: {},
-      layout_fields: {
-        title: [],
-        content: [],
-        footer: []
-      },
-      // 默认支持所有功能
-      supported_features: {
-        fonts: true,
-        alignment: true,
-        spacing: true,
-        borders: true,
-        colors: true,
-        animations: true
-      }
+      author: 'CardForge'
     };
     
     const merged = { ...defaultManifest, ...customManifest };
@@ -70,10 +53,109 @@ export class BasePlugin {
     return merged;
   }
 
-  // === 获取支持的功能 ===
-  getSupportedFeatures() {
+  // === 配置系统 ===
+  getConfigSchema() {
     const manifest = this.getManifest();
-    return manifest.supported_features || {};
+    return manifest.config_schema || {};
+  }
+
+  getConfigValue(config, key, defaultValue = '') {
+    const schema = this.getConfigSchema();
+    const field = schema[key];
+    
+    if (config[key] !== undefined) {
+      return config[key];
+    }
+    
+    return field?.default !== undefined ? field.default : defaultValue;
+  }
+
+  renderConfigEditor(config, onConfigChange) {
+    const schema = this.getConfigSchema();
+    if (!schema || Object.keys(schema).length === 0) {
+      return this._renderNoConfig();
+    }
+
+    const fields = Object.entries(schema).map(([key, field]) => 
+      this._renderConfigField(key, field, config, onConfigChange)
+    ).join('');
+
+    return `
+      <div class="plugin-config-editor">
+        ${fields}
+      </div>
+    `;
+  }
+
+  _renderNoConfig() {
+    return `
+      <div class="config-empty-state">
+        <ha-icon icon="mdi:check-circle"></ha-icon>
+        <div>此卡片无需额外配置</div>
+      </div>
+    `;
+  }
+
+  _renderConfigField(key, field, config, onConfigChange) {
+    const currentValue = this.getConfigValue(config, key);
+    
+    switch (field.type) {
+      case 'boolean':
+        return `
+          <div class="config-field config-boolean" data-key="${key}">
+            <label class="config-label">
+              <ha-switch 
+                .checked="${!!currentValue}"
+              ></ha-switch>
+              <span>${field.label}</span>
+            </label>
+            ${field.description ? `<div class="config-description">${field.description}</div>` : ''}
+          </div>
+        `;
+        
+      case 'select':
+        const options = field.options.map(opt => 
+          `<paper-item value="${opt}">${opt}</paper-item>`
+        ).join('');
+        
+        return `
+          <div class="config-field config-select" data-key="${key}">
+            <label class="config-label">${field.label}</label>
+            <ha-select 
+              .value="${currentValue}"
+            >
+              ${options}
+            </ha-select>
+            ${field.description ? `<div class="config-description">${field.description}</div>` : ''}
+          </div>
+        `;
+        
+      case 'number':
+        return `
+          <div class="config-field config-number" data-key="${key}">
+            <label class="config-label">${field.label}</label>
+            <ha-textfield
+              type="number"
+              .value="${currentValue}"
+              min="${field.min || ''}"
+              max="${field.max || ''}"
+            ></ha-textfield>
+            ${field.description ? `<div class="config-description">${field.description}</div>` : ''}
+          </div>
+        `;
+        
+      default: // text
+        return `
+          <div class="config-field config-text" data-key="${key}">
+            <label class="config-label">${field.label}</label>
+            <ha-textfield
+              .value="${currentValue}"
+              placeholder="${field.placeholder || ''}"
+            ></ha-textfield>
+            ${field.description ? `<div class="config-description">${field.description}</div>` : ''}
+          </div>
+        `;
+    }
   }
 
   // === 布局策略系统 ===
@@ -99,30 +181,6 @@ export class BasePlugin {
     return LayoutStrategy.processEntities(mode, entities, manifest, hass);
   }
 
-  // === 卡片能力系统 ===
-  getCardCapabilities() {
-    const manifest = this.getManifest();
-    const defaultCapabilities = {
-      supportsTitle: false,
-      supportsContent: false, 
-      supportsFooter: false
-    };
-    
-    return {
-      ...defaultCapabilities,
-      ...manifest.capabilities
-    };
-  }
-
-  // === 配置验证 ===
-  _validateConfig(config, manifest) {
-    return ConfigManager.validateConfig(config, manifest.config_schema);
-  }
-
-  _applyConfigDefaults(config, manifest) {
-    return ConfigManager.applyDefaults(config, manifest.config_schema);
-  }
-
   // === 数据获取 ===
   _getCardValue(hass, entities, key, defaultValue = '') {
     const source = this._getEntityValue(entities, key);
@@ -131,59 +189,6 @@ export class BasePlugin {
 
   _getEntityValue(entities, key, defaultValue = '') {
     return EntityProcessor._getStringValue(entities[key]) || defaultValue;
-  }
-
-  // === 智能数据获取方法 ===
-  _getUserName(hass, defaultValue = '朋友') {
-    if (hass?.user?.name) {
-      return hass.user.name;
-    }
-    return defaultValue;
-  }
-
-  _getTimeBasedGreeting() {
-    const hour = new Date().getHours();
-    if (hour >= 5 && hour < 12) {
-      return '早上好';
-    } else if (hour >= 12 && hour < 14) {
-      return '中午好';
-    } else if (hour >= 14 && hour < 18) {
-      return '下午好';
-    } else if (hour >= 18 && hour < 22) {
-      return '晚上好';
-    } else {
-      return '你好';
-    }
-  }
-
-  _getTimePeriodMessage() {
-    const hour = new Date().getHours();
-    if (hour >= 5 && hour < 12) {
-      return '美好的一天从早晨开始';
-    } else if (hour >= 12 && hour < 14) {
-      return '午间时光，注意休息';
-    } else if (hour >= 14 && hour < 18) {
-      return '下午工作效率最高';
-    } else if (hour >= 18 && hour < 22) {
-      return '晚间放松时间';
-    } else {
-      return '夜深了，早点休息';
-    }
-  }
-
-  _getDefaultWelcomeMessage() {
-    const hour = new Date().getHours();
-    if (hour >= 5 && hour < 12) {
-      return '今天也是充满活力的一天！';
-    } else if (hour >= 12 && hour < 14) {
-      return '午餐时间到，记得按时吃饭';
-    } else if (hour >= 14 && hour < 18) {
-      return '下午工作加油！';
-    } else if (hour >= 18 && hour < 22) {
-      return '晚上放松一下';
-    } else {
-      return '夜深了，注意休息';
-    }
   }
 
   // === 实体显示工具 ===
@@ -241,12 +246,11 @@ export class BasePlugin {
 
   // === 统一卡片容器系统 ===
   _renderCardContainer(content, className = '', config = {}) {
-    const alignment = config.text_alignment || 'center';
-    const alignmentClass = `cf-text-${alignment === '左对齐' ? 'left' : alignment === '右对齐' ? 'right' : 'center'}`;
-    const animationClass = config.animation_style && config.animation_style !== '无' ? 'cardforge-animate-fadeIn' : '';
+    const themeId = config.theme || 'auto';
+    const themeStyles = themeManager.getThemeStyles(themeId, config);
     
     return `
-      <div class="cardforge-card-container ${className} ${alignmentClass} ${animationClass}">
+      <div class="cardforge-card-container ${className}" style="${themeStyles}">
         <div class="cardforge-content">
           ${content}
         </div>
@@ -255,9 +259,6 @@ export class BasePlugin {
   }
 
   _renderCardHeader(config, entities) {
-    const capabilities = this.getCardCapabilities();
-    if (!capabilities.supportsTitle) return '';
-
     const title = this._getCardValue(this.hass, entities, 'title', config.title);
     if (!title) return '';
 
@@ -272,9 +273,6 @@ export class BasePlugin {
   }
   
   _renderCardFooter(config, entities) {
-    const capabilities = this.getCardCapabilities();
-    if (!capabilities.supportsFooter) return '';
-
     const footer = this._getCardValue(this.hass, entities, 'footer', config.footer);
     if (!footer) return '';
 
@@ -316,14 +314,7 @@ export class BasePlugin {
 
   // === 统一样式系统 ===
   getBaseStyles(config) {
-    const themeId = config.theme || 'auto';
-    const themeStyles = themeManager.getThemeStyles(themeId, config);
-    const styleConfig = ConfigManager.getStyleConfig(config);
-    const cssVariables = ConfigManager.generateCSSVariables(styleConfig);
-    
     return `
-      ${cssVariables}
-      
       /* 统一卡片容器 */
       .cardforge-card-container {
         display: flex;
@@ -346,6 +337,39 @@ export class BasePlugin {
         gap: var(--cf-spacing-md);
       }
 
+      /* 文本样式系统 */
+      .cardforge-title {
+        font-size: 1.4em;
+        font-weight: 600;
+        line-height: 1.2;
+        margin: 0;
+      }
+
+      .cardforge-subtitle {
+        font-size: 1em;
+        opacity: 0.8;
+        margin: 0;
+      }
+
+      .cardforge-text-large {
+        font-size: 2.5em;
+        font-weight: 300;
+        line-height: 1;
+        margin: 0;
+      }
+
+      .cardforge-text-medium {
+        font-size: 1.2em;
+        line-height: 1.4;
+        margin: 0;
+      }
+
+      .cardforge-text-small {
+        font-size: 0.9em;
+        opacity: 0.7;
+        margin: 0;
+      }
+
       /* 布局组件 */
       .cardforge-section {
         margin-bottom: var(--cf-spacing-lg);
@@ -363,9 +387,21 @@ export class BasePlugin {
         border-top: 1px solid var(--cf-border);
       }
 
-      /* 应用主题样式 */
-      .cardforge-card-container {
-        ${themeStyles}
+      /* 响应式设计 */
+      @container cardforge-container (max-width: 400px) {
+        .cardforge-card-container {
+          padding: var(--cf-spacing-md);
+        }
+        
+        .cardforge-text-large {
+          font-size: 2em;
+        }
+        
+        .cf-grid-2,
+        .cf-grid-3,
+        .cf-grid-4 {
+          grid-template-columns: 1fr;
+        }
       }
     `;
   }
