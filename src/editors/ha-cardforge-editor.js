@@ -3,7 +3,7 @@ import { LitElement, html, css } from 'https://unpkg.com/lit@2.8.0/index.js?modu
 import { PluginRegistry } from '../core/plugin-registry.js';
 import { themeManager } from '../themes/index.js';
 import { designSystem } from '../core/design-system.js';
-import './config-editors.js';
+
 import './inline-block-editor.js';
 import './plugin-selector.js';
 import './theme-selector.js';
@@ -16,7 +16,6 @@ class HaCardForgeEditor extends LitElement {
     _themes: { state: true },
     _selectedPlugin: { state: true },
     _initialized: { state: true },
-    _isDarkMode: { state: true },
     _pluginManifest: { state: true },
     _pluginInstance: { state: true }
   };
@@ -73,11 +72,48 @@ class HaCardForgeEditor extends LitElement {
         font-style: italic;
       }
 
-      .action-buttons {
+      /* 配置编辑器样式 */
+      .plugin-config-editor {
         display: flex;
+        flex-direction: column;
+        gap: var(--cf-spacing-lg);
+      }
+
+      .config-field {
+        padding: var(--cf-spacing-md);
+        border: 1px solid var(--cf-border);
+        border-radius: var(--cf-radius-md);
+        background: var(--cf-surface);
+      }
+
+      .config-label {
+        display: flex;
+        align-items: center;
         gap: var(--cf-spacing-md);
-        justify-content: flex-end;
-        margin-top: var(--cf-spacing-lg);
+        font-weight: 500;
+        color: var(--cf-text-primary);
+        margin-bottom: var(--cf-spacing-sm);
+      }
+
+      .config-description {
+        font-size: 0.8em;
+        color: var(--cf-text-secondary);
+        margin-top: var(--cf-spacing-xs);
+        line-height: 1.4;
+      }
+
+      .config-select,
+      .config-number,
+      .config-text {
+        display: flex;
+        flex-direction: column;
+        gap: var(--cf-spacing-sm);
+      }
+
+      .config-empty-state {
+        text-align: center;
+        padding: var(--cf-spacing-xl);
+        color: var(--cf-text-secondary);
       }
 
       /* 不同区域的视觉区分 */
@@ -86,18 +122,14 @@ class HaCardForgeEditor extends LitElement {
       }
 
       .editor-section:nth-child(2) .section-header {
-        border-left-color: #2196F3; /* 蓝色 - 主题样式 */  
+        border-left-color: #2196F3; /* 蓝色 - 卡片设置 */
       }
 
       .editor-section:nth-child(3) .section-header {
-        border-left-color: #FF9800; /* 橙色 - 基础设置 */
+        border-left-color: #FF9800; /* 橙色 - 主题样式 */
       }
 
       .editor-section:nth-child(4) .section-header {
-        border-left-color: #9C27B0; /* 紫色 - 高级设置 */
-      }
-
-      .editor-section:nth-child(5) .section-header {
         border-left-color: #607D8B; /* 蓝色灰 - 数据源配置 */
       }
 
@@ -117,21 +149,11 @@ class HaCardForgeEditor extends LitElement {
           background: rgba(var(--cf-rgb-primary), 0.1);
           color: var(--cf-dark-text);
         }
-      }
 
-      .cf-dark-mode .editor-container {
-        background: var(--cf-dark-background) !important;
-        border-color: var(--cf-dark-border) !important;
-      }
-
-      .cf-dark-mode .editor-section {
-        background: var(--cf-dark-surface) !important;
-        border-bottom-color: var(--cf-dark-border) !important;
-      }
-
-      .cf-dark-mode .section-header {
-        background: rgba(var(--cf-rgb-primary), 0.1) !important;
-        color: var(--cf-dark-text) !important;
+        .config-field {
+          background: var(--cf-dark-surface);
+          border-color: var(--cf-dark-border);
+        }
       }
     `
   ];
@@ -148,7 +170,6 @@ class HaCardForgeEditor extends LitElement {
     this._themes = [];
     this._selectedPlugin = null;
     this._initialized = false;
-    this._isDarkMode = false;
     this._pluginManifest = null;
     this._pluginInstance = null;
   }
@@ -159,7 +180,6 @@ class HaCardForgeEditor extends LitElement {
     
     this._plugins = PluginRegistry.getAllPlugins();
     this._themes = themeManager.getAllThemes();
-    this._detectDarkMode();
     this._initialized = true;
     
     if (this.config.plugin) {
@@ -167,17 +187,7 @@ class HaCardForgeEditor extends LitElement {
     }
   }
 
-  _detectDarkMode() {
-    this._isDarkMode = 
-      document.body.classList.contains('dark') ||
-      window.matchMedia('(prefers-color-scheme: dark)').matches;
-    
-    if (this._isDarkMode) {
-      this.classList.add('cf-dark-mode');
-    }
-  }
-
-  async _loadPluginInstance() {
+  _loadPluginInstance() {
     this._selectedPlugin = PluginRegistry.getPlugin(this.config.plugin);
     this._pluginManifest = this._selectedPlugin?.manifest || null;
     
@@ -206,12 +216,11 @@ class HaCardForgeEditor extends LitElement {
     }
 
     return html`
-      <div class="editor-container ${this._isDarkMode ? 'cf-dark-mode' : ''}">
+      <div class="editor-container">
         <div class="editor-layout">
           ${this._renderPluginSection()}
+          ${this._renderPluginConfigSection()}
           ${this._renderThemeSection()}
-          ${this._renderBaseConfigSection()}      <!-- 基础设置在前 -->
-          ${this._renderAdvancedConfigSection()}  <!-- 高级设置在后 -->
           ${this._renderDataSourceSection()}
         </div>
       </div>
@@ -247,6 +256,22 @@ class HaCardForgeEditor extends LitElement {
     `;
   }
 
+  _renderPluginConfigSection() {
+    if (!this.config.plugin || !this._pluginInstance) return '';
+
+    return html`
+      <div class="editor-section">
+        <div class="section-header">
+          <ha-icon icon="mdi:cog"></ha-icon>
+          <span>卡片设置</span>
+          <span class="section-subtitle">配置 ${this._pluginManifest?.name} 的专属选项</span>
+        </div>
+        
+        <div id="plugin-config-container"></div>
+      </div>
+    `;
+  }
+
   _renderThemeSection() {
     if (!this.config.plugin) return '';
 
@@ -267,48 +292,8 @@ class HaCardForgeEditor extends LitElement {
     `;
   }
 
-  _renderBaseConfigSection() {
-    if (!this.config.plugin) return '';
-    
-    return html`
-      <div class="editor-section">
-        <div class="section-header">
-          <ha-icon icon="mdi:tune"></ha-icon>
-          <span>卡片设置</span>
-          <span class="section-subtitle">配置卡片外观和功能</span>
-        </div>
-        
-        <unified-config-editor
-          .config=${this.config}
-          .pluginManifest=${this._pluginManifest}
-          @config-changed=${this._onConfigChanged}
-        ></unified-config-editor>
-      </div>
-    `;
-  }
-  
-  _renderAdvancedConfigSection() {
-    if (!this.config.plugin || !this._pluginManifest?.config_schema) return '';
-    
-    return html`
-      <div class="editor-section">
-        <div class="section-header">
-          <ha-icon icon="mdi:cog"></ha-icon>
-          <span>高级设置</span>
-          <span class="section-subtitle">配置卡片特定功能</span>
-        </div>
-        
-        <advanced-config-editor
-          .schema=${this._pluginManifest.config_schema}
-          .config=${this.config}
-          @config-changed=${this._onConfigChanged}
-        ></advanced-config-editor>
-      </div>
-    `;
-  }
-
   _renderDataSourceSection() {
-    if (!this.config.plugin || !this._pluginInstance) return '';
+    if (!this.config.plugin || !this._pluginManifest) return '';
 
     return html`
       <div class="editor-section">
@@ -341,6 +326,7 @@ class HaCardForgeEditor extends LitElement {
     
     setTimeout(() => {
       this._notifyConfigUpdate();
+      this._renderPluginConfig();
     }, 0);
   }
 
@@ -352,17 +338,88 @@ class HaCardForgeEditor extends LitElement {
     this._notifyConfigUpdate();
   }
 
-  _onConfigChanged(e) {
-    this.config = {
-      ...this.config,
-      ...e.detail.config
-    };
-    this._notifyConfigUpdate();
-  }
-
   _onEntitiesChanged(e) {
     this.config.entities = e.detail.entities;
     this._notifyConfigUpdate();
+  }
+
+  updated(changedProperties) {
+    if (changedProperties.has('hass')) {
+      this.requestUpdate();
+    }
+    
+    // 渲染插件配置编辑器
+    if (changedProperties.has('_pluginInstance') || changedProperties.has('config')) {
+      this._renderPluginConfig();
+    }
+  }
+
+  _renderPluginConfig() {
+    if (!this._pluginInstance || !this.config.plugin) return;
+    
+    const container = this.shadowRoot.getElementById('plugin-config-container');
+    if (!container) return;
+    
+    const schema = this._pluginInstance.getConfigSchema();
+    if (!schema || Object.keys(schema).length === 0) {
+      container.innerHTML = `
+        <div class="config-empty-state cf-flex cf-flex-center cf-flex-column cf-p-lg">
+          <ha-icon icon="mdi:check-circle" style="color: var(--cf-success-color); font-size: 3em; margin-bottom: var(--cf-spacing-md);"></ha-icon>
+          <div class="cf-text-sm cf-text-secondary">此卡片无需额外配置</div>
+        </div>
+      `;
+      return;
+    }
+    
+    const configHTML = this._pluginInstance.renderConfigEditor(
+      this.config,
+      (key, value) => this._onPluginConfigChanged(key, value)
+    );
+    
+    container.innerHTML = configHTML;
+    
+    // 重新绑定事件（因为innerHTML会清除事件）
+    this._bindConfigEvents();
+  }
+
+  _bindConfigEvents() {
+    const container = this.shadowRoot.getElementById('plugin-config-container');
+    if (!container) return;
+    
+    // 绑定switch事件
+    container.querySelectorAll('ha-switch').forEach(switchEl => {
+      switchEl.addEventListener('change', (e) => {
+        const key = e.target.closest('.config-field').dataset.key;
+        this._onPluginConfigChanged(key, e.target.checked);
+      });
+    });
+    
+    // 绑定select事件
+    container.querySelectorAll('ha-select').forEach(selectEl => {
+      selectEl.addEventListener('selected', (e) => {
+        const key = e.target.closest('.config-field').dataset.key;
+        this._onPluginConfigChanged(key, e.target.value);
+      });
+    });
+    
+    // 绑定textfield事件
+    container.querySelectorAll('ha-textfield').forEach(textfieldEl => {
+      textfieldEl.addEventListener('input', (e) => {
+        const key = e.target.closest('.config-field').dataset.key;
+        this._onPluginConfigChanged(key, e.target.value);
+      });
+    });
+  }
+
+  _onPluginConfigChanged(key, value) {
+    this.config = {
+      ...this.config,
+      [key]: value
+    };
+    this._notifyConfigUpdate();
+    
+    // 重新渲染配置界面以反映变化
+    setTimeout(() => this._renderPluginConfig(), 0);
   }
 
   _notifyConfigUpdate() {
@@ -375,28 +432,6 @@ class HaCardForgeEditor extends LitElement {
       detail: { config: configToSend }
     }));
     this.requestUpdate();
-  }
-
-  _save() {
-    const configToSend = {
-      type: 'custom:ha-cardforge-card',
-      ...this.config
-    };
-    
-    this.dispatchEvent(new CustomEvent('config-changed', {
-      detail: { config: configToSend }
-    }));
-    this.dispatchEvent(new CustomEvent('config-saved'));
-  }
-
-  _cancel() {
-    this.dispatchEvent(new CustomEvent('config-cancelled'));
-  }
-
-  updated(changedProperties) {
-    if (changedProperties.has('hass')) {
-      this.requestUpdate();
-    }
   }
 }
 
