@@ -18,6 +18,13 @@ class ClockCard extends BasePlugin {
         default: '简约数字',
         description: '选择时钟的显示风格'
       },
+      time_format: {
+        type: 'select',
+        label: '时间格式',
+        options: ['24小时制', '12小时制'],
+        default: '24小时制',
+        description: '选择时间显示格式'
+      },
       show_date: {
         type: 'boolean',
         label: '显示日期',
@@ -41,13 +48,6 @@ class ClockCard extends BasePlugin {
         label: '显示秒数',
         default: false,
         description: '是否显示秒钟'
-      },
-      time_format: {
-        type: 'select',
-        label: '时间格式',
-        options: ['24小时制', '12小时制'],
-        default: '24小时制',
-        description: '选择时间显示格式'
       }
     }
   };
