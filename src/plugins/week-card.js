@@ -22,7 +22,7 @@ class WeekCard extends BasePlugin {
       </div>
       
       ${this._renderCardFooter(config, entities)}
-    `, 'week-card', config);
+    `, 'week-card');
   }
 
   getStyles(config) {
@@ -101,7 +101,6 @@ class WeekCard extends BasePlugin {
   }
 }
 
-// 正确导出 manifest 和默认类
 WeekCard.manifest = {
   id: 'week-card',
   name: '周历卡片',
@@ -129,4 +128,3 @@ WeekCard.manifest = {
 };
 
 export { WeekCard as default, WeekCard };
-export const manifest = WeekCard.manifest;

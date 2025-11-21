@@ -22,7 +22,7 @@ class PoetryCard extends BasePlugin {
       </div>
       
       ${this._renderCardFooter(config, entities)}
-    `, 'poetry-card', config);
+    `, 'poetry-card');
   }
 
   getStyles(config) {
@@ -33,11 +33,6 @@ class PoetryCard extends BasePlugin {
       
       .poetry-card {
         font-family: "楷体", "STKaiti", serif;
-      }
-      
-      .poetry-content {
-        line-height: 2;
-        text-align: center;
       }
     `;
   }
@@ -85,7 +80,6 @@ class PoetryCard extends BasePlugin {
   }
 }
 
-// 正确导出 manifest 和默认类
 PoetryCard.manifest = {
   id: 'poetry-card',
   name: '诗词卡片',
@@ -114,16 +108,7 @@ PoetryCard.manifest = {
   capabilities: {
     supportsTitle: true,
     supportsFooter: true
-  },
-  supported_features: {
-    fonts: false,          // 固定字体，不支持修改
-    alignment: true,       // 支持对齐
-    spacing: true,         // 支持间距
-    borders: false,        // 不支持边框
-    colors: false,         // 固定颜色主题
-    animations: false      // 不支持动画
   }
 };
 
 export { PoetryCard as default, PoetryCard };
-export const manifest = PoetryCard.manifest;

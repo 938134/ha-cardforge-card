@@ -25,7 +25,7 @@ class WelcomeCard extends BasePlugin {
       </div>
       
       ${this._renderCardFooter(config, entities)}
-    `, 'welcome-card', config);
+    `, 'welcome-card');
   }
 
   getStyles(config) {
@@ -41,32 +41,20 @@ class WelcomeCard extends BasePlugin {
 
   _getTimeBasedGreeting() {
     const hour = new Date().getHours();
-    if (hour >= 5 && hour < 12) {
-      return '早上好';
-    } else if (hour >= 12 && hour < 14) {
-      return '中午好';
-    } else if (hour >= 14 && hour < 18) {
-      return '下午好';
-    } else if (hour >= 18 && hour < 22) {
-      return '晚上好';
-    } else {
-      return '你好';
-    }
+    if (hour >= 5 && hour < 12) return '早上好';
+    if (hour >= 12 && hour < 14) return '中午好';
+    if (hour >= 14 && hour < 18) return '下午好';
+    if (hour >= 18 && hour < 22) return '晚上好';
+    return '你好';
   }
 
   _getTimePeriodMessage() {
     const hour = new Date().getHours();
-    if (hour >= 5 && hour < 12) {
-      return '美好的一天从早晨开始';
-    } else if (hour >= 12 && hour < 14) {
-      return '午间时光，注意休息';
-    } else if (hour >= 14 && hour < 18) {
-      return '下午工作效率最高';
-    } else if (hour >= 18 && hour < 22) {
-      return '晚间放松时间';
-    } else {
-      return '夜深了，早点休息';
-    }
+    if (hour >= 5 && hour < 12) return '美好的一天从早晨开始';
+    if (hour >= 12 && hour < 14) return '午间时光，注意休息';
+    if (hour >= 14 && hour < 18) return '下午工作效率最高';
+    if (hour >= 18 && hour < 22) return '晚间放松时间';
+    return '夜深了，早点休息';
   }
 
   _renderCustomBlocks(blocks) {
@@ -114,7 +102,6 @@ class WelcomeCard extends BasePlugin {
   }
 }
 
-// 正确导出 manifest 和默认类
 WelcomeCard.manifest = {
   id: 'welcome-card',
   name: '欢迎卡片',
@@ -139,4 +126,3 @@ WelcomeCard.manifest = {
 };
 
 export { WelcomeCard as default, WelcomeCard };
-export const manifest = WelcomeCard.manifest;
