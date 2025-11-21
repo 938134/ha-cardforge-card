@@ -176,8 +176,8 @@ class HaCardForgeEditor extends LitElement {
       <div class="editor-container">
         <div class="editor-layout">
           ${this._renderPluginSection()}
-          ${this._renderPluginConfigSection()}
           ${this._renderThemeSection()}
+          ${this._renderPluginConfigSection()}
           ${this._renderDataSourceSection()}
         </div>
       </div>
