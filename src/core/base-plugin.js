@@ -70,90 +70,28 @@ export class BasePlugin {
     return field?.default !== undefined ? field.default : defaultValue;
   }
 
-renderConfigEditor(config, onConfigChange) {
-  const schema = this.getConfigSchema();
-  if (!schema || Object.keys(schema).length === 0) {
-    return this._renderNoConfig();
+  renderConfigEditor(config, onConfigChange) {
+    const schema = this.getConfigSchema();
+    if (!schema || Object.keys(schema).length === 0) {
+      return this._renderNoConfig();
+    }
+
+    // 使用新的配置编辑器组件
+    return `
+      <config-editor 
+        .schema="${JSON.stringify(schema).replace(/"/g, '&quot;')}"
+        .config="${JSON.stringify(config).replace(/"/g, '&quot;')}"
+      ></config-editor>
+    `;
   }
 
-  // 使用新的配置编辑器组件
-  return `
-    <config-editor 
-      .schema="${JSON.stringify(schema).replace(/"/g, '&quot;')}"
-      .config="${JSON.stringify(config).replace(/"/g, '&quot;')}"
-    ></config-editor>
-  `;
-}
-
-_renderNoConfig() {
-  return `
-    <div class="config-empty-state">
-      <ha-icon icon="mdi:check-circle"></ha-icon>
-      <div>此卡片无需额外配置</div>
-    </div>
-  `;
-}
-
-  _renderConfigField(key, field, config, onConfigChange) {
-    const currentValue = this.getConfigValue(config, key);
-    
-    switch (field.type) {
-      case 'boolean':
-        return `
-          <div class="config-field config-boolean" data-key="${key}">
-            <label class="config-label">
-              <ha-switch 
-                .checked="${!!currentValue}"
-              ></ha-switch>
-              <span>${field.label}</span>
-            </label>
-            ${field.description ? `<div class="config-description">${field.description}</div>` : ''}
-          </div>
-        `;
-        
-      case 'select':
-        const options = field.options.map(opt => 
-          `<paper-item value="${opt}">${opt}</paper-item>`
-        ).join('');
-        
-        return `
-          <div class="config-field config-select" data-key="${key}">
-            <label class="config-label">${field.label}</label>
-            <ha-select 
-              .value="${currentValue}"
-            >
-              ${options}
-            </ha-select>
-            ${field.description ? `<div class="config-description">${field.description}</div>` : ''}
-          </div>
-        `;
-        
-      case 'number':
-        return `
-          <div class="config-field config-number" data-key="${key}">
-            <label class="config-label">${field.label}</label>
-            <ha-textfield
-              type="number"
-              .value="${currentValue}"
-              min="${field.min || ''}"
-              max="${field.max || ''}"
-            ></ha-textfield>
-            ${field.description ? `<div class="config-description">${field.description}</div>` : ''}
-          </div>
-        `;
-        
-      default: // text
-        return `
-          <div class="config-field config-text" data-key="${key}">
-            <label class="config-label">${field.label}</label>
-            <ha-textfield
-              .value="${currentValue}"
-              placeholder="${field.placeholder || ''}"
-            ></ha-textfield>
-            ${field.description ? `<div class="config-description">${field.description}</div>` : ''}
-          </div>
-        `;
-    }
+  _renderNoConfig() {
+    return `
+      <div class="config-empty-state">
+        <ha-icon icon="mdi:check-circle"></ha-icon>
+        <div>此卡片无需额外配置</div>
+      </div>
+    `;
   }
 
   // === 布局策略系统 ===
