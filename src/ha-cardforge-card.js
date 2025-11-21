@@ -137,12 +137,12 @@ class HaCardForgeCard extends LitElement {
   }
 
   _validatePluginConfig() {
+    // 简化配置验证，让插件自行处理
     if (!this._plugin) return;
     
     try {
       const manifest = this._plugin.getManifest();
-      this._plugin._validateConfig(this.config, manifest);
-      this.config = this._plugin._applyConfigDefaults(this.config, manifest);
+      // 不再进行复杂的配置验证
     } catch (error) {
       console.warn('插件配置验证警告:', error.message);
     }

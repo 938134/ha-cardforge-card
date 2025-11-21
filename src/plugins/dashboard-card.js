@@ -23,7 +23,7 @@ class DashboardCard extends BasePlugin {
       </div>
       
       ${this._renderCardFooter(config, entities)}
-    `, 'dashboard-card', config);
+    `, 'dashboard-card');
   }
 
   getStyles(config) {
@@ -111,7 +111,6 @@ class DashboardCard extends BasePlugin {
         ${icon}
         <div class="item-label">${label}</div>
         <div class="item-value">${value} ${unit}</div>
-        ${this._renderTrendIndicator(block)}
       </div>
     `;
   }
@@ -132,15 +131,6 @@ class DashboardCard extends BasePlugin {
     return `<div style="font-size: 1.5em; margin-bottom: var(--cf-spacing-sm);">${icon}</div>`;
   }
 
-  _renderTrendIndicator(block) {
-    if (block.type !== 'sensor' || !block.realTimeData) return '';
-    
-    const attributes = block.realTimeData.attributes || {};
-    if (!attributes.unit_of_measurement) return '';
-    
-    return '';
-  }
-
   _renderEmptyState() {
     return `
       <div class="cf-flex cf-flex-center cf-flex-column cf-p-lg">
@@ -152,7 +142,6 @@ class DashboardCard extends BasePlugin {
   }
 }
 
-// 正确导出 manifest 和默认类
 DashboardCard.manifest = {
   id: 'dashboard-card',
   name: '仪表盘卡片',
@@ -175,10 +164,6 @@ DashboardCard.manifest = {
       label: '显示图标',
       default: true
     }
-  },
-  capabilities: {
-    supportsTitle: true,
-    supportsFooter: false
   }
 };
 

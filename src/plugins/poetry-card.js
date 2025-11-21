@@ -22,7 +22,7 @@ class PoetryCard extends BasePlugin {
       </div>
       
       ${this._renderCardFooter(config, entities)}
-    `, 'poetry-card', config);
+    `, 'poetry-card');
   }
 
   getStyles(config) {
@@ -33,11 +33,6 @@ class PoetryCard extends BasePlugin {
       
       .poetry-card {
         font-family: "楷体", "STKaiti", serif;
-      }
-      
-      .poetry-content {
-        line-height: 2;
-        text-align: center;
       }
     `;
   }
@@ -76,7 +71,6 @@ class PoetryCard extends BasePlugin {
       }
     ];
     
-    // 根据日期选择诗词，确保每天显示相同的诗词
     const today = new Date();
     const seed = today.getFullYear() * 10000 + (today.getMonth() + 1) * 100 + today.getDate();
     const index = seed % poetries.length;
@@ -85,7 +79,6 @@ class PoetryCard extends BasePlugin {
   }
 }
 
-// 正确导出 manifest 和默认类
 PoetryCard.manifest = {
   id: 'poetry-card',
   name: '诗词卡片',
@@ -104,24 +97,7 @@ PoetryCard.manifest = {
       type: 'boolean',
       label: '显示朝代',
       default: true
-    },
-    auto_refresh: {
-      type: 'boolean',
-      label: '自动刷新',
-      default: false
     }
-  },
-  capabilities: {
-    supportsTitle: true,
-    supportsFooter: true
-  },
-  supported_features: {
-    fonts: false,          // 固定字体，不支持修改
-    alignment: true,       // 支持对齐
-    spacing: true,         // 支持间距
-    borders: false,        // 不支持边框
-    colors: false,         // 固定颜色主题
-    animations: false      // 不支持动画
   }
 };
 

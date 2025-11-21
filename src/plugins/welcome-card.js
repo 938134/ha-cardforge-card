@@ -25,7 +25,7 @@ class WelcomeCard extends BasePlugin {
       </div>
       
       ${this._renderCardFooter(config, entities)}
-    `, 'welcome-card', config);
+    `, 'welcome-card');
   }
 
   getStyles(config) {
@@ -114,7 +114,6 @@ class WelcomeCard extends BasePlugin {
   }
 }
 
-// 正确导出 manifest 和默认类
 WelcomeCard.manifest = {
   id: 'welcome-card',
   name: '欢迎卡片',
@@ -131,12 +130,8 @@ WelcomeCard.manifest = {
       label: '显示每日语录',
       default: true
     }
-  },
-  capabilities: {
-    supportsTitle: true,
-    supportsFooter: true
   }
 };
 
 export { WelcomeCard as default, WelcomeCard };
-export const manifest = WelcomeCard.manifest;
+export const manifest = WelcomeCard .manifest;

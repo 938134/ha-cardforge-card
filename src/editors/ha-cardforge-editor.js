@@ -211,7 +211,6 @@ class HaCardForgeEditor extends LitElement {
           ${this._renderPluginSection()}
           ${this._renderThemeSection()}
           ${this._renderBaseConfigSection()}
-          ${this._renderAdvancedConfigSection()}
           ${this._renderDataSourceSection()}
         </div>
       </div>
@@ -286,26 +285,6 @@ _renderBaseConfigSection() {
     </div>
   `;
 }
-  
-  _renderAdvancedConfigSection() {
-    if (!this.config.plugin || !this._pluginManifest?.config_schema) return '';
-    
-    return html`
-      <div class="editor-section">
-        <div class="section-header">
-          <ha-icon icon="mdi:cog"></ha-icon>
-          <span>高级设置</span>
-          <span class="section-subtitle">配置卡片特定功能</span>
-        </div>
-        
-        <advanced-config-editor
-          .schema=${this._pluginManifest.config_schema}
-          .config=${this.config}
-          @config-changed=${this._onConfigChanged}
-        ></advanced-config-editor>
-      </div>
-    `;
-  }
 
   _renderDataSourceSection() {
     if (!this.config.plugin || !this._pluginInstance) return '';

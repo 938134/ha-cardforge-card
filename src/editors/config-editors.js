@@ -191,7 +191,6 @@ export class ConfigEditor extends LitElement {
   }
 }
 
-// 注册自定义元素
 if (!customElements.get('config-editor')) {
   customElements.define('config-editor', ConfigEditor);
 }

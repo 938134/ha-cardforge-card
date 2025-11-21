@@ -18,7 +18,7 @@ class ClockCard extends BasePlugin {
       </div>
       
       ${this._renderCardFooter(config, entities)}
-    `, 'clock-card', config);
+    `, 'clock-card');
   }
 
   getStyles(config) {
@@ -51,7 +51,6 @@ class ClockCard extends BasePlugin {
   }
 }
 
-// 正确导出 manifest 和默认类
 ClockCard.manifest = {
   id: 'clock-card',
   name: '时钟卡片',
@@ -77,10 +76,6 @@ ClockCard.manifest = {
       options: ['12小时制', '24小时制'],
       default: '24小时制'
     }
-  },
-  capabilities: {
-    supportsTitle: true,
-    supportsFooter: false
   }
 };
 
