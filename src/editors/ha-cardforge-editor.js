@@ -285,27 +285,27 @@ _renderBaseConfigSection() {
     </div>
   `;
 }
+ 
+_renderDataSourceSection() {
+  if (!this.config.plugin || !this._pluginInstance) return '';
 
-  _renderDataSourceSection() {
-    if (!this.config.plugin || !this._pluginInstance) return '';
-
-    return html`
-      <div class="editor-section">
-        <div class="section-header">
-          <ha-icon icon="mdi:database"></ha-icon>
-          <span>数据源配置</span>
-          <span class="section-subtitle">配置卡片显示的数据和内容</span>
-        </div>
-        
-        <layout-editor
-          .hass=${this.hass}
-          .config=${this.config}
-          .pluginManifest=${this._pluginManifest}
-          @entities-changed=${this._onEntitiesChanged}
-        ></layout-editor>
+  return html`
+    <div class="editor-section">
+      <div class="section-header">
+        <ha-icon icon="mdi:database"></ha-icon>
+        <span>数据源配置</span>
+        <!-- 移除不一致的描述 -->
       </div>
-    `;
-  }
+      
+      <layout-editor
+        .hass=${this.hass}
+        .config=${this.config}
+        .pluginManifest=${this._pluginManifest}
+        @entities-changed=${this._onEntitiesChanged}
+      ></layout-editor>
+    </div>
+  `;
+}
 
   async _onPluginChanged(e) {
     const newConfig = {

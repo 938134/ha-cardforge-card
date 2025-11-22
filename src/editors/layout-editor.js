@@ -215,7 +215,7 @@ export class LayoutEditor extends LitElement {
     if (Object.keys(requirements).length === 0) {
       return this._renderNoRequirements();
     }
-
+  
     return html`
       <div class="entity-driven-editor">
         ${Object.entries(requirements).map(([key, requirement]) => html`
@@ -230,8 +230,6 @@ export class LayoutEditor extends LitElement {
             ></ha-combo-box>
           </div>
         `)}
-        
-        ${this._renderInfoCard()}
       </div>
     `;
   }
@@ -252,16 +250,6 @@ export class LayoutEditor extends LitElement {
         <ha-icon class="info-icon" icon="mdi:auto-fix"></ha-icon>
         <div class="info-title">智能数据源</div>
         <p class="info-description">此卡片使用内置数据源，无需额外配置实体</p>
-      </div>
-    `;
-  }
-
-  _renderInfoCard() {
-    return html`
-      <div class="info-card">
-        <ha-icon class="info-icon" icon="mdi:database-cog"></ha-icon>
-        <div class="info-title">数据源配置</div>
-        <p class="info-description">为此卡片配置需要的数据源实体</p>
       </div>
     `;
   }
@@ -317,3 +305,4 @@ export class LayoutEditor extends LitElement {
 if (!customElements.get('layout-editor')) {
   customElements.define('layout-editor', LayoutEditor);
 }
+
