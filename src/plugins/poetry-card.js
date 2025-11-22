@@ -13,35 +13,42 @@ class PoetryCard extends BasePlugin {
     const content = this._getEntityState(entities, hass, 'content', defaultPoetry.content);
     const translation = this._getEntityState(entities, hass, 'translation', defaultPoetry.translation);
 
+    // 清理实体值
+    const displayTitle = this._cleanEntityValue(title);
+    const displayDynasty = this._cleanEntityValue(dynasty);
+    const displayAuthor = this._cleanEntityValue(author);
+    const displayContent = this._cleanEntityValue(content);
+    const displayTranslation = this._cleanEntityValue(translation);
+
     return this._renderCardContainer(`
       ${this._renderCardHeader(safeConfig, entities)}
       
       <div class="cf-flex cf-flex-center cf-flex-column cf-gap-lg">
-        <!-- 诗词标题 -->
-        ${safeConfig.show_title && title ? `
-          <div class="cardforge-text-large cf-text-center poetry-title">《${title}》</div>
+        <!-- 标题 - 在内容区域显示 -->
+        ${safeConfig.show_title && displayTitle ? `
+          <div class="cardforge-text-large cf-text-center poetry-title">${displayTitle}</div>
         ` : ''}
         
         <!-- 朝代和作者在同一行 -->
-        ${(safeConfig.show_dynasty && dynasty) || (safeConfig.show_author && author) ? `
+        ${(safeConfig.show_dynasty && displayDynasty) || (safeConfig.show_author && displayAuthor) ? `
           <div class="cf-flex cf-flex-center cf-gap-md cf-text-center poetry-meta">
-            ${safeConfig.show_dynasty && dynasty ? `<div class="cardforge-text-small poetry-dynasty">${dynasty}</div>` : ''}
-            ${safeConfig.show_author && author ? `<div class="cardforge-text-medium poetry-author">${author}</div>` : ''}
+            ${safeConfig.show_dynasty && displayDynasty ? `<div class="cardforge-text-small poetry-dynasty">${displayDynasty}</div>` : ''}
+            ${safeConfig.show_author && displayAuthor ? `<div class="cardforge-text-medium poetry-author">${displayAuthor}</div>` : ''}
           </div>
         ` : ''}
         
-        <!-- 诗词内容 - 改进换行逻辑 -->
-        ${content ? `
-          <div class="cardforge-text-large cf-text-center poetry-content">
-            ${this._formatPoetryContent(content)}
+        <!-- 诗词内容 - 智能换行 -->
+        ${displayContent ? `
+          <div class="cardforge-text-large cf-text-center poetry-content" style="line-height: 1.8;">
+            ${this._formatPoetryContent(displayContent)}
           </div>
         ` : ''}
         
         <!-- 译文 -->
-        ${safeConfig.show_translation && translation ? `
+        ${safeConfig.show_translation && displayTranslation ? `
           <div class="cf-mt-lg cf-p-md poetry-translation-container">
             <div class="cardforge-text-small cf-text-center poetry-translation-title">译文</div>
-            <div class="cardforge-text-medium cf-text-center poetry-translation">${translation}</div>
+            <div class="cardforge-text-medium cf-text-center poetry-translation">${displayTranslation}</div>
           </div>
         ` : ''}
       </div>
@@ -89,7 +96,6 @@ class PoetryCard extends BasePlugin {
         font-weight: 400;
         color: var(--cf-text-primary);
         text-shadow: 0 1px 2px rgba(0,0,0,0.1);
-        line-height: 1.8;
       }
       
       .poetry-translation-container {
@@ -128,25 +134,56 @@ class PoetryCard extends BasePlugin {
     `;
   }
 
-  // 改进的诗词内容格式化方法
+  // 修复：智能诗词内容格式化
   _formatPoetryContent(content) {
     if (!content) return '';
     
-    // 检测是否为长诗（超过20字）
-    const isLongPoem = content.replace(/[，。！？]/g, '').length > 20;
+    // 清理实体ID
+    const cleanContent = this._cleanEntityValue(content);
     
-    if (isLongPoem) {
-      // 长诗：只在句号、叹号、问号后换行
-      return content
-        .replace(/[。！？]/g, '$&<br>')
-        .trim();
+    // 统计字数（去除标点）
+    const charCount = cleanContent.replace(/[，。！？；,\.!?;]/g, '').length;
+    
+    if (charCount <= 100) {
+      // 8字以内的诗：按逗号换行
+      return cleanContent.split('，').join('，<br>');
     } else {
-      // 短诗：在逗号和句末标点后都换行
-      return content
-        .replace(/[，。！？]/g, '$&<br>')
-        .replace(/<br><br>/g, '<br>')
-        .trim();
+      // 8字以上的诗：按句号、叹号、问号换行
+      return cleanContent
+        .replace(/。/g, '。<br>')
+        .replace(/！/g, '！<br>')
+        .replace(/？/g, '？<br>')
+        .replace(/\./g, '.<br>')
+        .replace(/!/g, '!<br>')
+        .replace(/\?/g, '?<br>');
     }
+  }
+
+  // 修复：更精确的实体值清理方法
+  _cleanEntityValue(text) {
+    if (!text) return '';
+    
+    // 如果文本是实体ID格式，返回空
+    if (typeof text === 'string') {
+      // 纯实体ID：sensor.xxx_xxx
+      if (text.includes('.') && /^[a-z]+\.[a-z_]+$/i.test(text)) {
+        return '';
+      }
+      
+      // 实体ID + 内容：sensor.xxx《内容》
+      const titleMatch = text.match(/[^《]*《([^》]+)》/);
+      if (titleMatch && titleMatch[1]) {
+        return titleMatch[1];
+      }
+      
+      // 实体ID + 内容：sensor.xxx"内容"
+      const quoteMatch = text.match(/[^"]*"([^"]+)"/);
+      if (quoteMatch && quoteMatch[1]) {
+        return quoteMatch[1];
+      }
+    }
+    
+    return text;
   }
 
   _getDailyPoetry() {
@@ -166,18 +203,11 @@ class PoetryCard extends BasePlugin {
         translation: "春日里贪睡不知不觉天已破晓，搅乱我酣眠的是那啁啾的小鸟。昨天夜里风声雨声一直不断，那娇美的春花不知被吹落了多少？"
       },
       {
-        content: "君问归期未有期，巴山夜雨涨秋池。何当共剪西窗烛，却话巴山夜雨时。",
-        title: "夜雨寄北",
-        author: "李商隐", 
+        content: "千山鸟飞绝，万径人踪灭。孤舟蓑笠翁，独钓寒江雪。",
+        title: "江雪",
+        author: "柳宗元", 
         dynasty: "唐",
-        translation: "你问我回家的日期，归期难定，今晚巴山下着大雨，雨水已涨满秋池。什么时候我们才能一起秉烛长谈，相互倾诉今宵巴山夜雨中的思念之情。"
-      },
-      {
-        content: "锦瑟无端五十弦，一弦一柱思华年。庄生晓梦迷蝴蝶，望帝春心托杜鹃。沧海月明珠有泪，蓝田日暖玉生烟。此情可待成追忆，只是当时已惘然。",
-        title: "锦瑟",
-        author: "李商隐",
-        dynasty: "唐", 
-        translation: "精美的瑟为什么竟有五十根弦，一弦一柱都叫我追忆青春年华。庄周翩翩起舞睡梦中化为蝴蝶，望帝把自己的幽恨托身于杜鹃。沧海明月高照，鲛人泣泪皆成珠；蓝田红日和暖，可看到良玉生烟。悲欢离合之情，岂待今日来追忆，只是当年却漫不经心，早已惘然。"
+        translation: "所有的山上，飞鸟的身影已经绝迹，所有道路都不见人的踪迹。江面孤舟上，一位披戴着蓑笠的老翁，独自在漫天风雪中垂钓。"
       }
     ];
     
