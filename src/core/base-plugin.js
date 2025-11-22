@@ -180,10 +180,11 @@ _filterEntityValue(value) {
   }
 
   _renderCardHeader(config, entities) {
-    const title = this._getCardValue(entities, 'title', config.title);
+    // 修复：只使用配置的标题，不关联实体数据
+    const title = config.title || '';
     if (!title) return '';
-
-    const subtitle = this._getCardValue(entities, 'subtitle', config.subtitle);
+  
+    const subtitle = config.subtitle || '';
     
     return `
       <div class="cardforge-header">

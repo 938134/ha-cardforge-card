@@ -21,10 +21,11 @@ class PoetryCard extends BasePlugin {
     const displayTranslation = this._cleanEntityValue(translation);
 
     return this._renderCardContainer(`
+      <!-- 修复：卡片标题区域使用配置的标题，而不是实体标题 -->
       ${this._renderCardHeader(safeConfig, entities)}
       
       <div class="cf-flex cf-flex-center cf-flex-column cf-gap-lg">
-        <!-- 标题 - 在内容区域显示 -->
+        <!-- 诗词标题 - 在内容区域显示 -->
         ${safeConfig.show_title && displayTitle ? `
           <div class="cardforge-text-large cf-text-center poetry-title">${displayTitle}</div>
         ` : ''}
@@ -37,7 +38,7 @@ class PoetryCard extends BasePlugin {
           </div>
         ` : ''}
         
-        <!-- 诗词内容 - 智能换行 -->
+        <!-- 诗词内容 - 按句子数量智能换行 -->
         ${displayContent ? `
           <div class="cardforge-text-large cf-text-center poetry-content" style="line-height: 1.8;">
             ${this._formatPoetryContent(displayContent)}
@@ -134,22 +135,22 @@ class PoetryCard extends BasePlugin {
     `;
   }
 
-  // 修复：智能诗词内容格式化
+  // 修复：按句子数量智能换行
   _formatPoetryContent(content) {
     if (!content) return '';
     
-    // 清理实体ID
-    const cleanContent = this._cleanEntityValue(content);
+    // 按标点符号分割句子
+    const sentences = content.split(/[，。！？；,\.!?;]/).filter(s => s.trim());
+    const sentenceCount = sentences.length;
     
-    // 统计字数（去除标点）
-    const charCount = cleanContent.replace(/[，。！？；,\.!?;]/g, '').length;
-    
-    if (charCount <= 100) {
-      // 8字以内的诗：按逗号换行
-      return cleanContent.split('，').join('，<br>');
+    if (sentenceCount <= 8) {
+      // 8句以内的诗：按逗号换行
+      return content
+        .replace(/，/g, '，<br>')
+        .replace(/,/g, ',<br>');
     } else {
-      // 8字以上的诗：按句号、叹号、问号换行
-      return cleanContent
+      // 8句以上的诗：按句号、叹号、问号换行
+      return content
         .replace(/。/g, '。<br>')
         .replace(/！/g, '！<br>')
         .replace(/？/g, '？<br>')
@@ -159,27 +160,28 @@ class PoetryCard extends BasePlugin {
     }
   }
 
-  // 修复：更精确的实体值清理方法
+  // 修复：实体值清理
   _cleanEntityValue(text) {
     if (!text) return '';
     
-    // 如果文本是实体ID格式，返回空
     if (typeof text === 'string') {
       // 纯实体ID：sensor.xxx_xxx
       if (text.includes('.') && /^[a-z]+\.[a-z_]+$/i.test(text)) {
         return '';
       }
       
-      // 实体ID + 内容：sensor.xxx《内容》
-      const titleMatch = text.match(/[^《]*《([^》]+)》/);
-      if (titleMatch && titleMatch[1]) {
-        return titleMatch[1];
-      }
+      // 实体ID + 内容：sensor.xxx《内容》或 sensor.xxx"内容"
+      const patterns = [
+        /[^《]*《([^》]+)》/,  // 书名号内容
+        /[^"]*"([^"]+)"/,    // 双引号内容
+        /[^']*'([^']+)'/     // 单引号内容
+      ];
       
-      // 实体ID + 内容：sensor.xxx"内容"
-      const quoteMatch = text.match(/[^"]*"([^"]+)"/);
-      if (quoteMatch && quoteMatch[1]) {
-        return quoteMatch[1];
+      for (const pattern of patterns) {
+        const match = text.match(pattern);
+        if (match && match[1]) {
+          return match[1];
+        }
       }
     }
     
@@ -201,13 +203,6 @@ class PoetryCard extends BasePlugin {
         author: "孟浩然",
         dynasty: "唐",
         translation: "春日里贪睡不知不觉天已破晓，搅乱我酣眠的是那啁啾的小鸟。昨天夜里风声雨声一直不断，那娇美的春花不知被吹落了多少？"
-      },
-      {
-        content: "千山鸟飞绝，万径人踪灭。孤舟蓑笠翁，独钓寒江雪。",
-        title: "江雪",
-        author: "柳宗元", 
-        dynasty: "唐",
-        translation: "所有的山上，飞鸟的身影已经绝迹，所有道路都不见人的踪迹。江面孤舟上，一位披戴着蓑笠的老翁，独自在漫天风雪中垂钓。"
       }
     ];
     
