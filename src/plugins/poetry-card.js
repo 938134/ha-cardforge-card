@@ -6,45 +6,52 @@ class PoetryCard extends BasePlugin {
     // 直接获取实体数据
     const defaultPoetry = this._getDailyPoetry();
     
-    // 优雅地获取数据：实体数据 > 默认数据
-    const titleEntity = this._getEntityState(entities, hass, 'title');
-    const dynastyEntity = this._getEntityState(entities, hass, 'dynasty');
-    const authorEntity = this._getEntityState(entities, hass, 'author');
-    const contentEntity = this._getEntityState(entities, hass, 'content');
-    const translationEntity = this._getEntityState(entities, hass, 'translation');
+    // 修复：检查是否配置了实体，如果配置了实体就使用实体状态，否则使用默认值
+    const hasTitleEntity = entities && entities.title;
+    const hasDynastyEntity = entities && entities.dynasty;
+    const hasAuthorEntity = entities && entities.author;
+    const hasContentEntity = entities && entities.content;
+    const hasTranslationEntity = entities && entities.translation;
+    
+    // 只有配置了实体才使用实体状态，否则使用默认值
+    const title = hasTitleEntity ? this._getEntityState(entities, hass, 'title', '') : defaultPoetry.title;
+    const dynasty = hasDynastyEntity ? this._getEntityState(entities, hass, 'dynasty', '') : defaultPoetry.dynasty;
+    const author = hasAuthorEntity ? this._getEntityState(entities, hass, 'author', '') : defaultPoetry.author;
+    const content = hasContentEntity ? this._getEntityState(entities, hass, 'content', '') : defaultPoetry.content;
+    const translation = hasTranslationEntity ? this._getEntityState(entities, hass, 'translation', '') : defaultPoetry.translation;
 
-    // 修复：只有当实体有实际内容时才使用，否则使用默认值
-    const title = titleEntity && titleEntity !== '加载中...' ? titleEntity : defaultPoetry.title;
-    const dynasty = dynastyEntity && dynastyEntity !== '加载中...' ? dynastyEntity : defaultPoetry.dynasty;
-    const author = authorEntity && authorEntity !== '加载中...' ? authorEntity : defaultPoetry.author;
-    const content = contentEntity && contentEntity !== '加载中...' ? contentEntity : defaultPoetry.content;
-    const translation = translationEntity && translationEntity !== '加载中...' ? translationEntity : defaultPoetry.translation;
+    // 修复诗词内容换行逻辑
+    const formattedContent = this._formatPoetryContent(content);
 
     return this._renderCardContainer(`
       ${this._renderCardHeader(safeConfig, entities)}
       
       <div class="cf-flex cf-flex-center cf-flex-column cf-gap-lg">
-        <!-- 标题 - 修复：只有当启用标题且标题有内容时才显示 -->
-        ${safeConfig.show_title && title && title !== '加载中...' ? `
+        <!-- 标题 -->
+        ${safeConfig.show_title && title ? `
           <div class="cardforge-text-large cf-text-center poetry-title">《${title}》</div>
         ` : ''}
         
         <!-- 朝代和作者在同一行 -->
-        ${((safeConfig.show_dynasty && dynasty && dynasty !== '加载中...') || (safeConfig.show_author && author && author !== '加载中...')) ? `
+        ${(safeConfig.show_dynasty && dynasty) || (safeConfig.show_author && author) ? `
           <div class="cf-flex cf-flex-center cf-gap-md cf-text-center poetry-meta">
-            ${safeConfig.show_dynasty && dynasty && dynasty !== '加载中...' ? `<div class="cardforge-text-small poetry-dynasty">${dynasty}</div>` : ''}
-            ${safeConfig.show_author && author && author !== '加载中...' ? `<div class="cardforge-text-medium poetry-author">${author}</div>` : ''}
+            ${safeConfig.show_dynasty && dynasty ? `<div class="cardforge-text-small poetry-dynasty">${dynasty}</div>` : ''}
+            ${safeConfig.show_author && author ? `<div class="cardforge-text-medium poetry-author">${author}</div>` : ''}
           </div>
         ` : ''}
         
-        <!-- 诗词内容 - 优化长诗显示 -->
-        ${content && content !== '加载中...' ? this._renderPoetryContent(content, safeConfig) : ''}
+        <!-- 诗词内容 -->
+        ${formattedContent ? `
+          <div class="cardforge-text-large cf-text-center poetry-content">
+            ${formattedContent}
+          </div>
+        ` : ''}
         
         <!-- 译文 -->
-        ${safeConfig.show_translation && translation && translation !== '加载中...' ? `
+        ${safeConfig.show_translation && translation ? `
           <div class="cf-mt-lg cf-p-md poetry-translation-container">
             <div class="cardforge-text-small cf-text-center poetry-translation-title">译文</div>
-            <div class="cardforge-text-medium cf-text-center poetry-translation">${this._formatLongText(translation)}</div>
+            <div class="cardforge-text-medium cf-text-center poetry-translation">${translation}</div>
           </div>
         ` : ''}
       </div>
@@ -93,18 +100,6 @@ class PoetryCard extends BasePlugin {
         color: var(--cf-text-primary);
         text-shadow: 0 1px 2px rgba(0,0,0,0.1);
         line-height: 1.8;
-        max-height: 300px;
-        overflow-y: auto;
-        padding: var(--cf-spacing-sm);
-      }
-      
-      .poetry-content::-webkit-scrollbar {
-        width: 4px;
-      }
-      
-      .poetry-content::-webkit-scrollbar-thumb {
-        background: var(--cf-border);
-        border-radius: 2px;
       }
       
       .poetry-translation-container {
@@ -123,24 +118,11 @@ class PoetryCard extends BasePlugin {
         color: var(--cf-text-primary);
         line-height: 1.6;
         font-family: system-ui, sans-serif;
-        max-height: 200px;
-        overflow-y: auto;
-        padding: var(--cf-spacing-sm);
-      }
-      
-      .poetry-translation::-webkit-scrollbar {
-        width: 4px;
-      }
-      
-      .poetry-translation::-webkit-scrollbar-thumb {
-        background: var(--cf-border);
-        border-radius: 2px;
       }
       
       @container cardforge-container (max-width: 400px) {
         .poetry-content {
-          font-size: 1.1em;
-          max-height: 250px;
+          font-size: 1.2em;
         }
         
         .poetry-meta {
@@ -152,40 +134,29 @@ class PoetryCard extends BasePlugin {
           padding: var(--cf-spacing-xs) var(--cf-spacing-sm);
           font-size: 0.9em;
         }
-        
-        .poetry-translation {
-          max-height: 150px;
-          font-size: 0.9em;
-        }
       }
     `;
   }
 
-  // 优化长诗内容渲染
-  _renderPoetryContent(content, config) {
-    // 对内容进行适当的分行处理
-    const formattedContent = content
-      .replace(/，/g, '，<br>')
-      .replace(/。/g, '。<br>')
-      .replace(/！/g, '！<br>')
-      .replace(/？/g, '？<br>')
-      .replace(/；/g, '；<br>')
-      .replace(/：/g, '：<br>');
-
-    return `
-      <div class="cardforge-text-large cf-text-center poetry-content">
-        ${formattedContent}
-      </div>
-    `;
-  }
-
-  // 格式化长文本，添加适当的换行
-  _formatLongText(text) {
-    if (!text) return '';
+  // 修复：智能诗词内容格式化
+  _formatPoetryContent(content) {
+    if (!content) return '';
     
-    // 对长译文进行适当的分段
-    const sentences = text.split(/[。！？]/).filter(s => s.trim());
-    return sentences.map(sentence => sentence.trim() + '。').join('<br><br>');
+    // 按句号、叹号、问号进行主要换行
+    let formatted = content
+      .replace(/[。！？]/g, '$&<br>')  // 在句末标点后换行
+      .replace(/，/g, '，<br>')        // 在逗号后换行（适合短诗）
+      .replace(/<br><br>/g, '<br>');   // 移除连续换行
+    
+    // 如果是长诗（超过4行），减少逗号换行
+    const lines = formatted.split('<br>');
+    if (lines.length > 4) {
+      formatted = content
+        .replace(/[。！？]/g, '$&<br>')  // 只在句末标点换行
+        .replace(/<br><br>/g, '<br>');
+    }
+    
+    return formatted;
   }
 
   _getDailyPoetry() {
@@ -203,6 +174,13 @@ class PoetryCard extends BasePlugin {
         author: "孟浩然",
         dynasty: "唐",
         translation: "春日里贪睡不知不觉天已破晓，搅乱我酣眠的是那啁啾的小鸟。昨天夜里风声雨声一直不断，那娇美的春花不知被吹落了多少？"
+      },
+      {
+        content: "君问归期未有期，巴山夜雨涨秋池。何当共剪西窗烛，却话巴山夜雨时。",
+        title: "夜雨寄北",
+        author: "李商隐", 
+        dynasty: "唐",
+        translation: "你问我回家的日期，归期难定，今晚巴山下着大雨，雨水已涨满秋池。什么时候我们才能一起秉烛长谈，相互倾诉今宵巴山夜雨中的思念之情。"
       }
     ];
     
