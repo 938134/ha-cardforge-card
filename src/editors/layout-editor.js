@@ -23,6 +23,7 @@ export class LayoutEditor extends LitElement {
         gap: var(--cf-spacing-lg);
       }
 
+      /* 仪表盘布局样式 */
       .layout-presets {
         display: grid;
         grid-template-columns: repeat(4, 1fr);
@@ -68,10 +69,62 @@ export class LayoutEditor extends LitElement {
         color: var(--cf-text-secondary);
       }
 
-      .layout-content {
+      /* 普通卡片实体配置样式 */
+      .entity-driven-form {
         display: flex;
         flex-direction: column;
         gap: var(--cf-spacing-md);
+      }
+
+      .entity-row {
+        display: grid;
+        grid-template-columns: 25% 75%;
+        gap: var(--cf-spacing-md);
+        align-items: center;
+      }
+
+      .entity-label {
+        font-size: 0.9em;
+        font-weight: 500;
+        color: var(--cf-text-primary);
+        display: flex;
+        align-items: center;
+        gap: var(--cf-spacing-xs);
+      }
+
+      .required-star {
+        color: var(--cf-error-color);
+      }
+
+      .entity-control {
+        width: 100%;
+      }
+
+      .info-card {
+        background: var(--cf-surface);
+        border: 1px solid var(--cf-border);
+        border-radius: var(--cf-radius-md);
+        padding: var(--cf-spacing-lg);
+        text-align: center;
+      }
+
+      .info-icon {
+        font-size: 2em;
+        color: var(--cf-primary-color);
+        margin-bottom: var(--cf-spacing-md);
+      }
+
+      .info-title {
+        font-size: 1.1em;
+        font-weight: 600;
+        margin-bottom: var(--cf-spacing-sm);
+        color: var(--cf-text-primary);
+      }
+
+      .info-description {
+        font-size: 0.9em;
+        color: var(--cf-text-secondary);
+        line-height: 1.4;
       }
 
       .blocks-section {
@@ -88,6 +141,11 @@ export class LayoutEditor extends LitElement {
       @media (max-width: 768px) {
         .layout-presets {
           grid-template-columns: repeat(2, 1fr);
+        }
+
+        .entity-row {
+          grid-template-columns: 1fr;
+          gap: var(--cf-spacing-sm);
         }
       }
     `
@@ -115,6 +173,12 @@ export class LayoutEditor extends LitElement {
   }
 
   render() {
+    const isDashboard = this.pluginManifest?.free_layout;
+    
+    if (!isDashboard) {
+      return this._renderEntityDriven();
+    }
+
     return html`
       <div class="layout-editor">
         <div class="layout-presets-section">
@@ -156,6 +220,61 @@ export class LayoutEditor extends LitElement {
     `;
   }
 
+  _renderEntityDriven() {
+    const requirements = this.pluginManifest?.entity_requirements || {};
+    
+    if (Object.keys(requirements).length === 0) {
+      return this._renderNoRequirements();
+    }
+
+    return html`
+      <div class="entity-driven-form">
+        ${Object.entries(requirements).map(([key, requirement]) => {
+          const currentValue = this._getEntityValue(key);
+          
+          return html`
+            <div class="entity-row">
+              <div class="entity-label">
+                ${requirement.name}
+                ${requirement.required ? html`<span class="required-star">*</span>` : ''}
+              </div>
+              <div class="entity-control">
+                <ha-combo-box
+                  .items=${this._availableEntities}
+                  .value=${currentValue}
+                  @value-changed=${e => this._onEntityChanged(key, e.detail.value)}
+                  allow-custom-value
+                  label=${`选择 ${requirement.name}`}
+                ></ha-combo-box>
+              </div>
+            </div>
+          `;
+        })}
+      </div>
+    `;
+  }
+
+  _renderNoRequirements() {
+    return html`
+      <div class="info-card">
+        <ha-icon class="info-icon" icon="mdi:auto-fix"></ha-icon>
+        <div class="info-title">智能数据源</div>
+        <div class="info-description">此卡片会自动处理数据源，无需额外配置</div>
+      </div>
+    `;
+  }
+
+  _getEntityValue(key) {
+    const value = this.config.entities?.[key];
+    if (typeof value === 'string') {
+      return value;
+    }
+    if (value && typeof value === 'object') {
+      return value._source || value.state || '';
+    }
+    return value || '';
+  }
+
   _selectLayout(layout) {
     this._selectedLayout = layout;
     this.dispatchEvent(new CustomEvent('config-changed', {
@@ -175,6 +294,14 @@ export class LayoutEditor extends LitElement {
         label: `${state.attributes?.friendly_name || entityId} (${entityId})`
       }))
       .sort((a, b) => a.label.localeCompare(b.label));
+  }
+
+  _onEntityChanged(key, value) {
+    const updatedEntities = { 
+      ...this.config.entities,
+      [key]: value 
+    };
+    this._updateEntities(updatedEntities);
   }
 
   _onBlocksChanged(e) {
