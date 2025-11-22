@@ -6,7 +6,6 @@ export class InlineBlockEditor extends LitElement {
   static properties = {
     block: { type: Object },
     hass: { type: Object },
-    availableEntities: { type: Array },
     onSave: { type: Object },
     onDelete: { type: Object },
     onCancel: { type: Object }
@@ -40,6 +39,21 @@ export class InlineBlockEditor extends LitElement {
         font-size: 0.9em;
         font-weight: 500;
         color: var(--cf-text-primary);
+      }
+
+      .form-controls {
+        display: flex;
+        gap: var(--cf-spacing-sm);
+      }
+
+      .entity-picker-row {
+        display: flex;
+        gap: var(--cf-spacing-sm);
+        align-items: start;
+      }
+
+      .entity-picker {
+        flex: 1;
       }
 
       .form-actions {
@@ -83,6 +97,10 @@ export class InlineBlockEditor extends LitElement {
           gap: var(--cf-spacing-sm);
         }
 
+        .entity-picker-row {
+          flex-direction: column;
+        }
+
         .form-actions {
           flex-direction: column;
         }
@@ -93,7 +111,6 @@ export class InlineBlockEditor extends LitElement {
   constructor() {
     super();
     this.block = {};
-    this.availableEntities = [];
     this.onSave = () => {};
     this.onDelete = () => {};
     this.onCancel = () => {};
@@ -118,6 +135,25 @@ export class InlineBlockEditor extends LitElement {
               @value-changed=${e => this._updateBlock('type', e.detail.value)}
               label="选择类型"
             ></ha-combo-box>
+          </div>
+
+          <div class="form-row">
+            <label class="form-label">名称</label>
+            <ha-textfield
+              .value=${this.block.config?.name || ''}
+              @input=${e => this._updateConfig('name', e.target.value)}
+              label="内容块名称"
+              fullwidth
+            ></ha-textfield>
+          </div>
+
+          <div class="form-row">
+            <label class="form-label">图标</label>
+            <ha-icon-picker
+              .value=${this.block.config?.icon || this._getDefaultIcon()}
+              @value-changed=${e => this._updateConfig('icon', e.detail.value)}
+              label="选择图标"
+            ></ha-icon-picker>
           </div>
 
           <div class="form-row">
@@ -165,11 +201,21 @@ export class InlineBlockEditor extends LitElement {
   _getContentLabel() {
     const labels = {
       'text': '内容',
-      'sensor': '传感器',
+      'sensor': '传感器实体',
       'weather': '天气实体',
       'switch': '开关实体'
     };
     return labels[this.block.type] || '内容';
+  }
+
+  _getDefaultIcon() {
+    const icons = {
+      'text': 'mdi:text',
+      'sensor': 'mdi:gauge',
+      'weather': 'mdi:weather-cloudy', 
+      'switch': 'mdi:power'
+    };
+    return icons[this.block.type] || 'mdi:cube';
   }
 
   _renderContentField() {
@@ -180,17 +226,29 @@ export class InlineBlockEditor extends LitElement {
           @input=${e => this._updateBlock('content', e.target.value)}
           label="输入内容"
           rows="2"
+          fullwidth
         ></ha-textarea>
       `;
     } else {
       return html`
-        <ha-combo-box
-          .items=${this.availableEntities}
-          .value=${this.block.content || ''}
-          @value-changed=${e => this._updateBlock('content', e.detail.value)}
-          label="选择实体"
-          allow-custom-value
-        ></ha-combo-box>
+        <div class="entity-picker-row">
+          <ha-entity-picker
+            .hass=${this.hass}
+            .value=${this.block.content || ''}
+            @value-changed=${e => this._updateBlock('content', e.detail.value)}
+            .label=${`选择${this._getContentLabel()}`}
+            allow-custom-entity
+            class="entity-picker"
+          ></ha-entity-picker>
+          
+          ${this.block.content ? html`
+            <ha-icon-picker
+              .value=${this.block.config?.icon || this._getDefaultIcon()}
+              @value-changed=${e => this._updateConfig('icon', e.detail.value)}
+              .label=${`${this._getContentLabel()}图标`}
+            ></ha-icon-picker>
+          ` : ''}
+        </div>
       `;
     }
   }
@@ -202,7 +260,20 @@ export class InlineBlockEditor extends LitElement {
     };
     
     if (key === 'type' && value !== 'text') {
-      this.block.config = {};
+      // 切换类型时重置配置，但保留名称
+      const name = this.block.config?.name;
+      this.block.config = name ? { name } : {};
+      
+      // 自动设置图标
+      this.block.config.icon = this._getDefaultIcon();
+    }
+    
+    // 如果是实体类型且选择了实体，自动设置名称
+    if (key === 'content' && value && this.block.type !== 'text') {
+      const entity = this.hass?.states[value];
+      if (entity && !this.block.config?.name) {
+        this.block.config.name = entity.attributes.friendly_name || value;
+      }
     }
   }
 

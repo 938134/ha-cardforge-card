@@ -162,11 +162,6 @@ ClockCard.manifest = {
       type: 'boolean',
       label: '24小时制',
       default: true
-    },
-    show_seconds: {
-      type: 'boolean',
-      label: '显示秒数',
-      default: false
     }
   }
 };

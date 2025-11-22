@@ -43,6 +43,31 @@ export class LayoutEngine {
     };
   }
 
+  // 获取数据源配置选项
+  static getDataSourceOptions(manifest) {
+    const mode = this.detectMode(manifest);
+    const options = {
+      supportsTitle: false,
+      supportsSubtitle: false,
+      supportsFooter: false,
+      supportsContent: true
+    };
+
+    if (mode === LAYOUT_MODES.FREE) {
+      // 自由布局支持所有选项
+      options.supportsTitle = true;
+      options.supportsSubtitle = true;
+      options.supportsFooter = true;
+      options.supportsContent = true;
+    } else if (mode === LAYOUT_MODES.ENTITY_DRIVEN) {
+      // 实体驱动布局只支持内容
+      const requirements = manifest.entity_requirements || {};
+      options.supportsContent = Object.keys(requirements).length > 0;
+    }
+
+    return options;
+  }
+
   // 统一实体处理
   static process(entities, manifest, hass) {
     const mode = this.detectMode(manifest);

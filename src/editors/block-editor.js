@@ -7,7 +7,6 @@ export class BlockEditor extends LitElement {
   static properties = {
     hass: { type: Object },
     blocks: { type: Array },
-    availableEntities: { type: Array },
     _editingBlock: { state: true },
     _draggingBlockId: { state: true }
   };
@@ -192,7 +191,7 @@ export class BlockEditor extends LitElement {
         }
 
         .block-actions {
-          opacity: 1; /* 移动端始终显示操作按钮 */
+          opacity: 1;
         }
       }
     `
@@ -201,7 +200,6 @@ export class BlockEditor extends LitElement {
   constructor() {
     super();
     this.blocks = [];
-    this.availableEntities = [];
     this._editingBlock = null;
     this._draggingBlockId = null;
   }
@@ -246,9 +244,9 @@ export class BlockEditor extends LitElement {
         @drop=${(e) => this._onDrop(e, index)}
       >
         <ha-icon class="drag-handle" icon="mdi:drag"></ha-icon>
-        <ha-icon class="block-icon" .icon=${BlockManager.getBlockIcon(block)}></ha-icon>
+        <ha-icon class="block-icon" .icon=${block.config?.icon || BlockManager.getBlockIcon(block)}></ha-icon>
         <div class="block-info">
-          <div class="block-title">${BlockManager.getBlockDisplayName(block)}</div>
+          <div class="block-title">${block.config?.name || BlockManager.getBlockDisplayName(block)}</div>
           <div class="block-preview">${BlockManager.getBlockPreview(block)}</div>
         </div>
         <div class="block-actions">
@@ -270,7 +268,6 @@ export class BlockEditor extends LitElement {
           <inline-block-editor
             .block=${block}
             .hass=${this.hass}
-            .availableEntities=${this.availableEntities}
             .onSave=${(updatedBlock) => this._saveBlock(updatedBlock)}
             .onDelete=${(blockId) => this._deleteBlock(null, blockId)}
             .onCancel=${() => this._cancelEdit()}
