@@ -276,19 +276,12 @@ class HaCardForgeEditor extends LitElement {
           <span>${isDashboard ? '布局配置' : '数据源配置'}</span>
         </div>
         
-        ${isDashboard 
-          ? html`<layout-editor
-              .hass=${this.hass}
-              .config=${this.config}
-              .pluginManifest=${this._pluginManifest}
-              @entities-changed=${this._onEntitiesChanged}
-            ></layout-editor>`
-          : html`<config-editor
-              .config=${this.config}
-              .pluginManifest=${this._pluginManifest}
-              @config-changed=${this._onConfigChanged}
-            ></config-editor>`
-        }
+        <layout-editor
+          .hass=${this.hass}
+          .config=${this.config}
+          .pluginManifest=${this._pluginManifest}
+          @entities-changed=${this._onEntitiesChanged}
+        ></layout-editor>
       </div>
     `;
   }

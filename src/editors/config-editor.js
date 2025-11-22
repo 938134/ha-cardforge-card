@@ -79,6 +79,7 @@ export class ConfigEditor extends LitElement {
 
   willUpdate(changedProperties) {
     if (changedProperties.has('pluginManifest')) {
+      // 只处理 config_schema，不处理 entity_requirements
       this._schema = this.pluginManifest?.config_schema || {};
     }
   }
@@ -107,7 +108,6 @@ export class ConfigEditor extends LitElement {
   }
 
   _renderField(key, field) {
-    // 修复：正确处理默认值和当前值
     const defaultValue = field.default !== undefined ? field.default : false;
     const currentValue = this.config[key] !== undefined ? this.config[key] : defaultValue;
 
