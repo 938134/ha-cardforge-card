@@ -178,6 +178,9 @@ class PoetryCard extends BasePlugin {
   }
 }
 
+// src/plugins/poetry-card.js
+// 在 manifest 中更新 entity_requirements：
+
 PoetryCard.manifest = {
   id: 'poetry-card',
   name: '诗词卡片',
@@ -186,8 +189,7 @@ PoetryCard.manifest = {
   category: '文化',
   version: '1.0.0',
   author: 'CardForge',
-  layout_type: 'free',
-  allow_custom_entities: true,
+  // 移除自由布局相关配置，改为实体驱动
   config_schema: {
     show_title: {
       type: 'boolean',
@@ -213,27 +215,27 @@ PoetryCard.manifest = {
   entity_requirements: {
     title: {
       name: '诗词标题',
-      description: '自定义诗词标题实体',
+      description: '选择显示诗词标题的实体',
       required: false
     },
     dynasty: {
       name: '诗词朝代', 
-      description: '自定义诗词朝代实体',
+      description: '选择显示诗词朝代的实体',
       required: false
     },
     author: {
       name: '诗词作者',
-      description: '自定义诗词作者实体',
+      description: '选择显示诗词作者的实体',
       required: false
     },
     content: {
       name: '诗词内容',
-      description: '自定义诗词内容实体',
+      description: '选择显示诗词内容的实体',
       required: false
     },
     translation: {
       name: '诗词译文',
-      description: '自定义诗词译文实体',
+      description: '选择显示诗词译文的实体',
       required: false
     }
   }

@@ -23,6 +23,7 @@ export class LayoutEngine {
   // 获取布局信息
   static getLayoutInfo(manifest) {
     const mode = this.detectMode(manifest);
+    const requirements = manifest?.entity_requirements || {};
     
     const layoutConfigs = {
       [LAYOUT_MODES.FREE]: {
@@ -31,9 +32,11 @@ export class LayoutEngine {
         icon: 'mdi:view-grid-plus'
       },
       [LAYOUT_MODES.ENTITY_DRIVEN]: {
-        name: '数据源配置', 
-        description: '为此卡片配置需要的数据源和实体',
-        icon: 'mdi:format-list-checks'
+        name: Object.keys(requirements).length > 0 ? '数据源配置' : '智能数据源',
+        description: Object.keys(requirements).length > 0 
+          ? `为此卡片配置 ${Object.keys(requirements).length} 个数据源` 
+          : '此卡片会自动处理数据源，无需额外配置',
+        icon: Object.keys(requirements).length > 0 ? 'mdi:format-list-checks' : 'mdi:auto-fix'
       }
     };
 
@@ -103,8 +106,16 @@ export class LayoutEngine {
         const entityState = hass?.states[entities[key]];
         processed[key] = {
           value: entities[key],
-          state: entityState?.state || entities[key],
+          state: entityState?.state || '',
           attributes: entityState?.attributes || {},
+          ...requirements[key]
+        };
+      } else if (requirements[key].default) {
+        // 使用默认值
+        processed[key] = {
+          value: requirements[key].default,
+          state: requirements[key].default,
+          attributes: {},
           ...requirements[key]
         };
       }

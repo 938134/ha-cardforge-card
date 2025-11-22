@@ -152,7 +152,7 @@ WelcomeCard.manifest = {
   category: '信息',
   version: '1.0.0',
   author: 'CardForge',
-  layout_type: 'free',
+  layout_type: 'free', // 保持自由布局
   allow_custom_entities: true,
   config_schema: {
     show_user: {
@@ -169,15 +169,15 @@ WelcomeCard.manifest = {
       type: 'boolean',
       label: '显示每日语录',
       default: true
-    },
+    }
+  },
+  entity_requirements: {
     quote_entity: {
-      type: 'string',
-      label: '语录实体',
-      default: '',
-      description: '留空则使用内置语录，填写实体ID则显示实体状态'
+      name: '语录实体',
+      description: '选择显示每日语录的实体',
+      required: false
     }
   }
 };
-
 export { WelcomeCard as default, WelcomeCard };
 export const manifest = WelcomeCard.manifest;

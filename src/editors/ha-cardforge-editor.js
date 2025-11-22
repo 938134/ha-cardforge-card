@@ -79,11 +79,7 @@ class HaCardForgeEditor extends LitElement {
       }
 
       .editor-section:nth-child(4) .section-header {
-        border-left-color: #9C27B0; /* 紫色 - 高级设置 */
-      }
-
-      .editor-section:nth-child(5) .section-header {
-        border-left-color: #607D8B; /* 蓝色灰 - 数据源配置 */
+        border-left-color: #9C27B0; /* 紫色 - 数据源配置 */
       }
 
       /* 深色模式适配 */
