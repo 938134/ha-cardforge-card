@@ -18,28 +18,28 @@ class PoetryCard extends BasePlugin {
     const displayTranslation = this._cleanEntityValue(translation);
 
     return this._renderCardContainer(`
-      <div class="cf-flex cf-flex-center cf-flex-column cf-gap-md">
-        <!-- 诗词标题 - 调小字体 -->
+      <div class="poetry-content-wrapper">
+        <!-- 诗词标题 -->
         ${safeConfig.show_title && displayTitle ? `
           <div class="poetry-title">${displayTitle}</div>
         ` : ''}
         
-        <!-- 朝代和作者 - 调小字体 -->
+        <!-- 朝代和作者 -->
         ${(safeConfig.show_dynasty && displayDynasty) || (safeConfig.show_author && displayAuthor) ? `
-          <div class="cf-flex cf-flex-center cf-gap-sm cf-text-center poetry-meta">
+          <div class="poetry-meta">
             ${safeConfig.show_dynasty && displayDynasty ? `<div class="poetry-dynasty">${displayDynasty}</div>` : ''}
             ${safeConfig.show_author && displayAuthor ? `<div class="poetry-author">${displayAuthor}</div>` : ''}
           </div>
         ` : ''}
         
-        <!-- 诗词内容 - 使用CSS控制换行 -->
+        <!-- 诗词内容 -->
         ${displayContent ? `
           <div class="poetry-content">
             ${this._formatPoetryContent(displayContent)}
           </div>
         ` : ''}
         
-        <!-- 译文 - 调小字体 -->
+        <!-- 译文 -->
         ${safeConfig.show_translation && displayTranslation ? `
           <div class="poetry-translation-container">
             <div class="poetry-translation-title">译文</div>
@@ -58,49 +58,59 @@ class PoetryCard extends BasePlugin {
       
       .poetry-card {
         font-family: "楷体", "STKaiti", "SimKai", serif;
-        padding: var(--cf-spacing-md);
+        padding: var(--cf-spacing-sm);
       }
       
-      /* 标题 - 调小字体 */
+      .poetry-content-wrapper {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+      }
+      
+      /* 标题 - 调大字体，减少间距 */
       .poetry-title {
-        font-size: 1.3em;
+        font-size: 1.4em;
         font-weight: 600;
         color: var(--cf-primary-color);
-        margin-bottom: var(--cf-spacing-xs);
         text-align: center;
+        margin: 0;
+        line-height: 1.2;
       }
       
       .poetry-meta {
-        margin-bottom: var(--cf-spacing-md);
+        display: flex;
+        justify-content: center;
         align-items: center;
+        gap: 6px;
+        margin: 0;
       }
       
-      /* 朝代 - 调小字体 */
+      /* 朝代 - 调大字体 */
       .poetry-dynasty {
-        font-size: 0.85em;
+        font-size: 0.9em;
         color: var(--cf-text-secondary);
-        padding: 4px 8px;
+        padding: 3px 8px;
         background: rgba(var(--cf-rgb-primary), 0.08);
         border-radius: var(--cf-radius-sm);
         border: 1px solid var(--cf-border);
       }
       
-      /* 作者 - 调小字体 */
+      /* 作者 - 调大字体 */
       .poetry-author {
-        font-size: 0.9em;
+        font-size: 0.95em;
         color: var(--cf-accent-color);
         font-weight: 500;
-        padding: 4px 8px;
+        padding: 3px 8px;
       }
       
-      /* 诗词内容 - 调小字体，使用CSS控制换行 */
+      /* 诗词内容 - 调大字体，减少间距 */
       .poetry-content {
-        font-size: 1em;
+        font-size: 1.1em;
         font-weight: 400;
         color: var(--cf-text-primary);
-        line-height: 1.8;
+        line-height: 1.6;
         text-align: center;
-        margin: var(--cf-spacing-sm) 0;
+        margin: 4px 0;
         
         /* 智能换行控制 */
         white-space: pre-line;
@@ -110,70 +120,80 @@ class PoetryCard extends BasePlugin {
       
       .poetry-translation-container {
         border-top: 1px solid var(--cf-border);
-        margin-top: var(--cf-spacing-md);
-        padding-top: var(--cf-spacing-md);
+        margin-top: 8px;
+        padding-top: 8px;
         text-align: center;
       }
       
-      /* 译文标题 - 调小字体 */
+      /* 译文标题 - 调大字体 */
       .poetry-translation-title {
-        font-size: 0.85em;
+        font-size: 0.9em;
         color: var(--cf-text-secondary);
-        margin-bottom: var(--cf-spacing-sm);
+        margin-bottom: 4px;
         font-style: italic;
       }
       
-      /* 译文内容 - 调小字体 */
+      /* 译文内容 - 调大字体 */
       .poetry-translation {
-        font-size: 0.9em;
+        font-size: 0.95em;
         color: var(--cf-text-primary);
-        line-height: 1.6;
+        line-height: 1.5;
         font-family: system-ui, -apple-system, sans-serif;
+        margin: 0;
       }
       
-      /* 移动端进一步调小字体 */
+      /* 移动端适配 */
       @container cardforge-container (max-width: 400px) {
         .poetry-card {
-          padding: var(--cf-spacing-sm);
+          padding: 6px;
+        }
+        
+        .poetry-content-wrapper {
+          gap: 6px;
         }
         
         .poetry-title {
-          font-size: 1.2em;
+          font-size: 1.3em;
         }
         
         .poetry-content {
-          font-size: 0.95em;
-          line-height: 1.7;
+          font-size: 1.05em;
+          line-height: 1.5;
+          margin: 2px 0;
         }
         
         .poetry-dynasty {
-          font-size: 0.8em;
-          padding: 3px 6px;
+          font-size: 0.85em;
+          padding: 2px 6px;
         }
         
         .poetry-author {
-          font-size: 0.85em;
-          padding: 3px 6px;
+          font-size: 0.9em;
+          padding: 2px 6px;
+        }
+        
+        .poetry-translation-container {
+          margin-top: 6px;
+          padding-top: 6px;
         }
         
         .poetry-translation {
-          font-size: 0.85em;
+          font-size: 0.9em;
         }
       }
       
       /* 超小屏幕 */
       @container cardforge-container (max-width: 300px) {
         .poetry-title {
-          font-size: 1.1em;
+          font-size: 1.2em;
         }
         
         .poetry-content {
-          font-size: 0.9em;
-          line-height: 1.6;
+          font-size: 1em;
         }
         
         .poetry-meta {
-          gap: var(--cf-spacing-xs);
+          gap: 4px;
         }
       }
       
@@ -190,7 +210,6 @@ class PoetryCard extends BasePlugin {
     if (!content) return '';
     
     // 简化换行逻辑，主要依靠CSS的 white-space: pre-line
-    // 只需要在标点处添加换行，具体显示由CSS控制
     return content
       .replace(/([。！？])/g, '$1\n')    // 完整句子换行
       .replace(/([，])/g, '$1\n');       // 句子内换行
@@ -238,6 +257,13 @@ class PoetryCard extends BasePlugin {
         author: "孟浩然",
         dynasty: "唐",
         translation: "春日里贪睡不知不觉天已破晓，搅乱我酣眠的是那啁啾的小鸟。昨天夜里风声雨声一直不断，那娇美的春花不知被吹落了多少？"
+      },
+      {
+        content: "白日依山尽，黄河入海流。欲穷千里目，更上一层楼。",
+        title: "登鹳雀楼",
+        author: "王之涣", 
+        dynasty: "唐",
+        translation: "夕阳依傍着西山慢慢地沉没，滔滔黄河朝着东海汹涌奔流。若想把千里的风光景物看够，那就要登上更高的一层城楼。"
       }
     ];
     

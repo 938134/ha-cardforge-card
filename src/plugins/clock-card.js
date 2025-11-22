@@ -28,7 +28,7 @@ class ClockCard extends BasePlugin {
       </div>
       
       ${this._renderCardFooter(safeConfig, entities)}
-    `, 'clock-card');
+    `, `clock-card ${safeConfig.layout || '默认'}`);
   }
 
   getStyles(config) {
@@ -36,6 +36,10 @@ class ClockCard extends BasePlugin {
     
     return `
       ${baseStyles}
+      
+      .clock-card {
+        background: transparent !important;
+      }
       
       .clock-content {
         padding: var(--cf-spacing-lg) var(--cf-spacing-xl);
@@ -60,6 +64,17 @@ class ClockCard extends BasePlugin {
         background-clip: text;
         text-shadow: 0 2px 10px rgba(var(--cf-rgb-primary), 0.15);
         margin: 0;
+      }
+      
+      .clock-seconds {
+        font-size: 0.7em;
+        opacity: 0.8;
+      }
+      
+      .clock-ampm {
+        font-size: 0.5em;
+        opacity: 0.7;
+        margin-left: 4px;
       }
       
       .clock-seconds-dot {
@@ -114,37 +129,37 @@ class ClockCard extends BasePlugin {
       }
       
       /* 紧凑布局变体 */
-      .clock-card.compact .clock-content {
+      .clock-card.紧凑 .clock-content {
         padding: var(--cf-spacing-md);
       }
       
-      .clock-card.compact .clock-time {
+      .clock-card.紧凑 .clock-time {
         font-size: 2.8em;
         margin-bottom: var(--cf-spacing-sm);
       }
       
-      .clock-card.compact .clock-date {
+      .clock-card.紧凑 .clock-date {
         font-size: 1.1em;
         margin-bottom: var(--cf-spacing-sm);
       }
       
-      .clock-card.compact .clock-info-row {
+      .clock-card.紧凑 .clock-info-row {
         margin-top: var(--cf-spacing-md);
       }
       
-      .clock-card.compact .clock-week,
-      .clock-card.compact .clock-lunar {
+      .clock-card.紧凑 .clock-week,
+      .clock-card.紧凑 .clock-lunar {
         padding: var(--cf-spacing-xs) var(--cf-spacing-md);
         min-width: 80px;
         font-size: 0.9em;
       }
       
       /* 极简布局变体 */
-      .clock-card.minimal .clock-content {
+      .clock-card.极简 .clock-content {
         padding: var(--cf-spacing-lg);
       }
       
-      .clock-card.minimal .clock-time {
+      .clock-card.极简 .clock-time {
         font-size: 3em;
         margin-bottom: var(--cf-spacing-sm);
         background: var(--cf-text-primary);
@@ -153,19 +168,19 @@ class ClockCard extends BasePlugin {
         background-clip: text;
       }
       
-      .clock-card.minimal .clock-date {
+      .clock-card.极简 .clock-date {
         font-size: 1.1em;
         margin-bottom: var(--cf-spacing-sm);
       }
       
-      .clock-card.minimal .clock-info-row {
+      .clock-card.极简 .clock-info-row {
         flex-direction: column;
         gap: var(--cf-spacing-sm);
         margin-top: var(--cf-spacing-md);
       }
       
-      .clock-card.minimal .clock-week,
-      .clock-card.minimal .clock-lunar {
+      .clock-card.极简 .clock-week,
+      .clock-card.极简 .clock-lunar {
         background: transparent;
         border: 1px solid rgba(var(--cf-rgb-primary), 0.2);
         min-width: auto;
@@ -208,18 +223,6 @@ class ClockCard extends BasePlugin {
         }
       }
     `;
-  }
-
-  getTemplateWithConfig(config) {
-    // 添加布局变体类
-    const layoutClass = config.layout || 'default';
-    const originalTemplate = this.getTemplate(config, {}, {});
-    
-    // 在容器div上添加布局类
-    return originalTemplate.replace(
-      'clock-card"', 
-      `clock-card ${layoutClass}"`
-    );
   }
 
   _formatTime(date, use24Hour, showSeconds) {
@@ -307,19 +310,14 @@ ClockCard.manifest = {
       label: '24小时制',
       default: true
     },
-    show_seconds: {
-      type: 'boolean',
-      label: '显示秒数',
-      default: false
-    },
     layout: {
       type: 'select',
       label: '布局样式',
-      default: 'default',
+      default: '默认',
       options: [
-        { value: 'default', label: '默认' },
-        { value: 'compact', label: '紧凑' },
-        { value: 'minimal', label: '极简' }
+        '默认',
+        '紧凑', 
+        '极简'
       ]
     }
   }
