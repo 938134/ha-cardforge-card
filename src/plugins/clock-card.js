@@ -5,30 +5,40 @@ class ClockCard extends BasePlugin {
   getTemplate(safeConfig, hass, entities) {
     const now = new Date();
     
-    let timeText = this._formatTime(now, safeConfig.use_24_hour, safeConfig.show_seconds);
-    let dateText = safeConfig.show_date ? this._formatDate(now) : '';
-    let weekText = safeConfig.show_week ? this._formatWeek(now) : '';
-    let lunarText = safeConfig.show_lunar ? this._formatLunar(now) : '';
+    const timeText = this._formatTime(now, safeConfig.use_24_hour);
+    const dateText = safeConfig.show_date ? this._formatDate(now) : '';
+    const weekText = safeConfig.show_week ? this._formatWeek(now) : '';
+    const lunarText = safeConfig.show_lunar ? this._formatLunar(now) : '';
 
     return this._renderCardContainer(`
       ${this._renderCardHeader(safeConfig, entities)}
       
-      <div class="clock-content">
-        <div class="clock-time-wrapper">
-          <div class="clock-time">${timeText}</div>
-          ${safeConfig.show_seconds ? '<div class="clock-seconds-dot"></div>' : ''}
+      <div class="clock-content vivo-style">
+        <!-- 时间区域 - 2行 -->
+        <div class="clock-time-section">
+          <div class="clock-time-main">${timeText.main}</div>
+          ${timeText.ampm ? `<div class="clock-time-ampm">${timeText.ampm}</div>` : ''}
         </div>
         
-        ${dateText ? `<div class="clock-date">${dateText}</div>` : ''}
+        <!-- 日期+星期区域 - 1行 -->
+        ${(dateText || weekText) ? `
+          <div class="clock-date-section">
+            ${dateText ? `<span class="clock-date">${dateText}</span>` : ''}
+            ${dateText && weekText ? `<span class="clock-separator">·</span>` : ''}
+            ${weekText ? `<span class="clock-week">${weekText}</span>` : ''}
+          </div>
+        ` : ''}
         
-        <div class="clock-info-row">
-          ${weekText ? `<div class="clock-week">${weekText}</div>` : ''}
-          ${lunarText ? `<div class="clock-lunar">${lunarText}</div>` : ''}
-        </div>
+        <!-- 农历区域 - 1行 -->
+        ${lunarText ? `
+          <div class="clock-lunar-section">
+            <span class="clock-lunar">${lunarText}</span>
+          </div>
+        ` : ''}
       </div>
       
       ${this._renderCardFooter(safeConfig, entities)}
-    `, `clock-card ${safeConfig.layout || '默认'}`);
+    `, 'clock-card');
   }
 
   getStyles(config) {
@@ -41,201 +51,146 @@ class ClockCard extends BasePlugin {
         background: transparent !important;
       }
       
-      .clock-content {
-        padding: var(--cf-spacing-lg) var(--cf-spacing-xl);
+      .clock-card .cardforge-card-container {
+        background: transparent !important;
+      }
+      
+      .clock-content.vivo-style {
+        padding: var(--cf-spacing-lg);
         text-align: center;
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
       }
       
-      .clock-time-wrapper {
-        position: relative;
-        display: inline-block;
-        margin-bottom: var(--cf-spacing-md);
+      /* 时间区域 - 2行布局 */
+      .clock-time-section {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 2px;
+        margin-bottom: 4px;
       }
       
-      .clock-time {
-        font-family: 'Courier New', 'SF Mono', Monaco, Inconsolata, monospace;
-        font-weight: 700;
-        font-size: 3.5em;
-        letter-spacing: 3px;
-        line-height: 1.1;
-        background: linear-gradient(135deg, var(--cf-primary-color), var(--cf-accent-color));
-        -webkit-background-clip: text;
-        -webkit-text-fill-color: transparent;
-        background-clip: text;
-        text-shadow: 0 2px 10px rgba(var(--cf-rgb-primary), 0.15);
-        margin: 0;
+      .clock-time-main {
+        font-family: 'SF Pro Display', 'Helvetica Neue', Arial, sans-serif;
+        font-weight: 300;
+        font-size: 3.2em;
+        color: var(--cf-text-primary);
+        line-height: 1;
+        letter-spacing: -1px;
       }
       
-      .clock-seconds {
-        font-size: 0.7em;
+      .clock-time-ampm {
+        font-family: 'SF Pro Text', 'Helvetica Neue', Arial, sans-serif;
+        font-weight: 400;
+        font-size: 0.9em;
+        color: var(--cf-text-secondary);
         opacity: 0.8;
       }
       
-      .clock-ampm {
-        font-size: 0.5em;
-        opacity: 0.7;
-        margin-left: 4px;
-      }
-      
-      .clock-seconds-dot {
-        position: absolute;
-        top: 15px;
-        right: -8px;
-        width: 6px;
-        height: 6px;
-        background: var(--cf-accent-color);
-        border-radius: 50%;
-        animation: pulse 1s infinite;
+      /* 日期+星期区域 - 1行 */
+      .clock-date-section {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 6px;
+        margin: 4px 0;
       }
       
       .clock-date {
-        font-size: 1.3em;
-        font-weight: 600;
-        color: var(--cf-text-primary);
-        margin-bottom: var(--cf-spacing-md);
-        opacity: 0.95;
-        letter-spacing: 1px;
-      }
-      
-      .clock-info-row {
-        display: flex;
-        justify-content: center;
-        gap: var(--cf-spacing-md);
-        margin-top: var(--cf-spacing-lg);
-      }
-      
-      .clock-week, .clock-lunar {
-        padding: var(--cf-spacing-sm) var(--cf-spacing-lg);
-        background: rgba(var(--cf-rgb-primary), 0.08);
-        border-radius: var(--cf-radius-lg);
-        font-size: 0.95em;
+        font-family: 'SF Pro Text', 'Helvetica Neue', Arial, sans-serif;
         font-weight: 500;
-        min-width: 100px;
-        border: 1px solid rgba(var(--cf-rgb-primary), 0.1);
-        backdrop-filter: blur(10px);
+        font-size: 1em;
+        color: var(--cf-text-primary);
       }
       
       .clock-week {
+        font-family: 'SF Pro Text', 'Helvetica Neue', Arial, sans-serif;
+        font-weight: 500;
+        font-size: 1em;
         color: var(--cf-primary-color);
       }
       
+      .clock-separator {
+        color: var(--cf-text-secondary);
+        opacity: 0.6;
+      }
+      
+      /* 农历区域 - 1行 */
+      .clock-lunar-section {
+        margin-top: 2px;
+      }
+      
       .clock-lunar {
-        color: var(--cf-accent-color);
-      }
-      
-      @keyframes pulse {
-        0%, 100% { opacity: 1; transform: scale(1); }
-        50% { opacity: 0.5; transform: scale(0.8); }
-      }
-      
-      /* 紧凑布局变体 */
-      .clock-card.紧凑 .clock-content {
-        padding: var(--cf-spacing-md);
-      }
-      
-      .clock-card.紧凑 .clock-time {
-        font-size: 2.8em;
-        margin-bottom: var(--cf-spacing-sm);
-      }
-      
-      .clock-card.紧凑 .clock-date {
-        font-size: 1.1em;
-        margin-bottom: var(--cf-spacing-sm);
-      }
-      
-      .clock-card.紧凑 .clock-info-row {
-        margin-top: var(--cf-spacing-md);
-      }
-      
-      .clock-card.紧凑 .clock-week,
-      .clock-card.紧凑 .clock-lunar {
-        padding: var(--cf-spacing-xs) var(--cf-spacing-md);
-        min-width: 80px;
+        font-family: 'SF Pro Text', 'Helvetica Neue', Arial, sans-serif;
+        font-weight: 400;
         font-size: 0.9em;
+        color: var(--cf-text-secondary);
+        opacity: 0.8;
       }
       
-      /* 极简布局变体 */
-      .clock-card.极简 .clock-content {
-        padding: var(--cf-spacing-lg);
-      }
-      
-      .clock-card.极简 .clock-time {
-        font-size: 3em;
-        margin-bottom: var(--cf-spacing-sm);
-        background: var(--cf-text-primary);
-        -webkit-background-clip: text;
-        -webkit-text-fill-color: transparent;
-        background-clip: text;
-      }
-      
-      .clock-card.极简 .clock-date {
-        font-size: 1.1em;
-        margin-bottom: var(--cf-spacing-sm);
-      }
-      
-      .clock-card.极简 .clock-info-row {
-        flex-direction: column;
-        gap: var(--cf-spacing-sm);
-        margin-top: var(--cf-spacing-md);
-      }
-      
-      .clock-card.极简 .clock-week,
-      .clock-card.极简 .clock-lunar {
-        background: transparent;
-        border: 1px solid rgba(var(--cf-rgb-primary), 0.2);
-        min-width: auto;
-        padding: var(--cf-spacing-xs) var(--cf-spacing-sm);
-      }
-      
+      /* 移动端适配 */
       @container cardforge-container (max-width: 400px) {
-        .clock-content {
+        .clock-content.vivo-style {
           padding: var(--cf-spacing-md);
+          gap: 6px;
         }
         
-        .clock-time {
-          font-size: 2.5em;
-          letter-spacing: 2px;
+        .clock-time-main {
+          font-size: 2.6em;
         }
         
-        .clock-info-row {
-          flex-direction: column;
-          gap: var(--cf-spacing-sm);
+        .clock-date,
+        .clock-week {
+          font-size: 0.95em;
         }
         
-        .clock-week, .clock-lunar {
-          min-width: auto;
-        }
-        
-        .clock-seconds-dot {
-          top: 10px;
-          right: -6px;
+        .clock-lunar {
+          font-size: 0.85em;
         }
       }
       
       @container cardforge-container (max-width: 300px) {
-        .clock-time {
-          font-size: 2em;
-          letter-spacing: 1px;
+        .clock-time-main {
+          font-size: 2.2em;
         }
         
-        .clock-date {
-          font-size: 1em;
+        .clock-date,
+        .clock-week {
+          font-size: 0.9em;
+        }
+        
+        .clock-lunar {
+          font-size: 0.8em;
+        }
+      }
+      
+      /* 深色模式优化 */
+      @media (prefers-color-scheme: dark) {
+        .clock-time-main {
+          text-shadow: 0 1px 2px rgba(0,0,0,0.2);
         }
       }
     `;
   }
 
-  _formatTime(date, use24Hour, showSeconds) {
+  _formatTime(date, use24Hour) {
     let hours = date.getHours();
     const minutes = date.getMinutes().toString().padStart(2, '0');
-    const seconds = showSeconds ? '<span class="clock-seconds">' + date.getSeconds().toString().padStart(2, '0') + '</span>' : '';
     
     if (use24Hour) {
-      return `${hours.toString().padStart(2, '0')}:${minutes}${seconds}`;
+      return {
+        main: `${hours.toString().padStart(2, '0')}:${minutes}`,
+        ampm: null
+      };
     } else {
       const ampm = hours >= 12 ? 'PM' : 'AM';
       hours = hours % 12 || 12;
-      return `${hours}:${minutes}${seconds} <span class="clock-ampm">${ampm}</span>`;
+      return {
+        main: `${hours}:${minutes}`,
+        ampm: ampm
+      };
     }
   }
 
@@ -310,15 +265,10 @@ ClockCard.manifest = {
       label: '24小时制',
       default: true
     },
-    layout: {
-      type: 'select',
-      label: '布局样式',
-      default: '默认',
-      options: [
-        '默认',
-        '紧凑', 
-        '极简'
-      ]
+    show_seconds: {
+      type: 'boolean',
+      label: '显示秒数',
+      default: false
     }
   }
 };
