@@ -4,12 +4,18 @@ import { BasePlugin } from '../core/base-plugin.js';
 class ClockCard extends BasePlugin {
   getTemplate(config, hass, entities) {
     const now = new Date();
-    const use24Hour = config.use_24_hour !== false; // 默认true(24小时制)
     
-    let timeText = this._formatTime(now, use24Hour, config.show_seconds);
-    let dateText = config.show_date ? this._formatDate(now) : '';
-    let weekText = config.show_week ? this._formatWeek(now) : '';
-    let lunarText = config.show_lunar ? this._formatLunar(now) : '';
+    // 修复：正确处理配置默认值
+    const showDate = config.show_date !== false; // 默认true
+    const showWeek = config.show_week !== false; // 默认true  
+    const showLunar = config.show_lunar !== false; // 默认true
+    const use24Hour = config.use_24_hour !== false; // 默认true
+    const showSeconds = config.show_seconds !== false; // 默认false
+    
+    let timeText = this._formatTime(now, use24Hour, showSeconds);
+    let dateText = showDate ? this._formatDate(now) : '';
+    let weekText = showWeek ? this._formatWeek(now) : '';
+    let lunarText = showLunar ? this._formatLunar(now) : '';
 
     return this._renderCardContainer(`
       ${this._renderCardHeader(config, entities)}
@@ -114,11 +120,6 @@ class ClockCard extends BasePlugin {
   }
 
   _getLunarData(date) {
-    // 简化版农历数据
-    const year = date.getFullYear();
-    const month = date.getMonth() + 1;
-    const day = date.getDate();
-    
     // 农历月份名称
     const lunarMonths = [
       '正月', '二月', '三月', '四月', '五月', '六月',
@@ -133,7 +134,7 @@ class ClockCard extends BasePlugin {
     ];
     
     // 简单的农历计算（仅作演示）
-    const baseDate = new Date(year, 0, 1);
+    const baseDate = new Date(date.getFullYear(), 0, 1);
     const diffDays = Math.floor((date - baseDate) / (1000 * 60 * 60 * 24));
     
     const lunarMonthIndex = (diffDays % 12);
@@ -169,6 +170,11 @@ ClockCard.manifest = {
       type: 'boolean',
       label: '显示农历',
       default: true
+    },
+    show_seconds: {
+      type: 'boolean',
+      label: '显示秒数',
+      default: false
     },
     use_24_hour: {
       type: 'boolean',

@@ -35,16 +35,6 @@ export class LayoutEditor extends LitElement {
         margin-bottom: var(--cf-spacing-lg);
       }
 
-      .strategy-name {
-        font-weight: 600;
-        color: var(--cf-text-primary);
-      }
-
-      .strategy-description {
-        font-size: 0.9em;
-        color: var(--cf-text-secondary);
-      }
-
       .header-fields {
         display: grid;
         grid-template-columns: 1fr 1fr;
@@ -75,7 +65,6 @@ export class LayoutEditor extends LitElement {
         border-radius: var(--cf-radius-md);
         padding: var(--cf-spacing-lg);
         text-align: center;
-        margin-top: var(--cf-spacing-lg);
       }
 
       .info-icon {
@@ -142,10 +131,7 @@ export class LayoutEditor extends LitElement {
       <div class="layout-editor">
         <div class="strategy-header">
           <ha-icon .icon=${layoutInfo.icon}></ha-icon>
-          <div>
-            <div class="strategy-name">${layoutInfo.name}</div>
-            <div class="strategy-description">${layoutInfo.description}</div>
-          </div>
+          <div>${layoutInfo.name}</div>
         </div>
 
         ${this._currentMode === 'free' 
@@ -230,8 +216,6 @@ export class LayoutEditor extends LitElement {
             ></ha-combo-box>
           </div>
         `)}
-        
-        <!-- 移除重复的描述信息卡片 -->
       </div>
     `;
   }
@@ -241,7 +225,6 @@ export class LayoutEditor extends LitElement {
       <div class="info-card">
         <ha-icon class="info-icon" icon="mdi:palette"></ha-icon>
         <div class="info-title">选择卡片类型</div>
-        <p class="info-description">请先选择要使用的卡片插件</p>
       </div>
     `;
   }
@@ -251,7 +234,6 @@ export class LayoutEditor extends LitElement {
       <div class="info-card">
         <ha-icon class="info-icon" icon="mdi:auto-fix"></ha-icon>
         <div class="info-title">智能数据源</div>
-        <p class="info-description">此卡片使用内置数据源，无需额外配置实体</p>
       </div>
     `;
   }

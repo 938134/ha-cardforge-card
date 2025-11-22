@@ -250,7 +250,7 @@ class HaCardForgeCard extends LitElement {
   static getStubConfig() {
     return {
       type: 'custom:ha-cardforge-card',
-      plugin: 'welcome-card',
+      plugin: 'clock-card',
       entities: {},
       theme: 'auto'
     };
