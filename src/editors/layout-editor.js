@@ -23,20 +23,21 @@ export class LayoutEditor extends LitElement {
         flex-direction: column;
         gap: var(--cf-spacing-lg);
       }
-
+  
       .entity-driven-form {
         display: flex;
         flex-direction: column;
         gap: var(--cf-spacing-md);
       }
-
-      .entity-field {
-        display: flex;
-        flex-direction: column;
-        gap: var(--cf-spacing-sm);
+  
+      .entity-row {
+        display: grid;
+        grid-template-columns: 25% 75%;
+        gap: var(--cf-spacing-md);
+        align-items: center;
       }
-
-      .field-label {
+  
+      .entity-label {
         font-size: 0.9em;
         font-weight: 500;
         color: var(--cf-text-primary);
@@ -44,30 +45,28 @@ export class LayoutEditor extends LitElement {
         align-items: center;
         gap: var(--cf-spacing-xs);
       }
-
+  
       .required-star {
         color: var(--cf-error-color);
       }
-
-      .field-description {
-        font-size: 0.8em;
-        color: var(--cf-text-secondary);
-        margin-top: -4px;
+  
+      .entity-control {
+        width: 100%;
       }
-
+  
       .free-layout-section {
         display: flex;
         flex-direction: column;
         gap: var(--cf-spacing-md);
       }
-
+  
       .header-fields {
         display: grid;
         grid-template-columns: 1fr 1fr;
         gap: var(--cf-spacing-md);
         margin-bottom: var(--cf-spacing-lg);
       }
-
+  
       .field-card {
         background: var(--cf-surface);
         border: 1px solid var(--cf-border);
@@ -78,7 +77,7 @@ export class LayoutEditor extends LitElement {
         gap: var(--cf-spacing-md);
         align-items: center;
       }
-
+  
       .info-card {
         background: var(--cf-surface);
         border: 1px solid var(--cf-border);
@@ -86,31 +85,36 @@ export class LayoutEditor extends LitElement {
         padding: var(--cf-spacing-lg);
         text-align: center;
       }
-
+  
       .info-icon {
         font-size: 2em;
         color: var(--cf-primary-color);
         margin-bottom: var(--cf-spacing-md);
       }
-
+  
       .info-title {
         font-size: 1.1em;
         font-weight: 600;
         margin-bottom: var(--cf-spacing-sm);
         color: var(--cf-text-primary);
       }
-
+  
       .info-description {
         font-size: 0.9em;
         color: var(--cf-text-secondary);
         line-height: 1.4;
       }
-
+  
       @media (max-width: 600px) {
+        .entity-row {
+          grid-template-columns: 1fr;
+          gap: var(--cf-spacing-sm);
+        }
+  
         .header-fields {
           grid-template-columns: 1fr;
         }
-
+  
         .field-card {
           grid-template-columns: 1fr;
           gap: var(--cf-spacing-sm);
@@ -238,23 +242,20 @@ export class LayoutEditor extends LitElement {
           const currentValue = this._getEntityValue(key);
           
           return html`
-            <div class="entity-field">
-              <label class="field-label">
+            <div class="entity-row">
+              <div class="entity-label">
                 ${requirement.name}
                 ${requirement.required ? html`<span class="required-star">*</span>` : ''}
-              </label>
-              
-              ${requirement.description ? html`
-                <div class="field-description">${requirement.description}</div>
-              ` : ''}
-              
-              <ha-combo-box
-                .items=${this._availableEntities}
-                .value=${currentValue}
-                @value-changed=${e => this._onEntityChanged(key, e.detail.value)}
-                allow-custom-value
-                label=${`选择 ${requirement.name}`}
-              ></ha-combo-box>
+              </div>
+              <div class="entity-control">
+                <ha-combo-box
+                  .items=${this._availableEntities}
+                  .value=${currentValue}
+                  @value-changed=${e => this._onEntityChanged(key, e.detail.value)}
+                  allow-custom-value
+                  label=${`选择 ${requirement.name}`}
+                ></ha-combo-box>
+              </div>
             </div>
           `;
         })}

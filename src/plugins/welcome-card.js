@@ -10,10 +10,10 @@ class WelcomeCard extends BasePlugin {
     const greeting = safeConfig.show_greeting ? this._getTimeBasedGreeting() : '';
     const periodMessage = safeConfig.show_greeting ? this._getTimePeriodMessage() : '';
     
-    // 获取语录内容（实体数据或默认语录）
-    const quoteContent = processedEntities.entities?.quote_entity?.state || 
-                        this._getQuoteContent(safeConfig, hass);
-
+    // 正确获取语录实体状态
+    const quoteContent = this._getEntityState(processedEntities, 'quote_entity') || 
+                        this._getRandomQuote();
+  
     return this._renderCardContainer(`
       ${this._renderCardHeader(safeConfig, entities)}
       
@@ -42,7 +42,17 @@ class WelcomeCard extends BasePlugin {
       ${this._renderCardFooter(safeConfig, entities)}
     `, 'welcome-card');
   }
-
+  
+  // 添加相同的辅助方法
+  _getEntityState(processedEntities, key) {
+    if (!processedEntities.entities || !processedEntities.entities[key]) {
+      return null;
+    }
+    
+    const entityData = processedEntities.entities[key];
+    return entityData.state || null;
+  }
+  
   getStyles(config) {
     return this.getBaseStyles(config);
   }

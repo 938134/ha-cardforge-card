@@ -3,56 +3,67 @@ import { BasePlugin } from '../core/base-plugin.js';
 
 class PoetryCard extends BasePlugin {
 
-getTemplate(safeConfig, hass, entities) {
-  // 处理实体数据
-  const processedEntities = this.processEntities(entities, safeConfig, hass);
-  
-  // 优先使用实体数据，其次使用默认诗词
-  const defaultPoetry = this._getDailyPoetry();
-  
-  const title = processedEntities.entities?.title?.state || defaultPoetry.title;
-  const dynasty = processedEntities.entities?.dynasty?.state || defaultPoetry.dynasty;
-  const author = processedEntities.entities?.author?.state || defaultPoetry.author;
-  const content = processedEntities.entities?.content?.state || defaultPoetry.content;
-  const translation = processedEntities.entities?.translation?.state || defaultPoetry.translation;
-
-  return this._renderCardContainer(`
-    ${this._renderCardHeader(safeConfig, entities)}
+  getTemplate(safeConfig, hass, entities) {
+    // 处理实体数据 - 确保传递 hass 对象
+    const processedEntities = this.processEntities(entities, safeConfig, hass);
     
-    <div class="cf-flex cf-flex-center cf-flex-column cf-gap-lg">
-      <!-- 标题 -->
-      ${safeConfig.show_title && title ? `
-        <div class="cardforge-text-large cf-text-center poetry-title">《${title}》</div>
-      ` : ''}
-      
-      <!-- 朝代和作者在同一行 -->
-      ${(safeConfig.show_dynasty && dynasty) || (safeConfig.show_author && author) ? `
-        <div class="cf-flex cf-flex-center cf-gap-md cf-text-center poetry-meta">
-          ${safeConfig.show_dynasty && dynasty ? `<div class="cardforge-text-small poetry-dynasty">${dynasty}</div>` : ''}
-          ${safeConfig.show_author && author ? `<div class="cardforge-text-medium poetry-author">${author}</div>` : ''}
-        </div>
-      ` : ''}
-      
-      <!-- 诗词内容 -->
-      ${content ? `
-        <div class="cardforge-text-large cf-text-center poetry-content" style="line-height: 1.8;">
-          ${content.split('，').join('，<br>').split('。').join('。<br>')}
-        </div>
-      ` : ''}
-      
-      <!-- 译文 -->
-      ${safeConfig.show_translation && translation ? `
-        <div class="cf-mt-lg cf-p-md poetry-translation-container">
-          <div class="cardforge-text-small cf-text-center poetry-translation-title">译文</div>
-          <div class="cardforge-text-medium cf-text-center poetry-translation">${translation}</div>
-        </div>
-      ` : ''}
-    </div>
+    // 优先使用实体数据，其次使用默认诗词
+    const defaultPoetry = this._getDailyPoetry();
     
-    ${this._renderCardFooter(safeConfig, entities)}
-  `, 'poetry-card');
-}
+    // 正确获取实体状态
+    const title = this._getEntityState(processedEntities, 'title') || defaultPoetry.title;
+    const dynasty = this._getEntityState(processedEntities, 'dynasty') || defaultPoetry.dynasty;
+    const author = this._getEntityState(processedEntities, 'author') || defaultPoetry.author;
+    const content = this._getEntityState(processedEntities, 'content') || defaultPoetry.content;
+    const translation = this._getEntityState(processedEntities, 'translation') || defaultPoetry.translation;
+  
+    return this._renderCardContainer(`
+      ${this._renderCardHeader(safeConfig, entities)}
+      
+      <div class="cf-flex cf-flex-center cf-flex-column cf-gap-lg">
+        <!-- 标题 -->
+        ${safeConfig.show_title && title ? `
+          <div class="cardforge-text-large cf-text-center poetry-title">《${title}》</div>
+        ` : ''}
+        
+        <!-- 朝代和作者在同一行 -->
+        ${(safeConfig.show_dynasty && dynasty) || (safeConfig.show_author && author) ? `
+          <div class="cf-flex cf-flex-center cf-gap-md cf-text-center poetry-meta">
+            ${safeConfig.show_dynasty && dynasty ? `<div class="cardforge-text-small poetry-dynasty">${dynasty}</div>` : ''}
+            ${safeConfig.show_author && author ? `<div class="cardforge-text-medium poetry-author">${author}</div>` : ''}
+          </div>
+        ` : ''}
+        
+        <!-- 诗词内容 -->
+        ${content ? `
+          <div class="cardforge-text-large cf-text-center poetry-content" style="line-height: 1.8;">
+            ${content.split('，').join('，<br>').split('。').join('。<br>')}
+          </div>
+        ` : ''}
+        
+        <!-- 译文 -->
+        ${safeConfig.show_translation && translation ? `
+          <div class="cf-mt-lg cf-p-md poetry-translation-container">
+            <div class="cardforge-text-small cf-text-center poetry-translation-title">译文</div>
+            <div class="cardforge-text-medium cf-text-center poetry-translation">${translation}</div>
+          </div>
+        ` : ''}
+      </div>
+      
+      ${this._renderCardFooter(safeConfig, entities)}
+    `, 'poetry-card');
+  }
 
+  _getEntityState(processedEntities, key) {
+    if (!processedEntities.entities || !processedEntities.entities[key]) {
+      return null;
+    }
+    
+    const entityData = processedEntities.entities[key];
+    // 返回实体状态值
+    return entityData.state || null;
+  }
+  
   getStyles(config) {
     const baseStyles = this.getBaseStyles(config);
     
