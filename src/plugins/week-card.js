@@ -10,23 +10,27 @@ class WeekCard extends BasePlugin {
     const weekProgress = (dayOfWeek / 7) * 100;
     const yearProgress = this._getYearProgress(now);
 
+    // 修复：正确处理默认值
+    const showProgress = config.show_progress !== false; // 默认true
+    const showYearProgress = config.show_year_progress !== false; // 默认true
+
     return this._renderCardContainer(`
       ${this._renderCardHeader(config, entities)}
       
       <!-- 第一行：年进度和周信息 -->
-      <div class="cf-flex cf-flex-between cf-flex-center" style="align-items: stretch; gap: var(--cf-spacing-lg);">
+      <div class="cf-flex cf-flex-between cf-flex-center week-main-row">
         <!-- 左侧：年进度环形图 -->
-        ${config.show_year_progress ? this._renderYearProgressCircle(yearProgress, year) : ''}
+        ${showYearProgress ? this._renderYearProgressCircle(yearProgress, year) : ''}
         
         <!-- 右侧：周信息和年份 -->
-        <div class="cf-flex cf-flex-center cf-flex-column" style="flex: 1; justify-content: center;">
-          <div class="cardforge-text-large cf-text-center">第 ${weekNumber} 周</div>
-          <div class="cardforge-text-medium cf-text-center cf-text-secondary">${year}年</div>
+        <div class="week-info">
+          <div class="cardforge-text-large week-number">第 ${weekNumber} 周</div>
+          <div class="cardforge-text-medium week-year">${year}年</div>
         </div>
       </div>
       
       <!-- 第二行：周进度条 -->
-      ${config.show_progress ? this._renderWeekProgress(dayOfWeek, weekProgress) : ''}
+      ${showProgress ? this._renderWeekProgress(dayOfWeek, weekProgress) : ''}
       
       ${this._renderCardFooter(config, entities)}
     `, 'week-card');
@@ -38,9 +42,32 @@ class WeekCard extends BasePlugin {
     return `
       ${baseStyles}
       
+      .week-main-row {
+        align-items: stretch;
+        gap: var(--cf-spacing-md);
+        margin-bottom: var(--cf-spacing-md);
+      }
+      
+      .week-info {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        text-align: center;
+      }
+      
+      .week-number {
+        line-height: 1.1;
+        margin-bottom: var(--cf-spacing-xs);
+      }
+      
+      .week-year {
+        opacity: 0.8;
+      }
+      
       .progress-circle {
-        width: 80px;
-        height: 80px;
+        width: 70px;
+        height: 70px;
         border-radius: 50%;
         background: conic-gradient(
           var(--cf-primary-color) 0%,
@@ -57,8 +84,8 @@ class WeekCard extends BasePlugin {
       
       .progress-circle::before {
         content: '';
-        width: 70px;
-        height: 70px;
+        width: 60px;
+        height: 60px;
         background: var(--cf-background);
         border-radius: 50%;
         position: absolute;
@@ -71,21 +98,21 @@ class WeekCard extends BasePlugin {
       }
       
       .progress-percent {
-        font-size: 1.2em;
+        font-size: 1.1em;
         font-weight: 600;
         color: var(--cf-primary-color);
         line-height: 1;
       }
       
       .progress-label {
-        font-size: 0.7em;
+        font-size: 0.65em;
         color: var(--cf-text-secondary);
-        margin-top: 2px;
+        margin-top: 1px;
       }
       
       .week-progress-container {
         width: 100%;
-        margin-top: var(--cf-spacing-lg);
+        margin-top: var(--cf-spacing-md);
       }
       
       .week-days {
@@ -97,8 +124,8 @@ class WeekCard extends BasePlugin {
       
       .week-day {
         text-align: center;
-        font-size: 0.8em;
-        padding: var(--cf-spacing-xs);
+        font-size: 0.75em;
+        padding: 4px 2px;
         border-radius: var(--cf-radius-sm);
         transition: all var(--cf-transition-fast);
       }
@@ -114,6 +141,10 @@ class WeekCard extends BasePlugin {
       }
       
       @container cardforge-container (max-width: 400px) {
+        .week-main-row {
+          gap: var(--cf-spacing-sm);
+        }
+        
         .progress-circle {
           width: 60px;
           height: 60px;
@@ -128,23 +159,27 @@ class WeekCard extends BasePlugin {
           font-size: 1em;
         }
         
-        .cardforge-text-large {
-          font-size: 1.8em;
+        .week-number {
+          font-size: 1.6em;
         }
         
-        .cardforge-text-medium {
-          font-size: 1em;
+        .week-year {
+          font-size: 0.9em;
         }
       }
       
       @container cardforge-container (max-width: 300px) {
-        .cf-flex.cf-flex-between {
+        .week-main-row {
           flex-direction: column;
-          gap: var(--cf-spacing-md) !important;
+          gap: var(--cf-spacing-sm);
         }
         
         .progress-circle {
           align-self: center;
+        }
+        
+        .week-number {
+          font-size: 1.4em;
         }
       }
     `;
@@ -182,12 +217,12 @@ class WeekCard extends BasePlugin {
     
     return `
       <div class="week-progress-container">
-        <div class="cf-flex cf-flex-between cf-mb-sm">
+        <div class="cf-flex cf-flex-between cf-mb-xs">
           <span class="cardforge-text-small">本周进度</span>
           <span class="cardforge-text-small">${progress.toFixed(1)}%</span>
         </div>
         <div style="
-          height: 6px; 
+          height: 5px; 
           background: var(--cf-border); 
           border-radius: 3px; 
           overflow: hidden;

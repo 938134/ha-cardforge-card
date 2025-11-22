@@ -7,9 +7,26 @@ export default {
   category: 'effect',
 
   preview: {
-    background: 'linear-gradient(135deg, rgba(255,255,255,0.3) 0%, rgba(255,255,255,0.1) 100%)',
-    color: 'var(--primary-text-color)',
-    border: '1px solid rgba(255,255,255,0.2)'
+    background: `
+      linear-gradient(135deg, 
+        rgba(124, 58, 237, 0.6) 0%, 
+        rgba(236, 72, 153, 0.4) 50%,
+        rgba(239, 68, 68, 0.3) 100%
+      ),
+      radial-gradient(
+        circle at 20% 80%,
+        rgba(255, 255, 255, 0.4) 0%,
+        transparent 50%
+      ),
+      radial-gradient(
+        circle at 80% 20%,
+        rgba(255, 255, 255, 0.3) 0%,
+        transparent 50%
+      )
+    `,
+    color: 'white',
+    border: '1px solid rgba(255, 255, 255, 0.3)',
+    boxShadow: '0 8px 32px rgba(0, 0, 0, 0.1)'
   },
 
   getStyles(config = {}) {
