@@ -13,42 +13,35 @@ class PoetryCard extends BasePlugin {
     const content = this._getEntityState(entities, hass, 'content', defaultPoetry.content);
     const translation = this._getEntityState(entities, hass, 'translation', defaultPoetry.translation);
 
-    // 修复：过滤掉实体ID，只显示有意义的文本内容
-    const displayTitle = this._filterEntityId(title);
-    const displayDynasty = this._filterEntityId(dynasty);
-    const displayAuthor = this._filterEntityId(author);
-    const displayContent = this._filterEntityId(content);
-    const displayTranslation = this._filterEntityId(translation);
-
     return this._renderCardContainer(`
       ${this._renderCardHeader(safeConfig, entities)}
       
       <div class="cf-flex cf-flex-center cf-flex-column cf-gap-lg">
         <!-- 标题 -->
-        ${safeConfig.show_title && displayTitle ? `
-          <div class="cardforge-text-large cf-text-center poetry-title">《${displayTitle}》</div>
+        ${safeConfig.show_title && title ? `
+          <div class="poetry-title">《${title}》</div>
         ` : ''}
         
         <!-- 朝代和作者在同一行 -->
-        ${(safeConfig.show_dynasty && displayDynasty) || (safeConfig.show_author && displayAuthor) ? `
+        ${(safeConfig.show_dynasty && dynasty) || (safeConfig.show_author && author) ? `
           <div class="cf-flex cf-flex-center cf-gap-md cf-text-center poetry-meta">
-            ${safeConfig.show_dynasty && displayDynasty ? `<div class="cardforge-text-small poetry-dynasty">${displayDynasty}</div>` : ''}
-            ${safeConfig.show_author && displayAuthor ? `<div class="cardforge-text-medium poetry-author">${displayAuthor}</div>` : ''}
+            ${safeConfig.show_dynasty && dynasty ? `<div class="poetry-dynasty">${dynasty}</div>` : ''}
+            ${safeConfig.show_author && author ? `<div class="poetry-author">${author}</div>` : ''}
           </div>
         ` : ''}
         
         <!-- 诗词内容 -->
-        ${displayContent ? `
-          <div class="cardforge-text-large cf-text-center poetry-content" style="line-height: 1.8;">
-            ${displayContent.split('，').join('，<br>').split('。').join('。<br>')}
+        ${content ? `
+          <div class="poetry-content" style="line-height: 1.8;">
+            ${content.split('，').join('，<br>').split('。').join('。<br>')}
           </div>
         ` : ''}
         
         <!-- 译文 -->
-        ${safeConfig.show_translation && displayTranslation ? `
+        ${safeConfig.show_translation && translation ? `
           <div class="cf-mt-lg cf-p-md poetry-translation-container">
-            <div class="cardforge-text-small cf-text-center poetry-translation-title">译文</div>
-            <div class="cardforge-text-medium cf-text-center poetry-translation">${displayTranslation}</div>
+            <div class="poetry-translation-title">译文</div>
+            <div class="poetry-translation">${translation}</div>
           </div>
         ` : ''}
       </div>
@@ -68,9 +61,11 @@ class PoetryCard extends BasePlugin {
       }
       
       .poetry-title {
+        font-size: 1.4em;
         font-weight: 600;
         color: var(--cf-primary-color);
         margin-bottom: var(--cf-spacing-sm);
+        text-align: center;
       }
       
       .poetry-meta {
@@ -79,6 +74,7 @@ class PoetryCard extends BasePlugin {
       }
       
       .poetry-dynasty {
+        font-size: 0.9em;
         color: var(--cf-text-secondary);
         padding: var(--cf-spacing-xs) var(--cf-spacing-md);
         background: rgba(var(--cf-rgb-primary), 0.1);
@@ -87,15 +83,19 @@ class PoetryCard extends BasePlugin {
       }
       
       .poetry-author {
+        font-size: 1em;
         color: var(--cf-accent-color);
         font-weight: 500;
         padding: var(--cf-spacing-xs) var(--cf-spacing-md);
       }
       
       .poetry-content {
+        font-size: 1.1em;
         font-weight: 400;
         color: var(--cf-text-primary);
         text-shadow: 0 1px 2px rgba(0,0,0,0.1);
+        text-align: center;
+        line-height: 1.8;
       }
       
       .poetry-translation-container {
@@ -105,20 +105,28 @@ class PoetryCard extends BasePlugin {
       }
       
       .poetry-translation-title {
+        font-size: 0.9em;
         color: var(--cf-text-secondary);
         margin-bottom: var(--cf-spacing-sm);
         font-style: italic;
+        text-align: center;
       }
       
       .poetry-translation {
+        font-size: 0.95em;
         color: var(--cf-text-primary);
         line-height: 1.6;
         font-family: system-ui, sans-serif;
+        text-align: center;
       }
       
       @container cardforge-container (max-width: 400px) {
-        .poetry-content {
+        .poetry-title {
           font-size: 1.2em;
+        }
+        
+        .poetry-content {
+          font-size: 1em;
         }
         
         .poetry-meta {
@@ -128,22 +136,14 @@ class PoetryCard extends BasePlugin {
         .poetry-dynasty,
         .poetry-author {
           padding: var(--cf-spacing-xs) var(--cf-spacing-sm);
+          font-size: 0.85em;
+        }
+        
+        .poetry-translation {
           font-size: 0.9em;
         }
       }
     `;
-  }
-
-  // 新增：过滤实体ID，只显示有意义的文本
-  _filterEntityId(text) {
-    if (!text) return '';
-    
-    // 如果是实体ID格式（包含点号），返回空字符串
-    if (typeof text === 'string' && text.includes('.') && text.includes('_')) {
-      return '';
-    }
-    
-    return text;
   }
 
   _getDailyPoetry() {
