@@ -3,7 +3,7 @@ import { LitElement, html, css } from 'https://unpkg.com/lit@2.8.0/index.js?modu
 import { PluginRegistry } from '../core/plugin-registry.js';
 import { themeManager } from '../themes/index.js';
 import { designSystem } from '../core/design-system.js';
-import './config-editors.js';
+import './config-editor.js';
 import './layout-editor.js';
 import './plugin-selector.js';
 import './theme-selector.js';
@@ -63,21 +63,6 @@ class HaCardForgeEditor extends LitElement {
         background: rgba(var(--cf-rgb-primary), 0.05);
         border-radius: var(--cf-radius-md);
         border-left: 4px solid var(--cf-primary-color);
-      }
-
-      .section-subtitle {
-        font-size: 0.8em;
-        color: var(--cf-text-secondary);
-        font-weight: normal;
-        margin-left: auto;
-        font-style: italic;
-      }
-
-      .action-buttons {
-        display: flex;
-        gap: var(--cf-spacing-md);
-        justify-content: flex-end;
-        margin-top: var(--cf-spacing-lg);
       }
 
       /* 不同区域的视觉区分 */
@@ -234,7 +219,6 @@ class HaCardForgeEditor extends LitElement {
         <div class="section-header">
           <ha-icon icon="mdi:palette"></ha-icon>
           <span>卡片类型</span>
-          <span class="section-subtitle">选择要使用的卡片插件</span>
         </div>
         
         <plugin-selector
@@ -254,7 +238,6 @@ class HaCardForgeEditor extends LitElement {
         <div class="section-header">
           <ha-icon icon="mdi:format-paint"></ha-icon>
           <span>主题样式</span>
-          <span class="section-subtitle">选择卡片的整体视觉风格</span>
         </div>
         
         <theme-selector
@@ -266,46 +249,44 @@ class HaCardForgeEditor extends LitElement {
     `;
   }
 
-_renderBaseConfigSection() {
-  if (!this.config.plugin) return '';
-  
-  return html`
-    <div class="editor-section">
-      <div class="section-header">
-        <ha-icon icon="mdi:tune"></ha-icon>
-        <span>卡片设置</span>
-        <span class="section-subtitle">配置卡片外观和功能</span>
+  _renderBaseConfigSection() {
+    if (!this.config.plugin) return '';
+    
+    return html`
+      <div class="editor-section">
+        <div class="section-header">
+          <ha-icon icon="mdi:tune"></ha-icon>
+          <span>卡片设置</span>
+        </div>
+        
+        <config-editor
+          .config=${this.config}
+          .pluginManifest=${this._pluginManifest}
+          @config-changed=${this._onConfigChanged}
+        ></config-editor>
       </div>
-      
-      <config-editor
-        .config=${this.config}
-        .pluginManifest=${this._pluginManifest}
-        @config-changed=${this._onConfigChanged}
-      ></config-editor>
-    </div>
-  `;
-}
- 
-_renderDataSourceSection() {
-  if (!this.config.plugin || !this._pluginInstance) return '';
+    `;
+  }
 
-  return html`
-    <div class="editor-section">
-      <div class="section-header">
-        <ha-icon icon="mdi:database"></ha-icon>
-        <span>数据源配置</span>
-        <!-- 移除不一致的描述 -->
+  _renderDataSourceSection() {
+    if (!this.config.plugin || !this._pluginInstance) return '';
+
+    return html`
+      <div class="editor-section">
+        <div class="section-header">
+          <ha-icon icon="mdi:database"></ha-icon>
+          <span>数据源配置</span>
+        </div>
+        
+        <layout-editor
+          .hass=${this.hass}
+          .config=${this.config}
+          .pluginManifest=${this._pluginManifest}
+          @entities-changed=${this._onEntitiesChanged}
+        ></layout-editor>
       </div>
-      
-      <layout-editor
-        .hass=${this.hass}
-        .config=${this.config}
-        .pluginManifest=${this._pluginManifest}
-        @entities-changed=${this._onEntitiesChanged}
-      ></layout-editor>
-    </div>
-  `;
-}
+    `;
+  }
 
   async _onPluginChanged(e) {
     const newConfig = {

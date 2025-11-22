@@ -215,7 +215,7 @@ export class LayoutEditor extends LitElement {
     if (Object.keys(requirements).length === 0) {
       return this._renderNoRequirements();
     }
-  
+
     return html`
       <div class="entity-driven-editor">
         ${Object.entries(requirements).map(([key, requirement]) => html`
@@ -230,6 +230,8 @@ export class LayoutEditor extends LitElement {
             ></ha-combo-box>
           </div>
         `)}
+        
+        <!-- 移除重复的描述信息卡片 -->
       </div>
     `;
   }
@@ -305,4 +307,3 @@ export class LayoutEditor extends LitElement {
 if (!customElements.get('layout-editor')) {
   customElements.define('layout-editor', LayoutEditor);
 }
-
