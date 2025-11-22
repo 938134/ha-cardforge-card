@@ -6,28 +6,18 @@ class PoetryCard extends BasePlugin {
     // 直接获取实体数据
     const defaultPoetry = this._getDailyPoetry();
     
-    // 修复：检查是否配置了实体，如果配置了实体就使用实体状态，否则使用默认值
-    const hasTitleEntity = entities && entities.title;
-    const hasDynastyEntity = entities && entities.dynasty;
-    const hasAuthorEntity = entities && entities.author;
-    const hasContentEntity = entities && entities.content;
-    const hasTranslationEntity = entities && entities.translation;
-    
-    // 只有配置了实体才使用实体状态，否则使用默认值
-    const title = hasTitleEntity ? this._getEntityState(entities, hass, 'title', '') : defaultPoetry.title;
-    const dynasty = hasDynastyEntity ? this._getEntityState(entities, hass, 'dynasty', '') : defaultPoetry.dynasty;
-    const author = hasAuthorEntity ? this._getEntityState(entities, hass, 'author', '') : defaultPoetry.author;
-    const content = hasContentEntity ? this._getEntityState(entities, hass, 'content', '') : defaultPoetry.content;
-    const translation = hasTranslationEntity ? this._getEntityState(entities, hass, 'translation', '') : defaultPoetry.translation;
-
-    // 修复诗词内容换行逻辑
-    const formattedContent = this._formatPoetryContent(content);
+    // 优雅地获取数据：实体数据 > 默认数据
+    const title = this._getEntityState(entities, hass, 'title', defaultPoetry.title);
+    const dynasty = this._getEntityState(entities, hass, 'dynasty', defaultPoetry.dynasty);
+    const author = this._getEntityState(entities, hass, 'author', defaultPoetry.author);
+    const content = this._getEntityState(entities, hass, 'content', defaultPoetry.content);
+    const translation = this._getEntityState(entities, hass, 'translation', defaultPoetry.translation);
 
     return this._renderCardContainer(`
       ${this._renderCardHeader(safeConfig, entities)}
       
       <div class="cf-flex cf-flex-center cf-flex-column cf-gap-lg">
-        <!-- 标题 -->
+        <!-- 诗词标题 -->
         ${safeConfig.show_title && title ? `
           <div class="cardforge-text-large cf-text-center poetry-title">《${title}》</div>
         ` : ''}
@@ -40,10 +30,10 @@ class PoetryCard extends BasePlugin {
           </div>
         ` : ''}
         
-        <!-- 诗词内容 -->
-        ${formattedContent ? `
+        <!-- 诗词内容 - 改进换行逻辑 -->
+        ${content ? `
           <div class="cardforge-text-large cf-text-center poetry-content">
-            ${formattedContent}
+            ${this._formatPoetryContent(content)}
           </div>
         ` : ''}
         
@@ -138,25 +128,25 @@ class PoetryCard extends BasePlugin {
     `;
   }
 
-  // 修复：智能诗词内容格式化
+  // 改进的诗词内容格式化方法
   _formatPoetryContent(content) {
     if (!content) return '';
     
-    // 按句号、叹号、问号进行主要换行
-    let formatted = content
-      .replace(/[。！？]/g, '$&<br>')  // 在句末标点后换行
-      .replace(/，/g, '，<br>')        // 在逗号后换行（适合短诗）
-      .replace(/<br><br>/g, '<br>');   // 移除连续换行
+    // 检测是否为长诗（超过20字）
+    const isLongPoem = content.replace(/[，。！？]/g, '').length > 20;
     
-    // 如果是长诗（超过4行），减少逗号换行
-    const lines = formatted.split('<br>');
-    if (lines.length > 4) {
-      formatted = content
-        .replace(/[。！？]/g, '$&<br>')  // 只在句末标点换行
-        .replace(/<br><br>/g, '<br>');
+    if (isLongPoem) {
+      // 长诗：只在句号、叹号、问号后换行
+      return content
+        .replace(/[。！？]/g, '$&<br>')
+        .trim();
+    } else {
+      // 短诗：在逗号和句末标点后都换行
+      return content
+        .replace(/[，。！？]/g, '$&<br>')
+        .replace(/<br><br>/g, '<br>')
+        .trim();
     }
-    
-    return formatted;
   }
 
   _getDailyPoetry() {
@@ -181,6 +171,13 @@ class PoetryCard extends BasePlugin {
         author: "李商隐", 
         dynasty: "唐",
         translation: "你问我回家的日期，归期难定，今晚巴山下着大雨，雨水已涨满秋池。什么时候我们才能一起秉烛长谈，相互倾诉今宵巴山夜雨中的思念之情。"
+      },
+      {
+        content: "锦瑟无端五十弦，一弦一柱思华年。庄生晓梦迷蝴蝶，望帝春心托杜鹃。沧海月明珠有泪，蓝田日暖玉生烟。此情可待成追忆，只是当时已惘然。",
+        title: "锦瑟",
+        author: "李商隐",
+        dynasty: "唐", 
+        translation: "精美的瑟为什么竟有五十根弦，一弦一柱都叫我追忆青春年华。庄周翩翩起舞睡梦中化为蝴蝶，望帝把自己的幽恨托身于杜鹃。沧海明月高照，鲛人泣泪皆成珠；蓝田红日和暖，可看到良玉生烟。悲欢离合之情，岂待今日来追忆，只是当年却漫不经心，早已惘然。"
       }
     ];
     
