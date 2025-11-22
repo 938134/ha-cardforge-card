@@ -8,8 +8,10 @@ export class BlockEditor extends LitElement {
     hass: { type: Object },
     blocks: { type: Array },
     availableEntities: { type: Array },
+    layout: { type: String },
     _editingBlock: { state: true },
-    _draggingBlockId: { state: true }
+    _draggingBlockId: { state: true },
+    _gridPreview: { state: true }
   };
 
   static styles = [
@@ -20,6 +22,50 @@ export class BlockEditor extends LitElement {
         display: flex;
         flex-direction: column;
         gap: var(--cf-spacing-lg);
+      }
+
+      .grid-preview {
+        display: grid;
+        gap: var(--cf-spacing-sm);
+        margin-bottom: var(--cf-spacing-lg);
+        padding: var(--cf-spacing-md);
+        background: var(--cf-surface);
+        border: 1px solid var(--cf-border);
+        border-radius: var(--cf-radius-md);
+        min-height: 120px;
+      }
+
+      .grid-cell {
+        background: var(--cf-background);
+        border: 1px dashed var(--cf-border);
+        border-radius: var(--cf-radius-sm);
+        min-height: 40px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        position: relative;
+      }
+
+      .grid-cell.occupied {
+        border-style: solid;
+        border-color: var(--cf-primary-color);
+        background: rgba(var(--cf-rgb-primary), 0.05);
+      }
+
+      .cell-label {
+        font-size: 0.7em;
+        color: var(--cf-text-secondary);
+        position: absolute;
+        top: 2px;
+        left: 4px;
+      }
+
+      .block-count {
+        position: absolute;
+        top: 2px;
+        right: 4px;
+        font-size: 0.7em;
+        color: var(--cf-text-secondary);
       }
 
       .section-header {
@@ -33,11 +79,6 @@ export class BlockEditor extends LitElement {
         font-size: 1.1em;
         font-weight: 600;
         color: var(--cf-text-primary);
-      }
-
-      .block-count {
-        font-size: 0.9em;
-        color: var(--cf-text-secondary);
       }
 
       .blocks-list {
@@ -57,17 +98,11 @@ export class BlockEditor extends LitElement {
         gap: var(--cf-spacing-md);
         transition: all var(--cf-transition-fast);
         cursor: pointer;
-        position: relative;
       }
 
       .block-item:hover {
         border-color: var(--cf-primary-color);
         transform: translateY(-1px);
-      }
-
-      .block-item.dragging {
-        opacity: 0.6;
-        border-style: dashed;
       }
 
       .block-item.editing {
@@ -99,20 +134,19 @@ export class BlockEditor extends LitElement {
         font-size: 0.8em;
         color: var(--cf-text-secondary);
         opacity: 0.7;
-        overflow: hidden;
-        text-overflow: ellipsis;
-        white-space: nowrap;
+      }
+
+      .block-position {
+        font-size: 0.7em;
+        color: var(--cf-text-secondary);
+        background: rgba(var(--cf-rgb-primary), 0.1);
+        padding: 2px 6px;
+        border-radius: var(--cf-radius-sm);
       }
 
       .block-actions {
         display: flex;
         gap: var(--cf-spacing-xs);
-        opacity: 0;
-        transition: opacity var(--cf-transition-fast);
-      }
-
-      .block-item:hover .block-actions {
-        opacity: 1;
       }
 
       .block-action {
@@ -134,22 +168,6 @@ export class BlockEditor extends LitElement {
         border-color: var(--cf-primary-color);
       }
 
-      .block-action.delete:hover {
-        background: var(--cf-error-color);
-        border-color: var(--cf-error-color);
-      }
-
-      .drag-handle {
-        cursor: grab;
-        opacity: 0.5;
-        padding: 4px;
-        margin-right: -4px;
-      }
-
-      .drag-handle:active {
-        cursor: grabbing;
-      }
-
       .add-block-btn {
         width: 100%;
         padding: var(--cf-spacing-lg);
@@ -163,13 +181,11 @@ export class BlockEditor extends LitElement {
         align-items: center;
         justify-content: center;
         gap: var(--cf-spacing-sm);
-        font-size: 0.9em;
       }
 
       .add-block-btn:hover {
         border-color: var(--cf-primary-color);
         color: var(--cf-primary-color);
-        background: rgba(var(--cf-rgb-primary), 0.05);
       }
 
       .empty-state {
@@ -178,22 +194,10 @@ export class BlockEditor extends LitElement {
         color: var(--cf-text-secondary);
         border: 2px dashed var(--cf-border);
         border-radius: var(--cf-radius-md);
-        margin-bottom: var(--cf-spacing-md);
       }
 
       .inline-editor-container {
         margin: var(--cf-spacing-sm) 0;
-      }
-
-      @media (max-width: 600px) {
-        .block-item {
-          padding: var(--cf-spacing-sm);
-          gap: var(--cf-spacing-sm);
-        }
-
-        .block-actions {
-          opacity: 1; /* 移动端始终显示操作按钮 */
-        }
       }
     `
   ];
@@ -202,60 +206,100 @@ export class BlockEditor extends LitElement {
     super();
     this.blocks = [];
     this.availableEntities = [];
+    this.layout = '2x2';
     this._editingBlock = null;
     this._draggingBlockId = null;
+    this._gridPreview = [];
+  }
+
+  willUpdate(changedProperties) {
+    if (changedProperties.has('blocks') || changedProperties.has('layout')) {
+      this._updateGridPreview();
+    }
   }
 
   render() {
     return html`
       <div class="block-editor">
-        <div class="section-header">
-          <span class="section-title">内容块管理</span>
-          <span class="block-count">${this.blocks.length} 个内容块</span>
-        </div>
-        
-        <div class="blocks-list">
-          ${this.blocks.map((block, index) => 
-            this._editingBlock?.id === block.id
-              ? this._renderInlineEditor(block)
-              : this._renderBlockItem(block, index)
-          )}
-          
-          ${this.blocks.length === 0 ? this._renderEmptyState() : ''}
+        <div class="grid-preview-section">
+          <div class="section-title">布局预览</div>
+          <div class="grid-preview" style="
+            grid-template-columns: repeat(${this._getGridConfig().cols}, 1fr);
+            grid-template-rows: repeat(${this._getGridConfig().rows}, 1fr);
+          ">
+            ${this._gridPreview.map(cell => html`
+              <div class="grid-cell ${cell.blocks.length > 0 ? 'occupied' : ''}">
+                <span class="cell-label">${cell.row},${cell.col}</span>
+                ${cell.blocks.length > 0 ? html`
+                  <span class="block-count">${cell.blocks.length}块</span>
+                ` : ''}
+              </div>
+            `)}
+          </div>
         </div>
 
-        <button class="add-block-btn" @click=${this._addBlock}>
-          <ha-icon icon="mdi:plus"></ha-icon>
-          添加内容块
-        </button>
+        <div class="blocks-section">
+          <div class="section-header">
+            <span class="section-title">内容块管理</span>
+            <span class="block-count">${this.blocks.length} 个内容块</span>
+          </div>
+          
+          <div class="blocks-list">
+            ${this.blocks.map((block, index) => 
+              this._editingBlock?.id === block.id
+                ? this._renderInlineEditor(block)
+                : this._renderBlockItem(block, index)
+            )}
+            
+            ${this.blocks.length === 0 ? this._renderEmptyState() : ''}
+          </div>
+
+          <button class="add-block-btn" @click=${this._addBlock}>
+            <ha-icon icon="mdi:plus"></ha-icon>
+            添加内容块
+          </button>
+        </div>
       </div>
     `;
   }
 
-  _renderBlockItem(block, index) {
-    const isDragging = this._draggingBlockId === block.id;
+  _getGridConfig() {
+    return BlockManager.LAYOUT_PRESETS[this.layout] || BlockManager.LAYOUT_PRESETS['2x2'];
+  }
+
+  _updateGridPreview() {
+    const gridConfig = this._getGridConfig();
+    this._gridPreview = [];
     
+    for (let row = 0; row < gridConfig.rows; row++) {
+      for (let col = 0; col < gridConfig.cols; col++) {
+        const blocksInCell = this.blocks.filter(block => 
+          block.position?.row === row && block.position?.col === col
+        );
+        this._gridPreview.push({ row, col, blocks: blocksInCell });
+      }
+    }
+  }
+
+  _renderBlockItem(block, index) {
     return html`
       <div 
-        class="block-item ${isDragging ? 'dragging' : ''}"
+        class="block-item ${this._editingBlock?.id === block.id ? 'editing' : ''}"
         @click=${() => this._editBlock(block)}
-        draggable="true"
-        @dragstart=${(e) => this._onDragStart(e, block.id)}
-        @dragend=${this._onDragEnd}
-        @dragover=${(e) => this._onDragOver(e, index)}
-        @drop=${(e) => this._onDrop(e, index)}
       >
-        <ha-icon class="drag-handle" icon="mdi:drag"></ha-icon>
         <ha-icon class="block-icon" .icon=${BlockManager.getBlockIcon(block)}></ha-icon>
         <div class="block-info">
-          <div class="block-title">${BlockManager.getBlockDisplayName(block)}</div>
+          <div class="block-title">${block.config?.title || BlockManager.getBlockDisplayName(block)}</div>
           <div class="block-preview">${BlockManager.getBlockPreview(block)}</div>
+        </div>
+        <div class="block-position">
+          位置: ${block.position?.row || 0},${block.position?.col || 0}
         </div>
         <div class="block-actions">
           <div class="block-action" @click=${(e) => this._editBlock(e, block)}>
             <ha-icon icon="mdi:pencil"></ha-icon>
           </div>
-          <div class="block-action delete" @click=${(e) => this._deleteBlock(e, block.id)}>
+          <div class="block-action" @click=${(e) => this._deleteBlock(e, block.id)}>
             <ha-icon icon="mdi:delete"></ha-icon>
           </div>
         </div>
@@ -271,6 +315,7 @@ export class BlockEditor extends LitElement {
             .block=${block}
             .hass=${this.hass}
             .availableEntities=${this.availableEntities}
+            .layout=${this.layout}
             .onSave=${(updatedBlock) => this._saveBlock(updatedBlock)}
             .onDelete=${(blockId) => this._deleteBlock(null, blockId)}
             .onCancel=${() => this._cancelEdit()}
@@ -283,14 +328,15 @@ export class BlockEditor extends LitElement {
   _renderEmptyState() {
     return html`
       <div class="empty-state">
-        <ha-icon class="empty-icon" icon="mdi:package-variant"></ha-icon>
-        <p class="empty-text">点击"添加内容块"开始构建布局</p>
+        <ha-icon icon="mdi:package-variant" style="font-size: 2em; opacity: 0.5;"></ha-icon>
+        <div class="cf-text-sm cf-mt-md">点击"添加内容块"开始构建布局</div>
       </div>
     `;
   }
 
   _addBlock() {
     const newBlock = BlockManager.createBlock('text');
+    newBlock.position = BlockManager.getNextPosition(this.blocks, this.layout);
     this.blocks = [...this.blocks, newBlock];
     this._editingBlock = newBlock;
     this._notifyBlocksChanged();
@@ -321,33 +367,6 @@ export class BlockEditor extends LitElement {
 
   _cancelEdit() {
     this._editingBlock = null;
-  }
-
-  _onDragStart(e, blockId) {
-    this._draggingBlockId = blockId;
-    e.dataTransfer.effectAllowed = 'move';
-  }
-
-  _onDragEnd() {
-    this._draggingBlockId = null;
-  }
-
-  _onDragOver(e, index) {
-    e.preventDefault();
-    e.dataTransfer.dropEffect = 'move';
-  }
-
-  _onDrop(e, targetIndex) {
-    e.preventDefault();
-    
-    if (!this._draggingBlockId) return;
-    
-    const fromIndex = this.blocks.findIndex(block => block.id === this._draggingBlockId);
-    if (fromIndex === -1 || fromIndex === targetIndex) return;
-    
-    this.blocks = BlockManager.reorderBlocks(this.blocks, fromIndex, targetIndex);
-    this._draggingBlockId = null;
-    this._notifyBlocksChanged();
   }
 
   _notifyBlocksChanged() {

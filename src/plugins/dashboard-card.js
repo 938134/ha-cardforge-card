@@ -1,126 +1,202 @@
 // src/plugins/dashboard-card.js
 import { BasePlugin } from '../core/base-plugin.js';
+import { BlockManager } from '../core/block-manager.js';
 
 class DashboardCard extends BasePlugin {
-  getTemplate(safeConfig, hass, entities) {
-    const contentBlocks = this.processEntities(entities, safeConfig, hass);
+  getTemplate(config, hass, entities) {
+    const blocks = BlockManager.deserializeFromEntities(entities);
+    const enrichedBlocks = BlockManager.enrichWithRealtimeData(blocks, hass);
+    const layout = config.layout || '2x2';
     
-    let customContent = '';
-    if (contentBlocks.mode === 'free' && contentBlocks.blocks.length > 0) {
-      customContent = this._renderCustomBlocks(contentBlocks.blocks, hass);
-    }
-
     return this._renderCardContainer(`
-      ${this._renderCardHeader(safeConfig, entities)}
+      ${this._renderCardHeader(config, entities)}
       
-      <div class="cf-flex cf-flex-column cf-gap-md">
-        ${customContent || `
-          <div class="cf-text-center cf-text-secondary cf-p-lg">
-            <ha-icon icon="mdi:view-dashboard" style="font-size: 2em; opacity: 0.5;"></ha-icon>
-            <div class="cf-mt-md">添加内容块来构建仪表板</div>
-          </div>
-        `}
+      <div class="dashboard-content">
+        ${this._renderGridLayout(enrichedBlocks, layout, hass)}
       </div>
       
-      ${this._renderCardFooter(safeConfig, entities)}
+      ${this._renderCardFooter(config, entities)}
     `, 'dashboard-card');
   }
 
   getStyles(config) {
     const baseStyles = this.getBaseStyles(config);
+    const layout = config.layout || '2x2';
+    const gridConfig = BlockManager.LAYOUT_PRESETS[layout];
     
     return `
       ${baseStyles}
       
-      .dashboard-grid {
-        display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
-        gap: var(--cf-spacing-md);
+      .dashboard-content {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
       }
       
-      .dashboard-item {
+      .dashboard-grid {
+        display: grid;
+        grid-template-columns: repeat(${gridConfig.cols}, 1fr);
+        grid-template-rows: repeat(${gridConfig.rows}, 1fr);
+        gap: var(--cf-spacing-md);
+        flex: 1;
+        min-height: 200px;
+      }
+      
+      .dashboard-block {
         background: var(--cf-surface);
         border: 1px solid var(--cf-border);
         border-radius: var(--cf-radius-md);
         padding: var(--cf-spacing-md);
-        text-align: center;
+        display: flex;
+        flex-direction: column;
         transition: all var(--cf-transition-fast);
+        min-height: 80px;
       }
       
-      .dashboard-item:hover {
+      .dashboard-block:hover {
         border-color: var(--cf-primary-color);
-        transform: translateY(-2px);
+        transform: translateY(-1px);
       }
       
-      .dashboard-value {
+      .block-header {
+        margin-bottom: var(--cf-spacing-sm);
+      }
+      
+      .block-title {
+        font-size: 0.9em;
+        font-weight: 500;
+        color: var(--cf-text-primary);
+      }
+      
+      .block-content {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        text-align: center;
+      }
+      
+      .block-value {
         font-size: 1.5em;
         font-weight: 600;
         color: var(--cf-primary-color);
-        margin-bottom: var(--cf-spacing-xs);
+        line-height: 1;
       }
       
-      .dashboard-label {
+      .block-unit {
+        font-size: 0.8em;
+        color: var(--cf-text-secondary);
+        margin-top: 2px;
+      }
+      
+      .block-text {
+        font-size: 0.95em;
+        color: var(--cf-text-primary);
+        line-height: 1.4;
+      }
+      
+      .block-placeholder {
         font-size: 0.85em;
         color: var(--cf-text-secondary);
+        opacity: 0.7;
+      }
+      
+      /* 油价样式 */
+      .block-style-oil-price .block-value {
+        font-size: 1.3em;
+        color: var(--cf-accent-color);
+      }
+      
+      @container cardforge-container (max-width: 400px) {
+        .dashboard-grid {
+          gap: var(--cf-spacing-sm);
+        }
+        
+        .dashboard-block {
+          padding: var(--cf-spacing-sm);
+          min-height: 60px;
+        }
+        
+        .block-value {
+          font-size: 1.2em;
+        }
       }
     `;
   }
 
-  _renderCustomBlocks(blocks, hass) {
-    const blockElements = blocks.map(block => {
-      if (block.type === 'text') {
-        return `<div class="dashboard-item">
-          <div class="dashboard-value">📝</div>
-          <div class="dashboard-label">${this._renderSafeHTML(block.content)}</div>
-        </div>`;
-      } else if (block.realTimeData) {
-        const state = block.realTimeData.state;
-        const icon = this._getEntityIcon(block.type, state);
-        
-        return `<div class="dashboard-item">
-          <div class="dashboard-value">${icon} ${state}</div>
-          <div class="dashboard-label">${this._getBlockTypeName(block.type)}</div>
-        </div>`;
-      } else {
-        return `<div class="dashboard-item">
-          <div class="dashboard-value">❓</div>
-          <div class="dashboard-label">${this._getBlockTypeName(block.type)}</div>
-        </div>`;
-      }
-    });
-
+  _renderGridLayout(blocks, layout, hass) {
+    if (blocks.length === 0) {
+      return `
+        <div class="cf-flex cf-flex-center cf-flex-column cf-p-lg">
+          <ha-icon icon="mdi:view-grid-plus" style="font-size: 2em; opacity: 0.5;"></ha-icon>
+          <div class="cf-text-sm cf-mt-md cf-text-secondary">添加内容块来构建仪表板</div>
+        </div>
+      `;
+    }
+    
     return `
       <div class="dashboard-grid">
-        ${blockElements.join('')}
+        ${blocks.map(block => this._renderBlock(block, hass)).join('')}
       </div>
     `;
   }
 
-  _getEntityIcon(type, state) {
-    const icons = {
-      sensor: '📊',
-      weather: '🌤️',
-      switch: state === 'on' ? '💡' : '⚪'
-    };
-    return icons[type] || '📦';
+  _renderBlock(block, hass) {
+    const blockStyle = block.config?.style ? `block-style-${block.config.style}` : '';
+    
+    return `
+      <div class="dashboard-block ${blockStyle}" data-block-id="${block.id}">
+        <div class="block-header">
+          <span class="block-title">${block.config?.title || BlockManager.getBlockDisplayName(block)}</span>
+        </div>
+        <div class="block-content">
+          ${this._renderBlockContent(block, hass)}
+        </div>
+      </div>
+    `;
   }
 
-  _getBlockTypeName(type) {
-    const names = { text: '文本', sensor: '传感器', weather: '天气', switch: '开关' };
-    return names[type] || '内容';
+  _renderBlockContent(block, hass) {
+    switch (block.type) {
+      case 'text':
+        return `<div class="block-text">${block.content || ''}</div>`;
+        
+      case 'sensor':
+      case 'weather':
+      case 'switch':
+        if (block.realTimeData) {
+          return `
+            <div class="block-value">${block.realTimeData.state}</div>
+            ${block.realTimeData.attributes.unit_of_measurement ? 
+              `<div class="block-unit">${block.realTimeData.attributes.unit_of_measurement}</div>` : ''}
+          `;
+        }
+        return `<div class="block-placeholder">点击配置实体</div>`;
+        
+      default:
+        return `<div class="block-placeholder">未知类型</div>`;
+    }
   }
 }
 
 DashboardCard.manifest = {
   id: 'dashboard-card',
-  name: '仪表板卡片',
+  name: '仪表盘卡片',
   description: '自由布局的数据仪表板',
   icon: '📊',
   category: '数据',
   version: '1.0.0',
   author: 'CardForge',
-  layout_type: 'free',
-  allow_custom_entities: true
+  free_layout: true,
+  config_schema: {
+    layout: {
+      type: 'select',
+      label: '布局模板',
+      default: '2x2',
+      options: ['1x1', '1x2', '1x3', '1x4', '2x2', '2x3', '3x3', 'free']
+    }
+  }
 };
 
 export { DashboardCard as default, DashboardCard };

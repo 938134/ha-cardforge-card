@@ -1,11 +1,13 @@
 // src/editors/inline-block-editor.js
 import { LitElement, html, css } from 'https://unpkg.com/lit@2.8.0/index.js?module';
 import { designSystem } from '../core/design-system.js';
+import { BlockManager } from '../core/block-manager.js';
 
 export class InlineBlockEditor extends LitElement {
   static properties = {
     block: { type: Object },
     hass: { type: Object },
+    layout: { type: String },
     availableEntities: { type: Array },
     onSave: { type: Object },
     onDelete: { type: Object },
@@ -21,6 +23,7 @@ export class InlineBlockEditor extends LitElement {
         border-radius: var(--cf-radius-md);
         padding: var(--cf-spacing-md);
         margin-bottom: var(--cf-spacing-sm);
+        width: 100%;
       }
 
       .editor-form {
@@ -40,6 +43,27 @@ export class InlineBlockEditor extends LitElement {
         font-size: 0.9em;
         font-weight: 500;
         color: var(--cf-text-primary);
+      }
+
+      .position-selector {
+        display: flex;
+        gap: var(--cf-spacing-sm);
+      }
+
+      .position-btn {
+        padding: var(--cf-spacing-xs) var(--cf-spacing-sm);
+        border: 1px solid var(--cf-border);
+        border-radius: var(--cf-radius-sm);
+        background: var(--cf-surface);
+        cursor: pointer;
+        font-size: 0.8em;
+        transition: all var(--cf-transition-fast);
+      }
+
+      .position-btn.selected {
+        background: var(--cf-primary-color);
+        color: white;
+        border-color: var(--cf-primary-color);
       }
 
       .form-actions {
@@ -93,6 +117,7 @@ export class InlineBlockEditor extends LitElement {
   constructor() {
     super();
     this.block = {};
+    this.layout = '2x2';
     this.availableEntities = [];
     this.onSave = () => {};
     this.onDelete = () => {};
@@ -100,12 +125,12 @@ export class InlineBlockEditor extends LitElement {
   }
 
   render() {
-    const blockTypes = [
-      { value: 'text', label: '文本块' },
-      { value: 'sensor', label: '传感器' },
-      { value: 'weather', label: '天气' },
-      { value: 'switch', label: '开关' }
-    ];
+    const blockTypes = Object.entries(BlockManager.BLOCK_TYPES).map(([value, info]) => ({
+      value,
+      label: info.name
+    }));
+
+    const gridConfig = BlockManager.LAYOUT_PRESETS[this.layout] || BlockManager.LAYOUT_PRESETS['2x2'];
 
     return html`
       <div class="inline-editor">
@@ -125,6 +150,23 @@ export class InlineBlockEditor extends LitElement {
             ${this._renderContentField()}
           </div>
 
+          <div class="form-row">
+            <label class="form-label">显示标题</label>
+            <ha-textfield
+              .value=${this.block.config?.title || ''}
+              @input=${e => this._updateConfig('title', e.target.value)}
+              label="块标题"
+              placeholder="例如：室内温度"
+            ></ha-textfield>
+          </div>
+
+          <div class="form-row">
+            <label class="form-label">位置</label>
+            <div class="position-selector">
+              ${this._renderPositionOptions(gridConfig)}
+            </div>
+          </div>
+
           ${this.block.type === 'text' ? html`
             <div class="form-row">
               <label class="form-label">背景色</label>
@@ -133,15 +175,6 @@ export class InlineBlockEditor extends LitElement {
                 @input=${e => this._updateConfig('background', e.target.value)}
                 label="背景颜色"
                 placeholder="#f0f0f0"
-              ></ha-textfield>
-            </div>
-            <div class="form-row">
-              <label class="form-label">文字颜色</label>
-              <ha-textfield
-                .value=${this.block.config?.textColor || ''}
-                @input=${e => this._updateConfig('textColor', e.target.value)}
-                label="文字颜色"
-                placeholder="#333333"
               ></ha-textfield>
             </div>
           ` : ''}
@@ -179,7 +212,7 @@ export class InlineBlockEditor extends LitElement {
           .value=${this.block.content || ''}
           @input=${e => this._updateBlock('content', e.target.value)}
           label="输入内容"
-          rows="2"
+          rows="3"
         ></ha-textarea>
       `;
     } else {
@@ -195,6 +228,25 @@ export class InlineBlockEditor extends LitElement {
     }
   }
 
+  _renderPositionOptions(gridConfig) {
+    const options = [];
+    for (let row = 0; row < gridConfig.rows; row++) {
+      for (let col = 0; col < gridConfig.cols; col++) {
+        const isSelected = this.block.position?.row === row && this.block.position?.col === col;
+        options.push(html`
+          <button 
+            class="position-btn ${isSelected ? 'selected' : ''}"
+            @click=${() => this._updatePosition(row, col)}
+            title="位置 ${row},${col}"
+          >
+            ${row},${col}
+          </button>
+        `);
+      }
+    }
+    return options;
+  }
+
   _updateBlock(key, value) {
     this.block = {
       ...this.block,
@@ -202,7 +254,7 @@ export class InlineBlockEditor extends LitElement {
     };
     
     if (key === 'type' && value !== 'text') {
-      this.block.config = {};
+      this.block.config = { ...this.block.config };
     }
   }
 
@@ -211,6 +263,10 @@ export class InlineBlockEditor extends LitElement {
       ...this.block.config,
       [key]: value
     };
+  }
+
+  _updatePosition(row, col) {
+    this.block.position = { row, col };
   }
 
   _onSave() {

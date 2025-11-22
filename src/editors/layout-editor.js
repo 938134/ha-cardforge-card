@@ -1,7 +1,6 @@
 // src/editors/layout-editor.js
 import { LitElement, html, css } from 'https://unpkg.com/lit@2.8.0/index.js?module';
 import { designSystem } from '../core/design-system.js';
-import { LayoutEngine } from '../core/layout-engine.js';
 import { BlockManager } from '../core/block-manager.js';
 
 export class LayoutEditor extends LitElement {
@@ -9,9 +8,9 @@ export class LayoutEditor extends LitElement {
     hass: { type: Object },
     config: { type: Object },
     pluginManifest: { type: Object },
-    _currentMode: { state: true },
     _contentBlocks: { state: true },
-    _availableEntities: { state: true }
+    _availableEntities: { state: true },
+    _selectedLayout: { state: true }
   };
 
   static styles = [
@@ -24,100 +23,71 @@ export class LayoutEditor extends LitElement {
         gap: var(--cf-spacing-lg);
       }
 
-      .entity-driven-form {
-        display: flex;
-        flex-direction: column;
-        gap: var(--cf-spacing-md);
-      }
-
-      .entity-row {
+      .layout-presets {
         display: grid;
-        grid-template-columns: 25% 75%;
-        gap: var(--cf-spacing-md);
-        align-items: center;
-      }
-
-      .entity-label {
-        font-size: 0.9em;
-        font-weight: 500;
-        color: var(--cf-text-primary);
-        display: flex;
-        align-items: center;
-        gap: var(--cf-spacing-xs);
-      }
-
-      .required-star {
-        color: var(--cf-error-color);
-      }
-
-      .entity-control {
-        width: 100%;
-      }
-
-      .free-layout-section {
-        display: flex;
-        flex-direction: column;
-        gap: var(--cf-spacing-md);
-      }
-
-      .header-fields {
-        display: grid;
-        grid-template-columns: 1fr 1fr;
-        gap: var(--cf-spacing-md);
+        grid-template-columns: repeat(4, 1fr);
+        gap: var(--cf-spacing-sm);
         margin-bottom: var(--cf-spacing-lg);
       }
 
-      .field-card {
-        background: var(--cf-surface);
-        border: 1px solid var(--cf-border);
+      .layout-preset {
+        aspect-ratio: 1;
+        border: 2px solid var(--cf-border);
         border-radius: var(--cf-radius-md);
-        padding: var(--cf-spacing-md);
-        display: grid;
-        grid-template-columns: 25% 75%;
-        gap: var(--cf-spacing-md);
+        display: flex;
+        flex-direction: column;
         align-items: center;
-      }
-
-      .info-card {
+        justify-content: center;
+        cursor: pointer;
+        transition: all var(--cf-transition-fast);
+        padding: var(--cf-spacing-sm);
         background: var(--cf-surface);
-        border: 1px solid var(--cf-border);
-        border-radius: var(--cf-radius-md);
-        padding: var(--cf-spacing-lg);
+      }
+
+      .layout-preset:hover {
+        border-color: var(--cf-primary-color);
+        transform: translateY(-1px);
+      }
+
+      .layout-preset.selected {
+        border-color: var(--cf-primary-color);
+        background: rgba(var(--cf-rgb-primary), 0.05);
+      }
+
+      .layout-preview {
+        flex: 1;
+        width: 100%;
+        display: grid;
+        gap: 2px;
+        margin-bottom: 4px;
+      }
+
+      .layout-name {
+        font-size: 0.7em;
         text-align: center;
+        color: var(--cf-text-secondary);
       }
 
-      .info-icon {
-        font-size: 2em;
-        color: var(--cf-primary-color);
-        margin-bottom: var(--cf-spacing-md);
+      .layout-content {
+        display: flex;
+        flex-direction: column;
+        gap: var(--cf-spacing-md);
       }
 
-      .info-title {
+      .blocks-section {
+        margin-top: var(--cf-spacing-lg);
+      }
+
+      .section-title {
         font-size: 1.1em;
         font-weight: 600;
-        margin-bottom: var(--cf-spacing-sm);
+        margin-bottom: var(--cf-spacing-md);
         color: var(--cf-text-primary);
       }
 
-      .info-description {
-        font-size: 0.9em;
-        color: var(--cf-text-secondary);
-        line-height: 1.4;
-      }
-
-      @media (max-width: 600px) {
-        .entity-row {
-          grid-template-columns: 1fr;
-          gap: var(--cf-spacing-sm);
-        }
-
-        .header-fields {
-          grid-template-columns: 1fr;
-        }
-
-        .field-card {
-          grid-template-columns: 1fr;
-          gap: var(--cf-spacing-sm);
+      @media (max-width: 768px) {
+        .layout-presets {
+          grid-template-columns: repeat(2, 1fr);
         }
       }
     `
@@ -125,18 +95,18 @@ export class LayoutEditor extends LitElement {
 
   constructor() {
     super();
-    this._currentMode = 'entity_driven';
     this._contentBlocks = [];
     this._availableEntities = [];
+    this._selectedLayout = '2x2';
   }
 
   willUpdate(changedProperties) {
-    if (changedProperties.has('pluginManifest')) {
-      this._currentMode = LayoutEngine.detectMode(this.pluginManifest);
-    }
-    
     if (changedProperties.has('config') || changedProperties.has('hass')) {
       this._contentBlocks = BlockManager.deserializeFromEntities(this.config.entities);
+    }
+    
+    if (changedProperties.has('config')) {
+      this._selectedLayout = this.config.layout || '2x2';
     }
     
     if (changedProperties.has('hass') && this.hass) {
@@ -145,134 +115,52 @@ export class LayoutEditor extends LitElement {
   }
 
   render() {
-    if (!this.pluginManifest) {
-      return this._renderNoPlugin();
-    }
-
     return html`
       <div class="layout-editor">
-        ${this._currentMode === 'free' 
-          ? this._renderFreeLayout()
-          : this._renderEntityDriven()
-        }
-      </div>
-    `;
-  }
-
-  _renderFreeLayout() {
-    const capabilities = this._getPluginCapabilities();
-    
-    return html`
-      ${capabilities.supportsTitle || capabilities.supportsFooter ? html`
-        <div class="header-fields">
-          ${capabilities.supportsTitle ? html`
-            <div class="field-card">
-              <div class="entity-label">标题</div>
-              <ha-combo-box
-                .items=${this._availableEntities}
-                .value=${this._getEntityValue('title')}
-                @value-changed=${e => this._onHeaderFieldChanged('title', e.detail.value)}
-                allow-custom-value
-                label="标题文本或实体"
-              ></ha-combo-box>
-            </div>
-            <div class="field-card">
-              <div class="entity-label">副标题</div>
-              <ha-combo-box
-                .items=${this._availableEntities}
-                .value=${this._getEntityValue('subtitle')}
-                @value-changed=${e => this._onHeaderFieldChanged('subtitle', e.detail.value)}
-                allow-custom-value
-                label="副标题文本或实体"
-              ></ha-combo-box>
-            </div>
-          ` : ''}
-          
-          ${capabilities.supportsFooter ? html`
-            <div class="field-card">
-              <div class="entity-label">页脚</div>
-              <ha-combo-box
-                .items=${this._availableEntities}
-                .value=${this._getEntityValue('footer')}
-                @value-changed=${e => this._onHeaderFieldChanged('footer', e.detail.value)}
-                allow-custom-value
-                label="页脚文本或实体"
-              ></ha-combo-box>
-            </div>
-          ` : ''}
+        <div class="layout-presets-section">
+          <div class="section-title">选择布局</div>
+          <div class="layout-presets">
+            ${Object.entries(BlockManager.LAYOUT_PRESETS).map(([key, preset]) => html`
+              <div 
+                class="layout-preset ${this._selectedLayout === key ? 'selected' : ''}"
+                @click=${() => this._selectLayout(key)}
+                title="${preset.name}"
+              >
+                <div class="layout-preview" style="
+                  grid-template-columns: repeat(${preset.cols}, 1fr);
+                  grid-template-rows: repeat(${preset.rows}, 1fr);
+                ">
+                  ${Array.from({ length: preset.rows * preset.cols }, (_, i) => html`
+                    <div style="background: var(--cf-border); border-radius: 1px;"></div>
+                  `)}
+                </div>
+                <div class="layout-name">${preset.cols}×${preset.rows}</div>
+              </div>
+            `)}
+          </div>
         </div>
-      ` : ''}
-      
-      <div class="free-layout-section">
-        <block-editor
-          .blocks=${this._contentBlocks}
-          .hass=${this.hass}
-          .availableEntities=${this._availableEntities}
-          @blocks-changed=${this._onBlocksChanged}
-        ></block-editor>
+
+        <div class="layout-content">
+          <div class="blocks-section">
+            <div class="section-title">内容块管理</div>
+            <block-editor
+              .blocks=${this._contentBlocks}
+              .hass=${this.hass}
+              .availableEntities=${this._availableEntities}
+              .layout=${this._selectedLayout}
+              @blocks-changed=${this._onBlocksChanged}
+            ></block-editor>
+          </div>
+        </div>
       </div>
     `;
   }
 
-  _renderEntityDriven() {
-    const requirements = this.pluginManifest?.entity_requirements || {};
-    
-    if (Object.keys(requirements).length === 0) {
-      return this._renderNoRequirements();
-    }
-
-    return html`
-      <div class="entity-driven-form">
-        ${Object.entries(requirements).map(([key, requirement]) => {
-          const currentValue = this._getEntityValue(key);
-          
-          return html`
-            <div class="entity-row">
-              <div class="entity-label">
-                ${requirement.name}
-                ${requirement.required ? html`<span class="required-star">*</span>` : ''}
-              </div>
-              <div class="entity-control">
-                <ha-combo-box
-                  .items=${this._availableEntities}
-                  .value=${currentValue}
-                  @value-changed=${e => this._onEntityChanged(key, e.detail.value)}
-                  allow-custom-value
-                  label=${`选择 ${requirement.name}`}
-                ></ha-combo-box>
-              </div>
-            </div>
-          `;
-        })}
-      </div>
-    `;
-  }
-
-  _renderNoPlugin() {
-    return html`
-      <div class="info-card">
-        <ha-icon class="info-icon" icon="mdi:palette"></ha-icon>
-        <div class="info-title">选择卡片类型</div>
-        <div class="info-description">请先选择一个卡片插件来配置数据源</div>
-      </div>
-    `;
-  }
-
-  _renderNoRequirements() {
-    return html`
-      <div class="info-card">
-        <ha-icon class="info-icon" icon="mdi:auto-fix"></ha-icon>
-        <div class="info-title">智能数据源</div>
-        <div class="info-description">此卡片会自动处理数据源，无需额外配置</div>
-      </div>
-    `;
-  }
-
-  _getPluginCapabilities() {
-    return this.pluginManifest?.capabilities || {
-      supportsTitle: true,
-      supportsFooter: true
-    };
+  _selectLayout(layout) {
+    this._selectedLayout = layout;
+    this.dispatchEvent(new CustomEvent('config-changed', {
+      detail: { config: { layout } }
+    }));
   }
 
   _updateAvailableEntities() {
@@ -287,30 +175,6 @@ export class LayoutEditor extends LitElement {
         label: `${state.attributes?.friendly_name || entityId} (${entityId})`
       }))
       .sort((a, b) => a.label.localeCompare(b.label));
-  }
-
-  _getEntityValue(key) {
-    const value = this.config.entities?.[key];
-    if (typeof value === 'string') {
-      return value;
-    }
-    if (value && typeof value === 'object') {
-      return value._source || value.state || '';
-    }
-    return value || '';
-  }
-
-  _onHeaderFieldChanged(field, value) {
-    this._updateEntities({ [field]: value });
-  }
-
-  _onEntityChanged(key, value) {
-    // 修复：只更新当前字段，不覆盖其他字段
-    const updatedEntities = { 
-      ...this.config.entities,
-      [key]: value 
-    };
-    this._updateEntities(updatedEntities);
   }
 
   _onBlocksChanged(e) {

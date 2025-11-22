@@ -264,25 +264,34 @@ class HaCardForgeEditor extends LitElement {
     `;
   }
 
-_renderDataSourceSection() {
-  if (!this.config.plugin || !this._pluginInstance) return '';
-
-  return html`
-    <div class="editor-section">
-      <div class="section-header">
-        <ha-icon icon="mdi:database"></ha-icon>
-        <span>数据源配置</span>
+  _renderDataSourceSection() {
+    if (!this.config.plugin || !this._pluginInstance) return '';
+  
+    const isDashboard = this._pluginManifest?.free_layout;
+    
+    return html`
+      <div class="editor-section">
+        <div class="section-header">
+          <ha-icon icon="mdi:database"></ha-icon>
+          <span>${isDashboard ? '布局配置' : '数据源配置'}</span>
+        </div>
+        
+        ${isDashboard 
+          ? html`<layout-editor
+              .hass=${this.hass}
+              .config=${this.config}
+              .pluginManifest=${this._pluginManifest}
+              @entities-changed=${this._onEntitiesChanged}
+            ></layout-editor>`
+          : html`<config-editor
+              .config=${this.config}
+              .pluginManifest=${this._pluginManifest}
+              @config-changed=${this._onConfigChanged}
+            ></config-editor>`
+        }
       </div>
-      
-      <layout-editor
-        .hass=${this.hass}  // 确保这行存在
-        .config=${this.config}
-        .pluginManifest=${this._pluginManifest}
-        @entities-changed=${this._onEntitiesChanged}
-      ></layout-editor>
-    </div>
-  `;
-}
+    `;
+  }
 
   async _onPluginChanged(e) {
     const newConfig = {

@@ -97,6 +97,8 @@ class PoetryCard extends BasePlugin {
         font-weight: 400;
         color: var(--cf-text-primary);
         text-shadow: 0 1px 2px rgba(0,0,0,0.1);
+        font-size: 1.1em;
+        line-height: 1.5; 
       }
       
       .poetry-translation-container {
@@ -138,25 +140,24 @@ class PoetryCard extends BasePlugin {
 _formatPoetryContent(content) {
   if (!content) return '';
   
-  // 统计句子数量（按句号、叹号、问号分割）
-  const sentences = content.split(/[。！？\.!?]/).filter(s => s.trim());
-  const sentenceCount = sentences.length;
+  // 按完整句子分割（句号、叹号、问号）
+  const fullSentences = content.split(/([。！？\.!?])/);
+  const sentenceCount = fullSentences.filter(s => /[。！？\.!?]/.test(s)).length;
   
-  if (sentenceCount <= 8) {
-    // 8句以内的诗：保持原有格式，只处理逗号换行
-    return content
+  let result = content;
+  
+  if (sentenceCount <= 10) {
+    // 8句以内的诗：只处理逗号换行
+    result = result
       .replace(/，/g, '，<br>')
       .replace(/,/g, ',<br>');
   } else {
-    // 8句以上的诗：按句号、叹号、问号换行
-    return content
-      .replace(/。/g, '。<br><br>')  // 句号后双换行
-      .replace(/！/g, '！<br><br>')  // 叹号后双换行  
-      .replace(/？/g, '？<br><br>')  // 问号后双换行
-      .replace(/\./g, '.<br><br>')   // 英文句号后双换行
-      .replace(/!/g, '!<br><br>')    // 英文叹号后双换行
-      .replace(/\?/g, '?<br><br>');  // 英文问号后双换行
+    // 8句以上的诗：按完整句子换行
+    result = result
+      .replace(/([。！？\.!?])/g, '$1<br><br>');
   }
+  
+  return result;
 }
 
   // 修复：实体值清理
