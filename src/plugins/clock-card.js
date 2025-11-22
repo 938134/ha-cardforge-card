@@ -13,14 +13,17 @@ class ClockCard extends BasePlugin {
     return this._renderCardContainer(`
       ${this._renderCardHeader(safeConfig, entities)}
       
-      <div class="cf-flex cf-flex-center cf-flex-column cf-gap-lg">
-        <div class="cardforge-text-large clock-time">${timeText}</div>
+      <div class="clock-content">
+        <div class="clock-time-wrapper">
+          <div class="clock-time">${timeText}</div>
+          ${safeConfig.show_seconds ? '<div class="clock-seconds-dot"></div>' : ''}
+        </div>
         
-        ${dateText ? `<div class="cardforge-text-medium clock-date">${dateText}</div>` : ''}
+        ${dateText ? `<div class="clock-date">${dateText}</div>` : ''}
         
-        <div class="cf-flex cf-gap-md cf-text-center">
-          ${weekText ? `<div class="cardforge-text-small clock-week">${weekText}</div>` : ''}
-          ${lunarText ? `<div class="cardforge-text-small clock-lunar">${lunarText}</div>` : ''}
+        <div class="clock-info-row">
+          ${weekText ? `<div class="clock-week">${weekText}</div>` : ''}
+          ${lunarText ? `<div class="clock-lunar">${lunarText}</div>` : ''}
         </div>
       </div>
       
@@ -34,22 +37,67 @@ class ClockCard extends BasePlugin {
     return `
       ${baseStyles}
       
+      .clock-content {
+        padding: var(--cf-spacing-lg) var(--cf-spacing-xl);
+        text-align: center;
+      }
+      
+      .clock-time-wrapper {
+        position: relative;
+        display: inline-block;
+        margin-bottom: var(--cf-spacing-md);
+      }
+      
       .clock-time {
-        font-family: 'Courier New', monospace;
-        font-weight: 300;
-        letter-spacing: 2px;
+        font-family: 'Courier New', 'SF Mono', Monaco, Inconsolata, monospace;
+        font-weight: 700;
+        font-size: 3.5em;
+        letter-spacing: 3px;
+        line-height: 1.1;
+        background: linear-gradient(135deg, var(--cf-primary-color), var(--cf-accent-color));
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+        text-shadow: 0 2px 10px rgba(var(--cf-rgb-primary), 0.15);
+        margin: 0;
+      }
+      
+      .clock-seconds-dot {
+        position: absolute;
+        top: 15px;
+        right: -8px;
+        width: 6px;
+        height: 6px;
+        background: var(--cf-accent-color);
+        border-radius: 50%;
+        animation: pulse 1s infinite;
       }
       
       .clock-date {
-        font-weight: 500;
-        opacity: 0.9;
+        font-size: 1.3em;
+        font-weight: 600;
+        color: var(--cf-text-primary);
+        margin-bottom: var(--cf-spacing-md);
+        opacity: 0.95;
+        letter-spacing: 1px;
+      }
+      
+      .clock-info-row {
+        display: flex;
+        justify-content: center;
+        gap: var(--cf-spacing-md);
+        margin-top: var(--cf-spacing-lg);
       }
       
       .clock-week, .clock-lunar {
-        padding: var(--cf-spacing-sm) var(--cf-spacing-md);
-        background: rgba(var(--cf-rgb-primary), 0.1);
-        border-radius: var(--cf-radius-md);
-        min-width: 80px;
+        padding: var(--cf-spacing-sm) var(--cf-spacing-lg);
+        background: rgba(var(--cf-rgb-primary), 0.08);
+        border-radius: var(--cf-radius-lg);
+        font-size: 0.95em;
+        font-weight: 500;
+        min-width: 100px;
+        border: 1px solid rgba(var(--cf-rgb-primary), 0.1);
+        backdrop-filter: blur(10px);
       }
       
       .clock-week {
@@ -60,13 +108,81 @@ class ClockCard extends BasePlugin {
         color: var(--cf-accent-color);
       }
       
+      @keyframes pulse {
+        0%, 100% { opacity: 1; transform: scale(1); }
+        50% { opacity: 0.5; transform: scale(0.8); }
+      }
+      
+      /* 紧凑布局变体 */
+      .clock-card.compact .clock-content {
+        padding: var(--cf-spacing-md);
+      }
+      
+      .clock-card.compact .clock-time {
+        font-size: 2.8em;
+        margin-bottom: var(--cf-spacing-sm);
+      }
+      
+      .clock-card.compact .clock-date {
+        font-size: 1.1em;
+        margin-bottom: var(--cf-spacing-sm);
+      }
+      
+      .clock-card.compact .clock-info-row {
+        margin-top: var(--cf-spacing-md);
+      }
+      
+      .clock-card.compact .clock-week,
+      .clock-card.compact .clock-lunar {
+        padding: var(--cf-spacing-xs) var(--cf-spacing-md);
+        min-width: 80px;
+        font-size: 0.9em;
+      }
+      
+      /* 极简布局变体 */
+      .clock-card.minimal .clock-content {
+        padding: var(--cf-spacing-lg);
+      }
+      
+      .clock-card.minimal .clock-time {
+        font-size: 3em;
+        margin-bottom: var(--cf-spacing-sm);
+        background: var(--cf-text-primary);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+      }
+      
+      .clock-card.minimal .clock-date {
+        font-size: 1.1em;
+        margin-bottom: var(--cf-spacing-sm);
+      }
+      
+      .clock-card.minimal .clock-info-row {
+        flex-direction: column;
+        gap: var(--cf-spacing-sm);
+        margin-top: var(--cf-spacing-md);
+      }
+      
+      .clock-card.minimal .clock-week,
+      .clock-card.minimal .clock-lunar {
+        background: transparent;
+        border: 1px solid rgba(var(--cf-rgb-primary), 0.2);
+        min-width: auto;
+        padding: var(--cf-spacing-xs) var(--cf-spacing-sm);
+      }
+      
       @container cardforge-container (max-width: 400px) {
-        .clock-time {
-          font-size: 2em;
-          letter-spacing: 1px;
+        .clock-content {
+          padding: var(--cf-spacing-md);
         }
         
-        .cf-flex.cf-gap-md {
+        .clock-time {
+          font-size: 2.5em;
+          letter-spacing: 2px;
+        }
+        
+        .clock-info-row {
           flex-direction: column;
           gap: var(--cf-spacing-sm);
         }
@@ -74,21 +190,49 @@ class ClockCard extends BasePlugin {
         .clock-week, .clock-lunar {
           min-width: auto;
         }
+        
+        .clock-seconds-dot {
+          top: 10px;
+          right: -6px;
+        }
+      }
+      
+      @container cardforge-container (max-width: 300px) {
+        .clock-time {
+          font-size: 2em;
+          letter-spacing: 1px;
+        }
+        
+        .clock-date {
+          font-size: 1em;
+        }
       }
     `;
+  }
+
+  getTemplateWithConfig(config) {
+    // 添加布局变体类
+    const layoutClass = config.layout || 'default';
+    const originalTemplate = this.getTemplate(config, {}, {});
+    
+    // 在容器div上添加布局类
+    return originalTemplate.replace(
+      'clock-card"', 
+      `clock-card ${layoutClass}"`
+    );
   }
 
   _formatTime(date, use24Hour, showSeconds) {
     let hours = date.getHours();
     const minutes = date.getMinutes().toString().padStart(2, '0');
-    const seconds = showSeconds ? ':' + date.getSeconds().toString().padStart(2, '0') : '';
+    const seconds = showSeconds ? '<span class="clock-seconds">' + date.getSeconds().toString().padStart(2, '0') + '</span>' : '';
     
     if (use24Hour) {
       return `${hours.toString().padStart(2, '0')}:${minutes}${seconds}`;
     } else {
       const ampm = hours >= 12 ? 'PM' : 'AM';
       hours = hours % 12 || 12;
-      return `${hours}:${minutes}${seconds} ${ampm}`;
+      return `${hours}:${minutes}${seconds} <span class="clock-ampm">${ampm}</span>`;
     }
   }
 
@@ -140,7 +284,7 @@ ClockCard.manifest = {
   description: '显示时间、日期、星期和农历信息',
   icon: '⏰',
   category: '时间',
-  version: '1.0.0',
+  version: '1.1.0',
   author: 'CardForge',
   config_schema: {
     show_date: {
@@ -162,6 +306,21 @@ ClockCard.manifest = {
       type: 'boolean',
       label: '24小时制',
       default: true
+    },
+    show_seconds: {
+      type: 'boolean',
+      label: '显示秒数',
+      default: false
+    },
+    layout: {
+      type: 'select',
+      label: '布局样式',
+      default: 'default',
+      options: [
+        { value: 'default', label: '默认' },
+        { value: 'compact', label: '紧凑' },
+        { value: 'minimal', label: '极简' }
+      ]
     }
   }
 };

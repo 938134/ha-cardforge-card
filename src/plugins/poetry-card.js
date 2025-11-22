@@ -135,30 +135,29 @@ class PoetryCard extends BasePlugin {
     `;
   }
 
-  // 修复：按句子数量智能换行
-  _formatPoetryContent(content) {
-    if (!content) return '';
-    
-    // 按标点符号分割句子
-    const sentences = content.split(/[，。！？；,\.!?;]/).filter(s => s.trim());
-    const sentenceCount = sentences.length;
-    
-    if (sentenceCount <= 8) {
-      // 8句以内的诗：按逗号换行
-      return content
-        .replace(/，/g, '，<br>')
-        .replace(/,/g, ',<br>');
-    } else {
-      // 8句以上的诗：按句号、叹号、问号换行
-      return content
-        .replace(/。/g, '。<br>')
-        .replace(/！/g, '！<br>')
-        .replace(/？/g, '？<br>')
-        .replace(/\./g, '.<br>')
-        .replace(/!/g, '!<br>')
-        .replace(/\?/g, '?<br>');
-    }
+_formatPoetryContent(content) {
+  if (!content) return '';
+  
+  // 统计句子数量（按句号、叹号、问号分割）
+  const sentences = content.split(/[。！？\.!?]/).filter(s => s.trim());
+  const sentenceCount = sentences.length;
+  
+  if (sentenceCount <= 8) {
+    // 8句以内的诗：保持原有格式，只处理逗号换行
+    return content
+      .replace(/，/g, '，<br>')
+      .replace(/,/g, ',<br>');
+  } else {
+    // 8句以上的诗：按句号、叹号、问号换行
+    return content
+      .replace(/。/g, '。<br><br>')  // 句号后双换行
+      .replace(/！/g, '！<br><br>')  // 叹号后双换行  
+      .replace(/？/g, '？<br><br>')  // 问号后双换行
+      .replace(/\./g, '.<br><br>')   // 英文句号后双换行
+      .replace(/!/g, '!<br><br>')    // 英文叹号后双换行
+      .replace(/\?/g, '?<br><br>');  // 英文问号后双换行
   }
+}
 
   // 修复：实体值清理
   _cleanEntityValue(text) {
