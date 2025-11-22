@@ -4,7 +4,6 @@ import { BasePlugin } from '../core/base-plugin.js';
 class PoetryCard extends BasePlugin {
   getTemplate(safeConfig, hass, entities) {
     // 直接获取实体数据
-    const entityKeys = ['title', 'dynasty', 'author', 'content', 'translation'];
     const defaultPoetry = this._getDailyPoetry();
     
     // 优雅地获取数据：实体数据 > 默认数据
@@ -14,35 +13,42 @@ class PoetryCard extends BasePlugin {
     const content = this._getEntityState(entities, hass, 'content', defaultPoetry.content);
     const translation = this._getEntityState(entities, hass, 'translation', defaultPoetry.translation);
 
+    // 修复：过滤掉实体ID，只显示有意义的文本内容
+    const displayTitle = this._filterEntityId(title);
+    const displayDynasty = this._filterEntityId(dynasty);
+    const displayAuthor = this._filterEntityId(author);
+    const displayContent = this._filterEntityId(content);
+    const displayTranslation = this._filterEntityId(translation);
+
     return this._renderCardContainer(`
       ${this._renderCardHeader(safeConfig, entities)}
       
       <div class="cf-flex cf-flex-center cf-flex-column cf-gap-lg">
         <!-- 标题 -->
-        ${safeConfig.show_title && title ? `
-          <div class="cardforge-text-large cf-text-center poetry-title">《${title}》</div>
+        ${safeConfig.show_title && displayTitle ? `
+          <div class="cardforge-text-large cf-text-center poetry-title">《${displayTitle}》</div>
         ` : ''}
         
         <!-- 朝代和作者在同一行 -->
-        ${(safeConfig.show_dynasty && dynasty) || (safeConfig.show_author && author) ? `
+        ${(safeConfig.show_dynasty && displayDynasty) || (safeConfig.show_author && displayAuthor) ? `
           <div class="cf-flex cf-flex-center cf-gap-md cf-text-center poetry-meta">
-            ${safeConfig.show_dynasty && dynasty ? `<div class="cardforge-text-small poetry-dynasty">${dynasty}</div>` : ''}
-            ${safeConfig.show_author && author ? `<div class="cardforge-text-medium poetry-author">${author}</div>` : ''}
+            ${safeConfig.show_dynasty && displayDynasty ? `<div class="cardforge-text-small poetry-dynasty">${displayDynasty}</div>` : ''}
+            ${safeConfig.show_author && displayAuthor ? `<div class="cardforge-text-medium poetry-author">${displayAuthor}</div>` : ''}
           </div>
         ` : ''}
         
         <!-- 诗词内容 -->
-        ${content ? `
+        ${displayContent ? `
           <div class="cardforge-text-large cf-text-center poetry-content" style="line-height: 1.8;">
-            ${content.split('，').join('，<br>').split('。').join('。<br>')}
+            ${displayContent.split('，').join('，<br>').split('。').join('。<br>')}
           </div>
         ` : ''}
         
         <!-- 译文 -->
-        ${safeConfig.show_translation && translation ? `
+        ${safeConfig.show_translation && displayTranslation ? `
           <div class="cf-mt-lg cf-p-md poetry-translation-container">
             <div class="cardforge-text-small cf-text-center poetry-translation-title">译文</div>
-            <div class="cardforge-text-medium cf-text-center poetry-translation">${translation}</div>
+            <div class="cardforge-text-medium cf-text-center poetry-translation">${displayTranslation}</div>
           </div>
         ` : ''}
       </div>
@@ -126,6 +132,18 @@ class PoetryCard extends BasePlugin {
         }
       }
     `;
+  }
+
+  // 新增：过滤实体ID，只显示有意义的文本
+  _filterEntityId(text) {
+    if (!text) return '';
+    
+    // 如果是实体ID格式（包含点号），返回空字符串
+    if (typeof text === 'string' && text.includes('.') && text.includes('_')) {
+      return '';
+    }
+    
+    return text;
   }
 
   _getDailyPoetry() {

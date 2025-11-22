@@ -7,9 +7,10 @@ class WelcomeCard extends BasePlugin {
     const greeting = safeConfig.show_greeting ? this._getTimeBasedGreeting() : '';
     const periodMessage = safeConfig.show_greeting ? this._getTimePeriodMessage() : '';
     
-    // 优雅地获取语录
-    const quoteContent = this._getEntityState(entities, hass, 'quote_entity') || 
-                        this._getRandomQuote();
+    // 修复：只有当启用语录时才显示
+    const quoteContent = safeConfig.show_quote ? 
+      (this._getEntityState(entities, hass, 'quote_entity') || this._getRandomQuote()) : 
+      '';
 
     return this._renderCardContainer(`
       ${this._renderCardHeader(safeConfig, entities)}

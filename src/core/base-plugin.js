@@ -105,18 +105,39 @@ export class BasePlugin {
     return result;
   }
 
-  // === 优雅的实体状态获取 ===
+ // === 优雅的实体状态获取 ===
   _getEntityState(entities, hass, key, fallback = '') {
     try {
       const entityId = entities?.[key];
+      
+      // 如果没有配置实体，直接返回 fallback
       if (!entityId) return fallback;
       
-      return hass?.states?.[entityId]?.state || fallback;
+      const entity = hass?.states?.[entityId];
+      
+      // 如果实体不存在，返回加载中状态
+      if (!entity) {
+        return '加载中...';
+      }
+      
+      return entity.state || fallback;
     } catch (error) {
       console.warn(`获取实体状态失败 ${key}:`, error);
       return fallback;
     }
   }
+  
+// === 实体数据过滤 ===
+_filterEntityValue(value) {
+  if (!value) return '';
+  
+  // 如果是实体ID格式，返回空字符串
+  if (typeof value === 'string' && value.includes('.') && /[a-z]+\.[a-z_]+/i.test(value)) {
+    return '';
+  }
+  
+  return value;
+}
 
   // === Manifest 系统 ===
   getManifest() {
