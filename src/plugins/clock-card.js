@@ -2,23 +2,16 @@
 import { BasePlugin } from '../core/base-plugin.js';
 
 class ClockCard extends BasePlugin {
-  getTemplate(config, hass, entities) {
+  getTemplate(safeConfig, hass, entities) {
     const now = new Date();
     
-    // 修复：正确处理配置默认值
-    const showDate = config.show_date !== false; // 默认true
-    const showWeek = config.show_week !== false; // 默认true  
-    const showLunar = config.show_lunar !== false; // 默认true
-    const use24Hour = config.use_24_hour !== false; // 默认true
-    const showSeconds = config.show_seconds !== false; // 默认false
-    
-    let timeText = this._formatTime(now, use24Hour, showSeconds);
-    let dateText = showDate ? this._formatDate(now) : '';
-    let weekText = showWeek ? this._formatWeek(now) : '';
-    let lunarText = showLunar ? this._formatLunar(now) : '';
+    let timeText = this._formatTime(now, safeConfig.use_24_hour, safeConfig.show_seconds);
+    let dateText = safeConfig.show_date ? this._formatDate(now) : '';
+    let weekText = safeConfig.show_week ? this._formatWeek(now) : '';
+    let lunarText = safeConfig.show_lunar ? this._formatLunar(now) : '';
 
     return this._renderCardContainer(`
-      ${this._renderCardHeader(config, entities)}
+      ${this._renderCardHeader(safeConfig, entities)}
       
       <div class="cf-flex cf-flex-center cf-flex-column cf-gap-lg">
         <div class="cardforge-text-large clock-time">${timeText}</div>
@@ -31,7 +24,7 @@ class ClockCard extends BasePlugin {
         </div>
       </div>
       
-      ${this._renderCardFooter(config, entities)}
+      ${this._renderCardFooter(safeConfig, entities)}
     `, 'clock-card');
   }
 
@@ -91,10 +84,8 @@ class ClockCard extends BasePlugin {
     const seconds = showSeconds ? ':' + date.getSeconds().toString().padStart(2, '0') : '';
     
     if (use24Hour) {
-      // 24小时制
       return `${hours.toString().padStart(2, '0')}:${minutes}${seconds}`;
     } else {
-      // 12小时制
       const ampm = hours >= 12 ? 'PM' : 'AM';
       hours = hours % 12 || 12;
       return `${hours}:${minutes}${seconds} ${ampm}`;
@@ -114,26 +105,22 @@ class ClockCard extends BasePlugin {
   }
 
   _formatLunar(date) {
-    // 简化版农历计算
     const lunarData = this._getLunarData(date);
     return `${lunarData.month}${lunarData.day}`;
   }
 
   _getLunarData(date) {
-    // 农历月份名称
     const lunarMonths = [
       '正月', '二月', '三月', '四月', '五月', '六月',
       '七月', '八月', '九月', '十月', '冬月', '腊月'
     ];
     
-    // 农历日期名称
     const lunarDays = [
       '初一', '初二', '初三', '初四', '初五', '初六', '初七', '初八', '初九', '初十',
       '十一', '十二', '十三', '十四', '十五', '十六', '十七', '十八', '十九', '二十',
       '廿一', '廿二', '廿三', '廿四', '廿五', '廿六', '廿七', '廿八', '廿九', '三十'
     ];
     
-    // 简单的农历计算（仅作演示）
     const baseDate = new Date(date.getFullYear(), 0, 1);
     const diffDays = Math.floor((date - baseDate) / (1000 * 60 * 60 * 24));
     
@@ -175,6 +162,11 @@ ClockCard.manifest = {
       type: 'boolean',
       label: '24小时制',
       default: true
+    },
+    show_seconds: {
+      type: 'boolean',
+      label: '显示秒数',
+      default: false
     }
   }
 };

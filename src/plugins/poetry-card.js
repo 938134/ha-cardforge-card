@@ -2,14 +2,8 @@
 import { BasePlugin } from '../core/base-plugin.js';
 
 class PoetryCard extends BasePlugin {
-  getTemplate(config, hass, entities) {
+  getTemplate(safeConfig, hass, entities) {
     const poetry = this._getDailyPoetry();
-    
-    // 修复：正确处理配置默认值
-    const showTitle = config.show_title !== false; // 默认true
-    const showDynasty = config.show_dynasty !== false; // 默认true
-    const showAuthor = config.show_author !== false; // 默认true
-    const showTranslation = config.show_translation !== false; // 默认true
     
     // 从实体获取数据（如果配置了实体）
     const customTitle = this._getCardValue(entities, 'title', '');
@@ -26,19 +20,19 @@ class PoetryCard extends BasePlugin {
     const translation = customTranslation || poetry.translation;
 
     return this._renderCardContainer(`
-      ${this._renderCardHeader(config, entities)}
+      ${this._renderCardHeader(safeConfig, entities)}
       
       <div class="cf-flex cf-flex-center cf-flex-column cf-gap-lg">
         <!-- 标题 -->
-        ${showTitle && title ? `
+        ${safeConfig.show_title && title ? `
           <div class="cardforge-text-large cf-text-center poetry-title">《${title}》</div>
         ` : ''}
         
         <!-- 朝代和作者在同一行 -->
-        ${(showDynasty && dynasty) || (showAuthor && author) ? `
+        ${(safeConfig.show_dynasty && dynasty) || (safeConfig.show_author && author) ? `
           <div class="cf-flex cf-flex-center cf-gap-md cf-text-center poetry-meta">
-            ${showDynasty && dynasty ? `<div class="cardforge-text-small poetry-dynasty">${dynasty}</div>` : ''}
-            ${showAuthor && author ? `<div class="cardforge-text-medium poetry-author">${author}</div>` : ''}
+            ${safeConfig.show_dynasty && dynasty ? `<div class="cardforge-text-small poetry-dynasty">${dynasty}</div>` : ''}
+            ${safeConfig.show_author && author ? `<div class="cardforge-text-medium poetry-author">${author}</div>` : ''}
           </div>
         ` : ''}
         
@@ -48,7 +42,7 @@ class PoetryCard extends BasePlugin {
         </div>
         
         <!-- 译文 -->
-        ${showTranslation && translation ? `
+        ${safeConfig.show_translation && translation ? `
           <div class="cf-mt-lg cf-p-md poetry-translation-container">
             <div class="cardforge-text-small cf-text-center poetry-translation-title">译文</div>
             <div class="cardforge-text-medium cf-text-center poetry-translation">${translation}</div>
@@ -56,7 +50,7 @@ class PoetryCard extends BasePlugin {
         ` : ''}
       </div>
       
-      ${this._renderCardFooter(config, entities)}
+      ${this._renderCardFooter(safeConfig, entities)}
     `, 'poetry-card');
   }
 

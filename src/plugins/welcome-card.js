@@ -2,28 +2,22 @@
 import { BasePlugin } from '../core/base-plugin.js';
 
 class WelcomeCard extends BasePlugin {
-  getTemplate(config, hass, entities) {
-    // 修复：正确处理配置默认值
-    const showUser = config.show_user !== false; // 默认true
-    const showGreeting = config.show_greeting !== false; // 默认true
-    const showQuote = config.show_quote !== false; // 默认true
-    
-    const userName = showUser ? this._getUserName(hass) : '';
-    const greeting = showGreeting ? this._getTimeBasedGreeting() : '';
-    const periodMessage = showGreeting ? this._getTimePeriodMessage() : '';
+  getTemplate(safeConfig, hass, entities) {
+    const userName = safeConfig.show_user ? this._getUserName(hass) : '';
+    const greeting = safeConfig.show_greeting ? this._getTimeBasedGreeting() : '';
+    const periodMessage = safeConfig.show_greeting ? this._getTimePeriodMessage() : '';
 
-    const contentBlocks = this.processEntities(entities, config, hass);
+    const contentBlocks = this.processEntities(entities, safeConfig, hass);
     
     let customContent = '';
     if (contentBlocks.mode === 'free' && contentBlocks.blocks.length > 0) {
       customContent = this._renderCustomBlocks(contentBlocks.blocks);
     }
 
-    // 获取语录内容（可以是实体状态或默认语录）
-    const quoteContent = showQuote ? this._getQuoteContent(config, hass, entities) : '';
+    const quoteContent = safeConfig.show_quote ? this._getQuoteContent(safeConfig, hass, entities) : '';
 
     return this._renderCardContainer(`
-      ${this._renderCardHeader(config, entities)}
+      ${this._renderCardHeader(safeConfig, entities)}
       
       <div class="cf-flex cf-flex-center cf-flex-column cf-gap-md">
         ${greeting && userName ? `
@@ -49,7 +43,7 @@ class WelcomeCard extends BasePlugin {
         ` : ''}
       </div>
       
-      ${this._renderCardFooter(config, entities)}
+      ${this._renderCardFooter(safeConfig, entities)}
     `, 'welcome-card');
   }
 
@@ -95,16 +89,13 @@ class WelcomeCard extends BasePlugin {
   }
 
   _getQuoteContent(config, hass, entities) {
-    // 优先使用配置的语录实体
     const quoteEntity = config.quote_entity;
     
     if (quoteEntity && hass?.states?.[quoteEntity]) {
-      // 使用实体状态作为语录
       const entityState = hass.states[quoteEntity];
       return entityState.state || this._getRandomQuote();
     }
     
-    // 使用随机语录
     return this._getRandomQuote();
   }
 

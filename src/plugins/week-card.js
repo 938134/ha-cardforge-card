@@ -2,7 +2,7 @@
 import { BasePlugin } from '../core/base-plugin.js';
 
 class WeekCard extends BasePlugin {
-  getTemplate(config, hass, entities) {
+  getTemplate(safeConfig, hass, entities) {
     const now = new Date();
     const weekNumber = this._getWeekNumber(now);
     const year = now.getFullYear();
@@ -10,29 +10,25 @@ class WeekCard extends BasePlugin {
     const weekProgress = (dayOfWeek / 7) * 100;
     const yearProgress = this._getYearProgress(now);
 
-    // 修复：正确处理默认值
-    const showProgress = config.show_progress !== false; // 默认true
-    const showYearProgress = config.show_year_progress !== false; // 默认true
-
     return this._renderCardContainer(`
-      ${this._renderCardHeader(config, entities)}
+      ${this._renderCardHeader(safeConfig, entities)}
       
-      <!-- 第一行：年进度和周信息 -->
-      <div class="cf-flex cf-flex-between cf-flex-center week-main-row">
-        <!-- 左侧：年进度环形图 -->
-        ${showYearProgress ? this._renderYearProgressCircle(yearProgress, year) : ''}
-        
-        <!-- 右侧：周信息和年份 -->
+      <!-- 紧凑布局：年进度和周信息 -->
+      <div class="week-main-container">
+        <!-- 左侧：周信息和年份 -->
         <div class="week-info">
           <div class="cardforge-text-large week-number">第 ${weekNumber} 周</div>
           <div class="cardforge-text-medium week-year">${year}年</div>
         </div>
+        
+        <!-- 右侧：年进度环形图 -->
+        ${safeConfig.show_year_progress ? this._renderYearProgressCircle(yearProgress, year) : ''}
       </div>
       
-      <!-- 第二行：周进度条 -->
-      ${showProgress ? this._renderWeekProgress(dayOfWeek, weekProgress) : ''}
+      <!-- 周进度条 -->
+      ${safeConfig.show_progress ? this._renderWeekProgress(dayOfWeek, weekProgress) : ''}
       
-      ${this._renderCardFooter(config, entities)}
+      ${this._renderCardFooter(safeConfig, entities)}
     `, 'week-card');
   }
 
@@ -42,8 +38,10 @@ class WeekCard extends BasePlugin {
     return `
       ${baseStyles}
       
-      .week-main-row {
-        align-items: stretch;
+      .week-main-container {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
         gap: var(--cf-spacing-md);
         margin-bottom: var(--cf-spacing-md);
       }
@@ -53,21 +51,24 @@ class WeekCard extends BasePlugin {
         display: flex;
         flex-direction: column;
         justify-content: center;
-        text-align: center;
+        text-align: left;
       }
       
       .week-number {
         line-height: 1.1;
         margin-bottom: var(--cf-spacing-xs);
+        font-size: 2em;
+        font-weight: 300;
       }
       
       .week-year {
         opacity: 0.8;
+        font-size: 1em;
       }
       
       .progress-circle {
-        width: 70px;
-        height: 70px;
+        width: 60px;
+        height: 60px;
         border-radius: 50%;
         background: conic-gradient(
           var(--cf-primary-color) 0%,
@@ -84,8 +85,8 @@ class WeekCard extends BasePlugin {
       
       .progress-circle::before {
         content: '';
-        width: 60px;
-        height: 60px;
+        width: 50px;
+        height: 50px;
         background: var(--cf-background);
         border-radius: 50%;
         position: absolute;
@@ -98,14 +99,14 @@ class WeekCard extends BasePlugin {
       }
       
       .progress-percent {
-        font-size: 1.1em;
+        font-size: 0.9em;
         font-weight: 600;
         color: var(--cf-primary-color);
         line-height: 1;
       }
       
       .progress-label {
-        font-size: 0.65em;
+        font-size: 0.6em;
         color: var(--cf-text-secondary);
         margin-top: 1px;
       }
@@ -115,72 +116,114 @@ class WeekCard extends BasePlugin {
         margin-top: var(--cf-spacing-md);
       }
       
+      .week-progress-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: var(--cf-spacing-xs);
+      }
+      
+      .week-progress-bar {
+        height: 6px;
+        background: var(--cf-border);
+        border-radius: 3px;
+        overflow: hidden;
+        margin-bottom: var(--cf-spacing-sm);
+      }
+      
+      .week-progress-fill {
+        height: 100%;
+        background: var(--cf-accent-color);
+        transition: width 0.3s ease;
+        border-radius: 3px;
+      }
+      
       .week-days {
         display: grid;
         grid-template-columns: repeat(7, 1fr);
         gap: var(--cf-spacing-xs);
-        margin-top: var(--cf-spacing-sm);
       }
       
       .week-day {
         text-align: center;
         font-size: 0.75em;
-        padding: 4px 2px;
+        padding: 6px 2px;
         border-radius: var(--cf-radius-sm);
         transition: all var(--cf-transition-fast);
+        background: rgba(var(--cf-rgb-primary), 0.05);
       }
       
       .week-day.current {
         background: var(--cf-primary-color);
         color: white;
         font-weight: 600;
+        transform: scale(1.05);
       }
       
       .week-day.other {
         color: var(--cf-text-secondary);
+        opacity: 0.7;
       }
       
+      /* 响应式设计 */
       @container cardforge-container (max-width: 400px) {
-        .week-main-row {
+        .week-main-container {
           gap: var(--cf-spacing-sm);
         }
         
-        .progress-circle {
-          width: 60px;
-          height: 60px;
-        }
-        
-        .progress-circle::before {
-          width: 50px;
-          height: 50px;
-        }
-        
-        .progress-percent {
-          font-size: 1em;
-        }
-        
         .week-number {
-          font-size: 1.6em;
+          font-size: 1.8em;
         }
         
         .week-year {
           font-size: 0.9em;
         }
+        
+        .progress-circle {
+          width: 55px;
+          height: 55px;
+        }
+        
+        .progress-circle::before {
+          width: 45px;
+          height: 45px;
+        }
+        
+        .progress-percent {
+          font-size: 0.85em;
+        }
+        
+        .week-day {
+          padding: 4px 1px;
+          font-size: 0.7em;
+        }
       }
       
       @container cardforge-container (max-width: 300px) {
-        .week-main-row {
+        .week-main-container {
           flex-direction: column;
           gap: var(--cf-spacing-sm);
+          text-align: center;
         }
         
-        .progress-circle {
-          align-self: center;
+        .week-info {
+          text-align: center;
         }
         
         .week-number {
-          font-size: 1.4em;
+          font-size: 1.6em;
         }
+      }
+      
+      /* 悬停效果 */
+      .week-day:hover {
+        background: rgba(var(--cf-rgb-primary), 0.1);
+        transform: translateY(-1px);
+      }
+      
+      .week-day.current:hover {
+        background: var(--cf-primary-color);
+        transform: scale(1.08);
       }
     `;
   }
@@ -206,7 +249,7 @@ class WeekCard extends BasePlugin {
       <div class="progress-circle" style="--progress: ${progress}%">
         <div class="progress-text">
           <div class="progress-percent">${progressValue}%</div>
-          <div class="progress-label">${year}</div>
+          <div class="progress-label">年进度</div>
         </div>
       </div>
     `;
@@ -217,27 +260,18 @@ class WeekCard extends BasePlugin {
     
     return `
       <div class="week-progress-container">
-        <div class="cf-flex cf-flex-between cf-mb-xs">
+        <div class="week-progress-header">
           <span class="cardforge-text-small">本周进度</span>
           <span class="cardforge-text-small">${progress.toFixed(1)}%</span>
         </div>
-        <div style="
-          height: 5px; 
-          background: var(--cf-border); 
-          border-radius: 3px; 
-          overflow: hidden;
-          margin-bottom: var(--cf-spacing-sm);
-        ">
-          <div style="
-            height: 100%; 
-            background: var(--cf-accent-color); 
-            width: ${progress}%;
-            transition: width 0.3s ease;
-          "></div>
+        
+        <div class="week-progress-bar">
+          <div class="week-progress-fill" style="width: ${progress}%"></div>
         </div>
+        
         <div class="week-days">
           ${weekdays.map((day, index) => `
-            <div class="week-day ${index === dayOfWeek ? 'current' : 'other'}">
+            <div class="week-day ${index === dayOfWeek ? 'current' : 'other'}" title="${weekdays[index]}${index === dayOfWeek ? '（今天）' : ''}">
               ${day}
             </div>
           `).join('')}

@@ -8,6 +8,7 @@ export class BasePlugin {
     if (new.target === BasePlugin) {
       throw new Error('BasePlugin 是抽象类，必须被继承');
     }
+    this._currentConfig = {};
   }
 
   // === 核心接口（必须实现） ===
@@ -17,6 +18,56 @@ export class BasePlugin {
 
   getStyles(config) {
     throw new Error('必须实现 getStyles 方法');
+  }
+
+  // === 统一的模板入口 ===
+  render(config, hass, entities) {
+    // 自动处理配置
+    const safeConfig = this._prepareConfig(config);
+    
+    // 调用子类的具体实现
+    return this.getTemplate(safeConfig, hass, entities);
+  }
+
+  // === 配置预处理 ===
+  _prepareConfig(config) {
+    this._currentConfig = this._getSafeConfig(config);
+    return this._currentConfig;
+  }
+
+  // === 基于 manifest 的统一配置处理 ===
+  _getSafeConfig(config) {
+    const manifest = this.getManifest();
+    const schema = manifest?.config_schema || {};
+    const safeConfig = { ...config };
+    
+    Object.entries(schema).forEach(([key, field]) => {
+      // 如果配置项未定义，使用 manifest 中定义的默认值
+      if (safeConfig[key] === undefined) {
+        safeConfig[key] = this._getFieldDefaultValue(field);
+      }
+    });
+    
+    return safeConfig;
+  }
+
+  // === 根据字段类型获取默认值 ===
+  _getFieldDefaultValue(field) {
+    if (field.default !== undefined) {
+      return field.default;
+    }
+    
+    // 如果 manifest 中没有定义默认值，根据类型返回合理的默认值
+    switch (field.type) {
+      case 'boolean':
+        return false;
+      case 'number':
+        return 0;
+      case 'select':
+        return field.options?.[0] || '';
+      default:
+        return '';
+    }
   }
 
   // === Manifest 系统 ===

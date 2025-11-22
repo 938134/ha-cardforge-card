@@ -206,7 +206,8 @@ class HaCardForgeCard extends LitElement {
     }
     
     try {
-      const template = this._plugin.getTemplate(this.config, this.hass, this._entities);
+      // 使用新的 render 方法而不是直接调用 getTemplate
+      const template = this._plugin.render(this.config, this.hass, this._entities);
       const styles = this._plugin.getStyles(this.config);
 
       return html`
