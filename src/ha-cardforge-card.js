@@ -3,7 +3,6 @@ import { LitElement, html, css } from 'https://unpkg.com/lit@2.8.0/index.js?modu
 import { unsafeHTML } from 'https://unpkg.com/lit-html/directives/unsafe-html.js?module';
 import { PluginRegistry } from './core/plugin-registry.js';
 import { designSystem } from './core/design-system.js';
-import { LayoutEngine } from './core/layout-engine.js';
 
 class HaCardForgeCard extends LitElement {
   static properties = {
