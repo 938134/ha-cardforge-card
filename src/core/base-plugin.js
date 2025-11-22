@@ -43,10 +43,17 @@ export class BasePlugin {
   _getEntityState(entities, hass, key, fallback = '') {
     try {
       const entityId = entities?.[key];
+      
+      // 如果没有配置实体，直接返回 fallback
       if (!entityId) return fallback;
       
-      const entity = hass?.states?.[entityId];
-      if (!entity) return '加载中...';
+      // 如果没有 hass 对象，返回实体ID本身（而不是"加载中"）
+      if (!hass) return entityId;
+      
+      const entity = hass.states?.[entityId];
+      
+      // 如果实体不存在，返回实体ID
+      if (!entity) return entityId;
       
       return entity.state || fallback;
     } catch (error) {
@@ -66,10 +73,10 @@ export class BasePlugin {
   }
 
   _renderCardHeader(config, entities) {
-    const title = this._getEntityState(entities, null, 'title', config.title);
+    const title = config.title || '';
     if (!title) return '';
-
-    const subtitle = this._getEntityState(entities, null, 'subtitle', config.subtitle);
+  
+    const subtitle = config.subtitle || '';
     
     return `
       <div class="cardforge-header">
@@ -80,9 +87,9 @@ export class BasePlugin {
   }
 
   _renderCardFooter(config, entities) {
-    const footer = this._getEntityState(entities, null, 'footer', config.footer);
+    const footer = config.footer || '';
     if (!footer) return '';
-
+  
     return `
       <div class="cardforge-footer">
         <div class="footer-text cf-text-small">${this._renderSafeHTML(footer)}</div>

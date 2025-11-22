@@ -3,17 +3,14 @@ import { BasePlugin } from '../core/base-plugin.js';
 
 class PoetryCard extends BasePlugin {
   getTemplate(safeConfig, hass, entities) {
-    // 直接获取实体数据
     const defaultPoetry = this._getDailyPoetry();
     
-    // 优雅地获取数据：实体数据 > 默认数据
     const title = this._getEntityState(entities, hass, 'title', defaultPoetry.title);
     const dynasty = this._getEntityState(entities, hass, 'dynasty', defaultPoetry.dynasty);
     const author = this._getEntityState(entities, hass, 'author', defaultPoetry.author);
     const content = this._getEntityState(entities, hass, 'content', defaultPoetry.content);
     const translation = this._getEntityState(entities, hass, 'translation', defaultPoetry.translation);
 
-    // 清理实体值
     const displayTitle = this._cleanEntityValue(title);
     const displayDynasty = this._cleanEntityValue(dynasty);
     const displayAuthor = this._cleanEntityValue(author);
@@ -21,40 +18,35 @@ class PoetryCard extends BasePlugin {
     const displayTranslation = this._cleanEntityValue(translation);
 
     return this._renderCardContainer(`
-      <!-- 修复：卡片标题区域使用配置的标题，而不是实体标题 -->
-      ${this._renderCardHeader(safeConfig, entities)}
-      
-      <div class="cf-flex cf-flex-center cf-flex-column cf-gap-lg">
-        <!-- 诗词标题 - 在内容区域显示 -->
+      <div class="cf-flex cf-flex-center cf-flex-column cf-gap-md">
+        <!-- 诗词标题 - 调小字体 -->
         ${safeConfig.show_title && displayTitle ? `
-          <div class="cardforge-text-large cf-text-center poetry-title">${displayTitle}</div>
+          <div class="poetry-title">${displayTitle}</div>
         ` : ''}
         
-        <!-- 朝代和作者在同一行 -->
+        <!-- 朝代和作者 - 调小字体 -->
         ${(safeConfig.show_dynasty && displayDynasty) || (safeConfig.show_author && displayAuthor) ? `
-          <div class="cf-flex cf-flex-center cf-gap-md cf-text-center poetry-meta">
-            ${safeConfig.show_dynasty && displayDynasty ? `<div class="cardforge-text-small poetry-dynasty">${displayDynasty}</div>` : ''}
-            ${safeConfig.show_author && displayAuthor ? `<div class="cardforge-text-medium poetry-author">${displayAuthor}</div>` : ''}
+          <div class="cf-flex cf-flex-center cf-gap-sm cf-text-center poetry-meta">
+            ${safeConfig.show_dynasty && displayDynasty ? `<div class="poetry-dynasty">${displayDynasty}</div>` : ''}
+            ${safeConfig.show_author && displayAuthor ? `<div class="poetry-author">${displayAuthor}</div>` : ''}
           </div>
         ` : ''}
         
-        <!-- 诗词内容 - 按句子数量智能换行 -->
+        <!-- 诗词内容 - 使用CSS控制换行 -->
         ${displayContent ? `
-          <div class="cardforge-text-large cf-text-center poetry-content" style="line-height: 1.8;">
+          <div class="poetry-content">
             ${this._formatPoetryContent(displayContent)}
           </div>
         ` : ''}
         
-        <!-- 译文 -->
+        <!-- 译文 - 调小字体 -->
         ${safeConfig.show_translation && displayTranslation ? `
-          <div class="cf-mt-lg cf-p-md poetry-translation-container">
-            <div class="cardforge-text-small cf-text-center poetry-translation-title">译文</div>
-            <div class="cardforge-text-medium cf-text-center poetry-translation">${displayTranslation}</div>
+          <div class="poetry-translation-container">
+            <div class="poetry-translation-title">译文</div>
+            <div class="poetry-translation">${displayTranslation}</div>
           </div>
         ` : ''}
       </div>
-      
-      ${this._renderCardFooter(safeConfig, entities)}
     `, 'poetry-card');
   }
 
@@ -65,102 +57,145 @@ class PoetryCard extends BasePlugin {
       ${baseStyles}
       
       .poetry-card {
-        font-family: "楷体", "STKaiti", serif;
+        font-family: "楷体", "STKaiti", "SimKai", serif;
+        padding: var(--cf-spacing-md);
       }
       
+      /* 标题 - 调小字体 */
       .poetry-title {
+        font-size: 1.3em;
         font-weight: 600;
         color: var(--cf-primary-color);
-        margin-bottom: var(--cf-spacing-sm);
+        margin-bottom: var(--cf-spacing-xs);
+        text-align: center;
       }
       
       .poetry-meta {
-        margin-bottom: var(--cf-spacing-lg);
+        margin-bottom: var(--cf-spacing-md);
         align-items: center;
       }
       
+      /* 朝代 - 调小字体 */
       .poetry-dynasty {
+        font-size: 0.85em;
         color: var(--cf-text-secondary);
-        padding: var(--cf-spacing-xs) var(--cf-spacing-md);
-        background: rgba(var(--cf-rgb-primary), 0.1);
+        padding: 4px 8px;
+        background: rgba(var(--cf-rgb-primary), 0.08);
         border-radius: var(--cf-radius-sm);
         border: 1px solid var(--cf-border);
       }
       
+      /* 作者 - 调小字体 */
       .poetry-author {
+        font-size: 0.9em;
         color: var(--cf-accent-color);
         font-weight: 500;
-        padding: var(--cf-spacing-xs) var(--cf-spacing-md);
+        padding: 4px 8px;
       }
       
+      /* 诗词内容 - 调小字体，使用CSS控制换行 */
       .poetry-content {
+        font-size: 1em;
         font-weight: 400;
         color: var(--cf-text-primary);
-        text-shadow: 0 1px 2px rgba(0,0,0,0.1);
-        font-size: 1.1em;
-        line-height: 1.5; 
+        line-height: 1.8;
+        text-align: center;
+        margin: var(--cf-spacing-sm) 0;
+        
+        /* 智能换行控制 */
+        white-space: pre-line;
+        word-wrap: break-word;
+        hyphens: auto;
       }
       
       .poetry-translation-container {
         border-top: 1px solid var(--cf-border);
-        margin-top: var(--cf-spacing-lg);
+        margin-top: var(--cf-spacing-md);
         padding-top: var(--cf-spacing-md);
+        text-align: center;
       }
       
+      /* 译文标题 - 调小字体 */
       .poetry-translation-title {
+        font-size: 0.85em;
         color: var(--cf-text-secondary);
         margin-bottom: var(--cf-spacing-sm);
         font-style: italic;
       }
       
+      /* 译文内容 - 调小字体 */
       .poetry-translation {
+        font-size: 0.9em;
         color: var(--cf-text-primary);
         line-height: 1.6;
-        font-family: system-ui, sans-serif;
+        font-family: system-ui, -apple-system, sans-serif;
       }
       
+      /* 移动端进一步调小字体 */
       @container cardforge-container (max-width: 400px) {
-        .poetry-content {
+        .poetry-card {
+          padding: var(--cf-spacing-sm);
+        }
+        
+        .poetry-title {
           font-size: 1.2em;
         }
         
-        .poetry-meta {
-          gap: var(--cf-spacing-sm);
+        .poetry-content {
+          font-size: 0.95em;
+          line-height: 1.7;
         }
         
-        .poetry-dynasty,
+        .poetry-dynasty {
+          font-size: 0.8em;
+          padding: 3px 6px;
+        }
+        
         .poetry-author {
-          padding: var(--cf-spacing-xs) var(--cf-spacing-sm);
+          font-size: 0.85em;
+          padding: 3px 6px;
+        }
+        
+        .poetry-translation {
+          font-size: 0.85em;
+        }
+      }
+      
+      /* 超小屏幕 */
+      @container cardforge-container (max-width: 300px) {
+        .poetry-title {
+          font-size: 1.1em;
+        }
+        
+        .poetry-content {
           font-size: 0.9em;
+          line-height: 1.6;
+        }
+        
+        .poetry-meta {
+          gap: var(--cf-spacing-xs);
+        }
+      }
+      
+      /* 深色模式优化 */
+      @media (prefers-color-scheme: dark) {
+        .poetry-content {
+          text-shadow: 0 1px 2px rgba(0,0,0,0.3);
         }
       }
     `;
   }
 
-_formatPoetryContent(content) {
-  if (!content) return '';
-  
-  // 按完整句子分割（句号、叹号、问号）
-  const fullSentences = content.split(/([。！？\.!?])/);
-  const sentenceCount = fullSentences.filter(s => /[。！？\.!?]/.test(s)).length;
-  
-  let result = content;
-  
-  if (sentenceCount <= 10) {
-    // 8句以内的诗：只处理逗号换行
-    result = result
-      .replace(/，/g, '，<br>')
-      .replace(/,/g, ',<br>');
-  } else {
-    // 8句以上的诗：按完整句子换行
-    result = result
-      .replace(/([。！？\.!?])/g, '$1<br><br>');
+  _formatPoetryContent(content) {
+    if (!content) return '';
+    
+    // 简化换行逻辑，主要依靠CSS的 white-space: pre-line
+    // 只需要在标点处添加换行，具体显示由CSS控制
+    return content
+      .replace(/([。！？])/g, '$1\n')    // 完整句子换行
+      .replace(/([，])/g, '$1\n');       // 句子内换行
   }
-  
-  return result;
-}
 
-  // 修复：实体值清理
   _cleanEntityValue(text) {
     if (!text) return '';
     

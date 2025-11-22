@@ -2,44 +2,41 @@
 import { BasePlugin } from '../core/base-plugin.js';
 
 class WelcomeCard extends BasePlugin {
-  getTemplate(safeConfig, hass, entities) {
-    const userName = safeConfig.show_user ? this._getUserName(hass) : '';
-    const greeting = safeConfig.show_greeting ? this._getTimeBasedGreeting() : '';
-    const periodMessage = safeConfig.show_greeting ? this._getTimePeriodMessage() : '';
-    
-    // 修复：只有当启用语录时才显示
-    const quoteContent = safeConfig.show_quote ? 
-      (this._getEntityState(entities, hass, 'quote_entity') || this._getRandomQuote()) : 
-      '';
+getTemplate(safeConfig, hass, entities) {
+  const userName = safeConfig.show_user ? this._getUserName(hass) : '';
+  const greeting = safeConfig.show_greeting ? this._getTimeBasedGreeting() : '';
+  const periodMessage = safeConfig.show_greeting ? this._getTimePeriodMessage() : '';
+  
+  // 修正：直接获取实体内容，不使用通用标题
+  const quoteContent = safeConfig.show_quote ? 
+    (this._getEntityState(entities, hass, 'quote_entity') || this._getRandomQuote()) : 
+    '';
 
-    return this._renderCardContainer(`
-      ${this._renderCardHeader(safeConfig, entities)}
+  return this._renderCardContainer(`
+    <!-- 欢迎卡片不使用通用标题 -->
+    <div class="cf-flex cf-flex-center cf-flex-column cf-gap-md">
+      ${greeting && userName ? `
+        <div class="cardforge-text-large">${greeting}，${userName}！</div>
+      ` : ''}
       
-      <div class="cf-flex cf-flex-center cf-flex-column cf-gap-md">
-        ${greeting && userName ? `
-          <div class="cardforge-text-large">${greeting}，${userName}！</div>
-        ` : ''}
-        
-        ${greeting && !userName ? `
-          <div class="cardforge-text-large">${greeting}！</div>
-        ` : ''}
-        
-        ${!greeting && userName ? `
-          <div class="cardforge-text-large">你好，${userName}！</div>
-        ` : ''}
-        
-        ${periodMessage ? `<div class="cardforge-text-medium">${periodMessage}</div>` : ''}
-        
-        ${quoteContent ? `
-          <div class="cf-mt-lg cf-p-md" style="border-left: 3px solid var(--cf-primary-color); background: rgba(var(--cf-rgb-primary), 0.05);">
-            <div class="cardforge-text-small" style="font-style: italic;">"${quoteContent}"</div>
-          </div>
-        ` : ''}
-      </div>
+      ${greeting && !userName ? `
+        <div class="cardforge-text-large">${greeting}！</div>
+      ` : ''}
       
-      ${this._renderCardFooter(safeConfig, entities)}
-    `, 'welcome-card');
-  }
+      ${!greeting && userName ? `
+        <div class="cardforge-text-large">你好，${userName}！</div>
+      ` : ''}
+      
+      ${periodMessage ? `<div class="cardforge-text-medium">${periodMessage}</div>` : ''}
+      
+      ${quoteContent ? `
+        <div class="cf-mt-lg cf-p-md" style="border-left: 3px solid var(--cf-primary-color); background: rgba(var(--cf-rgb-primary), 0.05);">
+          <div class="cardforge-text-small" style="font-style: italic;">"${quoteContent}"</div>
+        </div>
+      ` : ''}
+    </div>
+  `, 'welcome-card');
+}
 
   getStyles(config) {
     return this.getBaseStyles(config);
