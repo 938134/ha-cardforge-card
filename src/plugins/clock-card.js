@@ -47,12 +47,8 @@ class ClockCard extends BasePlugin {
     return `
       ${baseStyles}
       
-      .clock-card {
-        background: transparent !important;
-      }
-      
       .clock-card .cardforge-card-container {
-        background: transparent !important;
+        /* 主题样式通过 baseStyles 已经应用，这里只需要确保内容可见 */
       }
       
       .clock-content.vivo-style {
@@ -166,11 +162,47 @@ class ClockCard extends BasePlugin {
         }
       }
       
-      /* 深色模式优化 */
-      @media (prefers-color-scheme: dark) {
-        .clock-time-main {
-          text-shadow: 0 1px 2px rgba(0,0,0,0.2);
-        }
+      /* 主题适配优化 */
+      
+      /* 毛玻璃主题优化 */
+      .clock-card.glass .clock-time-main {
+        text-shadow: 0 2px 4px rgba(0,0,0,0.3);
+      }
+      
+      .clock-card.glass .clock-date-section,
+      .clock-card.glass .clock-lunar-section {
+        backdrop-filter: blur(5px);
+      }
+      
+      /* 渐变主题优化 */
+      .clock-card.gradient .clock-time-main {
+        background: linear-gradient(135deg, var(--cf-text-primary), var(--cf-primary-color));
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+      }
+      
+      /* 霓虹主题优化 */
+      .clock-card.neon .clock-time-main {
+        color: var(--cf-primary-color);
+        text-shadow: 0 0 10px var(--cf-primary-color);
+      }
+      
+      .clock-card.neon .clock-week {
+        color: var(--cf-accent-color);
+        text-shadow: 0 0 5px var(--cf-accent-color);
+      }
+      
+      /* 水墨主题优化 */
+      .clock-card.ink-wash .clock-time-main {
+        font-family: "楷体", "STKaiti", serif;
+        text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+      }
+      
+      .clock-card.ink-wash .clock-date,
+      .clock-card.ink-wash .clock-week,
+      .clock-card.ink-wash .clock-lunar {
+        font-family: "楷体", "STKaiti", serif;
       }
     `;
   }
@@ -264,11 +296,6 @@ ClockCard.manifest = {
       type: 'boolean',
       label: '24小时制',
       default: true
-    },
-    show_seconds: {
-      type: 'boolean',
-      label: '显示秒数',
-      default: false
     }
   }
 };

@@ -105,7 +105,7 @@ class PoetryCard extends BasePlugin {
       
       /* 诗词内容 - 调大字体，减少间距 */
       .poetry-content {
-        font-size: 1.1em;
+        font-size: 1.2em;
         font-weight: 400;
         color: var(--cf-text-primary);
         line-height: 1.6;
