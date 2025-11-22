@@ -3,20 +3,13 @@ import { BasePlugin } from '../core/base-plugin.js';
 
 class WelcomeCard extends BasePlugin {
   getTemplate(safeConfig, hass, entities) {
-    // 处理实体数据
-    const processedEntities = this.processEntities(entities, safeConfig, hass);
-    
-    console.log('欢迎卡片 - 处理后的实体数据:', processedEntities);
-    
     const userName = safeConfig.show_user ? this._getUserName(hass) : '';
     const greeting = safeConfig.show_greeting ? this._getTimeBasedGreeting() : '';
     const periodMessage = safeConfig.show_greeting ? this._getTimePeriodMessage() : '';
     
-    // 获取语录内容
-    const quoteContent = this._getEntityState(processedEntities, 'quote_entity') || 
+    // 优雅地获取语录
+    const quoteContent = this._getEntityState(entities, hass, 'quote_entity') || 
                         this._getRandomQuote();
-
-    console.log('最终语录内容:', quoteContent);
 
     return this._renderCardContainer(`
       ${this._renderCardHeader(safeConfig, entities)}
@@ -49,16 +42,6 @@ class WelcomeCard extends BasePlugin {
 
   getStyles(config) {
     return this.getBaseStyles(config);
-  }
-
-  _getEntityState(processedEntities, key) {
-    if (!processedEntities.entities || !processedEntities.entities[key]) {
-      return null;
-    }
-    
-    const entityData = processedEntities.entities[key];
-    console.log(`实体 ${key} 数据:`, entityData);
-    return entityData.state || null;
   }
 
   _getUserName(hass, defaultValue = '朋友') {

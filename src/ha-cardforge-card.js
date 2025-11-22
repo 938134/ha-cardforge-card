@@ -168,13 +168,8 @@ class HaCardForgeCard extends LitElement {
   }
 
   _updateEntities() {
-    // 使用布局引擎处理实体数据
-    if (this._plugin && this.config.entities) {
-      const manifest = this._plugin.getManifest();
-      this._entities = LayoutEngine.process(this.config.entities, manifest, this.hass);
-    } else {
-      this._entities = {};
-    }
+    // 简化实体处理，直接传递给插件
+    this._entities = this.config.entities || {};
   }
 
   render() {

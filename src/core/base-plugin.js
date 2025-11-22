@@ -70,6 +70,54 @@ export class BasePlugin {
     }
   }
 
+  // === 简化的实体数据获取 ===
+  _getEntityData(entities, hass, key) {
+    if (!entities || !entities[key]) {
+      return null;
+    }
+    
+    const entityId = entities[key];
+    
+    // 直接通过 hass 获取实体状态
+    if (hass?.states?.[entityId]) {
+      const entity = hass.states[entityId];
+      return {
+        id: entityId,
+        state: entity.state,
+        attributes: entity.attributes || {}
+      };
+    }
+    
+    // 如果实体不存在，返回基本信息
+    return {
+      id: entityId,
+      state: '未知',
+      attributes: {}
+    };
+  }
+
+  // === 批量获取实体数据 ===
+  _getEntitiesData(entities, hass, keys) {
+    const result = {};
+    keys.forEach(key => {
+      result[key] = this._getEntityData(entities, hass, key);
+    });
+    return result;
+  }
+
+  // === 优雅的实体状态获取 ===
+  _getEntityState(entities, hass, key, fallback = '') {
+    try {
+      const entityId = entities?.[key];
+      if (!entityId) return fallback;
+      
+      return hass?.states?.[entityId]?.state || fallback;
+    } catch (error) {
+      console.warn(`获取实体状态失败 ${key}:`, error);
+      return fallback;
+    }
+  }
+
   // === Manifest 系统 ===
   getManifest() {
     if (!this.constructor.manifest) {

@@ -3,21 +3,16 @@ import { BasePlugin } from '../core/base-plugin.js';
 
 class PoetryCard extends BasePlugin {
   getTemplate(safeConfig, hass, entities) {
-    // 处理实体数据
-    const processedEntities = this.processEntities(entities, safeConfig, hass);
-    
-    console.log('诗词卡片 - 处理后的实体数据:', processedEntities);
-    
-    // 优先使用实体数据，其次使用默认诗词
+    // 直接获取实体数据
+    const entityKeys = ['title', 'dynasty', 'author', 'content', 'translation'];
     const defaultPoetry = this._getDailyPoetry();
     
-    const title = this._getEntityState(processedEntities, 'title') || defaultPoetry.title;
-    const dynasty = this._getEntityState(processedEntities, 'dynasty') || defaultPoetry.dynasty;
-    const author = this._getEntityState(processedEntities, 'author') || defaultPoetry.author;
-    const content = this._getEntityState(processedEntities, 'content') || defaultPoetry.content;
-    const translation = this._getEntityState(processedEntities, 'translation') || defaultPoetry.translation;
-
-    console.log('最终显示数据:', { title, dynasty, author, content, translation });
+    // 优雅地获取数据：实体数据 > 默认数据
+    const title = this._getEntityState(entities, hass, 'title', defaultPoetry.title);
+    const dynasty = this._getEntityState(entities, hass, 'dynasty', defaultPoetry.dynasty);
+    const author = this._getEntityState(entities, hass, 'author', defaultPoetry.author);
+    const content = this._getEntityState(entities, hass, 'content', defaultPoetry.content);
+    const translation = this._getEntityState(entities, hass, 'translation', defaultPoetry.translation);
 
     return this._renderCardContainer(`
       ${this._renderCardHeader(safeConfig, entities)}
@@ -131,16 +126,6 @@ class PoetryCard extends BasePlugin {
         }
       }
     `;
-  }
-
-  _getEntityState(processedEntities, key) {
-    if (!processedEntities.entities || !processedEntities.entities[key]) {
-      return null;
-    }
-    
-    const entityData = processedEntities.entities[key];
-    console.log(`实体 ${key} 数据:`, entityData);
-    return entityData.state || null;
   }
 
   _getDailyPoetry() {

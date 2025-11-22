@@ -99,33 +99,11 @@ export class LayoutEngine {
   // === 实体驱动处理 ===
   static _processEntityDriven(entities, manifest, hass) {
     const requirements = manifest.entity_requirements || {};
-    const processed = {};
-
-    Object.keys(requirements).forEach(key => {
-      if (entities[key]) {
-        const entityState = hass?.states[entities[key]];
-        processed[key] = {
-          value: entities[key],
-          state: entityState?.state || '',
-          attributes: entityState?.attributes || {},
-          ...requirements[key]
-        };
-      } else if (requirements[key].default) {
-        // 使用默认值
-        processed[key] = {
-          value: requirements[key].default,
-          state: requirements[key].default,
-          attributes: {},
-          ...requirements[key]
-        };
-      }
-    });
-
+    
     return {
       mode: LAYOUT_MODES.ENTITY_DRIVEN,
-      entities: processed,
-      requirementCount: Object.keys(requirements).length,
-      configuredCount: Object.keys(processed).length
+      requirements,
+      hasEntities: Object.keys(requirements).length > 0
     };
   }
 
