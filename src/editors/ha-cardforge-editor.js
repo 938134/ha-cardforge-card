@@ -264,25 +264,25 @@ class HaCardForgeEditor extends LitElement {
     `;
   }
 
-  _renderDataSourceSection() {
-    if (!this.config.plugin || !this._pluginInstance) return '';
+_renderDataSourceSection() {
+  if (!this.config.plugin || !this._pluginInstance) return '';
 
-    return html`
-      <div class="editor-section">
-        <div class="section-header">
-          <ha-icon icon="mdi:database"></ha-icon>
-          <span>数据源配置</span>
-        </div>
-        
-        <layout-editor
-          .hass=${this.hass}
-          .config=${this.config}
-          .pluginManifest=${this._pluginManifest}
-          @entities-changed=${this._onEntitiesChanged}
-        ></layout-editor>
+  return html`
+    <div class="editor-section">
+      <div class="section-header">
+        <ha-icon icon="mdi:database"></ha-icon>
+        <span>数据源配置</span>
       </div>
-    `;
-  }
+      
+      <layout-editor
+        .hass=${this.hass}  // 确保这行存在
+        .config=${this.config}
+        .pluginManifest=${this._pluginManifest}
+        @entities-changed=${this._onEntitiesChanged}
+      ></layout-editor>
+    </div>
+  `;
+}
 
   async _onPluginChanged(e) {
     const newConfig = {

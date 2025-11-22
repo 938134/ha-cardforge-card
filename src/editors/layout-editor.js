@@ -134,6 +134,11 @@ export class LayoutEditor extends LitElement {
     if (changedProperties.has('config') || changedProperties.has('hass')) {
       this._contentBlocks = BlockManager.deserializeFromEntities(this.config.entities);
     }
+    
+    // 确保 hass 变化时更新实体列表
+    if (changedProperties.has('hass') && this.hass) {
+      this._updateAvailableEntities();
+    }
   }
 
   render() {
@@ -206,6 +211,20 @@ export class LayoutEditor extends LitElement {
     `;
   }
 
+  _updateAvailableEntities() {
+    if (!this.hass?.states) {
+      this._availableEntities = [];
+      return;
+    }
+  
+    this._availableEntities = Object.entries(this.hass.states)
+      .map(([entityId, state]) => ({
+        value: entityId,
+        label: `${state.attributes?.friendly_name || entityId} (${entityId})`
+      }))
+      .sort((a, b) => a.label.localeCompare(b.label));
+  }
+
   _renderEntityDriven() {
     const requirements = this.pluginManifest?.entity_requirements || {};
     
@@ -216,7 +235,6 @@ export class LayoutEditor extends LitElement {
     return html`
       <div class="entity-driven-form">
         ${Object.entries(requirements).map(([key, requirement]) => {
-          // 获取当前实体值
           const currentValue = this._getEntityValue(key);
           
           return html`
@@ -230,19 +248,19 @@ export class LayoutEditor extends LitElement {
                 <div class="field-description">${requirement.description}</div>
               ` : ''}
               
-              <ha-entity-picker
-                .hass=${this.hass}
+              <ha-combo-box
+                .items=${this._availableEntities}
                 .value=${currentValue}
                 @value-changed=${e => this._onEntityChanged(key, e.detail.value)}
-                .label=${`选择 ${requirement.name}`}
-                allow-custom-entity
-              ></ha-entity-picker>
+                allow-custom-value
+                label=${`选择 ${requirement.name}`}
+              ></ha-combo-box>
             </div>
           `;
         })}
       </div>
     `;
-  }  
+  }
 
   _renderNoPlugin() {
     return html`
