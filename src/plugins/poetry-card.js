@@ -34,11 +34,13 @@ class PoetryCard extends BasePlugin {
           <div class="cardforge-text-large cf-text-center poetry-title">《${title}》</div>
         ` : ''}
         
-        <!-- 朝代和作者 -->
-        <div class="cf-flex cf-gap-md cf-text-center poetry-meta">
-          ${showDynasty && dynasty ? `<div class="cardforge-text-small poetry-dynasty">${dynasty}</div>` : ''}
-          ${showAuthor && author ? `<div class="cardforge-text-medium poetry-author">${author}</div>` : ''}
-        </div>
+        <!-- 朝代和作者在同一行 -->
+        ${(showDynasty && dynasty) || (showAuthor && author) ? `
+          <div class="cf-flex cf-flex-center cf-gap-md cf-text-center poetry-meta">
+            ${showDynasty && dynasty ? `<div class="cardforge-text-small poetry-dynasty">${dynasty}</div>` : ''}
+            ${showAuthor && author ? `<div class="cardforge-text-medium poetry-author">${author}</div>` : ''}
+          </div>
+        ` : ''}
         
         <!-- 诗词内容 -->
         <div class="cardforge-text-large cf-text-center poetry-content" style="line-height: 1.8;">
@@ -76,6 +78,7 @@ class PoetryCard extends BasePlugin {
       
       .poetry-meta {
         margin-bottom: var(--cf-spacing-lg);
+        align-items: center;
       }
       
       .poetry-dynasty {
@@ -83,11 +86,13 @@ class PoetryCard extends BasePlugin {
         padding: var(--cf-spacing-xs) var(--cf-spacing-md);
         background: rgba(var(--cf-rgb-primary), 0.1);
         border-radius: var(--cf-radius-sm);
+        border: 1px solid var(--cf-border);
       }
       
       .poetry-author {
         color: var(--cf-accent-color);
         font-weight: 500;
+        padding: var(--cf-spacing-xs) var(--cf-spacing-md);
       }
       
       .poetry-content {
@@ -120,8 +125,13 @@ class PoetryCard extends BasePlugin {
         }
         
         .poetry-meta {
-          flex-direction: column;
           gap: var(--cf-spacing-sm);
+        }
+        
+        .poetry-dynasty,
+        .poetry-author {
+          padding: var(--cf-spacing-xs) var(--cf-spacing-sm);
+          font-size: 0.9em;
         }
       }
     `;
