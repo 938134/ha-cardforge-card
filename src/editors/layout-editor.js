@@ -120,28 +120,22 @@ export class LayoutEditor extends LitElement {
     }
   }
 
-  render() {
-    if (!this.pluginManifest) {
-      return this._renderNoPlugin();
-    }
-
-    const layoutInfo = LayoutEngine.getLayoutInfo(this.pluginManifest);
-    
-    return html`
-      <div class="layout-editor">
-        <div class="strategy-header">
-          <ha-icon .icon=${layoutInfo.icon}></ha-icon>
-          <div>${layoutInfo.name}</div>
-        </div>
-
-        ${this._currentMode === 'free' 
-          ? this._renderFreeLayout()
-          : this._renderEntityDriven()
-        }
-      </div>
-    `;
+  if (!this.pluginManifest) {
+    return this._renderNoPlugin();
   }
 
+  const layoutInfo = LayoutEngine.getLayoutInfo(this.pluginManifest);
+  
+  return html`
+    <div class="layout-editor">
+      <!-- 移除策略头部的标题，因为主编辑器已经有标题了 -->
+      ${this._currentMode === 'free' 
+        ? this._renderFreeLayout()
+        : this._renderEntityDriven()
+      }
+    </div>
+  `;
+}
   _renderFreeLayout() {
     const capabilities = this._getPluginCapabilities();
     
