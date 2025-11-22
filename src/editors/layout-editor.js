@@ -23,20 +23,20 @@ export class LayoutEditor extends LitElement {
         flex-direction: column;
         gap: var(--cf-spacing-lg);
       }
-  
+
       .entity-driven-form {
         display: flex;
         flex-direction: column;
         gap: var(--cf-spacing-md);
       }
-  
+
       .entity-row {
         display: grid;
         grid-template-columns: 25% 75%;
         gap: var(--cf-spacing-md);
         align-items: center;
       }
-  
+
       .entity-label {
         font-size: 0.9em;
         font-weight: 500;
@@ -45,28 +45,28 @@ export class LayoutEditor extends LitElement {
         align-items: center;
         gap: var(--cf-spacing-xs);
       }
-  
+
       .required-star {
         color: var(--cf-error-color);
       }
-  
+
       .entity-control {
         width: 100%;
       }
-  
+
       .free-layout-section {
         display: flex;
         flex-direction: column;
         gap: var(--cf-spacing-md);
       }
-  
+
       .header-fields {
         display: grid;
         grid-template-columns: 1fr 1fr;
         gap: var(--cf-spacing-md);
         margin-bottom: var(--cf-spacing-lg);
       }
-  
+
       .field-card {
         background: var(--cf-surface);
         border: 1px solid var(--cf-border);
@@ -77,7 +77,7 @@ export class LayoutEditor extends LitElement {
         gap: var(--cf-spacing-md);
         align-items: center;
       }
-  
+
       .info-card {
         background: var(--cf-surface);
         border: 1px solid var(--cf-border);
@@ -85,36 +85,36 @@ export class LayoutEditor extends LitElement {
         padding: var(--cf-spacing-lg);
         text-align: center;
       }
-  
+
       .info-icon {
         font-size: 2em;
         color: var(--cf-primary-color);
         margin-bottom: var(--cf-spacing-md);
       }
-  
+
       .info-title {
         font-size: 1.1em;
         font-weight: 600;
         margin-bottom: var(--cf-spacing-sm);
         color: var(--cf-text-primary);
       }
-  
+
       .info-description {
         font-size: 0.9em;
         color: var(--cf-text-secondary);
         line-height: 1.4;
       }
-  
+
       @media (max-width: 600px) {
         .entity-row {
           grid-template-columns: 1fr;
           gap: var(--cf-spacing-sm);
         }
-  
+
         .header-fields {
           grid-template-columns: 1fr;
         }
-  
+
         .field-card {
           grid-template-columns: 1fr;
           gap: var(--cf-spacing-sm);
@@ -139,7 +139,6 @@ export class LayoutEditor extends LitElement {
       this._contentBlocks = BlockManager.deserializeFromEntities(this.config.entities);
     }
     
-    // 确保 hass 变化时更新实体列表
     if (changedProperties.has('hass') && this.hass) {
       this._updateAvailableEntities();
     }
@@ -168,7 +167,7 @@ export class LayoutEditor extends LitElement {
         <div class="header-fields">
           ${capabilities.supportsTitle ? html`
             <div class="field-card">
-              <div class="field-label">标题</div>
+              <div class="entity-label">标题</div>
               <ha-combo-box
                 .items=${this._availableEntities}
                 .value=${this._getEntityValue('title')}
@@ -178,7 +177,7 @@ export class LayoutEditor extends LitElement {
               ></ha-combo-box>
             </div>
             <div class="field-card">
-              <div class="field-label">副标题</div>
+              <div class="entity-label">副标题</div>
               <ha-combo-box
                 .items=${this._availableEntities}
                 .value=${this._getEntityValue('subtitle')}
@@ -191,7 +190,7 @@ export class LayoutEditor extends LitElement {
           
           ${capabilities.supportsFooter ? html`
             <div class="field-card">
-              <div class="field-label">页脚</div>
+              <div class="entity-label">页脚</div>
               <ha-combo-box
                 .items=${this._availableEntities}
                 .value=${this._getEntityValue('footer')}
@@ -215,27 +214,13 @@ export class LayoutEditor extends LitElement {
     `;
   }
 
-  _updateAvailableEntities() {
-    if (!this.hass?.states) {
-      this._availableEntities = [];
-      return;
-    }
-  
-    this._availableEntities = Object.entries(this.hass.states)
-      .map(([entityId, state]) => ({
-        value: entityId,
-        label: `${state.attributes?.friendly_name || entityId} (${entityId})`
-      }))
-      .sort((a, b) => a.label.localeCompare(b.label));
-  }
-
   _renderEntityDriven() {
     const requirements = this.pluginManifest?.entity_requirements || {};
     
     if (Object.keys(requirements).length === 0) {
       return this._renderNoRequirements();
     }
-  
+
     return html`
       <div class="entity-driven-form">
         ${Object.entries(requirements).map(([key, requirement]) => {
@@ -290,9 +275,22 @@ export class LayoutEditor extends LitElement {
     };
   }
 
+  _updateAvailableEntities() {
+    if (!this.hass?.states) {
+      this._availableEntities = [];
+      return;
+    }
+
+    this._availableEntities = Object.entries(this.hass.states)
+      .map(([entityId, state]) => ({
+        value: entityId,
+        label: `${state.attributes?.friendly_name || entityId} (${entityId})`
+      }))
+      .sort((a, b) => a.label.localeCompare(b.label));
+  }
+
   _getEntityValue(key) {
     const value = this.config.entities?.[key];
-    // 直接返回实体ID字符串，不进行复杂处理
     if (typeof value === 'string') {
       return value;
     }
@@ -307,7 +305,12 @@ export class LayoutEditor extends LitElement {
   }
 
   _onEntityChanged(key, value) {
-    this._updateEntities({ [key]: value });
+    // 修复：只更新当前字段，不覆盖其他字段
+    const updatedEntities = { 
+      ...this.config.entities,
+      [key]: value 
+    };
+    this._updateEntities(updatedEntities);
   }
 
   _onBlocksChanged(e) {
@@ -318,7 +321,7 @@ export class LayoutEditor extends LitElement {
 
   _updateEntities(entities) {
     this.dispatchEvent(new CustomEvent('entities-changed', {
-      detail: { entities: typeof entities === 'object' ? entities : { ...this.config.entities, ...entities } }
+      detail: { entities }
     }));
   }
 }

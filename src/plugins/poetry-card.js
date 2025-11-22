@@ -2,21 +2,23 @@
 import { BasePlugin } from '../core/base-plugin.js';
 
 class PoetryCard extends BasePlugin {
-
   getTemplate(safeConfig, hass, entities) {
-    // 处理实体数据 - 确保传递 hass 对象
+    // 处理实体数据
     const processedEntities = this.processEntities(entities, safeConfig, hass);
+    
+    console.log('诗词卡片 - 处理后的实体数据:', processedEntities);
     
     // 优先使用实体数据，其次使用默认诗词
     const defaultPoetry = this._getDailyPoetry();
     
-    // 正确获取实体状态
     const title = this._getEntityState(processedEntities, 'title') || defaultPoetry.title;
     const dynasty = this._getEntityState(processedEntities, 'dynasty') || defaultPoetry.dynasty;
     const author = this._getEntityState(processedEntities, 'author') || defaultPoetry.author;
     const content = this._getEntityState(processedEntities, 'content') || defaultPoetry.content;
     const translation = this._getEntityState(processedEntities, 'translation') || defaultPoetry.translation;
-  
+
+    console.log('最终显示数据:', { title, dynasty, author, content, translation });
+
     return this._renderCardContainer(`
       ${this._renderCardHeader(safeConfig, entities)}
       
@@ -54,16 +56,6 @@ class PoetryCard extends BasePlugin {
     `, 'poetry-card');
   }
 
-  _getEntityState(processedEntities, key) {
-    if (!processedEntities.entities || !processedEntities.entities[key]) {
-      return null;
-    }
-    
-    const entityData = processedEntities.entities[key];
-    // 返回实体状态值
-    return entityData.state || null;
-  }
-  
   getStyles(config) {
     const baseStyles = this.getBaseStyles(config);
     
@@ -141,6 +133,16 @@ class PoetryCard extends BasePlugin {
     `;
   }
 
+  _getEntityState(processedEntities, key) {
+    if (!processedEntities.entities || !processedEntities.entities[key]) {
+      return null;
+    }
+    
+    const entityData = processedEntities.entities[key];
+    console.log(`实体 ${key} 数据:`, entityData);
+    return entityData.state || null;
+  }
+
   _getDailyPoetry() {
     const poetries = [
       {
@@ -156,27 +158,6 @@ class PoetryCard extends BasePlugin {
         author: "孟浩然",
         dynasty: "唐",
         translation: "春日里贪睡不知不觉天已破晓，搅乱我酣眠的是那啁啾的小鸟。昨天夜里风声雨声一直不断，那娇美的春花不知被吹落了多少？"
-      },
-      {
-        content: "白日依山尽，黄河入海流。欲穷千里目，更上一层楼。",
-        title: "登鹳雀楼",
-        author: "王之涣",
-        dynasty: "唐",
-        translation: "夕阳依傍着西山慢慢地沉没，滔滔黄河朝着东海汹涌奔流。若想把千里的风光景物看够，那就要登上更高的一层城楼。"
-      },
-      {
-        content: "锄禾日当午，汗滴禾下土。谁知盘中餐，粒粒皆辛苦。",
-        title: "悯农",
-        author: "李绅", 
-        dynasty: "唐",
-        translation: "盛夏中午，烈日炎炎，农民还在劳作，汗珠滴入泥土。有谁想到，我们碗中的米饭，一粒一粒都是农民辛苦劳动得来的呀？"
-      },
-      {
-        content: "远上寒山石径斜，白云生处有人家。停车坐爱枫林晚，霜叶红于二月花。",
-        title: "山行",
-        author: "杜牧",
-        dynasty: "唐",
-        translation: "沿着弯弯曲曲的小路上山，在那生出白云的地方居然还有几户人家。停下马车是因为喜爱深秋枫林的晚景，枫叶秋霜染过，艳比二月春花。"
       }
     ];
     
@@ -196,7 +177,6 @@ PoetryCard.manifest = {
   category: '文化',
   version: '1.0.0',
   author: 'CardForge',
-
   config_schema: {
     show_title: {
       type: 'boolean',
@@ -222,27 +202,22 @@ PoetryCard.manifest = {
   entity_requirements: {
     title: {
       name: '诗词标题',
-      description: '选择显示诗词标题的实体',
       required: false
     },
     dynasty: {
       name: '诗词朝代', 
-      description: '选择显示诗词朝代的实体',
       required: false
     },
     author: {
       name: '诗词作者',
-      description: '选择显示诗词作者的实体',
       required: false
     },
     content: {
       name: '诗词内容',
-      description: '选择显示诗词内容的实体',
       required: false
     },
     translation: {
       name: '诗词译文',
-      description: '选择显示诗词译文的实体',
       required: false
     }
   }

@@ -6,14 +6,18 @@ class WelcomeCard extends BasePlugin {
     // 处理实体数据
     const processedEntities = this.processEntities(entities, safeConfig, hass);
     
+    console.log('欢迎卡片 - 处理后的实体数据:', processedEntities);
+    
     const userName = safeConfig.show_user ? this._getUserName(hass) : '';
     const greeting = safeConfig.show_greeting ? this._getTimeBasedGreeting() : '';
     const periodMessage = safeConfig.show_greeting ? this._getTimePeriodMessage() : '';
     
-    // 正确获取语录实体状态
+    // 获取语录内容
     const quoteContent = this._getEntityState(processedEntities, 'quote_entity') || 
                         this._getRandomQuote();
-  
+
+    console.log('最终语录内容:', quoteContent);
+
     return this._renderCardContainer(`
       ${this._renderCardHeader(safeConfig, entities)}
       
@@ -42,19 +46,19 @@ class WelcomeCard extends BasePlugin {
       ${this._renderCardFooter(safeConfig, entities)}
     `, 'welcome-card');
   }
-  
-  // 添加相同的辅助方法
+
+  getStyles(config) {
+    return this.getBaseStyles(config);
+  }
+
   _getEntityState(processedEntities, key) {
     if (!processedEntities.entities || !processedEntities.entities[key]) {
       return null;
     }
     
     const entityData = processedEntities.entities[key];
+    console.log(`实体 ${key} 数据:`, entityData);
     return entityData.state || null;
-  }
-  
-  getStyles(config) {
-    return this.getBaseStyles(config);
   }
 
   _getUserName(hass, defaultValue = '朋友') {
@@ -94,23 +98,13 @@ class WelcomeCard extends BasePlugin {
     }
   }
 
-  _getQuoteContent(config, hass) {
-    // 使用随机语录
-    return this._getRandomQuote();
-  }
-
   _getRandomQuote() {
     const quotes = [
       "每一天都是新的开始，把握好当下。",
       "生活就像一杯茶，不会苦一辈子，但总会苦一阵子。",
       "成功的秘诀在于对目标的执着追求。",
       "微笑面对生活，生活也会对你微笑。",
-      "今天是你余生中最年轻的一天，好好珍惜。",
-      "行动是治愈恐惧的良药，而犹豫拖延将不断滋养恐惧。",
-      "不要等待机会，而要创造机会。",
-      "人生没有彩排，每一天都是现场直播。",
-      "坚持就是胜利，放弃才是失败。",
-      "梦想不会逃跑，会逃跑的永远都是自己。"
+      "今天是你余生中最年轻的一天，好好珍惜。"
     ];
     
     const randomIndex = Math.floor(Math.random() * quotes.length);
@@ -126,7 +120,6 @@ WelcomeCard.manifest = {
   category: '信息',
   version: '1.0.0',
   author: 'CardForge',
-  // 移除自由布局配置，改为实体驱动
   config_schema: {
     show_user: {
       type: 'boolean',
@@ -147,7 +140,6 @@ WelcomeCard.manifest = {
   entity_requirements: {
     quote_entity: {
       name: '语录实体',
-      description: '选择显示每日语录的实体',
       required: false
     }
   }
