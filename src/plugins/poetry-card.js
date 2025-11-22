@@ -2,57 +2,56 @@
 import { BasePlugin } from '../core/base-plugin.js';
 
 class PoetryCard extends BasePlugin {
-  getTemplate(safeConfig, hass, entities) {
-    const poetry = this._getDailyPoetry();
+
+getTemplate(safeConfig, hass, entities) {
+  // 处理实体数据
+  const processedEntities = this.processEntities(entities, safeConfig, hass);
+  
+  // 优先使用实体数据，其次使用默认诗词
+  const defaultPoetry = this._getDailyPoetry();
+  
+  const title = processedEntities.entities?.title?.state || defaultPoetry.title;
+  const dynasty = processedEntities.entities?.dynasty?.state || defaultPoetry.dynasty;
+  const author = processedEntities.entities?.author?.state || defaultPoetry.author;
+  const content = processedEntities.entities?.content?.state || defaultPoetry.content;
+  const translation = processedEntities.entities?.translation?.state || defaultPoetry.translation;
+
+  return this._renderCardContainer(`
+    ${this._renderCardHeader(safeConfig, entities)}
     
-    // 从实体获取数据（如果配置了实体）
-    const customTitle = this._getCardValue(entities, 'title', '');
-    const customDynasty = this._getCardValue(entities, 'dynasty', '');
-    const customAuthor = this._getCardValue(entities, 'author', '');
-    const customContent = this._getCardValue(entities, 'content', '');
-    const customTranslation = this._getCardValue(entities, 'translation', '');
-
-    // 使用实体数据或默认数据
-    const title = customTitle || poetry.title;
-    const dynasty = customDynasty || poetry.dynasty;
-    const author = customAuthor || poetry.author;
-    const content = customContent || poetry.content;
-    const translation = customTranslation || poetry.translation;
-
-    return this._renderCardContainer(`
-      ${this._renderCardHeader(safeConfig, entities)}
+    <div class="cf-flex cf-flex-center cf-flex-column cf-gap-lg">
+      <!-- 标题 -->
+      ${safeConfig.show_title && title ? `
+        <div class="cardforge-text-large cf-text-center poetry-title">《${title}》</div>
+      ` : ''}
       
-      <div class="cf-flex cf-flex-center cf-flex-column cf-gap-lg">
-        <!-- 标题 -->
-        ${safeConfig.show_title && title ? `
-          <div class="cardforge-text-large cf-text-center poetry-title">《${title}》</div>
-        ` : ''}
-        
-        <!-- 朝代和作者在同一行 -->
-        ${(safeConfig.show_dynasty && dynasty) || (safeConfig.show_author && author) ? `
-          <div class="cf-flex cf-flex-center cf-gap-md cf-text-center poetry-meta">
-            ${safeConfig.show_dynasty && dynasty ? `<div class="cardforge-text-small poetry-dynasty">${dynasty}</div>` : ''}
-            ${safeConfig.show_author && author ? `<div class="cardforge-text-medium poetry-author">${author}</div>` : ''}
-          </div>
-        ` : ''}
-        
-        <!-- 诗词内容 -->
+      <!-- 朝代和作者在同一行 -->
+      ${(safeConfig.show_dynasty && dynasty) || (safeConfig.show_author && author) ? `
+        <div class="cf-flex cf-flex-center cf-gap-md cf-text-center poetry-meta">
+          ${safeConfig.show_dynasty && dynasty ? `<div class="cardforge-text-small poetry-dynasty">${dynasty}</div>` : ''}
+          ${safeConfig.show_author && author ? `<div class="cardforge-text-medium poetry-author">${author}</div>` : ''}
+        </div>
+      ` : ''}
+      
+      <!-- 诗词内容 -->
+      ${content ? `
         <div class="cardforge-text-large cf-text-center poetry-content" style="line-height: 1.8;">
           ${content.split('，').join('，<br>').split('。').join('。<br>')}
         </div>
-        
-        <!-- 译文 -->
-        ${safeConfig.show_translation && translation ? `
-          <div class="cf-mt-lg cf-p-md poetry-translation-container">
-            <div class="cardforge-text-small cf-text-center poetry-translation-title">译文</div>
-            <div class="cardforge-text-medium cf-text-center poetry-translation">${translation}</div>
-          </div>
-        ` : ''}
-      </div>
+      ` : ''}
       
-      ${this._renderCardFooter(safeConfig, entities)}
-    `, 'poetry-card');
-  }
+      <!-- 译文 -->
+      ${safeConfig.show_translation && translation ? `
+        <div class="cf-mt-lg cf-p-md poetry-translation-container">
+          <div class="cardforge-text-small cf-text-center poetry-translation-title">译文</div>
+          <div class="cardforge-text-medium cf-text-center poetry-translation">${translation}</div>
+        </div>
+      ` : ''}
+    </div>
+    
+    ${this._renderCardFooter(safeConfig, entities)}
+  `, 'poetry-card');
+}
 
   getStyles(config) {
     const baseStyles = this.getBaseStyles(config);
@@ -178,9 +177,6 @@ class PoetryCard extends BasePlugin {
   }
 }
 
-// src/plugins/poetry-card.js
-// 在 manifest 中更新 entity_requirements：
-
 PoetryCard.manifest = {
   id: 'poetry-card',
   name: '诗词卡片',
@@ -189,7 +185,7 @@ PoetryCard.manifest = {
   category: '文化',
   version: '1.0.0',
   author: 'CardForge',
-  // 移除自由布局相关配置，改为实体驱动
+
   config_schema: {
     show_title: {
       type: 'boolean',

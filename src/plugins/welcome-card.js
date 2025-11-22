@@ -3,18 +3,16 @@ import { BasePlugin } from '../core/base-plugin.js';
 
 class WelcomeCard extends BasePlugin {
   getTemplate(safeConfig, hass, entities) {
+    // 处理实体数据
+    const processedEntities = this.processEntities(entities, safeConfig, hass);
+    
     const userName = safeConfig.show_user ? this._getUserName(hass) : '';
     const greeting = safeConfig.show_greeting ? this._getTimeBasedGreeting() : '';
     const periodMessage = safeConfig.show_greeting ? this._getTimePeriodMessage() : '';
-
-    const contentBlocks = this.processEntities(entities, safeConfig, hass);
     
-    let customContent = '';
-    if (contentBlocks.mode === 'free' && contentBlocks.blocks.length > 0) {
-      customContent = this._renderCustomBlocks(contentBlocks.blocks);
-    }
-
-    const quoteContent = safeConfig.show_quote ? this._getQuoteContent(safeConfig, hass, entities) : '';
+    // 获取语录内容（实体数据或默认语录）
+    const quoteContent = processedEntities.entities?.quote_entity?.state || 
+                        this._getQuoteContent(safeConfig, hass);
 
     return this._renderCardContainer(`
       ${this._renderCardHeader(safeConfig, entities)}
@@ -33,8 +31,6 @@ class WelcomeCard extends BasePlugin {
         ` : ''}
         
         ${periodMessage ? `<div class="cardforge-text-medium">${periodMessage}</div>` : ''}
-        
-        ${customContent}
         
         ${quoteContent ? `
           <div class="cf-mt-lg cf-p-md" style="border-left: 3px solid var(--cf-primary-color); background: rgba(var(--cf-rgb-primary), 0.05);">
@@ -88,14 +84,8 @@ class WelcomeCard extends BasePlugin {
     }
   }
 
-  _getQuoteContent(config, hass, entities) {
-    const quoteEntity = config.quote_entity;
-    
-    if (quoteEntity && hass?.states?.[quoteEntity]) {
-      const entityState = hass.states[quoteEntity];
-      return entityState.state || this._getRandomQuote();
-    }
-    
+  _getQuoteContent(config, hass) {
+    // 使用随机语录
     return this._getRandomQuote();
   }
 
@@ -116,32 +106,6 @@ class WelcomeCard extends BasePlugin {
     const randomIndex = Math.floor(Math.random() * quotes.length);
     return quotes[randomIndex];
   }
-
-  _renderCustomBlocks(blocks) {
-    const blockElements = blocks.map(block => {
-      if (block.type === 'text') {
-        return `<div class="cardforge-text-medium">${this._renderSafeHTML(block.content)}</div>`;
-      } else if (block.realTimeData) {
-        return `<div class="cf-flex cf-flex-between">
-          <span>${this._getBlockTypeName(block.type)}</span>
-          <span class="cf-status-on">${block.realTimeData.state}</span>
-        </div>`;
-      } else {
-        return `<div class="cardforge-text-small">${this._getBlockTypeName(block.type)}: ${block.content}</div>`;
-      }
-    });
-
-    return `
-      <div class="cf-flex cf-flex-column cf-gap-sm cf-mt-md">
-        ${blockElements.join('')}
-      </div>
-    `;
-  }
-
-  _getBlockTypeName(type) {
-    const names = { text: '文本', sensor: '传感器', weather: '天气', switch: '开关' };
-    return names[type] || '内容';
-  }
 }
 
 WelcomeCard.manifest = {
@@ -152,8 +116,7 @@ WelcomeCard.manifest = {
   category: '信息',
   version: '1.0.0',
   author: 'CardForge',
-  layout_type: 'free', // 保持自由布局
-  allow_custom_entities: true,
+  // 移除自由布局配置，改为实体驱动
   config_schema: {
     show_user: {
       type: 'boolean',
@@ -179,5 +142,6 @@ WelcomeCard.manifest = {
     }
   }
 };
+
 export { WelcomeCard as default, WelcomeCard };
 export const manifest = WelcomeCard.manifest;

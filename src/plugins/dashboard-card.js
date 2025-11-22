@@ -1,28 +1,28 @@
 // src/plugins/dashboard-card.js
 import { BasePlugin } from '../core/base-plugin.js';
-import { BlockManager } from '../core/block-manager.js';
 
 class DashboardCard extends BasePlugin {
-  getTemplate(config, hass, entities) {
-    const contentBlocks = this.processEntities(entities, config, hass);
-    const columns = this._getColumnCount(config.columns);
-
-    let dashboardContent = '';
+  getTemplate(safeConfig, hass, entities) {
+    const contentBlocks = this.processEntities(entities, safeConfig, hass);
     
+    let customContent = '';
     if (contentBlocks.mode === 'free' && contentBlocks.blocks.length > 0) {
-      dashboardContent = this._renderDashboardGrid(contentBlocks.blocks, columns, config.show_icons);
-    } else {
-      dashboardContent = this._renderEmptyState();
+      customContent = this._renderCustomBlocks(contentBlocks.blocks, hass);
     }
 
     return this._renderCardContainer(`
-      ${this._renderCardHeader(config, entities)}
+      ${this._renderCardHeader(safeConfig, entities)}
       
-      <div class="cf-mt-md">
-        ${dashboardContent}
+      <div class="cf-flex cf-flex-column cf-gap-md">
+        ${customContent || `
+          <div class="cf-text-center cf-text-secondary cf-p-lg">
+            <ha-icon icon="mdi:view-dashboard" style="font-size: 2em; opacity: 0.5;"></ha-icon>
+            <div class="cf-mt-md">添加内容块来构建仪表板</div>
+          </div>
+        `}
       </div>
       
-      ${this._renderCardFooter(config, entities)}
+      ${this._renderCardFooter(safeConfig, entities)}
     `, 'dashboard-card');
   }
 
@@ -32,139 +32,95 @@ class DashboardCard extends BasePlugin {
     return `
       ${baseStyles}
       
+      .dashboard-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+        gap: var(--cf-spacing-md);
+      }
+      
       .dashboard-item {
-        background: rgba(var(--cf-rgb-primary), 0.05);
+        background: var(--cf-surface);
         border: 1px solid var(--cf-border);
         border-radius: var(--cf-radius-md);
-        padding: var(--cf-spacing-lg);
+        padding: var(--cf-spacing-md);
         text-align: center;
         transition: all var(--cf-transition-fast);
-        min-height: 100px;
-        display: flex;
-        flex-direction: column;
-        justify-content: center;
-        align-items: center;
       }
       
       .dashboard-item:hover {
         border-color: var(--cf-primary-color);
         transform: translateY(-2px);
-        box-shadow: var(--cf-shadow-sm);
       }
       
-      .item-label {
-        font-size: 0.9em;
-        color: var(--cf-text-secondary);
-        margin-bottom: var(--cf-spacing-sm);
-      }
-      
-      .item-value {
+      .dashboard-value {
         font-size: 1.5em;
         font-weight: 600;
-        color: var(--cf-text-primary);
+        color: var(--cf-primary-color);
+        margin-bottom: var(--cf-spacing-xs);
       }
       
-      .dashboard-grid {
-        gap: var(--cf-spacing-md);
-      }
-      
-      @container cardforge-container (max-width: 400px) {
-        .dashboard-grid {
-          grid-template-columns: 1fr !important;
-        }
-        
-        .dashboard-item {
-          padding: var(--cf-spacing-md);
-          min-height: 80px;
-        }
-        
-        .item-value {
-          font-size: 1.2em;
-        }
+      .dashboard-label {
+        font-size: 0.85em;
+        color: var(--cf-text-secondary);
       }
     `;
   }
 
-  _getColumnCount(columnConfig) {
-    const columnMap = {
-      '2列': 2,
-      '3列': 3,
-      '4列': 4
-    };
-    return columnMap[columnConfig] || 3;
-  }
+  _renderCustomBlocks(blocks, hass) {
+    const blockElements = blocks.map(block => {
+      if (block.type === 'text') {
+        return `<div class="dashboard-item">
+          <div class="dashboard-value">📝</div>
+          <div class="dashboard-label">${this._renderSafeHTML(block.content)}</div>
+        </div>`;
+      } else if (block.realTimeData) {
+        const state = block.realTimeData.state;
+        const icon = this._getEntityIcon(block.type, state);
+        
+        return `<div class="dashboard-item">
+          <div class="dashboard-value">${icon} ${state}</div>
+          <div class="dashboard-label">${this._getBlockTypeName(block.type)}</div>
+        </div>`;
+      } else {
+        return `<div class="dashboard-item">
+          <div class="dashboard-value">❓</div>
+          <div class="dashboard-label">${this._getBlockTypeName(block.type)}</div>
+        </div>`;
+      }
+    });
 
-  _renderDashboardGrid(blocks, columns, showIcons) {
-    const gridItems = blocks.map(block => this._renderDashboardItem(block, showIcons));
-    
-    return this.renderGrid(gridItems, columns, 'dashboard-grid');
-  }
-
-  _renderDashboardItem(block, showIcons) {
-    const value = block.realTimeData?.state || block.content;
-    const unit = block.realTimeData?.attributes?.unit_of_measurement || '';
-    const icon = showIcons ? this._getBlockIcon(block) : '';
-    const label = BlockManager.getBlockDisplayName(block);
-    
     return `
-      <div class="dashboard-item">
-        ${icon}
-        <div class="item-label">${label}</div>
-        <div class="item-value">${value} ${unit}</div>
+      <div class="dashboard-grid">
+        ${blockElements.join('')}
       </div>
     `;
   }
 
-  _getBlockIcon(block) {
-    if (block.realTimeData?.attributes?.icon) {
-      return `<ha-icon icon="${block.realTimeData.attributes.icon}" style="font-size: 1.5em; margin-bottom: var(--cf-spacing-sm);"></ha-icon>`;
-    }
-    
-    const defaultIcons = {
-      text: '📝',
+  _getEntityIcon(type, state) {
+    const icons = {
       sensor: '📊',
       weather: '🌤️',
-      switch: '🔌'
+      switch: state === 'on' ? '💡' : '⚪'
     };
-    
-    const icon = defaultIcons[block.type] || '📦';
-    return `<div style="font-size: 1.5em; margin-bottom: var(--cf-spacing-sm);">${icon}</div>`;
+    return icons[type] || '📦';
   }
 
-  _renderEmptyState() {
-    return `
-      <div class="cf-flex cf-flex-center cf-flex-column cf-p-lg">
-        <ha-icon icon="mdi:chart-box-outline" style="font-size: 3em; opacity: 0.3; margin-bottom: var(--cf-spacing-md);"></ha-icon>
-        <div class="cardforge-text-medium cf-mb-sm">暂无数据</div>
-        <div class="cardforge-text-small cf-text-secondary">请添加内容块来构建仪表盘</div>
-      </div>
-    `;
+  _getBlockTypeName(type) {
+    const names = { text: '文本', sensor: '传感器', weather: '天气', switch: '开关' };
+    return names[type] || '内容';
   }
 }
 
 DashboardCard.manifest = {
   id: 'dashboard-card',
-  name: '仪表盘卡片',
-  description: '多数据源仪表盘展示',
+  name: '仪表板卡片',
+  description: '自由布局的数据仪表板',
   icon: '📊',
-  category: '信息',
+  category: '数据',
   version: '1.0.0',
   author: 'CardForge',
   layout_type: 'free',
-  allow_custom_entities: true,
-  config_schema: {
-    columns: {
-      type: 'select',
-      label: '列数',
-      options: ['2列', '3列', '4列'],
-      default: '3列'
-    },
-    show_icons: {
-      type: 'boolean',
-      label: '显示图标',
-      default: true
-    }
-  }
+  allow_custom_entities: true
 };
 
 export { DashboardCard as default, DashboardCard };

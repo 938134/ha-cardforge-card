@@ -212,32 +212,37 @@ export class LayoutEditor extends LitElement {
     if (Object.keys(requirements).length === 0) {
       return this._renderNoRequirements();
     }
-
+  
     return html`
       <div class="entity-driven-form">
-        ${Object.entries(requirements).map(([key, requirement]) => html`
-          <div class="entity-field">
-            <label class="field-label">
-              ${requirement.name}
-              ${requirement.required ? html`<span class="required-star">*</span>` : ''}
-            </label>
-            
-            ${requirement.description ? html`
-              <div class="field-description">${requirement.description}</div>
-            ` : ''}
-            
-            <ha-entity-picker
-              .hass=${this.hass}
-              .value=${this._getEntityValue(key)}
-              @value-changed=${e => this._onEntityChanged(key, e.detail.value)}
-              .label=${`选择 ${requirement.name}`}
-              allow-custom-entity
-            ></ha-entity-picker>
-          </div>
-        `)}
+        ${Object.entries(requirements).map(([key, requirement]) => {
+          // 获取当前实体值
+          const currentValue = this._getEntityValue(key);
+          
+          return html`
+            <div class="entity-field">
+              <label class="field-label">
+                ${requirement.name}
+                ${requirement.required ? html`<span class="required-star">*</span>` : ''}
+              </label>
+              
+              ${requirement.description ? html`
+                <div class="field-description">${requirement.description}</div>
+              ` : ''}
+              
+              <ha-entity-picker
+                .hass=${this.hass}
+                .value=${currentValue}
+                @value-changed=${e => this._onEntityChanged(key, e.detail.value)}
+                .label=${`选择 ${requirement.name}`}
+                allow-custom-entity
+              ></ha-entity-picker>
+            </div>
+          `;
+        })}
       </div>
     `;
-  }
+  }  
 
   _renderNoPlugin() {
     return html`
@@ -268,7 +273,13 @@ export class LayoutEditor extends LitElement {
 
   _getEntityValue(key) {
     const value = this.config.entities?.[key];
-    if (value && typeof value === 'object') return value._source || value.state || '';
+    // 直接返回实体ID字符串，不进行复杂处理
+    if (typeof value === 'string') {
+      return value;
+    }
+    if (value && typeof value === 'object') {
+      return value._source || value.state || '';
+    }
     return value || '';
   }
 
