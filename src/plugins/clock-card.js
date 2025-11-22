@@ -171,11 +171,6 @@ ClockCard.manifest = {
       label: '显示农历',
       default: true
     },
-    show_seconds: {
-      type: 'boolean',
-      label: '显示秒数',
-      default: false
-    },
     use_24_hour: {
       type: 'boolean',
       label: '24小时制',

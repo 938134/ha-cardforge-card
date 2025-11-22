@@ -24,17 +24,6 @@ export class LayoutEditor extends LitElement {
         gap: var(--cf-spacing-lg);
       }
 
-      .strategy-header {
-        display: flex;
-        align-items: center;
-        gap: var(--cf-spacing-md);
-        padding: var(--cf-spacing-md);
-        background: rgba(var(--cf-rgb-primary), 0.05);
-        border-radius: var(--cf-radius-md);
-        border-left: 4px solid var(--cf-primary-color);
-        margin-bottom: var(--cf-spacing-lg);
-      }
-
       .header-fields {
         display: grid;
         grid-template-columns: 1fr 1fr;
@@ -80,12 +69,6 @@ export class LayoutEditor extends LitElement {
         color: var(--cf-text-primary);
       }
 
-      .info-description {
-        font-size: 0.9em;
-        color: var(--cf-text-secondary);
-        line-height: 1.4;
-      }
-
       @media (max-width: 600px) {
         .header-fields {
           grid-template-columns: 1fr;
@@ -120,22 +103,22 @@ export class LayoutEditor extends LitElement {
     }
   }
 
-  if (!this.pluginManifest) {
-    return this._renderNoPlugin();
+  render() {
+    if (!this.pluginManifest) {
+      return this._renderNoPlugin();
+    }
+
+    // 直接渲染内容，移除策略头部标题
+    return html`
+      <div class="layout-editor">
+        ${this._currentMode === 'free' 
+          ? this._renderFreeLayout()
+          : this._renderEntityDriven()
+        }
+      </div>
+    `;
   }
 
-  const layoutInfo = LayoutEngine.getLayoutInfo(this.pluginManifest);
-  
-  return html`
-    <div class="layout-editor">
-      <!-- 移除策略头部的标题，因为主编辑器已经有标题了 -->
-      ${this._currentMode === 'free' 
-        ? this._renderFreeLayout()
-        : this._renderEntityDriven()
-      }
-    </div>
-  `;
-}
   _renderFreeLayout() {
     const capabilities = this._getPluginCapabilities();
     
