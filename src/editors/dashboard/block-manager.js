@@ -1,4 +1,4 @@
-// src/core/block-manager.js
+// src/editors/dashboard/block-manager.js
 export class BlockManager {
   // 块类型定义
   static BLOCK_TYPES = {

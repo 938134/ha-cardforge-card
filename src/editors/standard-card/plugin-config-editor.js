@@ -1,8 +1,8 @@
-// src/editors/config-editor.js
+// src/editors/standard-card/plugin-config-editor.js
 import { LitElement, html, css } from 'https://unpkg.com/lit@2.8.0/index.js?module';
-import { designSystem } from '../core/design-system.js';
+import { designSystem } from '../../core/design-system.js';
 
-export class ConfigEditor extends LitElement {
+export class PluginConfigEditor extends LitElement {
   static properties = {
     config: { type: Object },
     pluginManifest: { type: Object },
@@ -193,6 +193,6 @@ export class ConfigEditor extends LitElement {
   }
 }
 
-if (!customElements.get('config-editor')) {
-  customElements.define('config-editor', ConfigEditor);
+if (!customElements.get('plugin-config-editor')) {
+  customElements.define('plugin-config-editor', PluginConfigEditor);
 }

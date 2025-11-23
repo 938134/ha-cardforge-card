@@ -1,23 +1,23 @@
 // src/plugins/dashboard-card.js
 import { BasePlugin } from '../core/base-plugin.js';
-import { BlockManager } from '../core/block-manager.js';
+import { BlockManager } from '../editors/dashboard/block-manager.js';
 
 class DashboardCard extends BasePlugin {
-getTemplate(config, hass, entities) {
-  const blocks = BlockManager.deserializeFromEntities(entities);
-  const enrichedBlocks = BlockManager.enrichWithRealtimeData(blocks, hass);
-  const layout = config.layout || '2x2';
-  
-  return this._renderCardContainer(`
-    ${this._renderCardHeader(config, entities)}  // 仪表盘使用通用标题
+  getTemplate(config, hass, entities) {
+    const blocks = BlockManager.deserializeFromEntities(entities);
+    const enrichedBlocks = BlockManager.enrichWithRealtimeData(blocks, hass);
+    const layout = config.layout || '2x2';
     
-    <div class="dashboard-content">
-      ${this._renderGridLayout(enrichedBlocks, layout, hass)}
-    </div>
-    
-    ${this._renderCardFooter(config, entities)}  // 仪表盘使用通用页脚
-  `, 'dashboard-card');
-}
+    return this._renderCardContainer(`
+      ${this._renderCardHeader(config, entities)}
+      
+      <div class="dashboard-content">
+        ${this._renderGridLayout(enrichedBlocks, layout, hass)}
+      </div>
+      
+      ${this._renderCardFooter(config, entities)}
+    `, 'dashboard-card');
+  }
 
   getStyles(config) {
     const baseStyles = this.getBaseStyles(config);

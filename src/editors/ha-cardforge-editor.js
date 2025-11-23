@@ -3,10 +3,11 @@ import { LitElement, html, css } from 'https://unpkg.com/lit@2.8.0/index.js?modu
 import { PluginRegistry } from '../core/plugin-registry.js';
 import { themeManager } from '../themes/index.js';
 import { designSystem } from '../core/design-system.js';
-import './config-editor.js';
-import './layout-editor.js';
 import './plugin-selector.js';
 import './theme-selector.js';
+import './standard-card/plugin-config-editor.js';
+import './standard-card/entity-mapping-editor.js';
+import './dashboard/dashboard-editor.js';
 
 class HaCardForgeEditor extends LitElement {
   static properties = {
@@ -191,8 +192,7 @@ class HaCardForgeEditor extends LitElement {
         <div class="editor-layout">
           ${this._renderPluginSection()}
           ${this._renderThemeSection()}
-          ${this._renderBaseConfigSection()}
-          ${this._renderDataSourceSection()}
+          ${this._renderEditorContent()}
         </div>
       </div>
     `;
@@ -245,9 +245,40 @@ class HaCardForgeEditor extends LitElement {
     `;
   }
 
-  _renderBaseConfigSection() {
+  _renderEditorContent() {
     if (!this.config.plugin) return '';
+
+    const isDashboard = this._pluginManifest?.free_layout;
     
+    if (isDashboard) {
+      return this._renderDashboardEditor();
+    } else {
+      return this._renderStandardCardEditor();
+    }
+  }
+
+  _renderStandardCardEditor() {
+    return html`
+      ${this._renderPluginConfigSection()}
+      ${this._renderEntityMappingSection()}
+    `;
+  }
+
+  _renderDashboardEditor() {
+    return html`
+      <div class="editor-section">
+        <dashboard-editor
+          .hass=${this.hass}
+          .config=${this.config}
+          .pluginManifest=${this._pluginManifest}
+          @config-changed=${this._onConfigChanged}
+          @entities-changed=${this._onEntitiesChanged}
+        ></dashboard-editor>
+      </div>
+    `;
+  }
+
+  _renderPluginConfigSection() {
     return html`
       <div class="editor-section">
         <div class="section-header">
@@ -255,33 +286,31 @@ class HaCardForgeEditor extends LitElement {
           <span>卡片设置</span>
         </div>
         
-        <config-editor
+        <plugin-config-editor
           .config=${this.config}
           .pluginManifest=${this._pluginManifest}
           @config-changed=${this._onConfigChanged}
-        ></config-editor>
+        ></plugin-config-editor>
       </div>
     `;
   }
 
-  _renderDataSourceSection() {
-    if (!this.config.plugin || !this._pluginInstance) return '';
-  
-    const isDashboard = this._pluginManifest?.free_layout;
-    
+  _renderEntityMappingSection() {
+    if (!this._pluginInstance) return '';
+
     return html`
       <div class="editor-section">
         <div class="section-header">
           <ha-icon icon="mdi:database"></ha-icon>
-          <span>${isDashboard ? '布局配置' : '数据源配置'}</span>
+          <span>数据源配置</span>
         </div>
         
-        <layout-editor
+        <entity-mapping-editor
           .hass=${this.hass}
           .config=${this.config}
           .pluginManifest=${this._pluginManifest}
           @entities-changed=${this._onEntitiesChanged}
-        ></layout-editor>
+        ></entity-mapping-editor>
       </div>
     `;
   }
