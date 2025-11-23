@@ -1,10 +1,10 @@
-// src/editors/dashboard/block-editor.js
+// src/editors/dashboard/block-list.js
 import { LitElement, html, css } from 'https://unpkg.com/lit@2.8.0/index.js?module';
 import { designSystem } from '../../core/design-system.js';
 import { BlockManager } from './block-manager.js';
-import './inline-block-editor.js';
+import './inline-editor.js';
 
-export class BlockEditor extends LitElement {
+export class BlockList extends LitElement {
   static properties = {
     hass: { type: Object },
     blocks: { type: Array },
@@ -16,15 +16,10 @@ export class BlockEditor extends LitElement {
   static styles = [
     designSystem,
     css`
-      .block-editor {
-        width: 100%;
-      }
-
-      .blocks-list {
+      .block-list {
         display: flex;
         flex-direction: column;
         gap: var(--cf-spacing-sm);
-        margin-bottom: var(--cf-spacing-md);
       }
 
       .block-item {
@@ -49,6 +44,27 @@ export class BlockEditor extends LitElement {
       .block-item.editing {
         border-color: var(--cf-primary-color);
         background: rgba(var(--cf-rgb-primary), 0.05);
+      }
+
+      .block-badge {
+        position: absolute;
+        top: -6px;
+        left: -6px;
+        background: var(--cf-primary-color);
+        color: white;
+        padding: 2px 6px;
+        border-radius: var(--cf-radius-sm);
+        font-size: 0.7em;
+        font-weight: 600;
+        z-index: 1;
+      }
+
+      .block-badge.header {
+        background: #4CAF50;
+      }
+
+      .block-badge.footer {
+        background: #FF9800;
       }
 
       .block-icon {
@@ -178,12 +194,10 @@ export class BlockEditor extends LitElement {
 
   render() {
     return html`
-      <div class="block-editor">
-        <div class="blocks-list">
-          ${this.blocks.map((block, index) => this._renderBlockItem(block, index))}
-          
-          ${this.blocks.length === 0 ? this._renderEmptyState() : ''}
-        </div>
+      <div class="block-list">
+        ${this.blocks.map((block, index) => this._renderBlockItem(block, index))}
+        
+        ${this.blocks.length === 0 ? this._renderEmptyState() : ''}
       </div>
     `;
   }
@@ -191,10 +205,21 @@ export class BlockEditor extends LitElement {
   _renderBlockItem(block, index) {
     const isEditing = this._editingBlockId === block.id;
     const customIcon = block.config?.icon;
-    
+    const blockType = block.config?.blockType || 'content';
+    const badgeText = {
+      'header': '标题',
+      'content': '内容', 
+      'footer': '页脚'
+    }[blockType];
+
     return html`
       <div class="block-item ${isEditing ? 'editing' : ''}" 
            @click=${() => this._editBlock(block)}>
+        
+        ${blockType !== 'content' ? html`
+          <div class="block-badge ${blockType}">${badgeText}</div>
+        ` : ''}
+        
         <div class="block-icon">
           <ha-icon .icon=${customIcon || BlockManager.getBlockIcon(block)}></ha-icon>
         </div>
@@ -205,7 +230,9 @@ export class BlockEditor extends LitElement {
           </div>
           <div class="block-preview">${BlockManager.getBlockPreview(block)}</div>
           <div class="block-meta">
-            <div class="block-position">位置: ${block.position?.row || 0},${block.position?.col || 0}</div>
+            ${blockType === 'content' && block.position ? html`
+              <div class="block-position">位置: ${block.position.row || 0},${block.position.col || 0}</div>
+            ` : ''}
             ${block.type !== 'text' && block.content ? html`
               <div>实体: ${block.content.split('.')[1] || block.content}</div>
             ` : ''}
@@ -223,14 +250,14 @@ export class BlockEditor extends LitElement {
       
       ${isEditing ? html`
         <div class="inline-editor-container">
-          <inline-block-editor
+          <inline-editor
             .hass=${this.hass}
             .block=${block}
             .availableEntities=${this.availableEntities}
             .layout=${this.layout}
             @block-saved=${e => this._saveBlock(e.detail.block)}
             @edit-cancelled=${() => this._cancelEdit()}
-          ></inline-block-editor>
+          ></inline-editor>
         </div>
       ` : ''}
     `;
@@ -240,8 +267,8 @@ export class BlockEditor extends LitElement {
     return html`
       <div class="empty-state">
         <ha-icon class="empty-icon" icon="mdi:view-grid-plus"></ha-icon>
-        <div class="cf-text-md cf-mb-sm">还没有内容块</div>
-        <div class="cf-text-sm cf-text-secondary">在仪表盘编辑器中添加内容块</div>
+        <div class="cf-text-md cf-mb-sm">还没有任何块</div>
+        <div class="cf-text-sm cf-text-secondary">点击"添加块"按钮开始创建</div>
       </div>
     `;
   }
@@ -249,12 +276,15 @@ export class BlockEditor extends LitElement {
   _editBlock(e, block) {
     if (e) e.stopPropagation();
     this._editingBlockId = block.id;
+    this.dispatchEvent(new CustomEvent('edit-block', {
+      detail: { block }
+    }));
   }
 
   _deleteBlock(e, blockId) {
     if (e) e.stopPropagation();
     
-    if (!confirm('确定要删除这个内容块吗？')) return;
+    if (!confirm('确定要删除这个块吗？')) return;
     
     this.blocks = this.blocks.filter(block => block.id !== blockId);
     this._editingBlockId = null;
@@ -280,6 +310,6 @@ export class BlockEditor extends LitElement {
   }
 }
 
-if (!customElements.get('block-editor')) {
-  customElements.define('block-editor', BlockEditor);
+if (!customElements.get('block-list')) {
+  customElements.define('block-list', BlockList);
 }

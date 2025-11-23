@@ -7,7 +7,7 @@ class DashboardCard extends BasePlugin {
     const allBlocks = BlockManager.deserializeFromEntities(entities);
     
     // 分离不同类型的块
-    const titleBlocks = allBlocks.filter(block => block.config?.blockType === 'title');
+    const headerBlocks = allBlocks.filter(block => block.config?.blockType === 'header');
     const contentBlocks = allBlocks.filter(block => 
       !block.config?.blockType || block.config.blockType === 'content'
     );
@@ -17,8 +17,10 @@ class DashboardCard extends BasePlugin {
     const layout = config.layout || '2x2';
 
     return this._renderCardContainer(`
+      ${this._renderCardHeader(config, entities)}
+      
       <!-- 标题区域 -->
-      ${titleBlocks.length > 0 ? this._renderTitleArea(titleBlocks) : ''}
+      ${headerBlocks.length > 0 ? this._renderHeaderArea(headerBlocks) : ''}
       
       <!-- 内容区域 -->
       <div class="dashboard-content">
@@ -27,6 +29,8 @@ class DashboardCard extends BasePlugin {
       
       <!-- 页脚区域 -->
       ${footerBlocks.length > 0 ? this._renderFooterArea(footerBlocks) : ''}
+      
+      ${this._renderCardFooter(config, entities)}
     `, 'dashboard-card');
   }
 
@@ -114,12 +118,13 @@ class DashboardCard extends BasePlugin {
       }
       
       /* 标题区域样式 */
-      .title-area {
+      .header-area {
         margin-bottom: var(--cf-spacing-lg);
         text-align: center;
+        padding: var(--cf-spacing-md);
       }
       
-      .title-content {
+      .header-content {
         font-size: 1.4em;
         font-weight: 600;
         color: var(--cf-text-primary);
@@ -140,6 +145,38 @@ class DashboardCard extends BasePlugin {
         line-height: 1.4;
       }
       
+      /* 文本块特殊样式 */
+      .text-block {
+        background: rgba(var(--cf-rgb-primary), 0.05);
+        border: 1px solid rgba(var(--cf-rgb-primary), 0.2);
+      }
+      
+      .text-block .block-text {
+        font-size: 1em;
+        color: var(--cf-text-primary);
+      }
+      
+      /* 传感器块样式 */
+      .sensor-block .block-value {
+        color: var(--cf-primary-color);
+      }
+      
+      /* 开关块样式 */
+      .switch-block .block-value {
+        color: var(--cf-accent-color);
+        font-weight: 600;
+      }
+      
+      /* 天气块样式 */
+      .weather-block .block-value {
+        color: #2196F3;
+      }
+      
+      /* 自定义背景色支持 */
+      .dashboard-block[style*="background"] {
+        border: none;
+      }
+      
       @container cardforge-container (max-width: 400px) {
         .dashboard-grid {
           gap: var(--cf-spacing-sm);
@@ -154,20 +191,34 @@ class DashboardCard extends BasePlugin {
           font-size: 1.2em;
         }
         
-        .title-content {
+        .header-content {
           font-size: 1.2em;
+        }
+        
+        .footer-content {
+          font-size: 0.8em;
+        }
+      }
+      
+      @container cardforge-container (max-width: 300px) {
+        .dashboard-grid {
+          grid-template-columns: 1fr;
+        }
+        
+        .block-value {
+          font-size: 1.1em;
         }
       }
     `;
   }
 
-  _renderTitleArea(titleBlocks) {
-    if (titleBlocks.length === 0) return '';
+  _renderHeaderArea(headerBlocks) {
+    if (headerBlocks.length === 0) return '';
     
-    const titleContent = titleBlocks[0].content || '';
+    const headerContent = headerBlocks[0].content || '';
     return `
-      <div class="title-area">
-        <div class="title-content">${titleContent}</div>
+      <div class="header-area">
+        <div class="header-content">${headerContent}</div>
       </div>
     `;
   }
@@ -202,12 +253,16 @@ class DashboardCard extends BasePlugin {
 
   _renderBlock(block, hass) {
     const blockStyle = block.config?.style ? `block-style-${block.config.style}` : '';
+    const customBackground = block.config?.background ? `style="background: ${block.config.background}"` : '';
+    const blockClass = `${block.type}-block ${blockStyle}`;
     
     return `
-      <div class="dashboard-block ${blockStyle}" data-block-id="${block.id}">
-        <div class="block-header">
-          <span class="block-title">${block.config?.title || BlockManager.getBlockDisplayName(block)}</span>
-        </div>
+      <div class="dashboard-block ${blockClass}" data-block-id="${block.id}" ${customBackground}>
+        ${block.config?.title ? `
+          <div class="block-header">
+            <span class="block-title">${block.config.title}</span>
+          </div>
+        ` : ''}
         <div class="block-content">
           ${this._renderBlockContent(block, hass)}
         </div>
@@ -228,17 +283,44 @@ class DashboardCard extends BasePlugin {
       case 'cover':
       case 'media_player':
         if (block.realTimeData) {
+          const state = this._formatState(block.realTimeData.state, block.type);
+          const unit = block.realTimeData.attributes?.unit_of_measurement || '';
           return `
-            <div class="block-value">${block.realTimeData.state}</div>
-            ${block.realTimeData.attributes.unit_of_measurement ? 
-              `<div class="block-unit">${block.realTimeData.attributes.unit_of_measurement}</div>` : ''}
+            <div class="block-value">${state}</div>
+            ${unit ? `<div class="block-unit">${unit}</div>` : ''}
           `;
         }
-        return `<div class="block-placeholder">点击配置实体</div>`;
+        return `<div class="block-placeholder">${block.content || '未配置'}</div>`;
         
       default:
         return `<div class="block-placeholder">未知类型</div>`;
     }
+  }
+
+  _formatState(state, type) {
+    // 对特定类型的状态进行格式化
+    switch (type) {
+      case 'switch':
+      case 'light':
+        return state === 'on' ? '开启' : state === 'off' ? '关闭' : state;
+      case 'cover':
+        return state === 'open' ? '打开' : state === 'closed' ? '关闭' : state;
+      case 'climate':
+        return this._formatClimateState(state);
+      default:
+        return state;
+    }
+  }
+
+  _formatClimateState(state) {
+    const stateMap = {
+      'heat': '制热',
+      'cool': '制冷', 
+      'auto': '自动',
+      'off': '关闭',
+      'fan_only': '仅风扇'
+    };
+    return stateMap[state] || state;
   }
 }
 

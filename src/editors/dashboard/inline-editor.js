@@ -1,16 +1,15 @@
-// src/editors/dashboard/inline-block-editor.js
+// src/editors/dashboard/inline-editor.js
 import { LitElement, html, css } from 'https://unpkg.com/lit@2.8.0/index.js?module';
 import { designSystem } from '../../core/design-system.js';
 import { BlockManager } from './block-manager.js';
 
-export class InlineBlockEditor extends LitElement {
+export class InlineEditor extends LitElement {
   static properties = {
     hass: { type: Object },
     block: { type: Object },
     availableEntities: { type: Object },
     layout: { type: String },
-    _editingBlock: { state: true },
-    _entityOptions: { state: true }
+    _editingBlock: { state: true }
   };
 
   static styles = [
@@ -86,13 +85,6 @@ export class InlineBlockEditor extends LitElement {
         border-radius: var(--cf-radius-sm);
       }
 
-      .icon-field {
-        display: grid;
-        grid-template-columns: 1fr auto;
-        gap: var(--cf-spacing-sm);
-        align-items: end;
-      }
-
       @media (max-width: 768px) {
         .form-actions {
           flex-direction: column;
@@ -100,10 +92,6 @@ export class InlineBlockEditor extends LitElement {
         
         .action-btn {
           min-width: auto;
-        }
-        
-        .icon-field {
-          grid-template-columns: 1fr;
         }
       }
     `
@@ -115,16 +103,11 @@ export class InlineBlockEditor extends LitElement {
     this.availableEntities = [];
     this.layout = '2x2';
     this._editingBlock = {};
-    this._entityOptions = [];
   }
 
   willUpdate(changedProperties) {
     if (changedProperties.has('block')) {
       this._editingBlock = { ...this.block };
-    }
-    
-    if (changedProperties.has('availableEntities') || changedProperties.has('hass')) {
-      this._updateEntityOptions();
     }
   }
 
@@ -133,6 +116,12 @@ export class InlineBlockEditor extends LitElement {
       value,
       label: info.name
     }));
+
+    const areaTypes = [
+      { value: 'content', label: '内容区域' },
+      { value: 'header', label: '标题区域' },
+      { value: 'footer', label: '页脚区域' }
+    ];
 
     const gridConfig = BlockManager.LAYOUT_PRESETS[this.layout] || BlockManager.LAYOUT_PRESETS['2x2'];
     const positionOptions = this._getPositionOptions(gridConfig);
@@ -160,6 +149,25 @@ export class InlineBlockEditor extends LitElement {
           </div>
 
           <div class="config-field">
+            <label class="config-label">区域类型</label>
+            <ha-select
+              .value=${this._editingBlock.config?.blockType || 'content'}
+              @closed=${this._preventClose}
+              naturalMenuWidth
+              fixedMenuPosition
+            >
+              ${areaTypes.map(area => html`
+                <ha-list-item 
+                  .value=${area.value}
+                  @click=${() => this._updateConfig('blockType', area.value)}
+                >
+                  ${area.label}
+                </ha-list-item>
+              `)}
+            </ha-select>
+          </div>
+
+          <div class="config-field">
             <label class="config-label">显示名称</label>
             <ha-textfield
               .value=${this._editingBlock.config?.title || ''}
@@ -171,34 +179,34 @@ export class InlineBlockEditor extends LitElement {
 
           <div class="config-field">
             <label class="config-label">自定义图标</label>
-            <div class="icon-field">
-              <ha-icon-picker
-                .value=${this._editingBlock.config?.icon || ''}
-                @value-changed=${e => this._updateConfig('icon', e.detail.value)}
-                label="选择图标"
-                fullwidth
-              ></ha-icon-picker>
-            </div>
+            <ha-icon-picker
+              .value=${this._editingBlock.config?.icon || ''}
+              @value-changed=${e => this._updateConfig('icon', e.detail.value)}
+              label="选择图标"
+              fullwidth
+            ></ha-icon-picker>
           </div>
 
-          <div class="config-field">
-            <label class="config-label">网格位置</label>
-            <ha-select
-              .value=${this._getPositionValue()}
-              @closed=${this._preventClose}
-              naturalMenuWidth
-              fixedMenuPosition
-            >
-              ${positionOptions.map(option => html`
-                <ha-list-item 
-                  .value=${option.value}
-                  @click=${() => this._onPositionSelected(option.value)}
-                >
-                  ${option.label}
-                </ha-list-item>
-              `)}
-            </ha-select>
-          </div>
+          ${this._editingBlock.config?.blockType === 'content' ? html`
+            <div class="config-field">
+              <label class="config-label">网格位置</label>
+              <ha-select
+                .value=${this._getPositionValue()}
+                @closed=${this._preventClose}
+                naturalMenuWidth
+                fixedMenuPosition
+              >
+                ${positionOptions.map(option => html`
+                  <ha-list-item 
+                    .value=${option.value}
+                    @click=${() => this._onPositionSelected(option.value)}
+                  >
+                    ${option.label}
+                  </ha-list-item>
+                `)}
+              </ha-select>
+            </div>
+          ` : ''}
 
           <div class="config-field">
             <label class="config-label">${this._getContentLabel()}</label>
@@ -247,7 +255,7 @@ export class InlineBlockEditor extends LitElement {
         <ha-textarea
           .value=${this._editingBlock.content || ''}
           @input=${e => this._updateBlock('content', e.target.value)}
-          placeholder="输入文本内容..."
+          placeholder="输入内容..."
           rows="3"
           fullwidth
         ></ha-textarea>
@@ -255,7 +263,7 @@ export class InlineBlockEditor extends LitElement {
     } else {
       return html`
         <ha-combo-box
-          .items=${this._entityOptions}
+          .items=${this.availableEntities}
           .value=${this._editingBlock.content || ''}
           @value-changed=${e => this._onEntitySelected(e.detail.value)}
           placeholder="选择或输入实体ID"
@@ -301,10 +309,6 @@ export class InlineBlockEditor extends LitElement {
   _getPositionValue() {
     const pos = this._editingBlock.position;
     return pos ? `${pos.row},${pos.col}` : '0,0';
-  }
-
-  _updateEntityOptions() {
-    this._entityOptions = this.availableEntities || [];
   }
 
   _preventClose(e) {
@@ -369,6 +373,6 @@ export class InlineBlockEditor extends LitElement {
   }
 }
 
-if (!customElements.get('inline-block-editor')) {
-  customElements.define('inline-block-editor', InlineBlockEditor);
+if (!customElements.get('inline-editor')) {
+  customElements.define('inline-editor', InlineEditor);
 }

@@ -63,7 +63,12 @@ export class BlockManager {
       id: blockId,
       type: type,
       content: '',
-      config: {},
+      config: {
+        blockType: 'content', // 默认内容区域
+        title: '',
+        icon: '',
+        background: ''
+      },
       position: { row: 0, col: 0 },
       order: 0
     };
@@ -80,7 +85,8 @@ export class BlockManager {
       entities[`${blockId}_order`] = String(index);
       entities[`${blockId}_position`] = JSON.stringify(block.position || { row: 0, col: 0 });
       
-      if (Object.keys(block.config || {}).length > 0) {
+      // 序列化配置
+      if (block.config && Object.keys(block.config).length > 0) {
         entities[`${blockId}_config`] = JSON.stringify(block.config);
       }
     });
@@ -92,20 +98,34 @@ export class BlockManager {
   static deserializeFromEntities(entities) {
     const blocks = [];
     
-    Object.entries(entities || {}).forEach(([key, value]) => {
+    if (!entities) return blocks;
+    
+    Object.entries(entities).forEach(([key, value]) => {
       if (key.endsWith('_type')) {
         const blockId = key.replace('_type', '');
         const configKey = `${blockId}_config`;
         const positionKey = `${blockId}_position`;
+        const orderKey = `${blockId}_order`;
         
         try {
+          const blockConfig = entities[configKey] ? JSON.parse(entities[configKey]) : {};
+          
+          // 确保配置有默认值
+          const config = {
+            blockType: 'content',
+            title: '',
+            icon: '',
+            background: '',
+            ...blockConfig
+          };
+          
           blocks.push({
             id: blockId,
             type: value,
             content: entities[blockId] || '',
-            config: entities[configKey] ? JSON.parse(entities[configKey]) : {},
+            config: config,
             position: entities[positionKey] ? JSON.parse(entities[positionKey]) : { row: 0, col: 0 },
-            order: parseInt(entities[`${blockId}_order`]) || 0
+            order: parseInt(entities[orderKey]) || 0
           });
         } catch (e) {
           console.warn(`解析内容块配置失败: ${blockId}`, e);
@@ -118,9 +138,11 @@ export class BlockManager {
 
   // 使用实时数据增强块
   static enrichWithRealtimeData(blocks, hass) {
+    if (!hass) return blocks;
+    
     return blocks.map(block => {
       if (block.type !== 'text' && block.content) {
-        const entity = hass?.states[block.content];
+        const entity = hass.states[block.content];
         if (entity) {
           block.realTimeData = {
             state: entity.state,
@@ -219,6 +241,12 @@ export class BlockManager {
       errors.push('内容不能为空');
     }
     
+    // 验证区域类型
+    const validBlockTypes = ['header', 'content', 'footer'];
+    if (block.config?.blockType && !validBlockTypes.includes(block.config.blockType)) {
+      errors.push('区域类型无效');
+    }
+    
     return {
       valid: errors.length === 0,
       errors
@@ -238,7 +266,12 @@ export class BlockManager {
       return `${state}${unit ? ' ' + unit : ''}`;
     }
     
-    return block.content ? `实体: ${block.content.split('.')[1] || block.content}` : '点击配置实体';
+    if (block.content) {
+      const entityName = block.content.split('.')[1] || block.content;
+      return `实体: ${entityName}`;
+    }
+    
+    return '点击配置';
   }
 
   // 更新块内容
@@ -273,13 +306,17 @@ export class BlockManager {
     }));
   }
 
-  // 获取下一个可用位置
+  // 获取下一个可用位置（仅用于内容区域块）
   static getNextPosition(blocks, layout) {
+    const contentBlocks = blocks.filter(block => 
+      !block.config?.blockType || block.config.blockType === 'content'
+    );
+    
     const grid = this.LAYOUT_PRESETS[layout] || this.LAYOUT_PRESETS['2x2'];
     
     for (let row = 0; row < grid.rows; row++) {
       for (let col = 0; col < grid.cols; col++) {
-        const isOccupied = blocks.some(block => 
+        const isOccupied = contentBlocks.some(block => 
           block.position?.row === row && block.position?.col === col
         );
         if (!isOccupied) {
@@ -312,10 +349,14 @@ export class BlockManager {
     return `${position.row},${position.col}`;
   }
 
-  // 检查位置是否可用
+  // 检查位置是否可用（仅用于内容区域块）
   static isPositionAvailable(blocks, position, excludeBlockId = null) {
-    return !blocks.some(block => 
-      block.id !== excludeBlockId && 
+    const contentBlocks = blocks.filter(block => 
+      (!block.config?.blockType || block.config.blockType === 'content') && 
+      block.id !== excludeBlockId
+    );
+    
+    return !contentBlocks.some(block => 
       block.position?.row === position.row && 
       block.position?.col === position.col
     );
@@ -323,10 +364,14 @@ export class BlockManager {
 
   // 获取块在网格中的统计信息
   static getGridStats(blocks, layout) {
+    const contentBlocks = blocks.filter(block => 
+      !block.config?.blockType || block.config.blockType === 'content'
+    );
+    
     const grid = this.LAYOUT_PRESETS[layout] || this.LAYOUT_PRESETS['2x2'];
     const usedPositions = new Set();
     
-    blocks.forEach(block => {
+    contentBlocks.forEach(block => {
       if (block.position) {
         usedPositions.add(`${block.position.row},${block.position.col}`);
       }
@@ -337,6 +382,9 @@ export class BlockManager {
     
     return {
       totalBlocks: blocks.length,
+      contentBlocks: contentBlocks.length,
+      headerBlocks: blocks.filter(b => b.config?.blockType === 'header').length,
+      footerBlocks: blocks.filter(b => b.config?.blockType === 'footer').length,
       usedPositions: usedPositions.size,
       totalPositions: totalPositions,
       usagePercent: usagePercent
@@ -375,7 +423,8 @@ export class BlockManager {
       content: block.content,
       config: block.config,
       position: block.position,
-      displayName: this.getBlockDisplayName(block)
+      displayName: this.getBlockDisplayName(block),
+      areaType: block.config?.blockType || 'content'
     }));
   }
 
@@ -385,9 +434,63 @@ export class BlockManager {
       id: data.id || `block_${Date.now()}`,
       type: data.type || 'text',
       content: data.content || '',
-      config: data.config || {},
+      config: {
+        blockType: 'content',
+        title: '',
+        icon: '',
+        background: '',
+        ...data.config
+      },
       position: data.position || { row: 0, col: 0 },
       order: data.order || 0
     }));
+  }
+
+  // 创建特定区域的块
+  static createHeaderBlock(content = '仪表盘标题', id = null) {
+    const block = this.createBlock('text', id);
+    block.config.blockType = 'header';
+    block.content = content;
+    return block;
+  }
+
+  static createFooterBlock(content = '页脚信息', id = null) {
+    const block = this.createBlock('text', id);
+    block.config.blockType = 'footer';
+    block.content = content;
+    return block;
+  }
+
+  static createContentBlock(type = 'text', position = { row: 0, col: 0 }, id = null) {
+    const block = this.createBlock(type, id);
+    block.config.blockType = 'content';
+    block.position = position;
+    return block;
+  }
+
+  // 检查块是否在内容区域
+  static isContentBlock(block) {
+    return !block.config?.blockType || block.config.blockType === 'content';
+  }
+
+  // 检查块是否在标题区域
+  static isHeaderBlock(block) {
+    return block.config?.blockType === 'header';
+  }
+
+  // 检查块是否在页脚区域
+  static isFooterBlock(block) {
+    return block.config?.blockType === 'footer';
+  }
+
+  // 获取区域显示名称
+  static getAreaDisplayName(block) {
+    const areaType = block.config?.blockType || 'content';
+    const names = {
+      'header': '标题区域',
+      'content': '内容区域',
+      'footer': '页脚区域'
+    };
+    return names[areaType];
   }
 }
