@@ -19,10 +19,8 @@ export class BlockManager {
       config: {
         blockType: 'content', // 默认内容区域
         title: '',
-        icon: '',
-        background: ''
+        icon: ''
       },
-      position: { row: 0, col: 0 },
       order: 0
     };
   }
@@ -42,10 +40,9 @@ export class BlockManager {
     return block;
   }
 
-  static createContentBlock(position = { row: 0, col: 0 }, id = null) {
+  static createContentBlock(id = null) {
     const block = this.createBlock(id);
     block.config.blockType = 'content';
-    block.position = position;
     return block;
   }
 
@@ -58,7 +55,6 @@ export class BlockManager {
       entities[blockId] = block.content || '';
       entities[`${blockId}_type`] = block.type;
       entities[`${blockId}_order`] = String(index);
-      entities[`${blockId}_position`] = JSON.stringify(block.position || { row: 0, col: 0 });
       
       // 序列化配置
       if (block.config && Object.keys(block.config).length > 0) {
@@ -79,7 +75,6 @@ export class BlockManager {
       if (key.endsWith('_type')) {
         const blockId = key.replace('_type', '');
         const configKey = `${blockId}_config`;
-        const positionKey = `${blockId}_position`;
         const orderKey = `${blockId}_order`;
         
         try {
@@ -90,7 +85,6 @@ export class BlockManager {
             blockType: 'content',
             title: '',
             icon: '',
-            background: '',
             ...blockConfig
           };
           
@@ -99,7 +93,6 @@ export class BlockManager {
             type: value,
             content: entities[blockId] || '',
             config: config,
-            position: entities[positionKey] ? JSON.parse(entities[positionKey]) : { row: 0, col: 0 },
             order: parseInt(entities[orderKey]) || 0
           });
         } catch (e) {
@@ -218,25 +211,28 @@ export class BlockManager {
     };
   }
 
-  // 获取块预览文本
-  static getBlockPreview(block) {
-    // 如果有实时数据，显示状态
-    if (block.realTimeData) {
-      const state = block.realTimeData.state;
-      const unit = block.realTimeData.attributes?.unit_of_measurement || '';
-      return `${state}${unit ? ' ' + unit : ''}`;
-    }
-    
-    // 如果有实体内容，显示实体信息
-    if (block.content) {
-      const entityName = block.content.split('.')[1] || block.content;
-      return `实体: ${entityName}`;
-    }
-    
-    // 文本块显示内容预览
-    const content = block.config?.title || block.content || '';
-    return content.substring(0, 30) + (content.length > 30 ? '...' : '');
+static getBlockPreview(block) {
+  // 如果有实时数据，显示状态
+  if (block.realTimeData) {
+    const state = block.realTimeData.state;
+    const unit = block.realTimeData.attributes?.unit_of_measurement || '';
+    return `${state}${unit ? ' ' + unit : ''}`;
   }
+  
+  // 如果有实体内容，显示实体名称（简化版）
+  if (block.content) {
+    // 只显示实体ID的最后一部分，去掉前缀
+    const entityParts = block.content.split('.');
+    const entityName = entityParts.length > 1 ? entityParts[1] : block.content;
+    
+    // 如果实体名称太长，截断显示
+    return entityName.length > 20 ? entityName.substring(0, 20) + '...' : entityName;
+  }
+  
+  // 文本块显示内容预览
+  const content = block.config?.title || block.content || '';
+  return content.substring(0, 30) + (content.length > 30 ? '...' : '');
+}
 
   // 验证块配置
   static validateBlock(block) {
@@ -286,91 +282,6 @@ export class BlockManager {
     }));
   }
 
-  // 获取下一个可用位置（仅用于内容区域块）
-  static getNextPosition(blocks, layout) {
-    const contentBlocks = blocks.filter(block => 
-      !block.config?.blockType || block.config.blockType === 'content'
-    );
-    
-    const grid = this.LAYOUT_PRESETS[layout] || this.LAYOUT_PRESETS['2x2'];
-    
-    for (let row = 0; row < grid.rows; row++) {
-      for (let col = 0; col < grid.cols; col++) {
-        const isOccupied = contentBlocks.some(block => 
-          block.position?.row === row && block.position?.col === col
-        );
-        if (!isOccupied) {
-          return { row, col };
-        }
-      }
-    }
-    
-    // 如果网格已满，返回第一个位置
-    return { row: 0, col: 0 };
-  }
-
-  // 获取所有可用位置
-  static getAllPositions(layout) {
-    const grid = this.LAYOUT_PRESETS[layout] || this.LAYOUT_PRESETS['2x2'];
-    const positions = [];
-    
-    for (let row = 0; row < grid.rows; row++) {
-      for (let col = 0; col < grid.cols; col++) {
-        positions.push({ row, col });
-      }
-    }
-    
-    return positions;
-  }
-
-  // 获取位置显示文本
-  static getPositionDisplay(position) {
-    if (!position) return '0,0';
-    return `${position.row},${position.col}`;
-  }
-
-  // 检查位置是否可用（仅用于内容区域块）
-  static isPositionAvailable(blocks, position, excludeBlockId = null) {
-    const contentBlocks = blocks.filter(block => 
-      (!block.config?.blockType || block.config.blockType === 'content') && 
-      block.id !== excludeBlockId
-    );
-    
-    return !contentBlocks.some(block => 
-      block.position?.row === position.row && 
-      block.position?.col === position.col
-    );
-  }
-
-  // 获取块在网格中的统计信息
-  static getGridStats(blocks, layout) {
-    const contentBlocks = blocks.filter(block => 
-      !block.config?.blockType || block.config.blockType === 'content'
-    );
-    
-    const grid = this.LAYOUT_PRESETS[layout] || this.LAYOUT_PRESETS['2x2'];
-    const usedPositions = new Set();
-    
-    contentBlocks.forEach(block => {
-      if (block.position) {
-        usedPositions.add(`${block.position.row},${block.position.col}`);
-      }
-    });
-    
-    const totalPositions = grid.rows * grid.cols;
-    const usagePercent = totalPositions > 0 ? Math.round((usedPositions.size / totalPositions) * 100) : 0;
-    
-    return {
-      totalBlocks: blocks.length,
-      contentBlocks: contentBlocks.length,
-      headerBlocks: blocks.filter(b => b.config?.blockType === 'header').length,
-      footerBlocks: blocks.filter(b => b.config?.blockType === 'footer').length,
-      usedPositions: usedPositions.size,
-      totalPositions: totalPositions,
-      usagePercent: usagePercent
-    };
-  }
-
   // 根据实体类型推荐块类型（现在统一使用 sensor）
   static suggestBlockType(entityId) {
     return 'sensor';
@@ -388,7 +299,6 @@ export class BlockManager {
       type: block.type,
       content: block.content,
       config: block.config,
-      position: block.position,
       displayName: this.getBlockDisplayName(block),
       areaType: block.config?.blockType || 'content'
     }));
@@ -404,10 +314,8 @@ export class BlockManager {
         blockType: 'content',
         title: '',
         icon: '',
-        background: '',
         ...data.config
       },
-      position: data.position || { row: 0, col: 0 },
       order: data.order || 0
     }));
   }
@@ -436,5 +344,93 @@ export class BlockManager {
       'footer': '页脚区域'
     };
     return names[areaType];
+  }
+
+  // 获取块统计信息（简化版）
+  static getBlockStats(blocks) {
+    return {
+      totalBlocks: blocks.length,
+      contentBlocks: blocks.filter(b => !b.config?.blockType || b.config.blockType === 'content').length,
+      headerBlocks: blocks.filter(b => b.config?.blockType === 'header').length,
+      footerBlocks: blocks.filter(b => b.config?.blockType === 'footer').length,
+      sensorBlocks: blocks.filter(b => b.content).length,
+      textBlocks: blocks.filter(b => !b.content).length
+    };
+  }
+
+  // 获取默认块配置
+  static getDefaultBlockConfig(blockType = 'content') {
+    return {
+      blockType: blockType,
+      title: '',
+      icon: ''
+    };
+  }
+
+  // 验证实体是否存在
+  static validateEntity(entityId, hass) {
+    if (!entityId || !hass) return false;
+    return !!hass.states[entityId];
+  }
+
+  // 获取实体状态
+  static getEntityState(entityId, hass, fallback = '未知') {
+    if (!entityId || !hass) return fallback;
+    const entity = hass.states[entityId];
+    return entity?.state || fallback;
+  }
+
+  // 清理块数据（移除空值）
+  static sanitizeBlock(block) {
+    const sanitized = { ...block };
+    
+    // 清理配置
+    if (sanitized.config) {
+      const cleanConfig = {};
+      Object.entries(sanitized.config).forEach(([key, value]) => {
+        if (value !== null && value !== undefined && value !== '') {
+          cleanConfig[key] = value;
+        }
+      });
+      sanitized.config = cleanConfig;
+    }
+    
+    return sanitized;
+  }
+
+  // 复制块
+  static duplicateBlock(block, newId = null) {
+    const blockId = newId || `block_${Date.now()}`;
+    return {
+      ...block,
+      id: blockId,
+      config: { ...block.config }
+    };
+  }
+
+  // 合并块配置
+  static mergeBlockConfigs(baseConfig, overrideConfig) {
+    return {
+      ...baseConfig,
+      ...overrideConfig
+    };
+  }
+
+  // 检查块是否为空
+  static isEmptyBlock(block) {
+    return !block.content && 
+           !block.config?.title && 
+           !block.config?.icon;
+  }
+
+  // 获取块类型颜色（用于可视化）
+  static getBlockTypeColor(block) {
+    const type = block.config?.blockType || 'content';
+    const colors = {
+      'header': '#4CAF50', // 绿色
+      'content': '#2196F3', // 蓝色
+      'footer': '#FF9800'  // 橙色
+    };
+    return colors[type] || '#9E9E9E';
   }
 }

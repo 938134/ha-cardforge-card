@@ -29,17 +29,22 @@ export class InlineEditor extends LitElement {
         gap: var(--cf-spacing-md);
       }
 
-      .config-field {
-        display: flex;
-        flex-direction: column;
-        gap: var(--cf-spacing-sm);
+      .form-row {
+        display: grid;
+        grid-template-columns: 25% 75%;
+        gap: var(--cf-spacing-md);
+        align-items: center;
       }
 
-      .config-label {
+      .form-label {
         font-weight: 500;
         font-size: 0.9em;
         color: var(--cf-text-primary);
-        margin-bottom: var(--cf-spacing-xs);
+        text-align: right;
+      }
+
+      .form-control {
+        width: 100%;
       }
 
       .form-actions {
@@ -83,6 +88,7 @@ export class InlineEditor extends LitElement {
         padding: var(--cf-spacing-sm);
         background: rgba(var(--cf-rgb-primary), 0.05);
         border-radius: var(--cf-radius-sm);
+        grid-column: 1 / -1;
       }
 
       .help-text {
@@ -90,9 +96,19 @@ export class InlineEditor extends LitElement {
         color: var(--cf-text-secondary);
         margin-top: 4px;
         line-height: 1.3;
+        grid-column: 1 / -1;
       }
 
       @media (max-width: 768px) {
+        .form-row {
+          grid-template-columns: 1fr;
+          gap: var(--cf-spacing-sm);
+        }
+
+        .form-label {
+          text-align: left;
+        }
+
         .form-actions {
           flex-direction: column;
         }
@@ -125,110 +141,78 @@ export class InlineEditor extends LitElement {
       { value: 'footer', label: '页脚区域' }
     ];
 
-    const gridConfig = BlockManager.LAYOUT_PRESETS[this.layout] || BlockManager.LAYOUT_PRESETS['2x2'];
-    const positionOptions = this._getPositionOptions(gridConfig);
-
     return html`
       <div class="inline-editor">
         <div class="editor-form">
           <!-- 区域类型 -->
-          <div class="config-field">
-            <label class="config-label">区域类型</label>
-            <ha-select
-              .value=${this._editingBlock.config?.blockType || 'content'}
-              @closed=${this._preventClose}
-              naturalMenuWidth
-              fixedMenuPosition
-              fullwidth
-            >
-              ${areaTypes.map(area => html`
-                <ha-list-item 
-                  .value=${area.value}
-                  @click=${() => this._updateConfig('blockType', area.value)}
-                >
-                  ${area.label}
-                </ha-list-item>
-              `)}
-            </ha-select>
-            <div class="help-text">
-              ${this._getAreaTypeHelpText(this._editingBlock.config?.blockType)}
-            </div>
-          </div>
-
-          <!-- 传感器选择 -->
-          <div class="config-field">
-            <label class="config-label">传感器</label>
-            <ha-combo-box
-              .items=${this.availableEntities}
-              .value=${this._editingBlock.content || ''}
-              @value-changed=${e => this._onEntitySelected(e.detail.value)}
-              placeholder="选择或输入实体ID"
-              allow-custom-value
-              fullwidth
-            ></ha-combo-box>
-            <div class="help-text">
-              选择实体显示传感器数据，留空则显示为文本块
-            </div>
-            ${this._renderEntityInfo()}
-          </div>
-
-          <!-- 显示名称 -->
-          <div class="config-field">
-            <label class="config-label">名称</label>
-            <ha-textfield
-              .value=${this._editingBlock.config?.title || ''}
-              @input=${e => this._updateConfig('title', e.target.value)}
-              placeholder="例如：室内温度"
-              fullwidth
-            ></ha-textfield>
-          </div>
-
-          <!-- 图标选择 -->
-          <div class="config-field">
-            <label class="config-label">图标</label>
-            <ha-icon-picker
-              .value=${this._editingBlock.config?.icon || ''}
-              @value-changed=${e => this._updateConfig('icon', e.detail.value)}
-              label="选择图标"
-              fullwidth
-            ></ha-icon-picker>
-          </div>
-
-          <!-- 网格位置（仅内容区域显示） -->
-          ${this._editingBlock.config?.blockType === 'content' ? html`
-            <div class="config-field">
-              <label class="config-label">网格位置</label>
+          <div class="form-row">
+            <label class="form-label">区域类型</label>
+            <div class="form-control">
               <ha-select
-                .value=${this._getPositionValue()}
+                .value=${this._editingBlock.config?.blockType || 'content'}
                 @closed=${this._preventClose}
                 naturalMenuWidth
                 fixedMenuPosition
                 fullwidth
               >
-                ${positionOptions.map(option => html`
+                ${areaTypes.map(area => html`
                   <ha-list-item 
-                    .value=${option.value}
-                    @click=${() => this._onPositionSelected(option.value)}
+                    .value=${area.value}
+                    @click=${() => this._updateConfig('blockType', area.value)}
                   >
-                    ${option.label}
+                    ${area.label}
                   </ha-list-item>
                 `)}
               </ha-select>
             </div>
-          ` : ''}
+          </div>
 
-          <!-- 背景颜色（仅内容区域显示） -->
-          ${this._editingBlock.config?.blockType === 'content' ? html`
-            <div class="config-field">
-              <label class="config-label">背景颜色</label>
+          <!-- 传感器选择 -->
+          <div class="form-row">
+            <label class="form-label">传感器</label>
+            <div class="form-control">
+              <ha-combo-box
+                .items=${this.availableEntities}
+                .value=${this._editingBlock.content || ''}
+                @value-changed=${e => this._onEntitySelected(e.detail.value)}
+                placeholder="选择或输入实体ID"
+                allow-custom-value
+                fullwidth
+              ></ha-combo-box>
+            </div>
+          </div>
+
+          ${this._editingBlock.content ? this._renderEntityInfo() : ''}
+
+          <!-- 显示名称 -->
+          <div class="form-row">
+            <label class="form-label">名称</label>
+            <div class="form-control">
               <ha-textfield
-                .value=${this._editingBlock.config?.background || ''}
-                @input=${e => this._updateConfig('background', e.target.value)}
-                placeholder="#f0f0f0 或 rgba(255,255,255,0.1)"
+                .value=${this._editingBlock.config?.title || ''}
+                @input=${e => this._updateConfig('title', e.target.value)}
+                placeholder="例如：室内温度"
                 fullwidth
               ></ha-textfield>
             </div>
-          ` : ''}
+          </div>
+
+          <!-- 图标选择 -->
+          <div class="form-row">
+            <label class="form-label">图标</label>
+            <div class="form-control">
+              <ha-icon-picker
+                .value=${this._editingBlock.config?.icon || ''}
+                @value-changed=${e => this._updateConfig('icon', e.detail.value)}
+                label="选择图标"
+                fullwidth
+              ></ha-icon-picker>
+            </div>
+          </div>
+
+          <div class="help-text">
+            选择实体显示传感器数据，留空则显示为文本块
+          </div>
 
           <div class="form-actions">
             <button class="action-btn" @click=${this._onCancel}>
@@ -241,15 +225,6 @@ export class InlineEditor extends LitElement {
         </div>
       </div>
     `;
-  }
-
-  _getAreaTypeHelpText(blockType) {
-    const helpTexts = {
-      'content': '显示在网格布局中的内容块',
-      'header': '显示在卡片顶部的标题区域',
-      'footer': '显示在卡片底部的页脚区域'
-    };
-    return helpTexts[blockType] || helpTexts.content;
   }
 
   _renderEntityInfo() {
@@ -269,24 +244,6 @@ export class InlineEditor extends LitElement {
         ` : ''}
       </div>
     `;
-  }
-
-  _getPositionOptions(gridConfig) {
-    const options = [];
-    for (let row = 0; row < gridConfig.rows; row++) {
-      for (let col = 0; col < gridConfig.cols; col++) {
-        options.push({
-          value: `${row},${col}`,
-          label: `位置 ${row},${col}`
-        });
-      }
-    }
-    return options;
-  }
-
-  _getPositionValue() {
-    const pos = this._editingBlock.position;
-    return pos ? `${pos.row},${pos.col}` : '0,0';
   }
 
   _preventClose(e) {
@@ -313,11 +270,6 @@ export class InlineEditor extends LitElement {
     }
   }
 
-  _onPositionSelected(positionValue) {
-    const [row, col] = positionValue.split(',').map(Number);
-    this._updatePosition(row, col);
-  }
-
   _updateBlock(key, value) {
     this._editingBlock = {
       ...this._editingBlock,
@@ -330,10 +282,6 @@ export class InlineEditor extends LitElement {
       ...this._editingBlock.config,
       [key]: value
     };
-  }
-
-  _updatePosition(row, col) {
-    this._editingBlock.position = { row, col };
   }
 
   _onSave() {
