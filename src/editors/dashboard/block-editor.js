@@ -6,6 +6,7 @@ import './inline-block-editor.js';
 
 export class BlockEditor extends LitElement {
   static properties = {
+    hass: { type: Object },
     blocks: { type: Array },
     availableEntities: { type: Array },
     layout: { type: String },
@@ -17,13 +18,6 @@ export class BlockEditor extends LitElement {
     css`
       .block-editor {
         width: 100%;
-      }
-
-      .section-title {
-        font-size: 1.1em;
-        font-weight: 600;
-        margin-bottom: var(--cf-spacing-md);
-        color: var(--cf-text-primary);
       }
 
       .blocks-list {
@@ -43,11 +37,13 @@ export class BlockEditor extends LitElement {
         gap: var(--cf-spacing-md);
         transition: all var(--cf-transition-fast);
         cursor: pointer;
+        position: relative;
       }
 
       .block-item:hover {
         border-color: var(--cf-primary-color);
         transform: translateY(-1px);
+        box-shadow: var(--cf-shadow-sm);
       }
 
       .block-item.editing {
@@ -56,11 +52,20 @@ export class BlockEditor extends LitElement {
       }
 
       .block-icon {
-        font-size: 1.2em;
-        opacity: 0.7;
-        width: 24px;
-        text-align: center;
+        width: 40px;
+        height: 40px;
+        border-radius: var(--cf-radius-md);
+        background: rgba(var(--cf-rgb-primary), 0.1);
+        display: flex;
+        align-items: center;
+        justify-content: center;
         flex-shrink: 0;
+        transition: all var(--cf-transition-fast);
+      }
+
+      .block-item:hover .block-icon {
+        background: rgba(var(--cf-rgb-primary), 0.2);
+        transform: scale(1.05);
       }
 
       .block-info {
@@ -68,31 +73,58 @@ export class BlockEditor extends LitElement {
         min-width: 0;
       }
 
+      .block-header {
+        display: flex;
+        align-items: center;
+        gap: var(--cf-spacing-sm);
+        margin-bottom: 4px;
+      }
+
       .block-title {
-        font-size: 0.9em;
-        font-weight: 500;
+        font-size: 0.95em;
+        font-weight: 600;
         color: var(--cf-text-primary);
-        margin-bottom: 2px;
+        line-height: 1.2;
       }
 
-      .block-preview {
-        font-size: 0.8em;
-        color: var(--cf-text-secondary);
-        opacity: 0.7;
-      }
-
-      .block-position {
+      .block-type {
         font-size: 0.7em;
         color: var(--cf-text-secondary);
         background: rgba(var(--cf-rgb-primary), 0.1);
         padding: 2px 6px;
         border-radius: var(--cf-radius-sm);
-        margin-top: 4px;
+      }
+
+      .block-preview {
+        font-size: 0.85em;
+        color: var(--cf-text-secondary);
+        line-height: 1.3;
+        margin-bottom: 4px;
+      }
+
+      .block-meta {
+        display: flex;
+        align-items: center;
+        gap: var(--cf-spacing-sm);
+        font-size: 0.75em;
+        color: var(--cf-text-secondary);
+      }
+
+      .block-position {
+        background: rgba(var(--cf-rgb-primary), 0.1);
+        padding: 2px 6px;
+        border-radius: var(--cf-radius-sm);
       }
 
       .block-actions {
         display: flex;
         gap: var(--cf-spacing-xs);
+        opacity: 0;
+        transition: opacity var(--cf-transition-fast);
+      }
+
+      .block-item:hover .block-actions {
+        opacity: 1;
       }
 
       .block-action {
@@ -112,6 +144,7 @@ export class BlockEditor extends LitElement {
         background: var(--cf-primary-color);
         color: white;
         border-color: var(--cf-primary-color);
+        transform: scale(1.1);
       }
 
       .inline-editor-container {
@@ -131,11 +164,14 @@ export class BlockEditor extends LitElement {
         align-items: center;
         justify-content: center;
         gap: var(--cf-spacing-sm);
+        font-weight: 500;
       }
 
       .add-block-btn:hover {
         border-color: var(--cf-primary-color);
         color: var(--cf-primary-color);
+        background: rgba(var(--cf-rgb-primary), 0.05);
+        transform: translateY(-1px);
       }
 
       .empty-state {
@@ -144,6 +180,13 @@ export class BlockEditor extends LitElement {
         color: var(--cf-text-secondary);
         border: 2px dashed var(--cf-border);
         border-radius: var(--cf-radius-md);
+        background: rgba(var(--cf-rgb-primary), 0.02);
+      }
+
+      .empty-icon {
+        font-size: 3em;
+        opacity: 0.5;
+        margin-bottom: var(--cf-spacing-md);
       }
     `
   ];
@@ -159,8 +202,6 @@ export class BlockEditor extends LitElement {
   render() {
     return html`
       <div class="block-editor">
-        <div class="section-title">内容块管理</div>
-        
         <div class="blocks-list">
           ${this.blocks.map((block, index) => this._renderBlockItem(block, index))}
           
@@ -168,7 +209,7 @@ export class BlockEditor extends LitElement {
         </div>
 
         <button class="add-block-btn" @click=${this._addBlock}>
-          <ha-icon icon="mdi:plus"></ha-icon>
+          <ha-icon icon="mdi:plus-circle"></ha-icon>
           添加内容块
         </button>
       </div>
@@ -177,25 +218,32 @@ export class BlockEditor extends LitElement {
 
   _renderBlockItem(block, index) {
     const isEditing = this._editingBlockId === block.id;
+    const customIcon = block.config?.icon;
     
     return html`
       <div class="block-item ${isEditing ? 'editing' : ''}" 
            @click=${() => this._editBlock(block)}>
-        <ha-icon class="block-icon" .icon=${BlockManager.getBlockIcon(block)}></ha-icon>
+        <div class="block-icon">
+          <ha-icon .icon=${customIcon || BlockManager.getBlockIcon(block)}></ha-icon>
+        </div>
         <div class="block-info">
-          <div class="block-title">${block.config?.title || BlockManager.getBlockDisplayName(block)}</div>
+          <div class="block-header">
+            <div class="block-title">${block.config?.title || BlockManager.getBlockDisplayName(block)}</div>
+            <div class="block-type">${BlockManager.getBlockDisplayName(block)}</div>
+          </div>
           <div class="block-preview">${BlockManager.getBlockPreview(block)}</div>
-          ${block.position ? html`
-            <div class="block-position">
-              位置: ${block.position.row},${block.position.col}
-            </div>
-          ` : ''}
+          <div class="block-meta">
+            <div class="block-position">位置: ${block.position?.row || 0},${block.position?.col || 0}</div>
+            ${block.type !== 'text' && block.content ? html`
+              <div>实体: ${block.content.split('.')[1] || block.content}</div>
+            ` : ''}
+          </div>
         </div>
         <div class="block-actions">
-          <div class="block-action" @click=${(e) => this._editBlock(e, block)}>
+          <div class="block-action" @click=${(e) => this._editBlock(e, block)} title="编辑">
             <ha-icon icon="mdi:pencil"></ha-icon>
           </div>
-          <div class="block-action" @click=${(e) => this._deleteBlock(e, block.id)}>
+          <div class="block-action" @click=${(e) => this._deleteBlock(e, block.id)} title="删除">
             <ha-icon icon="mdi:delete"></ha-icon>
           </div>
         </div>
@@ -204,6 +252,7 @@ export class BlockEditor extends LitElement {
       ${isEditing ? html`
         <div class="inline-editor-container">
           <inline-block-editor
+            .hass=${this.hass}
             .block=${block}
             .availableEntities=${this.availableEntities}
             .layout=${this.layout}
@@ -219,8 +268,9 @@ export class BlockEditor extends LitElement {
   _renderEmptyState() {
     return html`
       <div class="empty-state">
-        <ha-icon icon="mdi:package-variant" style="font-size: 2em; opacity: 0.5;"></ha-icon>
-        <div class="cf-text-sm cf-mt-md">点击"添加内容块"开始构建布局</div>
+        <ha-icon class="empty-icon" icon="mdi:view-grid-plus"></ha-icon>
+        <div class="cf-text-md cf-mb-sm">还没有内容块</div>
+        <div class="cf-text-sm cf-text-secondary">点击下方按钮添加第一个内容块</div>
       </div>
     `;
   }

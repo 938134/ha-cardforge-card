@@ -54,35 +54,6 @@ export class DashboardEditor extends LitElement {
         margin-bottom: var(--cf-spacing-md);
       }
 
-      .stats-bar {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        padding: var(--cf-spacing-sm) var(--cf-spacing-md);
-        background: var(--cf-surface);
-        border: 1px solid var(--cf-border);
-        border-radius: var(--cf-radius-md);
-        margin-bottom: var(--cf-spacing-md);
-      }
-
-      .stat-item {
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        gap: 2px;
-      }
-
-      .stat-value {
-        font-size: 1.1em;
-        font-weight: 600;
-        color: var(--cf-primary-color);
-      }
-
-      .stat-label {
-        font-size: 0.8em;
-        color: var(--cf-text-secondary);
-      }
-
       .config-field {
         display: flex;
         flex-direction: column;
@@ -97,11 +68,27 @@ export class DashboardEditor extends LitElement {
         margin-bottom: var(--cf-spacing-xs);
       }
 
-      @media (max-width: 768px) {
-        .stats-bar {
-          flex-direction: column;
-          gap: var(--cf-spacing-sm);
-        }
+      .switch-item {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: var(--cf-spacing-sm) var(--cf-spacing-md);
+        border: 1px solid var(--cf-border);
+        border-radius: var(--cf-radius-md);
+        background: var(--cf-surface);
+        transition: all var(--cf-transition-fast);
+        min-height: 52px;
+      }
+
+      .switch-item:hover {
+        border-color: var(--cf-primary-color);
+        background: rgba(var(--cf-rgb-primary), 0.03);
+      }
+
+      .switch-label {
+        font-size: 0.9em;
+        color: var(--cf-text-primary);
+        flex: 1;
       }
     `
   ];
@@ -132,37 +119,6 @@ export class DashboardEditor extends LitElement {
   render() {
     return html`
       <div class="dashboard-editor">
-        <!-- 统计信息 -->
-        ${this._renderStatsBar()}
-        
-        <!-- 基础设置 -->
-        <div class="editor-section">
-          <div class="section-header">
-            <ha-icon icon="mdi:tune"></ha-icon>
-            <span>基础设置</span>
-          </div>
-          
-          <div class="config-field">
-            <label class="config-label">卡片标题</label>
-            <ha-textfield
-              .value=${this._title}
-              @input=${e => this._onTitleChanged(e.target.value)}
-              placeholder="输入卡片标题"
-              fullwidth
-            ></ha-textfield>
-          </div>
-          
-          <div class="config-field">
-            <label class="config-label">页脚文本</label>
-            <ha-textfield
-              .value=${this._footer}
-              @input=${e => this._onFooterChanged(e.target.value)}
-              placeholder="输入页脚文本"
-              fullwidth
-            ></ha-textfield>
-          </div>
-        </div>
-
         <!-- 布局配置 -->
         <div class="editor-section">
           <div class="section-header">
@@ -177,6 +133,32 @@ export class DashboardEditor extends LitElement {
           ></layout-presets>
         </div>
 
+        <!-- 标题设置 -->
+        <div class="editor-section">
+          <div class="section-header">
+            <ha-icon icon="mdi:format-title"></ha-icon>
+            <span>标题设置</span>
+          </div>
+          
+          <div class="config-field">
+            <label class="config-label">卡片标题</label>
+            <ha-textfield
+              .value=${this._title}
+              @input=${e => this._onTitleChanged(e.target.value)}
+              placeholder="输入卡片标题"
+              fullwidth
+            ></ha-textfield>
+          </div>
+          
+          <div class="switch-item">
+            <span class="switch-label">显示标题</span>
+            <ha-switch
+              .checked=${!!this._title}
+              @change=${e => this._onTitleChanged(e.target.checked ? '仪表盘' : '')}
+            ></ha-switch>
+          </div>
+        </div>
+
         <!-- 内容块管理 -->
         <div class="editor-section">
           <div class="section-header">
@@ -185,12 +167,39 @@ export class DashboardEditor extends LitElement {
           </div>
           
           <block-editor
+            .hass=${this.hass}
             .blocks=${this._contentBlocks}
             .availableEntities=${this._availableEntities}
             .layout=${this._selectedLayout}
             @blocks-changed=${e => this._onBlocksChanged(e.detail.blocks)}
             @edit-block=${e => this._onEditBlock(e.detail.block)}
           ></block-editor>
+        </div>
+
+        <!-- 页脚设置 -->
+        <div class="editor-section">
+          <div class="section-header">
+            <ha-icon icon="mdi:page-layout-footer"></ha-icon>
+            <span>页脚设置</span>
+          </div>
+          
+          <div class="config-field">
+            <label class="config-label">页脚文本</label>
+            <ha-textfield
+              .value=${this._footer}
+              @input=${e => this._onFooterChanged(e.target.value)}
+              placeholder="输入页脚文本"
+              fullwidth
+            ></ha-textfield>
+          </div>
+          
+          <div class="switch-item">
+            <span class="switch-label">显示页脚</span>
+            <ha-switch
+              .checked=${!!this._footer}
+              @change=${e => this._onFooterChanged(e.target.checked ? '卡片工坊' : '')}
+            ></ha-switch>
+          </div>
         </div>
 
         <!-- 内联编辑器 -->
@@ -202,6 +211,7 @@ export class DashboardEditor extends LitElement {
             </div>
             
             <inline-block-editor
+              .hass=${this.hass}
               .block=${this._editingBlock}
               .availableEntities=${this._availableEntities}
               .layout=${this._selectedLayout}
@@ -211,41 +221,6 @@ export class DashboardEditor extends LitElement {
             ></inline-block-editor>
           </div>
         ` : ''}
-      </div>
-    `;
-  }
-
-  _renderStatsBar() {
-    const totalBlocks = this._contentBlocks.length;
-    const usedPositions = new Set();
-    this._contentBlocks.forEach(block => {
-      if (block.position) {
-        usedPositions.add(`${block.position.row},${block.position.col}`);
-      }
-    });
-    
-    const gridConfig = BlockManager.LAYOUT_PRESETS[this._selectedLayout];
-    const totalPositions = gridConfig.rows * gridConfig.cols;
-    const usagePercent = totalPositions > 0 ? Math.round((usedPositions.size / totalPositions) * 100) : 0;
-
-    return html`
-      <div class="stats-bar">
-        <div class="stat-item">
-          <div class="stat-value">${totalBlocks}</div>
-          <div class="stat-label">内容块</div>
-        </div>
-        <div class="stat-item">
-          <div class="stat-value">${usedPositions.size}/${totalPositions}</div>
-          <div class="stat-label">网格位置</div>
-        </div>
-        <div class="stat-item">
-          <div class="stat-value">${usagePercent}%</div>
-          <div class="stat-label">使用率</div>
-        </div>
-        <div class="stat-item">
-          <div class="stat-value">${this._selectedLayout}</div>
-          <div class="stat-label">当前布局</div>
-        </div>
       </div>
     `;
   }

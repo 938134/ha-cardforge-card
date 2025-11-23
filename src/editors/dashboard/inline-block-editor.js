@@ -5,13 +5,12 @@ import { BlockManager } from './block-manager.js';
 
 export class InlineBlockEditor extends LitElement {
   static properties = {
+    hass: { type: Object },
     block: { type: Object },
-    availableEntities: { type: Array },
+    availableEntities: { type: Object },
     layout: { type: String },
-    onSave: { type: Object },
-    onCancel: { type: Object },
     _editingBlock: { state: true },
-    hass: { type: Object }
+    _showIconPicker: { state: true }
   };
 
   static styles = [
@@ -45,6 +44,29 @@ export class InlineBlockEditor extends LitElement {
         color: var(--cf-text-primary);
       }
 
+      .icon-selector {
+        display: flex;
+        align-items: center;
+        gap: var(--cf-spacing-sm);
+      }
+
+      .icon-preview {
+        width: 40px;
+        height: 40px;
+        border-radius: var(--cf-radius-md);
+        background: rgba(var(--cf-rgb-primary), 0.1);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        transition: all var(--cf-transition-fast);
+      }
+
+      .icon-preview:hover {
+        background: rgba(var(--cf-rgb-primary), 0.2);
+        transform: scale(1.05);
+      }
+
       .position-selector {
         display: flex;
         gap: var(--cf-spacing-sm);
@@ -72,6 +94,8 @@ export class InlineBlockEditor extends LitElement {
         gap: var(--cf-spacing-sm);
         justify-content: flex-end;
         margin-top: var(--cf-spacing-md);
+        padding-top: var(--cf-spacing-md);
+        border-top: 1px solid var(--cf-border);
       }
 
       .action-btn {
@@ -81,8 +105,10 @@ export class InlineBlockEditor extends LitElement {
         background: var(--cf-surface);
         color: var(--cf-text-primary);
         cursor: pointer;
-        font-size: 0.8em;
+        font-size: 0.85em;
+        font-weight: 500;
         transition: all var(--cf-transition-fast);
+        min-width: 80px;
       }
 
       .action-btn.primary {
@@ -111,6 +137,10 @@ export class InlineBlockEditor extends LitElement {
         .form-actions {
           flex-direction: column;
         }
+        
+        .action-btn {
+          min-width: auto;
+        }
       }
     `
   ];
@@ -120,9 +150,8 @@ export class InlineBlockEditor extends LitElement {
     this.block = {};
     this.availableEntities = [];
     this.layout = '2x2';
-    this.onSave = () => {};
-    this.onCancel = () => {};
     this._editingBlock = {};
+    this._showIconPicker = false;
   }
 
   willUpdate(changedProperties) {
@@ -143,18 +172,14 @@ export class InlineBlockEditor extends LitElement {
       <div class="inline-editor">
         <div class="editor-form">
           <div class="form-row">
-            <label class="form-label">类型</label>
+            <label class="form-label">块类型</label>
             <ha-combo-box
               .items=${blockTypes}
               .value=${this._editingBlock.type || 'text'}
               @value-changed=${e => this._updateBlock('type', e.detail.value)}
               label="选择类型"
+              fullwidth
             ></ha-combo-box>
-          </div>
-
-          <div class="form-row">
-            <label class="form-label">${this._getContentLabel()}</label>
-            ${this._renderContentField()}
           </div>
 
           <div class="form-row">
@@ -164,11 +189,44 @@ export class InlineBlockEditor extends LitElement {
               @input=${e => this._updateConfig('title', e.target.value)}
               label="块标题"
               placeholder="例如：室内温度"
+              fullwidth
             ></ha-textfield>
           </div>
 
           <div class="form-row">
-            <label class="form-label">位置</label>
+            <label class="form-label">自定义图标</label>
+            <div class="icon-selector">
+              <div class="icon-preview" @click=${this._toggleIconPicker}>
+                <ha-icon .icon=${this._editingBlock.config?.icon || BlockManager.getBlockIcon(this._editingBlock)}></ha-icon>
+              </div>
+              <ha-textfield
+                .value=${this._editingBlock.config?.icon || ''}
+                @input=${e => this._updateConfig('icon', e.target.value)}
+                label="图标名称"
+                placeholder="例如：mdi:home"
+                fullwidth
+              ></ha-textfield>
+            </div>
+          </div>
+
+          ${this._showIconPicker ? html`
+            <div class="form-row">
+              <label class="form-label">选择图标</label>
+              <ha-icon-picker
+                .value=${this._editingBlock.config?.icon || ''}
+                @value-changed=${e => this._updateConfig('icon', e.detail.value)}
+                label="选择图标"
+              ></ha-icon-picker>
+            </div>
+          ` : ''}
+
+          <div class="form-row">
+            <label class="form-label">${this._getContentLabel()}</label>
+            ${this._renderContentField()}
+          </div>
+
+          <div class="form-row">
+            <label class="form-label">网格位置</label>
             <div class="position-selector">
               ${this._renderPositionOptions(gridConfig)}
             </div>
@@ -176,12 +234,13 @@ export class InlineBlockEditor extends LitElement {
 
           ${this._editingBlock.type === 'text' ? html`
             <div class="form-row">
-              <label class="form-label">背景色</label>
+              <label class="form-label">背景颜色</label>
               <ha-textfield
                 .value=${this._editingBlock.config?.background || ''}
                 @input=${e => this._updateConfig('background', e.target.value)}
                 label="背景颜色"
-                placeholder="#f0f0f0"
+                placeholder="#f0f0f0 或 rgba(255,255,255,0.1)"
+                fullwidth
               ></ha-textfield>
             </div>
           ` : ''}
@@ -204,9 +263,9 @@ export class InlineBlockEditor extends LitElement {
 
   _getContentLabel() {
     const labels = {
-      'text': '内容',
-      'sensor': '传感器',
-      'weather': '天气实体',
+      'text': '文本内容',
+      'sensor': '传感器实体',
+      'weather': '天气实体', 
       'switch': '开关实体'
     };
     return labels[this._editingBlock.type] || '内容';
@@ -218,20 +277,21 @@ export class InlineBlockEditor extends LitElement {
         <ha-textarea
           .value=${this._editingBlock.content || ''}
           @input=${e => this._updateBlock('content', e.target.value)}
-          label="输入内容"
+          label="输入文本内容"
           rows="3"
           fullwidth
         ></ha-textarea>
       `;
     } else {
       return html`
-        <ha-entity-picker
-          .hass=${this.hass}
+        <ha-combo-box
+          .items=${this.availableEntities}
           .value=${this._editingBlock.content || ''}
           @value-changed=${e => this._updateBlock('content', e.detail.value)}
           label="选择实体"
-          allow-custom-entity
-        ></ha-entity-picker>
+          allow-custom-value
+          fullwidth
+        ></ha-combo-box>
       `;
     }
   }
@@ -254,6 +314,10 @@ export class InlineBlockEditor extends LitElement {
       }
     }
     return options;
+  }
+
+  _toggleIconPicker() {
+    this._showIconPicker = !this._showIconPicker;
   }
 
   _updateBlock(key, value) {
@@ -279,12 +343,13 @@ export class InlineBlockEditor extends LitElement {
   }
 
   _onSave() {
-    this.onSave(this._editingBlock);
+    this.dispatchEvent(new CustomEvent('block-saved', {
+      detail: { block: this._editingBlock }
+    }));
   }
 
   _onDelete() {
     if (confirm('确定要删除这个内容块吗？')) {
-      // 触发删除逻辑
       this.dispatchEvent(new CustomEvent('block-deleted', {
         detail: { blockId: this.block.id }
       }));
@@ -292,7 +357,7 @@ export class InlineBlockEditor extends LitElement {
   }
 
   _onCancel() {
-    this.onCancel();
+    this.dispatchEvent(new CustomEvent('edit-cancelled'));
   }
 }
 
