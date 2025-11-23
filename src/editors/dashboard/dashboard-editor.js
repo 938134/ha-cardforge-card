@@ -12,13 +12,13 @@ export class DashboardEditor extends LitElement {
     config: { type: Object },
     pluginManifest: { type: Object },
     _contentBlocks: { state: true },
-    _selectedLayout: { state: true },
-    _editingBlock: { state: true },
-    _availableEntities: { state: true },
     _titleBlocks: { state: true },
     _footerBlocks: { state: true },
+    _selectedLayout: { state: true },
+    _editingBlock: { state: true },
     _editingTitleBlock: { state: true },
-    _editingFooterBlock: { state: true }
+    _editingFooterBlock: { state: true },
+    _availableEntities: { state: true }
   };
 
   static styles = [
@@ -67,6 +67,9 @@ export class DashboardEditor extends LitElement {
         cursor: pointer;
         font-size: 0.8em;
         transition: all var(--cf-transition-fast);
+        display: flex;
+        align-items: center;
+        gap: 4px;
       }
 
       .add-btn:hover {
@@ -74,12 +77,23 @@ export class DashboardEditor extends LitElement {
         transform: translateY(-1px);
       }
 
+      .special-blocks-container {
+        display: flex;
+        flex-direction: column;
+        gap: var(--cf-spacing-sm);
+      }
+
       .block-preview {
         background: var(--cf-background);
         border: 1px solid var(--cf-border);
         border-radius: var(--cf-radius-md);
         padding: var(--cf-spacing-md);
-        margin-top: var(--cf-spacing-sm);
+        transition: all var(--cf-transition-fast);
+      }
+
+      .block-preview.editing {
+        border-color: var(--cf-primary-color);
+        background: rgba(var(--cf-rgb-primary), 0.05);
       }
 
       .preview-header {
@@ -99,6 +113,7 @@ export class DashboardEditor extends LitElement {
         font-size: 0.85em;
         color: var(--cf-text-secondary);
         line-height: 1.4;
+        white-space: pre-wrap;
       }
 
       .preview-actions {
@@ -107,8 +122,8 @@ export class DashboardEditor extends LitElement {
       }
 
       .preview-action {
-        width: 24px;
-        height: 24px;
+        width: 28px;
+        height: 28px;
         border-radius: var(--cf-radius-sm);
         display: flex;
         align-items: center;
@@ -116,7 +131,7 @@ export class DashboardEditor extends LitElement {
         background: var(--cf-background);
         border: 1px solid var(--cf-border);
         cursor: pointer;
-        font-size: 0.7em;
+        font-size: 0.8em;
         transition: all var(--cf-transition-fast);
       }
 
@@ -128,11 +143,17 @@ export class DashboardEditor extends LitElement {
 
       .empty-state {
         text-align: center;
-        padding: var(--cf-spacing-lg);
+        padding: var(--cf-spacing-xl);
         color: var(--cf-text-secondary);
         border: 2px dashed var(--cf-border);
         border-radius: var(--cf-radius-md);
         background: rgba(var(--cf-rgb-primary), 0.02);
+      }
+
+      .empty-icon {
+        font-size: 2em;
+        opacity: 0.5;
+        margin-bottom: var(--cf-spacing-sm);
       }
     `
   ];
@@ -140,21 +161,31 @@ export class DashboardEditor extends LitElement {
   constructor() {
     super();
     this._contentBlocks = [];
-    this._selectedLayout = '2x2';
-    this._editingBlock = null;
-    this._availableEntities = [];
     this._titleBlocks = [];
     this._footerBlocks = [];
+    this._selectedLayout = '2x2';
+    this._editingBlock = null;
     this._editingTitleBlock = null;
     this._editingFooterBlock = null;
+    this._availableEntities = [];
   }
 
   willUpdate(changedProperties) {
     if (changedProperties.has('config')) {
-      this._contentBlocks = BlockManager.deserializeFromEntities(this.config.entities);
+      const allBlocks = BlockManager.deserializeFromEntities(this.config.entities);
+      
+      // 分离不同类型的块
+      this._contentBlocks = allBlocks.filter(block => 
+        !block.config?.blockType || block.config.blockType === 'content'
+      );
+      this._titleBlocks = allBlocks.filter(block => 
+        block.config?.blockType === 'title'
+      );
+      this._footerBlocks = allBlocks.filter(block => 
+        block.config?.blockType === 'footer'
+      );
+      
       this._selectedLayout = this.config.layout || '2x2';
-      this._titleBlocks = this._extractSpecialBlocks('title');
-      this._footerBlocks = this._extractSpecialBlocks('footer');
     }
     
     if (changedProperties.has('hass') && this.hass) {
@@ -187,23 +218,26 @@ export class DashboardEditor extends LitElement {
               <ha-icon icon="mdi:format-title"></ha-icon>
               <span>标题设置</span>
             </div>
-            <button class="add-btn" @click=${() => this._addTitleBlock()}>
-              <ha-icon icon="mdi:plus"></ha-icon>
-              添加
-            </button>
+            ${this._titleBlocks.length === 0 ? html`
+              <button class="add-btn" @click=${this._addTitleBlock}>
+                <ha-icon icon="mdi:plus"></ha-icon>
+                添加标题
+              </button>
+            ` : ''}
           </div>
           
           ${this._titleBlocks.length > 0 ? html`
-            ${this._titleBlocks.map(block => html`
-              ${this._editingTitleBlock?.id === block.id ? 
-                this._renderTitleBlockEditor(block) : 
-                this._renderTitleBlockPreview(block)
-              }
-            `)}
+            <div class="special-blocks-container">
+              ${this._titleBlocks.map(block => 
+                this._editingTitleBlock?.id === block.id ? 
+                  this._renderTitleEditor(block) : 
+                  this._renderTitlePreview(block)
+              )}
+            </div>
           ` : html`
             <div class="empty-state">
-              <ha-icon icon="mdi:format-title" style="font-size: 2em; opacity: 0.5;"></ha-icon>
-              <div class="cf-text-sm cf-mt-sm">暂无标题内容</div>
+              <ha-icon class="empty-icon" icon="mdi:format-title"></ha-icon>
+              <div class="cf-text-sm">暂无标题内容</div>
             </div>
           `}
         </div>
@@ -215,6 +249,10 @@ export class DashboardEditor extends LitElement {
               <ha-icon icon="mdi:cube"></ha-icon>
               <span>内容块管理</span>
             </div>
+            <button class="add-btn" @click=${this._addContentBlock}>
+              <ha-icon icon="mdi:plus"></ha-icon>
+              添加内容块
+            </button>
           </div>
           
           <block-editor
@@ -222,7 +260,7 @@ export class DashboardEditor extends LitElement {
             .blocks=${this._contentBlocks}
             .availableEntities=${this._availableEntities}
             .layout=${this._selectedLayout}
-            @blocks-changed=${e => this._onBlocksChanged(e.detail.blocks)}
+            @blocks-changed=${e => this._onContentBlocksChanged(e.detail.blocks)}
             @edit-block=${e => this._onEditBlock(e.detail.block)}
           ></block-editor>
         </div>
@@ -234,23 +272,26 @@ export class DashboardEditor extends LitElement {
               <ha-icon icon="mdi:page-layout-footer"></ha-icon>
               <span>页脚设置</span>
             </div>
-            <button class="add-btn" @click=${() => this._addFooterBlock()}>
-              <ha-icon icon="mdi:plus"></ha-icon>
-              添加
-            </button>
+            ${this._footerBlocks.length === 0 ? html`
+              <button class="add-btn" @click=${this._addFooterBlock}>
+                <ha-icon icon="mdi:plus"></ha-icon>
+                添加页脚
+              </button>
+            ` : ''}
           </div>
           
           ${this._footerBlocks.length > 0 ? html`
-            ${this._footerBlocks.map(block => html`
-              ${this._editingFooterBlock?.id === block.id ? 
-                this._renderFooterBlockEditor(block) : 
-                this._renderFooterBlockPreview(block)
-              }
-            `)}
+            <div class="special-blocks-container">
+              ${this._footerBlocks.map(block => 
+                this._editingFooterBlock?.id === block.id ? 
+                  this._renderFooterEditor(block) : 
+                  this._renderFooterPreview(block)
+              )}
+            </div>
           ` : html`
             <div class="empty-state">
-              <ha-icon icon="mdi:page-layout-footer" style="font-size: 2em; opacity: 0.5;"></ha-icon>
-              <div class="cf-text-sm cf-mt-sm">暂无页脚内容</div>
+              <ha-icon class="empty-icon" icon="mdi:page-layout-footer"></ha-icon>
+              <div class="cf-text-sm">暂无页脚内容</div>
             </div>
           `}
         </div>
@@ -268,8 +309,8 @@ export class DashboardEditor extends LitElement {
               .block=${this._editingBlock}
               .availableEntities=${this._availableEntities}
               .layout=${this._selectedLayout}
-              @block-saved=${e => this._saveBlock(e.detail.block)}
-              @edit-cancelled=${() => this._cancelEdit()}
+              @block-saved=${e => this._saveContentBlock(e.detail.block)}
+              @edit-cancelled=${() => this._cancelEditContentBlock()}
             ></inline-block-editor>
           </div>
         ` : ''}
@@ -277,7 +318,7 @@ export class DashboardEditor extends LitElement {
     `;
   }
 
-  _renderTitleBlockPreview(block) {
+  _renderTitlePreview(block) {
     return html`
       <div class="block-preview">
         <div class="preview-header">
@@ -291,12 +332,12 @@ export class DashboardEditor extends LitElement {
             </div>
           </div>
         </div>
-        <div class="preview-content">${block.content || '空内容'}</div>
+        <div class="preview-content">${block.content || '空标题'}</div>
       </div>
     `;
   }
 
-  _renderFooterBlockPreview(block) {
+  _renderFooterPreview(block) {
     return html`
       <div class="block-preview">
         <div class="preview-header">
@@ -310,14 +351,14 @@ export class DashboardEditor extends LitElement {
             </div>
           </div>
         </div>
-        <div class="preview-content">${block.content || '空内容'}</div>
+        <div class="preview-content">${block.content || '空页脚'}</div>
       </div>
     `;
   }
 
-  _renderTitleBlockEditor(block) {
+  _renderTitleEditor(block) {
     return html`
-      <div class="block-preview" style="border-color: var(--cf-primary-color);">
+      <div class="block-preview editing">
         <div class="preview-header">
           <div class="preview-title">编辑标题内容</div>
           <div class="preview-actions">
@@ -340,9 +381,9 @@ export class DashboardEditor extends LitElement {
     `;
   }
 
-  _renderFooterBlockEditor(block) {
+  _renderFooterEditor(block) {
     return html`
-      <div class="block-preview" style="border-color: var(--cf-primary-color);">
+      <div class="block-preview editing">
         <div class="preview-header">
           <div class="preview-title">编辑页脚内容</div>
           <div class="preview-actions">
@@ -365,28 +406,31 @@ export class DashboardEditor extends LitElement {
     `;
   }
 
-  _extractSpecialBlocks(type) {
-    return this._contentBlocks.filter(block => block.config?.blockType === type);
-  }
-
   _addTitleBlock() {
     const newBlock = BlockManager.createBlock('text', `title_${Date.now()}`);
     newBlock.config = { ...newBlock.config, blockType: 'title' };
     newBlock.content = '仪表盘标题';
-    this._contentBlocks = [...this._contentBlocks, newBlock];
-    this._titleBlocks = this._extractSpecialBlocks('title');
-    this._onBlocksChanged(this._contentBlocks);
+    this._titleBlocks = [newBlock];
     this._editingTitleBlock = newBlock;
+    this._saveAllBlocks();
   }
 
   _addFooterBlock() {
     const newBlock = BlockManager.createBlock('text', `footer_${Date.now()}`);
     newBlock.config = { ...newBlock.config, blockType: 'footer' };
     newBlock.content = '页脚信息';
-    this._contentBlocks = [...this._contentBlocks, newBlock];
-    this._footerBlocks = this._extractSpecialBlocks('footer');
-    this._onBlocksChanged(this._contentBlocks);
+    this._footerBlocks = [newBlock];
     this._editingFooterBlock = newBlock;
+    this._saveAllBlocks();
+  }
+
+  _addContentBlock() {
+    const newBlock = BlockManager.createBlock('text');
+    newBlock.config = { ...newBlock.config, blockType: 'content' };
+    newBlock.position = BlockManager.getNextPosition(this._contentBlocks, this._selectedLayout);
+    this._contentBlocks = [...this._contentBlocks, newBlock];
+    this._saveAllBlocks();
+    this._editingBlock = newBlock;
   }
 
   _editTitleBlock(block) {
@@ -398,42 +442,46 @@ export class DashboardEditor extends LitElement {
   }
 
   _updateTitleBlockContent(blockId, content) {
-    this._contentBlocks = this._contentBlocks.map(block =>
+    this._titleBlocks = this._titleBlocks.map(block =>
       block.id === blockId ? { ...block, content } : block
     );
-    this._titleBlocks = this._extractSpecialBlocks('title');
   }
 
   _updateFooterBlockContent(blockId, content) {
-    this._contentBlocks = this._contentBlocks.map(block =>
+    this._footerBlocks = this._footerBlocks.map(block =>
       block.id === blockId ? { ...block, content } : block
     );
-    this._footerBlocks = this._extractSpecialBlocks('footer');
   }
 
   _saveTitleBlock(block) {
     this._editingTitleBlock = null;
-    this._onBlocksChanged(this._contentBlocks);
+    this._saveAllBlocks();
   }
 
   _saveFooterBlock(block) {
     this._editingFooterBlock = null;
-    this._onBlocksChanged(this._contentBlocks);
+    this._saveAllBlocks();
+  }
+
+  _saveContentBlock(updatedBlock) {
+    this._contentBlocks = this._contentBlocks.map(block => 
+      block.id === updatedBlock.id ? updatedBlock : block
+    );
+    this._editingBlock = null;
+    this._saveAllBlocks();
   }
 
   _deleteTitleBlock(blockId) {
     if (confirm('确定要删除这个标题块吗？')) {
-      this._contentBlocks = this._contentBlocks.filter(block => block.id !== blockId);
-      this._titleBlocks = this._extractSpecialBlocks('title');
-      this._onBlocksChanged(this._contentBlocks);
+      this._titleBlocks = this._titleBlocks.filter(block => block.id !== blockId);
+      this._saveAllBlocks();
     }
   }
 
   _deleteFooterBlock(blockId) {
     if (confirm('确定要删除这个页脚块吗？')) {
-      this._contentBlocks = this._contentBlocks.filter(block => block.id !== blockId);
-      this._footerBlocks = this._extractSpecialBlocks('footer');
-      this._onBlocksChanged(this._contentBlocks);
+      this._footerBlocks = this._footerBlocks.filter(block => block.id !== blockId);
+      this._saveAllBlocks();
     }
   }
 
@@ -443,6 +491,22 @@ export class DashboardEditor extends LitElement {
 
   _cancelEditFooterBlock() {
     this._editingFooterBlock = null;
+  }
+
+  _cancelEditContentBlock() {
+    this._editingBlock = null;
+  }
+
+  _saveAllBlocks() {
+    const allBlocks = [
+      ...this._titleBlocks,
+      ...this._contentBlocks,
+      ...this._footerBlocks
+    ];
+    const entities = BlockManager.serializeToEntities(allBlocks);
+    this.dispatchEvent(new CustomEvent('entities-changed', {
+      detail: { entities }
+    }));
   }
 
   _updateAvailableEntities() {
@@ -466,28 +530,13 @@ export class DashboardEditor extends LitElement {
     }));
   }
 
-  _onBlocksChanged(blocks) {
+  _onContentBlocksChanged(blocks) {
     this._contentBlocks = blocks;
-    const entities = BlockManager.serializeToEntities(blocks);
-    this.dispatchEvent(new CustomEvent('entities-changed', {
-      detail: { entities }
-    }));
+    this._saveAllBlocks();
   }
 
   _onEditBlock(block) {
     this._editingBlock = block;
-  }
-
-  _saveBlock(updatedBlock) {
-    this._contentBlocks = this._contentBlocks.map(block => 
-      block.id === updatedBlock.id ? updatedBlock : block
-    );
-    this._editingBlock = null;
-    this._onBlocksChanged(this._contentBlocks);
-  }
-
-  _cancelEdit() {
-    this._editingBlock = null;
   }
 }
 

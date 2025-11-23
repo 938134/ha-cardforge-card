@@ -128,8 +128,8 @@ export class BlockEditor extends LitElement {
       }
 
       .block-action {
-        width: 32px;
-        height: 32px;
+        width: 28px;
+        height: 28px;
         border-radius: var(--cf-radius-sm);
         display: flex;
         align-items: center;
@@ -149,29 +149,6 @@ export class BlockEditor extends LitElement {
 
       .inline-editor-container {
         margin: var(--cf-spacing-sm) 0;
-      }
-
-      .add-block-btn {
-        width: 100%;
-        padding: var(--cf-spacing-lg);
-        border: 2px dashed var(--cf-border);
-        border-radius: var(--cf-radius-md);
-        background: transparent;
-        color: var(--cf-text-secondary);
-        cursor: pointer;
-        transition: all var(--cf-transition-fast);
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        gap: var(--cf-spacing-sm);
-        font-weight: 500;
-      }
-
-      .add-block-btn:hover {
-        border-color: var(--cf-primary-color);
-        color: var(--cf-primary-color);
-        background: rgba(var(--cf-rgb-primary), 0.05);
-        transform: translateY(-1px);
       }
 
       .empty-state {
@@ -207,11 +184,6 @@ export class BlockEditor extends LitElement {
           
           ${this.blocks.length === 0 ? this._renderEmptyState() : ''}
         </div>
-
-        <button class="add-block-btn" @click=${this._addBlock}>
-          <ha-icon icon="mdi:plus-circle"></ha-icon>
-          添加内容块
-        </button>
       </div>
     `;
   }
@@ -258,7 +230,6 @@ export class BlockEditor extends LitElement {
             .layout=${this.layout}
             @block-saved=${e => this._saveBlock(e.detail.block)}
             @edit-cancelled=${() => this._cancelEdit()}
-            @block-deleted=${e => this._deleteBlock(null, e.detail.blockId)}
           ></inline-block-editor>
         </div>
       ` : ''}
@@ -270,16 +241,9 @@ export class BlockEditor extends LitElement {
       <div class="empty-state">
         <ha-icon class="empty-icon" icon="mdi:view-grid-plus"></ha-icon>
         <div class="cf-text-md cf-mb-sm">还没有内容块</div>
-        <div class="cf-text-sm cf-text-secondary">点击下方按钮添加第一个内容块</div>
+        <div class="cf-text-sm cf-text-secondary">在仪表盘编辑器中添加内容块</div>
       </div>
     `;
-  }
-
-  _addBlock() {
-    const newBlock = BlockManager.createBlock('text');
-    newBlock.position = BlockManager.getNextPosition(this.blocks, this.layout);
-    this.blocks = [...this.blocks, newBlock];
-    this._notifyBlocksChanged();
   }
 
   _editBlock(e, block) {
