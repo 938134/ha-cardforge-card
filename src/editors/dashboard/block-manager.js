@@ -1,37 +1,20 @@
 // src/editors/dashboard/block-manager.js
 export class BlockManager {
-  // 块类型定义 - 精简为两种类型
-  static BLOCK_TYPES = {
-    text: { 
-      name: '文本块', 
-      icon: 'mdi:text',
-      editor: 'text'
-    },
-    sensor: { 
-      name: '传感器块', 
-      icon: 'mdi:gauge',
-      editor: 'entity'
-    }
-  };
-
   // 布局预设
   static LAYOUT_PRESETS = {
     '1x1': { rows: 1, cols: 1, name: '单块' },
     '1x2': { rows: 1, cols: 2, name: '横向双块' },
-    '1x3': { rows: 1, cols: 3, name: '横向三块' },
-    '1x4': { rows: 1, cols: 4, name: '横向四块' },
     '2x2': { rows: 2, cols: 2, name: '四宫格' },
     '2x3': { rows: 2, cols: 3, name: '六块网格' },
-    '3x3': { rows: 3, cols: 3, name: '九宫格' },
-    'free': { rows: 4, cols: 4, name: '自由网格' }
+    '3x3': { rows: 3, cols: 3, name: '九宫格' }
   };
 
   // 创建新块
-  static createBlock(type = 'text', id = null) {
+  static createBlock(id = null) {
     const blockId = id || `block_${Date.now()}`;
     return {
       id: blockId,
-      type: type,
+      type: 'sensor', // 统一使用 sensor 类型
       content: '',
       config: {
         blockType: 'content', // 默认内容区域
@@ -42,6 +25,28 @@ export class BlockManager {
       position: { row: 0, col: 0 },
       order: 0
     };
+  }
+
+  // 创建特定区域的块
+  static createHeaderBlock(content = '仪表盘标题', id = null) {
+    const block = this.createBlock(id);
+    block.config.blockType = 'header';
+    block.content = content;
+    return block;
+  }
+
+  static createFooterBlock(content = '页脚信息', id = null) {
+    const block = this.createBlock(id);
+    block.config.blockType = 'footer';
+    block.content = content;
+    return block;
+  }
+
+  static createContentBlock(position = { row: 0, col: 0 }, id = null) {
+    const block = this.createBlock(id);
+    block.config.blockType = 'content';
+    block.position = position;
+    return block;
   }
 
   // 序列化块到实体
@@ -111,7 +116,7 @@ export class BlockManager {
     if (!hass) return blocks;
     
     return blocks.map(block => {
-      if (block.type !== 'text' && block.content) {
+      if (block.content) {
         const entity = hass.states[block.content];
         if (entity) {
           block.realTimeData = {
@@ -127,14 +132,28 @@ export class BlockManager {
 
   // 获取块显示名称
   static getBlockDisplayName(block) {
-    const typeInfo = this.BLOCK_TYPES[block.type];
-    return typeInfo?.name || '内容块';
+    // 根据是否有内容来判断是传感器还是文本块
+    if (block.content) {
+      return '传感器块';
+    } else {
+      return '文本块';
+    }
   }
 
   // 获取块图标
-  static getBlockIcon(block) {
-    const typeInfo = this.BLOCK_TYPES[block.type];
-    return typeInfo?.icon || 'mdi:cube';
+  static getBlockIcon(block, hass = null) {
+    // 如果有自定义图标，使用自定义图标
+    if (block.config?.icon) {
+      return block.config.icon;
+    }
+    
+    // 如果有实体内容，使用实体图标
+    if (block.content && hass) {
+      return this.getEntityIcon(block.content, hass);
+    }
+    
+    // 默认图标
+    return block.content ? 'mdi:gauge' : 'mdi:text';
   }
 
   // 根据实体ID获取图标
@@ -199,17 +218,29 @@ export class BlockManager {
     };
   }
 
+  // 获取块预览文本
+  static getBlockPreview(block) {
+    // 如果有实时数据，显示状态
+    if (block.realTimeData) {
+      const state = block.realTimeData.state;
+      const unit = block.realTimeData.attributes?.unit_of_measurement || '';
+      return `${state}${unit ? ' ' + unit : ''}`;
+    }
+    
+    // 如果有实体内容，显示实体信息
+    if (block.content) {
+      const entityName = block.content.split('.')[1] || block.content;
+      return `实体: ${entityName}`;
+    }
+    
+    // 文本块显示内容预览
+    const content = block.config?.title || block.content || '';
+    return content.substring(0, 30) + (content.length > 30 ? '...' : '');
+  }
+
   // 验证块配置
   static validateBlock(block) {
     const errors = [];
-    
-    if (!block.type) {
-      errors.push('块类型不能为空');
-    }
-    
-    if (!block.content && block.type !== 'text') {
-      errors.push('内容不能为空');
-    }
     
     // 验证区域类型
     const validBlockTypes = ['header', 'content', 'footer'];
@@ -221,27 +252,6 @@ export class BlockManager {
       valid: errors.length === 0,
       errors
     };
-  }
-
-  // 获取块预览文本
-  static getBlockPreview(block) {
-    if (block.type === 'text') {
-      const content = block.content || '';
-      return content.substring(0, 30) + (content.length > 30 ? '...' : '');
-    }
-    
-    if (block.realTimeData) {
-      const state = block.realTimeData.state;
-      const unit = block.realTimeData.attributes?.unit_of_measurement || '';
-      return `${state}${unit ? ' ' + unit : ''}`;
-    }
-    
-    if (block.content) {
-      const entityName = block.content.split('.')[1] || block.content;
-      return `实体: ${entityName}`;
-    }
-    
-    return '点击配置';
   }
 
   // 更新块内容
@@ -361,28 +371,14 @@ export class BlockManager {
     };
   }
 
-  // 根据实体类型推荐块类型
+  // 根据实体类型推荐块类型（现在统一使用 sensor）
   static suggestBlockType(entityId) {
-    if (!entityId) return 'text';
-    
-    const entityType = entityId.split('.')[0];
-    const typeMap = {
-      'sensor': 'sensor',
-      'binary_sensor': 'sensor',
-      'weather': 'sensor',
-      'switch': 'sensor',
-      'light': 'sensor',
-      'climate': 'sensor',
-      'cover': 'sensor',
-      'media_player': 'sensor'
-    };
-    
-    return typeMap[entityType] || 'sensor';
+    return 'sensor';
   }
 
   // 获取所有支持的实体类型
   static getSupportedEntityTypes() {
-    return Object.keys(this.BLOCK_TYPES).filter(type => type !== 'text');
+    return ['sensor']; // 现在只支持 sensor 类型
   }
 
   // 导出块配置为可读格式（用于调试）
@@ -402,7 +398,7 @@ export class BlockManager {
   static importBlocks(blockData) {
     return blockData.map(data => ({
       id: data.id || `block_${Date.now()}`,
-      type: data.type || 'text',
+      type: 'sensor', // 统一使用 sensor 类型
       content: data.content || '',
       config: {
         blockType: 'content',
@@ -414,28 +410,6 @@ export class BlockManager {
       position: data.position || { row: 0, col: 0 },
       order: data.order || 0
     }));
-  }
-
-  // 创建特定区域的块
-  static createHeaderBlock(content = '仪表盘标题', id = null) {
-    const block = this.createBlock('text', id);
-    block.config.blockType = 'header';
-    block.content = content;
-    return block;
-  }
-
-  static createFooterBlock(content = '页脚信息', id = null) {
-    const block = this.createBlock('text', id);
-    block.config.blockType = 'footer';
-    block.content = content;
-    return block;
-  }
-
-  static createContentBlock(type = 'text', position = { row: 0, col: 0 }, id = null) {
-    const block = this.createBlock(type, id);
-    block.config.blockType = 'content';
-    block.position = position;
-    return block;
   }
 
   // 检查块是否在内容区域

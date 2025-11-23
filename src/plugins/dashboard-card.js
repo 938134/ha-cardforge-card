@@ -291,34 +291,25 @@ class DashboardCard extends BasePlugin {
   }
 
   _renderBlockContent(block, hass) {
-    switch (block.type) {
-      case 'text':
-        return `<div class="block-text">${block.content || ''}</div>`;
-        
-      case 'sensor':
-        if (block.realTimeData) {
-          const state = this._formatState(block.realTimeData.state, block.type);
-          const unit = block.realTimeData.attributes?.unit_of_measurement || '';
-          return `
-            <div class="block-value">${state}</div>
-            ${unit ? `<div class="block-unit">${unit}</div>` : ''}
-          `;
-        }
-        return `<div class="block-placeholder">${block.content || '未配置'}</div>`;
-        
-      default:
-        return `<div class="block-placeholder">未知类型</div>`;
+    // 统一处理逻辑：有实体内容显示传感器数据，否则显示文本
+    if (block.content && block.realTimeData) {
+      // 传感器模式
+      const state = this._formatState(block.realTimeData.state);
+      const unit = block.realTimeData.attributes?.unit_of_measurement || '';
+      return `
+        <div class="block-value">${state}</div>
+        ${unit ? `<div class="block-unit">${unit}</div>` : ''}
+      `;
+    } else {
+      // 文本模式：优先显示配置的标题，其次显示内容
+      const displayText = block.config?.title || block.content || '';
+      return `<div class="block-text">${displayText}</div>`;
     }
   }
-
-  _formatState(state, type) {
-    // 对特定类型的状态进行格式化
-    switch (type) {
-      case 'sensor':
-        return state;
-      default:
-        return state;
-    }
+  
+  // 简化状态格式化
+  _formatState(state) {
+    return state;
   }
 }
 

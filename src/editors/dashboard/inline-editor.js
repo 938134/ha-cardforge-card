@@ -85,6 +85,13 @@ export class InlineEditor extends LitElement {
         border-radius: var(--cf-radius-sm);
       }
 
+      .help-text {
+        font-size: 0.8em;
+        color: var(--cf-text-secondary);
+        margin-top: 4px;
+        line-height: 1.3;
+      }
+
       @media (max-width: 768px) {
         .form-actions {
           flex-direction: column;
@@ -112,11 +119,6 @@ export class InlineEditor extends LitElement {
   }
 
   render() {
-    const blockTypes = [
-      { value: 'text', label: '文本块' },
-      { value: 'sensor', label: '传感器块' }
-    ];
-
     const areaTypes = [
       { value: 'content', label: '内容区域' },
       { value: 'header', label: '标题区域' },
@@ -129,25 +131,7 @@ export class InlineEditor extends LitElement {
     return html`
       <div class="inline-editor">
         <div class="editor-form">
-          <div class="config-field">
-            <label class="config-label">块类型</label>
-            <ha-select
-              .value=${this._editingBlock.type || 'text'}
-              @closed=${this._preventClose}
-              naturalMenuWidth
-              fixedMenuPosition
-            >
-              ${blockTypes.map(type => html`
-                <ha-list-item 
-                  .value=${type.value}
-                  @click=${() => this._updateBlock('type', type.value)}
-                >
-                  ${type.label}
-                </ha-list-item>
-              `)}
-            </ha-select>
-          </div>
-
+          <!-- 区域类型 -->
           <div class="config-field">
             <label class="config-label">区域类型</label>
             <ha-select
@@ -155,6 +139,7 @@ export class InlineEditor extends LitElement {
               @closed=${this._preventClose}
               naturalMenuWidth
               fixedMenuPosition
+              fullwidth
             >
               ${areaTypes.map(area => html`
                 <ha-list-item 
@@ -165,10 +150,31 @@ export class InlineEditor extends LitElement {
                 </ha-list-item>
               `)}
             </ha-select>
+            <div class="help-text">
+              ${this._getAreaTypeHelpText(this._editingBlock.config?.blockType)}
+            </div>
           </div>
 
+          <!-- 传感器选择 -->
           <div class="config-field">
-            <label class="config-label">显示名称</label>
+            <label class="config-label">传感器</label>
+            <ha-combo-box
+              .items=${this.availableEntities}
+              .value=${this._editingBlock.content || ''}
+              @value-changed=${e => this._onEntitySelected(e.detail.value)}
+              placeholder="选择或输入实体ID"
+              allow-custom-value
+              fullwidth
+            ></ha-combo-box>
+            <div class="help-text">
+              选择实体显示传感器数据，留空则显示为文本块
+            </div>
+            ${this._renderEntityInfo()}
+          </div>
+
+          <!-- 显示名称 -->
+          <div class="config-field">
+            <label class="config-label">名称</label>
             <ha-textfield
               .value=${this._editingBlock.config?.title || ''}
               @input=${e => this._updateConfig('title', e.target.value)}
@@ -177,6 +183,7 @@ export class InlineEditor extends LitElement {
             ></ha-textfield>
           </div>
 
+          <!-- 图标选择 -->
           <div class="config-field">
             <label class="config-label">图标</label>
             <ha-icon-picker
@@ -187,6 +194,7 @@ export class InlineEditor extends LitElement {
             ></ha-icon-picker>
           </div>
 
+          <!-- 网格位置（仅内容区域显示） -->
           ${this._editingBlock.config?.blockType === 'content' ? html`
             <div class="config-field">
               <label class="config-label">网格位置</label>
@@ -195,6 +203,7 @@ export class InlineEditor extends LitElement {
                 @closed=${this._preventClose}
                 naturalMenuWidth
                 fixedMenuPosition
+                fullwidth
               >
                 ${positionOptions.map(option => html`
                   <ha-list-item 
@@ -208,13 +217,8 @@ export class InlineEditor extends LitElement {
             </div>
           ` : ''}
 
-          <div class="config-field">
-            <label class="config-label">${this._getContentLabel()}</label>
-            ${this._renderContentField()}
-            ${this._renderEntityInfo()}
-          </div>
-
-          ${this._editingBlock.type === 'text' ? html`
+          <!-- 背景颜色（仅内容区域显示） -->
+          ${this._editingBlock.config?.blockType === 'content' ? html`
             <div class="config-field">
               <label class="config-label">背景颜色</label>
               <ha-textfield
@@ -239,41 +243,17 @@ export class InlineEditor extends LitElement {
     `;
   }
 
-  _getContentLabel() {
-    const labels = {
-      'text': '文本内容',
-      'sensor': '传感器实体'
+  _getAreaTypeHelpText(blockType) {
+    const helpTexts = {
+      'content': '显示在网格布局中的内容块',
+      'header': '显示在卡片顶部的标题区域',
+      'footer': '显示在卡片底部的页脚区域'
     };
-    return labels[this._editingBlock.type] || '内容';
-  }
-
-  _renderContentField() {
-    if (this._editingBlock.type === 'text') {
-      return html`
-        <ha-textarea
-          .value=${this._editingBlock.content || ''}
-          @input=${e => this._updateBlock('content', e.target.value)}
-          placeholder="输入内容..."
-          rows="3"
-          fullwidth
-        ></ha-textarea>
-      `;
-    } else {
-      return html`
-        <ha-combo-box
-          .items=${this.availableEntities}
-          .value=${this._editingBlock.content || ''}
-          @value-changed=${e => this._onEntitySelected(e.detail.value)}
-          placeholder="选择或输入实体ID"
-          allow-custom-value
-          fullwidth
-        ></ha-combo-box>
-      `;
-    }
+    return helpTexts[blockType] || helpTexts.content;
   }
 
   _renderEntityInfo() {
-    if (this._editingBlock.type === 'text' || !this._editingBlock.content) return '';
+    if (!this._editingBlock.content) return '';
     
     const entity = this.hass?.states[this._editingBlock.content];
     if (!entity) return html`<div class="entity-info">实体未找到或不可用</div>`;
@@ -285,7 +265,7 @@ export class InlineEditor extends LitElement {
           <div><strong>单位:</strong> ${entity.attributes.unit_of_measurement}</div>
         ` : ''}
         ${entity.attributes?.friendly_name ? html`
-          <div><strong>名称:</strong> ${entity.attributes.friendly_name}</div>
+          <div><strong>实体名称:</strong> ${entity.attributes.friendly_name}</div>
         ` : ''}
       </div>
     `;
@@ -343,10 +323,6 @@ export class InlineEditor extends LitElement {
       ...this._editingBlock,
       [key]: value
     };
-    
-    if (key === 'type' && value !== 'text') {
-      this._editingBlock.config = { ...this._editingBlock.config };
-    }
   }
 
   _updateConfig(key, value) {

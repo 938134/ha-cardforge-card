@@ -228,67 +228,57 @@ export class BlockList extends LitElement {
       </div>
     `;
   }
+// 在 _renderBlockItem 方法中更新块类型显示
+_renderBlockItem(block, index) {
+  const isEditing = this._editingBlockId === block.id;
+  const customIcon = block.config?.icon;
+  const blockType = block.config?.blockType || 'content';
+  
+  // 智能判断块类型
+  const displayType = block.content ? '传感器' : '文本';
+  const badgeText = {
+    'header': '标题',
+    'content': '内容', 
+    'footer': '页脚'
+  }[blockType];
 
-  _renderBlockItem(block, index) {
-    const isEditing = this._editingBlockId === block.id;
-    const customIcon = block.config?.icon;
-    const blockType = block.config?.blockType || 'content';
-    const badgeText = {
-      'header': '标题',
-      'content': '内容', 
-      'footer': '页脚'
-    }[blockType];
-
-    return html`
-      <div class="block-item ${isEditing ? 'editing' : ''}" 
-           @click=${() => this._editBlock(block)}>
-        
-        ${blockType !== 'content' ? html`
-          <div class="block-badge ${blockType}">${badgeText}</div>
-        ` : ''}
-        
-        <div class="block-icon">
-          <ha-icon .icon=${customIcon || BlockManager.getBlockIcon(block)}></ha-icon>
+  return html`
+    <div class="block-item ${isEditing ? 'editing' : ''}" 
+         @click=${() => this._editBlock(block)}>
+      
+      ${blockType !== 'content' ? html`
+        <div class="block-badge ${blockType}">${badgeText}</div>
+      ` : ''}
+      
+      <div class="block-icon">
+        <ha-icon .icon=${customIcon || BlockManager.getBlockIcon(block)}></ha-icon>
+      </div>
+      <div class="block-info">
+        <div class="block-header">
+          <div class="block-title">${block.config?.title || '未命名块'}</div>
+          <div class="block-type">${displayType}${blockType !== 'content' ? ` · ${badgeText}` : ''}</div>
         </div>
-        <div class="block-info">
-          <div class="block-header">
-            <div class="block-title">${block.config?.title || BlockManager.getBlockDisplayName(block)}</div>
-            <div class="block-type">${BlockManager.getBlockDisplayName(block)}</div>
-          </div>
-          <div class="block-preview">${BlockManager.getBlockPreview(block)}</div>
-          <div class="block-meta">
-            ${blockType === 'content' && block.position ? html`
-              <div class="block-position">位置: ${block.position.row || 0},${block.position.col || 0}</div>
-            ` : ''}
-            ${block.type !== 'text' && block.content ? html`
-              <div>实体: ${block.content.split('.')[1] || block.content}</div>
-            ` : ''}
-          </div>
-        </div>
-        <div class="block-actions">
-          <div class="block-action" @click=${(e) => this._editBlock(e, block)} title="编辑">
-            <ha-icon icon="mdi:pencil"></ha-icon>
-          </div>
-          <div class="block-action" @click=${(e) => this._deleteBlock(e, block.id)} title="删除">
-            <ha-icon icon="mdi:delete"></ha-icon>
-          </div>
+        <div class="block-preview">${BlockManager.getBlockPreview(block)}</div>
+        <div class="block-meta">
+          ${blockType === 'content' && block.position ? html`
+            <div class="block-position">位置: ${block.position.row || 0},${block.position.col || 0}</div>
+          ` : ''}
+          ${block.content ? html`
+            <div>实体: ${block.content.split('.')[1] || block.content}</div>
+          ` : ''}
         </div>
       </div>
-      
-      ${isEditing ? html`
-        <div class="inline-editor-container">
-          <inline-editor
-            .hass=${this.hass}
-            .block=${block}
-            .availableEntities=${this.availableEntities}
-            .layout=${this.layout}
-            @block-saved=${e => this._saveBlock(e.detail.block)}
-            @edit-cancelled=${() => this._cancelEdit()}
-          ></inline-editor>
+      <div class="block-actions">
+        <div class="block-action" @click=${(e) => this._editBlock(e, block)} title="编辑">
+          <ha-icon icon="mdi:pencil"></ha-icon>
         </div>
-      ` : ''}
-    `;
-  }
+        <div class="block-action" @click=${(e) => this._deleteBlock(e, block.id)} title="删除">
+          <ha-icon icon="mdi:delete"></ha-icon>
+        </div>
+      </div>
+    </div>
+  `;
+}
 
   _renderEmptyState() {
     return html`
