@@ -1,102 +1,351 @@
-// src/editors/dashboard/dashboard-editor.js
-import { LitElement, html, css } from 'https://unpkg.com/lit@2.8.0/index.js?module';
-import { designSystem } from '../../core/design-system.js';
-import { BlockManager } from './block-manager.js';
-import './block-list.js';
+// src/plugins/dashboard-card.js
+import { BasePlugin } from '../core/base-plugin.js';
+import { BlockManager } from '../editors/dashboard/block-manager.js';
 
-export class DashboardEditor extends LitElement {
-  static properties = {
-    hass: { type: Object },
-    config: { type: Object },
-    pluginManifest: { type: Object },
-    _allBlocks: { state: true },
-    _editingBlock: { state: true },
-    _availableEntities: { state: true }
-  };
+class DashboardCard extends BasePlugin {
+  getTemplate(config, hass, entities) {
+    const allBlocks = BlockManager.deserializeFromEntities(entities);
+    
+    // 分离不同类型的块
+    const headerBlocks = allBlocks.filter(block => block.config?.blockType === 'header');
+    const contentBlocks = allBlocks.filter(block => 
+      !block.config?.blockType || block.config.blockType === 'content'
+    );
+    const footerBlocks = allBlocks.filter(block => block.config?.blockType === 'footer');
+    
+    const enrichedContentBlocks = BlockManager.enrichWithRealtimeData(contentBlocks, hass);
+    const layout = config.layout || '2x2';
+    const alignment = config.content_alignment || 'center';
 
-  static styles = [
-    designSystem,
-    css`
-      .dashboard-editor {
-        width: 100%;
+    return this._renderCardContainer(`
+      <!-- 标题区域 -->
+      ${headerBlocks.length > 0 ? this._renderHeaderArea(headerBlocks) : ''}
+      
+      <!-- 内容区域 -->
+      <div class="dashboard-content">
+        ${this._renderGridLayout(enrichedContentBlocks, layout, alignment, hass)}
+      </div>
+      
+      <!-- 页脚区域 -->
+      ${footerBlocks.length > 0 ? this._renderFooterArea(footerBlocks) : ''}
+    `, 'dashboard-card');
+  }
+
+  getStyles(config) {
+    const baseStyles = this.getBaseStyles(config);
+    const layout = config.layout || '2x2';
+    const alignment = config.content_alignment || 'center';
+    const gridConfig = BlockManager.LAYOUT_PRESETS[layout];
+    
+    // 根据对齐方式设置不同的样式
+    const alignmentStyles = {
+      'center': `
+        gap: var(--cf-spacing-md);
+        .dashboard-block {
+          margin: 4px;
+        }
+      `,
+      'compact': `
+        gap: 2px;
+        .dashboard-block {
+          margin: 0;
+        }
+      `,
+      'stretch': `
+        gap: 1px;
+        .dashboard-block {
+          margin: 0;
+          height: 100%;
+        }
+      `
+    };
+
+    return `
+      ${baseStyles}
+      
+      .dashboard-content {
+        flex: 1;
         display: flex;
         flex-direction: column;
-        gap: var(--cf-spacing-lg);
+        min-height: 200px;
       }
-    `
-  ];
-
-  constructor() {
-    super();
-    this._allBlocks = [];
-    this._editingBlock = null;
-    this._availableEntities = [];
+      
+      .dashboard-grid {
+        display: grid;
+        grid-template-columns: repeat(${gridConfig.cols}, 1fr);
+        grid-template-rows: repeat(${gridConfig.rows}, 1fr);
+        flex: 1;
+        ${alignmentStyles[alignment] || alignmentStyles.center}
+      }
+      
+      .dashboard-block {
+        background: var(--cf-surface);
+        border: 1px solid var(--cf-border);
+        border-radius: var(--cf-radius-md);
+        padding: var(--cf-spacing-md);
+        display: flex;
+        flex-direction: column;
+        transition: all var(--cf-transition-fast);
+        min-height: 80px;
+      }
+      
+      .dashboard-block:hover {
+        border-color: var(--cf-primary-color);
+        transform: translateY(-1px);
+      }
+      
+      .block-header {
+        margin-bottom: var(--cf-spacing-sm);
+      }
+      
+      .block-title {
+        font-size: 0.9em;
+        font-weight: 500;
+        color: var(--cf-text-primary);
+      }
+      
+      .block-content {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        text-align: center;
+      }
+      
+      .block-value {
+        font-size: 1.5em;
+        font-weight: 600;
+        color: var(--cf-primary-color);
+        line-height: 1;
+      }
+      
+      .block-unit {
+        font-size: 0.8em;
+        color: var(--cf-text-secondary);
+        margin-top: 2px;
+      }
+      
+      .block-text {
+        font-size: 0.95em;
+        color: var(--cf-text-primary);
+        line-height: 1.4;
+      }
+      
+      .block-placeholder {
+        font-size: 0.85em;
+        color: var(--cf-text-secondary);
+        opacity: 0.7;
+      }
+      
+      /* 标题区域样式 */
+      .header-area {
+        margin-bottom: var(--cf-spacing-lg);
+        text-align: center;
+        padding: var(--cf-spacing-md);
+      }
+      
+      .header-content {
+        font-size: 1.4em;
+        font-weight: 600;
+        color: var(--cf-text-primary);
+        line-height: 1.2;
+      }
+      
+      /* 页脚区域样式 */
+      .footer-area {
+        margin-top: var(--cf-spacing-lg);
+        padding-top: var(--cf-spacing-md);
+        border-top: 1px solid var(--cf-border);
+        text-align: center;
+      }
+      
+      .footer-content {
+        font-size: 0.9em;
+        color: var(--cf-text-secondary);
+        line-height: 1.4;
+      }
+      
+      /* 文本块特殊样式 */
+      .text-block {
+        background: rgba(var(--cf-rgb-primary), 0.05);
+        border: 1px solid rgba(var(--cf-rgb-primary), 0.2);
+      }
+      
+      .text-block .block-text {
+        font-size: 1em;
+        color: var(--cf-text-primary);
+      }
+      
+      /* 传感器块样式 */
+      .sensor-block .block-value {
+        color: var(--cf-primary-color);
+      }
+      
+      /* 自定义背景色支持 */
+      .dashboard-block[style*="background"] {
+        border: none;
+      }
+      
+      @container cardforge-container (max-width: 400px) {
+        .dashboard-grid {
+          gap: var(--cf-spacing-sm);
+        }
+        
+        .dashboard-block {
+          padding: var(--cf-spacing-sm);
+          min-height: 60px;
+        }
+        
+        .block-value {
+          font-size: 1.2em;
+        }
+        
+        .header-content {
+          font-size: 1.2em;
+        }
+        
+        .footer-content {
+          font-size: 0.8em;
+        }
+      }
+      
+      @container cardforge-container (max-width: 300px) {
+        .dashboard-grid {
+          grid-template-columns: 1fr;
+        }
+        
+        .block-value {
+          font-size: 1.1em;
+        }
+      }
+    `;
   }
 
-  willUpdate(changedProperties) {
-    if (changedProperties.has('config')) {
-      this._allBlocks = BlockManager.deserializeFromEntities(this.config.entities);
-    }
+  _renderHeaderArea(headerBlocks) {
+    if (headerBlocks.length === 0) return '';
     
-    if (changedProperties.has('hass') && this.hass) {
-      this._updateAvailableEntities();
-    }
-  }
-
-  render() {
-    return html`
-      <div class="dashboard-editor">
-        <block-list
-          .hass=${this.hass}
-          .blocks=${this._allBlocks}
-          .availableEntities=${this._availableEntities}
-          @blocks-changed=${e => this._onBlocksChanged(e.detail.blocks)}
-          @edit-block=${e => this._onEditBlock(e.detail.block)}
-          @add-block=${this._addContentBlock}
-        ></block-list>
+    const headerBlock = headerBlocks[0];
+    const icon = headerBlock.config?.icon ? `<ha-icon icon="${headerBlock.config.icon}" style="margin-right: 8px;"></ha-icon>` : '';
+    const title = headerBlock.config?.title || headerBlock.content || '';
+    
+    return `
+      <div class="header-area">
+        <div class="header-content">
+          ${icon}${title}
+        </div>
       </div>
     `;
   }
 
-  _addContentBlock = () => {
-    const newBlock = BlockManager.createBlock('text');
-    newBlock.config = { ...newBlock.config, blockType: 'content' };
-    this._allBlocks = [...this._allBlocks, newBlock];
-    this._saveAllBlocks();
-    this._editingBlock = newBlock;
+  _renderFooterArea(footerBlocks) {
+    if (footerBlocks.length === 0) return '';
+    
+    const footerBlock = footerBlocks[0];
+    const icon = footerBlock.config?.icon ? `<ha-icon icon="${footerBlock.config.icon}" style="margin-right: 8px;"></ha-icon>` : '';
+    const content = footerBlock.config?.title || footerBlock.content || '';
+    
+    return `
+      <div class="footer-area">
+        <div class="footer-content">
+          ${icon}${content}
+        </div>
+      </div>
+    `;
   }
 
-  _updateAvailableEntities() {
-    if (!this.hass?.states) {
-      this._availableEntities = [];
-      return;
+  _renderGridLayout(blocks, layout, alignment, hass) {
+    if (blocks.length === 0) {
+      return `
+        <div class="cf-flex cf-flex-center cf-flex-column cf-p-lg">
+          <ha-icon icon="mdi:view-grid-plus" style="font-size: 2em; opacity: 0.5;"></ha-icon>
+          <div class="cf-text-sm cf-mt-md cf-text-secondary">添加内容块来构建仪表板</div>
+        </div>
+      `;
     }
-
-    this._availableEntities = Object.entries(this.hass.states)
-      .map(([entityId, state]) => ({
-        value: entityId,
-        label: `${state.attributes?.friendly_name || entityId} (${entityId})`
-      }))
-      .sort((a, b) => a.label.localeCompare(b.label));
+    
+    return `
+      <div class="dashboard-grid">
+        ${blocks.map(block => this._renderBlock(block, hass)).join('')}
+      </div>
+    `;
   }
 
-  _onBlocksChanged(blocks) {
-    this._allBlocks = blocks;
-    this._saveAllBlocks();
+  _renderBlock(block, hass) {
+    const blockStyle = block.config?.style ? `block-style-${block.config.style}` : '';
+    const customBackground = block.config?.background ? `style="background: ${block.config.background}"` : '';
+    const blockClass = `${block.type}-block ${blockStyle}`;
+    
+    return `
+      <div class="dashboard-block ${blockClass}" data-block-id="${block.id}" ${customBackground}>
+        ${block.config?.title ? `
+          <div class="block-header">
+            <span class="block-title">${block.config.title}</span>
+          </div>
+        ` : ''}
+        <div class="block-content">
+          ${this._renderBlockContent(block, hass)}
+        </div>
+      </div>
+    `;
   }
 
-  _onEditBlock(block) {
-    this._editingBlock = block;
+  _renderBlockContent(block, hass) {
+    switch (block.type) {
+      case 'text':
+        return `<div class="block-text">${block.content || ''}</div>`;
+        
+      case 'sensor':
+        if (block.realTimeData) {
+          const state = this._formatState(block.realTimeData.state, block.type);
+          const unit = block.realTimeData.attributes?.unit_of_measurement || '';
+          return `
+            <div class="block-value">${state}</div>
+            ${unit ? `<div class="block-unit">${unit}</div>` : ''}
+          `;
+        }
+        return `<div class="block-placeholder">${block.content || '未配置'}</div>`;
+        
+      default:
+        return `<div class="block-placeholder">未知类型</div>`;
+    }
   }
 
-  _saveAllBlocks() {
-    const entities = BlockManager.serializeToEntities(this._allBlocks);
-    this.dispatchEvent(new CustomEvent('entities-changed', {
-      detail: { entities }
-    }));
+  _formatState(state, type) {
+    // 对特定类型的状态进行格式化
+    switch (type) {
+      case 'sensor':
+        return state;
+      default:
+        return state;
+    }
   }
 }
 
-if (!customElements.get('dashboard-editor')) {
-  customElements.define('dashboard-editor', DashboardEditor);
-}
+DashboardCard.manifest = {
+  id: 'dashboard-card',
+  name: '仪表盘卡片',
+  description: '自由布局的数据仪表板',
+  icon: '📊',
+  category: '数据',
+  version: '1.0.0',
+  author: 'CardForge',
+  free_layout: true,
+  config_schema: {
+    layout: {
+      type: 'select',
+      label: '网格布局',
+      default: '2x2',
+      options: ['1x1', '1x2', '2x2', '2x3', '3x3']
+    },
+    content_alignment: {
+      type: 'select',
+      label: '内容对齐',
+      default: 'center',
+      options: ['居中', '紧凑', '拉伸']
+    }
+  }
+};
+
+export { DashboardCard as default, DashboardCard };
+export const manifest = DashboardCard.manifest;
