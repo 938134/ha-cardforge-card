@@ -248,7 +248,7 @@ export class InlineEditor extends LitElement {
     };
     return labels[this._editingBlock.type] || '内容';
   }
- 
+
 _renderContentField() {
   const isHeaderOrFooter = this._editingBlock.config?.blockType === 'header' || 
                           this._editingBlock.config?.blockType === 'footer';

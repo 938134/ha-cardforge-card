@@ -124,50 +124,18 @@ export class LayoutPresets extends LitElement {
     return html`
       <div class="layout-selector">
         <div class="layout-grid">
-          ${Object.entries(BlockManager.LAYOUT_PRESETS).map(([key, preset]) => {
-            const usageInfo = this._getLayoutUsage(key);
-            return html`
-              <div 
-                class="layout-item ${this.selectedLayout === key ? 'selected' : ''}"
-                @click=${() => this._selectLayout(key)}
-                title="${preset.name} - ${usageInfo.used}/${usageInfo.total} 位置已使用"
-              >
-                <div class="layout-name">${preset.cols}×${preset.rows}</div>
-                ${usageInfo.used > 0 ? html`
-                  <div class="usage-info">${usageInfo.used}</div>
-                ` : ''}
-              </div>
-            `;
-          })}
-        </div>
-        <div class="layout-description">
-          布局仅影响内容区域的块，标题和页脚块不受影响
+          ${Object.entries(BlockManager.LAYOUT_PRESETS).map(([key, preset]) => html`
+            <div 
+              class="layout-item ${this.selectedLayout === key ? 'selected' : ''}"
+              @click=${() => this._selectLayout(key)}
+              title="${preset.name}"
+            >
+              <div class="layout-name">${preset.cols}×${preset.rows}</div>
+            </div>
+          `)}
         </div>
       </div>
     `;
-  }
-
-  _getLayoutUsage(layout) {
-    const contentBlocks = this.blocks.filter(block => 
-      !block.config?.blockType || block.config.blockType === 'content'
-    );
-    
-    const gridConfig = BlockManager.LAYOUT_PRESETS[layout];
-    const usedPositions = new Set();
-    
-    contentBlocks.forEach(block => {
-      if (block.position) {
-        usedPositions.add(`${block.position.row},${block.position.col}`);
-      }
-    });
-    
-    const totalPositions = gridConfig.rows * gridConfig.cols;
-    
-    return {
-      used: usedPositions.size,
-      total: totalPositions,
-      percent: totalPositions > 0 ? Math.round((usedPositions.size / totalPositions) * 100) : 0
-    };
   }
 
   _selectLayout(layout) {

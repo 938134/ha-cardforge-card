@@ -17,20 +17,14 @@ class DashboardCard extends BasePlugin {
     const layout = config.layout || '2x2';
 
     return this._renderCardContainer(`
-      ${this._renderCardHeader(config, entities)}
-      
-      <!-- 标题区域 -->
-      ${headerBlocks.length > 0 ? this._renderHeaderArea(headerBlocks) : ''}
+      ${this._renderHeaderArea(headerBlocks)}
       
       <!-- 内容区域 -->
       <div class="dashboard-content">
         ${this._renderGridLayout(enrichedContentBlocks, layout, hass)}
       </div>
       
-      <!-- 页脚区域 -->
-      ${footerBlocks.length > 0 ? this._renderFooterArea(footerBlocks) : ''}
-      
-      ${this._renderCardFooter(config, entities)}
+      ${this._renderFooterArea(footerBlocks)}
     `, 'dashboard-card');
   }
 

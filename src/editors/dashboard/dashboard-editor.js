@@ -78,33 +78,6 @@ export class DashboardEditor extends LitElement {
         opacity: 0.8;
         transform: translateY(-1px);
       }
-
-      .stats-info {
-        display: flex;
-        gap: var(--cf-spacing-md);
-        padding: var(--cf-spacing-sm);
-        background: var(--cf-background);
-        border-radius: var(--cf-radius-md);
-        margin-bottom: var(--cf-spacing-md);
-      }
-
-      .stat-item {
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        gap: 2px;
-      }
-
-      .stat-value {
-        font-size: 1em;
-        font-weight: 600;
-        color: var(--cf-primary-color);
-      }
-
-      .stat-label {
-        font-size: 0.75em;
-        color: var(--cf-text-secondary);
-      }
     `
   ];
 
@@ -127,80 +100,74 @@ export class DashboardEditor extends LitElement {
     }
   }
 
-render() {
-  const headerBlocks = this._allBlocks.filter(b => b.config?.blockType === 'header');
-  const contentBlocks = this._allBlocks.filter(b => !b.config?.blockType || b.config.blockType === 'content');
-  const footerBlocks = this._allBlocks.filter(b => b.config?.blockType === 'footer');
-
-  return html`
-    <div class="dashboard-editor">
-      <!-- 布局配置 -->
-      <div class="editor-section">
-        <div class="section-header">
-          <div>
-            <div class="section-title">
-              <ha-icon icon="mdi:view-grid"></ha-icon>
-              <span>内容区域布局</span>
-            </div>
-            <div class="section-description">配置内容块的网格布局</div>
-          </div>
-        </div>
-        
-        <layout-presets
-          .selectedLayout=${this._selectedLayout}
-          @layout-changed=${e => this._onLayoutChanged(e.detail.layout)}
-        ></layout-presets>
-      </div>
-
-      <!-- 块管理 -->
-      <div class="editor-section">
-        <div class="section-header">
-          <div>
-            <div class="section-title">
-              <ha-icon icon="mdi:cube"></ha-icon>
-              <span>块管理</span>
-            </div>
-            <div class="section-description">管理标题、内容和页脚块</div>
-          </div>
-          <button class="add-btn" @click=${this._addContentBlock}>
-            <ha-icon icon="mdi:plus"></ha-icon>
-            添加块
-          </button>
-        </div>
-
-        <!-- 移除统计信息部分 -->
-        
-        <block-list
-          .hass=${this.hass}
-          .blocks=${this._allBlocks}
-          .availableEntities=${this._availableEntities}
-          .layout=${this._selectedLayout}
-          @blocks-changed=${e => this._onBlocksChanged(e.detail.blocks)}
-          @edit-block=${e => this._onEditBlock(e.detail.block)}
-        ></block-list>
-      </div>
-
-      <!-- 内联编辑器 -->
-      ${this._editingBlock ? html`
+  render() {
+    return html`
+      <div class="dashboard-editor">
+        <!-- 布局配置 -->
         <div class="editor-section">
           <div class="section-header">
-            <ha-icon icon="mdi:pencil"></ha-icon>
-            <span>编辑块</span>
+            <div>
+              <div class="section-title">
+                <ha-icon icon="mdi:view-grid"></ha-icon>
+                <span>内容区域布局</span>
+              </div>
+              <div class="section-description">配置内容块的网格布局</div>
+            </div>
           </div>
           
-          <inline-editor
+          <layout-presets
+            .selectedLayout=${this._selectedLayout}
+            @layout-changed=${e => this._onLayoutChanged(e.detail.layout)}
+          ></layout-presets>
+        </div>
+
+        <!-- 块管理 -->
+        <div class="editor-section">
+          <div class="section-header">
+            <div>
+              <div class="section-title">
+                <ha-icon icon="mdi:cube"></ha-icon>
+                <span>块管理</span>
+              </div>
+              <div class="section-description">管理标题、内容和页脚块</div>
+            </div>
+            <button class="add-btn" @click=${this._addContentBlock}>
+              <ha-icon icon="mdi:plus"></ha-icon>
+              添加
+            </button>
+          </div>
+          
+          <block-list
             .hass=${this.hass}
-            .block=${this._editingBlock}
+            .blocks=${this._allBlocks}
             .availableEntities=${this._availableEntities}
             .layout=${this._selectedLayout}
-            @block-saved=${e => this._saveBlock(e.detail.block)}
-            @edit-cancelled=${() => this._cancelEdit()}
-          ></inline-editor>
+            @blocks-changed=${e => this._onBlocksChanged(e.detail.blocks)}
+            @edit-block=${e => this._onEditBlock(e.detail.block)}
+          ></block-list>
         </div>
-      ` : ''}
-    </div>
-  `;
-}
+
+        <!-- 内联编辑器 -->
+        ${this._editingBlock ? html`
+          <div class="editor-section">
+            <div class="section-header">
+              <ha-icon icon="mdi:pencil"></ha-icon>
+              <span>编辑块</span>
+            </div>
+            
+            <inline-editor
+              .hass=${this.hass}
+              .block=${this._editingBlock}
+              .availableEntities=${this._availableEntities}
+              .layout=${this._selectedLayout}
+              @block-saved=${e => this._saveBlock(e.detail.block)}
+              @edit-cancelled=${() => this._cancelEdit()}
+            ></inline-editor>
+          </div>
+        ` : ''}
+      </div>
+    `;
+  }
 
   _addContentBlock() {
     const newBlock = BlockManager.createBlock('text');

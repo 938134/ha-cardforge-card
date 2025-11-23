@@ -94,8 +94,6 @@ export class BlockManager {
     return entities;
   }
 
-  // 从实体反序列化块
- 
 static deserializeFromEntities(entities) {
   const blocks = [];
   
@@ -120,17 +118,10 @@ static deserializeFromEntities(entities) {
           ...blockConfig
         };
         
-        // 对于标题和页脚块，如果内容看起来像实体ID，尝试获取友好名称
-        let content = entities[blockId] || '';
-        if ((config.blockType === 'header' || config.blockType === 'footer') && 
-            content.includes('.')) {
-          // 这看起来像实体ID，但我们保留原样，在渲染时处理
-        }
-        
         blocks.push({
           id: blockId,
           type: value,
-          content: content,
+          content: entities[blockId] || '',
           config: config,
           position: entities[positionKey] ? JSON.parse(entities[positionKey]) : { row: 0, col: 0 },
           order: parseInt(entities[orderKey]) || 0

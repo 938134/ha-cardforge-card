@@ -181,6 +181,10 @@ export class BlockList extends LitElement {
         opacity: 0.5;
         margin-bottom: var(--cf-spacing-md);
       }
+
+      .empty-action {
+        margin-top: var(--cf-spacing-md);
+      }
     `
   ];
 
@@ -268,9 +272,21 @@ export class BlockList extends LitElement {
       <div class="empty-state">
         <ha-icon class="empty-icon" icon="mdi:view-grid-plus"></ha-icon>
         <div class="cf-text-md cf-mb-sm">还没有任何块</div>
-        <div class="cf-text-sm cf-text-secondary">点击"添加块"按钮开始创建</div>
+        <div class="cf-text-sm cf-text-secondary">点击"添加"按钮开始创建</div>
+        <div class="empty-action">
+          <mwc-button 
+            outlined 
+            icon="add"
+            @click=${this._triggerAddBlock}
+            label="添加第一个块"
+          ></mwc-button>
+        </div>
       </div>
     `;
+  }
+
+  _triggerAddBlock() {
+    this.dispatchEvent(new CustomEvent('add-block-requested'));
   }
 
   _editBlock(e, block) {
