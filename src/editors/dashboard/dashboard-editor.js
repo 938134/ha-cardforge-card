@@ -16,7 +16,9 @@ export class DashboardEditor extends LitElement {
     _editingBlock: { state: true },
     _availableEntities: { state: true },
     _title: { state: true },
-    _footer: { state: true }
+    _footer: { state: true },
+    _showTitle: { state: true },
+    _showFooter: { state: true }
   };
 
   static styles = [
@@ -78,6 +80,7 @@ export class DashboardEditor extends LitElement {
         background: var(--cf-surface);
         transition: all var(--cf-transition-fast);
         min-height: 52px;
+        margin-bottom: var(--cf-spacing-md);
       }
 
       .switch-item:hover {
@@ -90,6 +93,27 @@ export class DashboardEditor extends LitElement {
         color: var(--cf-text-primary);
         flex: 1;
       }
+
+      .content-block-preview {
+        background: var(--cf-background);
+        border: 1px solid var(--cf-border);
+        border-radius: var(--cf-radius-md);
+        padding: var(--cf-spacing-md);
+        margin-top: var(--cf-spacing-sm);
+      }
+
+      .preview-title {
+        font-size: 0.9em;
+        font-weight: 500;
+        color: var(--cf-text-primary);
+        margin-bottom: var(--cf-spacing-xs);
+      }
+
+      .preview-content {
+        font-size: 0.85em;
+        color: var(--cf-text-secondary);
+        line-height: 1.4;
+      }
     `
   ];
 
@@ -101,6 +125,8 @@ export class DashboardEditor extends LitElement {
     this._availableEntities = [];
     this._title = '';
     this._footer = '';
+    this._showTitle = true;
+    this._showFooter = true;
   }
 
   willUpdate(changedProperties) {
@@ -109,6 +135,8 @@ export class DashboardEditor extends LitElement {
       this._selectedLayout = this.config.layout || '2x2';
       this._title = this.config.title || '';
       this._footer = this.config.footer || '';
+      this._showTitle = this.config.show_title !== false;
+      this._showFooter = this.config.show_footer !== false;
     }
     
     if (changedProperties.has('hass') && this.hass) {
@@ -140,23 +168,33 @@ export class DashboardEditor extends LitElement {
             <span>标题设置</span>
           </div>
           
-          <div class="config-field">
-            <label class="config-label">卡片标题</label>
-            <ha-textfield
-              .value=${this._title}
-              @input=${e => this._onTitleChanged(e.target.value)}
-              placeholder="输入卡片标题"
-              fullwidth
-            ></ha-textfield>
-          </div>
-          
           <div class="switch-item">
             <span class="switch-label">显示标题</span>
             <ha-switch
-              .checked=${!!this._title}
-              @change=${e => this._onTitleChanged(e.target.checked ? '仪表盘' : '')}
+              .checked=${this._showTitle}
+              @change=${e => this._onShowTitleChanged(e.target.checked)}
             ></ha-switch>
           </div>
+          
+          ${this._showTitle ? html`
+            <div class="config-field">
+              <label class="config-label">标题内容</label>
+              <ha-textarea
+                .value=${this._title}
+                @input=${e => this._onTitleChanged(e.target.value)}
+                placeholder="输入标题内容，支持多行文本"
+                rows="2"
+                fullwidth
+              ></ha-textarea>
+            </div>
+            
+            ${this._title ? html`
+              <div class="content-block-preview">
+                <div class="preview-title">标题预览：</div>
+                <div class="preview-content">${this._title}</div>
+              </div>
+            ` : ''}
+          ` : ''}
         </div>
 
         <!-- 内容块管理 -->
@@ -183,23 +221,33 @@ export class DashboardEditor extends LitElement {
             <span>页脚设置</span>
           </div>
           
-          <div class="config-field">
-            <label class="config-label">页脚文本</label>
-            <ha-textfield
-              .value=${this._footer}
-              @input=${e => this._onFooterChanged(e.target.value)}
-              placeholder="输入页脚文本"
-              fullwidth
-            ></ha-textfield>
-          </div>
-          
           <div class="switch-item">
             <span class="switch-label">显示页脚</span>
             <ha-switch
-              .checked=${!!this._footer}
-              @change=${e => this._onFooterChanged(e.target.checked ? '卡片工坊' : '')}
+              .checked=${this._showFooter}
+              @change=${e => this._onShowFooterChanged(e.target.checked)}
             ></ha-switch>
           </div>
+          
+          ${this._showFooter ? html`
+            <div class="config-field">
+              <label class="config-label">页脚内容</label>
+              <ha-textarea
+                .value=${this._footer}
+                @input=${e => this._onFooterChanged(e.target.value)}
+                placeholder="输入页脚内容，支持多行文本"
+                rows="2"
+                fullwidth
+              ></ha-textarea>
+            </div>
+            
+            ${this._footer ? html`
+              <div class="content-block-preview">
+                <div class="preview-title">页脚预览：</div>
+                <div class="preview-content">${this._footer}</div>
+              </div>
+            ` : ''}
+          ` : ''}
         </div>
 
         <!-- 内联编辑器 -->
@@ -217,7 +265,6 @@ export class DashboardEditor extends LitElement {
               .layout=${this._selectedLayout}
               @block-saved=${e => this._saveBlock(e.detail.block)}
               @edit-cancelled=${() => this._cancelEdit()}
-              @block-deleted=${e => this._deleteBlock(e.detail.blockId)}
             ></inline-block-editor>
           </div>
         ` : ''}
@@ -243,6 +290,20 @@ export class DashboardEditor extends LitElement {
     this._selectedLayout = layout;
     this.dispatchEvent(new CustomEvent('config-changed', {
       detail: { config: { layout } }
+    }));
+  }
+
+  _onShowTitleChanged(showTitle) {
+    this._showTitle = showTitle;
+    this.dispatchEvent(new CustomEvent('config-changed', {
+      detail: { config: { show_title: showTitle } }
+    }));
+  }
+
+  _onShowFooterChanged(showFooter) {
+    this._showFooter = showFooter;
+    this.dispatchEvent(new CustomEvent('config-changed', {
+      detail: { config: { show_footer: showFooter } }
     }));
   }
 
@@ -276,12 +337,6 @@ export class DashboardEditor extends LitElement {
     this._contentBlocks = this._contentBlocks.map(block => 
       block.id === updatedBlock.id ? updatedBlock : block
     );
-    this._editingBlock = null;
-    this._onBlocksChanged(this._contentBlocks);
-  }
-
-  _deleteBlock(blockId) {
-    this._contentBlocks = this._contentBlocks.filter(block => block.id !== blockId);
     this._editingBlock = null;
     this._onBlocksChanged(this._contentBlocks);
   }

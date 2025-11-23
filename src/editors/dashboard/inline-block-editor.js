@@ -10,7 +10,7 @@ export class InlineBlockEditor extends LitElement {
     availableEntities: { type: Object },
     layout: { type: String },
     _editingBlock: { state: true },
-    _showIconPicker: { state: true }
+    _entityOptions: { state: true }
   };
 
   static styles = [
@@ -21,27 +21,33 @@ export class InlineBlockEditor extends LitElement {
         border: 1px solid var(--cf-primary-color);
         border-radius: var(--cf-radius-md);
         padding: var(--cf-spacing-md);
-        margin-bottom: var(--cf-spacing-sm);
         width: 100%;
       }
 
       .editor-form {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: var(--cf-spacing-lg);
+        align-items: start;
+      }
+
+      .form-column {
         display: flex;
         flex-direction: column;
         gap: var(--cf-spacing-md);
       }
 
-      .form-row {
-        display: grid;
-        grid-template-columns: 100px 1fr;
-        gap: var(--cf-spacing-md);
-        align-items: center;
+      .config-field {
+        display: flex;
+        flex-direction: column;
+        gap: var(--cf-spacing-sm);
       }
 
-      .form-label {
-        font-size: 0.9em;
+      .config-label {
         font-weight: 500;
+        font-size: 0.9em;
         color: var(--cf-text-primary);
+        margin-bottom: var(--cf-spacing-xs);
       }
 
       .icon-selector {
@@ -51,8 +57,8 @@ export class InlineBlockEditor extends LitElement {
       }
 
       .icon-preview {
-        width: 40px;
-        height: 40px;
+        width: 48px;
+        height: 48px;
         border-radius: var(--cf-radius-md);
         background: rgba(var(--cf-rgb-primary), 0.1);
         display: flex;
@@ -60,6 +66,7 @@ export class InlineBlockEditor extends LitElement {
         justify-content: center;
         cursor: pointer;
         transition: all var(--cf-transition-fast);
+        flex-shrink: 0;
       }
 
       .icon-preview:hover {
@@ -67,29 +74,8 @@ export class InlineBlockEditor extends LitElement {
         transform: scale(1.05);
       }
 
-      .position-selector {
-        display: flex;
-        gap: var(--cf-spacing-sm);
-        flex-wrap: wrap;
-      }
-
-      .position-btn {
-        padding: var(--cf-spacing-xs) var(--cf-spacing-sm);
-        border: 1px solid var(--cf-border);
-        border-radius: var(--cf-radius-sm);
-        background: var(--cf-surface);
-        cursor: pointer;
-        font-size: 0.8em;
-        transition: all var(--cf-transition-fast);
-      }
-
-      .position-btn.selected {
-        background: var(--cf-primary-color);
-        color: white;
-        border-color: var(--cf-primary-color);
-      }
-
       .form-actions {
+        grid-column: 1 / -1;
         display: flex;
         gap: var(--cf-spacing-sm);
         justify-content: flex-end;
@@ -99,7 +85,7 @@ export class InlineBlockEditor extends LitElement {
       }
 
       .action-btn {
-        padding: var(--cf-spacing-sm) var(--cf-spacing-md);
+        padding: var(--cf-spacing-sm) var(--cf-spacing-lg);
         border: 1px solid var(--cf-border);
         border-radius: var(--cf-radius-sm);
         background: var(--cf-surface);
@@ -108,7 +94,7 @@ export class InlineBlockEditor extends LitElement {
         font-size: 0.85em;
         font-weight: 500;
         transition: all var(--cf-transition-fast);
-        min-width: 80px;
+        min-width: 100px;
       }
 
       .action-btn.primary {
@@ -117,23 +103,24 @@ export class InlineBlockEditor extends LitElement {
         border-color: var(--cf-primary-color);
       }
 
-      .action-btn.delete {
-        background: var(--cf-error-color);
-        color: white;
-        border-color: var(--cf-error-color);
-      }
-
       .action-btn:hover {
         opacity: 0.8;
         transform: translateY(-1px);
       }
 
-      @media (max-width: 600px) {
-        .form-row {
-          grid-template-columns: 1fr;
-          gap: var(--cf-spacing-sm);
-        }
+      .entity-info {
+        font-size: 0.8em;
+        color: var(--cf-text-secondary);
+        margin-top: 4px;
+        line-height: 1.3;
+      }
 
+      @media (max-width: 768px) {
+        .editor-form {
+          grid-template-columns: 1fr;
+          gap: var(--cf-spacing-md);
+        }
+        
         .form-actions {
           flex-direction: column;
         }
@@ -151,12 +138,16 @@ export class InlineBlockEditor extends LitElement {
     this.availableEntities = [];
     this.layout = '2x2';
     this._editingBlock = {};
-    this._showIconPicker = false;
+    this._entityOptions = [];
   }
 
   willUpdate(changedProperties) {
     if (changedProperties.has('block')) {
       this._editingBlock = { ...this.block };
+    }
+    
+    if (changedProperties.has('availableEntities') || changedProperties.has('hass')) {
+      this._updateEntityOptions();
     }
   }
 
@@ -167,88 +158,88 @@ export class InlineBlockEditor extends LitElement {
     }));
 
     const gridConfig = BlockManager.LAYOUT_PRESETS[this.layout] || BlockManager.LAYOUT_PRESETS['2x2'];
+    const positionOptions = this._getPositionOptions(gridConfig);
 
     return html`
       <div class="inline-editor">
         <div class="editor-form">
-          <div class="form-row">
-            <label class="form-label">块类型</label>
-            <ha-combo-box
-              .items=${blockTypes}
-              .value=${this._editingBlock.type || 'text'}
-              @value-changed=${e => this._updateBlock('type', e.detail.value)}
-              label="选择类型"
-              fullwidth
-            ></ha-combo-box>
-          </div>
+          <!-- 左栏：基础配置 -->
+          <div class="form-column">
+            <div class="config-field">
+              <label class="config-label">块类型</label>
+              <ha-select
+                .value=${this._editingBlock.type || 'text'}
+                @selected=${e => this._updateBlock('type', e.target.value)}
+                fullwidth
+              >
+                ${blockTypes.map(type => html`
+                  <ha-list-item .value=${type.value}>${type.label}</ha-list-item>
+                `)}
+              </ha-select>
+            </div>
 
-          <div class="form-row">
-            <label class="form-label">显示标题</label>
-            <ha-textfield
-              .value=${this._editingBlock.config?.title || ''}
-              @input=${e => this._updateConfig('title', e.target.value)}
-              label="块标题"
-              placeholder="例如：室内温度"
-              fullwidth
-            ></ha-textfield>
-          </div>
+            <div class="config-field">
+              <label class="config-label">显示名称</label>
+              <ha-textfield
+                .value=${this._editingBlock.config?.title || ''}
+                @input=${e => this._updateConfig('title', e.target.value)}
+                placeholder="例如：室内温度"
+                fullwidth
+              ></ha-textfield>
+            </div>
 
-          <div class="form-row">
-            <label class="form-label">自定义图标</label>
-            <div class="icon-selector">
-              <div class="icon-preview" @click=${this._toggleIconPicker}>
-                <ha-icon .icon=${this._editingBlock.config?.icon || BlockManager.getBlockIcon(this._editingBlock)}></ha-icon>
+            <div class="config-field">
+              <label class="config-label">自定义图标</label>
+              <div class="icon-selector">
+                <div class="icon-preview">
+                  <ha-icon .icon=${this._editingBlock.config?.icon || BlockManager.getBlockIcon(this._editingBlock)}></ha-icon>
+                </div>
+                <ha-icon-picker
+                  .value=${this._editingBlock.config?.icon || ''}
+                  @value-changed=${e => this._updateConfig('icon', e.detail.value)}
+                  label="选择图标"
+                  fullwidth
+                ></ha-icon-picker>
               </div>
-              <ha-textfield
-                .value=${this._editingBlock.config?.icon || ''}
-                @input=${e => this._updateConfig('icon', e.target.value)}
-                label="图标名称"
-                placeholder="例如：mdi:home"
+            </div>
+
+            <div class="config-field">
+              <label class="config-label">网格位置</label>
+              <ha-select
+                .value=${this._getPositionValue()}
+                @selected=${e => this._onPositionSelected(e.target.value)}
                 fullwidth
-              ></ha-textfield>
+              >
+                ${positionOptions.map(option => html`
+                  <ha-list-item .value=${option.value}>${option.label}</ha-list-item>
+                `)}
+              </ha-select>
             </div>
           </div>
 
-          ${this._showIconPicker ? html`
-            <div class="form-row">
-              <label class="form-label">选择图标</label>
-              <ha-icon-picker
-                .value=${this._editingBlock.config?.icon || ''}
-                @value-changed=${e => this._updateConfig('icon', e.detail.value)}
-                label="选择图标"
-              ></ha-icon-picker>
+          <!-- 右栏：内容配置 -->
+          <div class="form-column">
+            <div class="config-field">
+              <label class="config-label">${this._getContentLabel()}</label>
+              ${this._renderContentField()}
+              ${this._renderEntityInfo()}
             </div>
-          ` : ''}
 
-          <div class="form-row">
-            <label class="form-label">${this._getContentLabel()}</label>
-            ${this._renderContentField()}
+            ${this._editingBlock.type === 'text' ? html`
+              <div class="config-field">
+                <label class="config-label">背景颜色</label>
+                <ha-textfield
+                  .value=${this._editingBlock.config?.background || ''}
+                  @input=${e => this._updateConfig('background', e.target.value)}
+                  placeholder="#f0f0f0 或 rgba(255,255,255,0.1)"
+                  fullwidth
+                ></ha-textfield>
+              </div>
+            ` : ''}
           </div>
 
-          <div class="form-row">
-            <label class="form-label">网格位置</label>
-            <div class="position-selector">
-              ${this._renderPositionOptions(gridConfig)}
-            </div>
-          </div>
-
-          ${this._editingBlock.type === 'text' ? html`
-            <div class="form-row">
-              <label class="form-label">背景颜色</label>
-              <ha-textfield
-                .value=${this._editingBlock.config?.background || ''}
-                @input=${e => this._updateConfig('background', e.target.value)}
-                label="背景颜色"
-                placeholder="#f0f0f0 或 rgba(255,255,255,0.1)"
-                fullwidth
-              ></ha-textfield>
-            </div>
-          ` : ''}
-
+          <!-- 操作按钮 -->
           <div class="form-actions">
-            <button class="action-btn delete" @click=${this._onDelete}>
-              删除
-            </button>
             <button class="action-btn" @click=${this._onCancel}>
               取消
             </button>
@@ -277,18 +268,18 @@ export class InlineBlockEditor extends LitElement {
         <ha-textarea
           .value=${this._editingBlock.content || ''}
           @input=${e => this._updateBlock('content', e.target.value)}
-          label="输入文本内容"
-          rows="3"
+          placeholder="输入文本内容..."
+          rows="4"
           fullwidth
         ></ha-textarea>
       `;
     } else {
       return html`
         <ha-combo-box
-          .items=${this.availableEntities}
+          .items=${this._entityOptions}
           .value=${this._editingBlock.content || ''}
-          @value-changed=${e => this._updateBlock('content', e.detail.value)}
-          label="选择实体"
+          @value-changed=${e => this._onEntitySelected(e.detail.value)}
+          placeholder="选择或输入实体ID"
           allow-custom-value
           fullwidth
         ></ha-combo-box>
@@ -296,28 +287,69 @@ export class InlineBlockEditor extends LitElement {
     }
   }
 
-  _renderPositionOptions(gridConfig) {
+  _renderEntityInfo() {
+    if (this._editingBlock.type === 'text' || !this._editingBlock.content) return '';
+    
+    const entity = this.hass?.states[this._editingBlock.content];
+    if (!entity) return html`<div class="entity-info">实体未找到或不可用</div>`;
+    
+    return html`
+      <div class="entity-info">
+        <div>状态: ${entity.state}</div>
+        ${entity.attributes?.unit_of_measurement ? html`
+          <div>单位: ${entity.attributes.unit_of_measurement}</div>
+        ` : ''}
+        ${entity.attributes?.friendly_name ? html`
+          <div>名称: ${entity.attributes.friendly_name}</div>
+        ` : ''}
+      </div>
+    `;
+  }
+
+  _getPositionOptions(gridConfig) {
     const options = [];
     for (let row = 0; row < gridConfig.rows; row++) {
       for (let col = 0; col < gridConfig.cols; col++) {
-        const isSelected = this._editingBlock.position?.row === row && 
-                          this._editingBlock.position?.col === col;
-        options.push(html`
-          <button 
-            class="position-btn ${isSelected ? 'selected' : ''}"
-            @click=${() => this._updatePosition(row, col)}
-            title="位置 ${row},${col}"
-          >
-            ${row},${col}
-          </button>
-        `);
+        options.push({
+          value: `${row},${col}`,
+          label: `位置 ${row},${col}`
+        });
       }
     }
     return options;
   }
 
-  _toggleIconPicker() {
-    this._showIconPicker = !this._showIconPicker;
+  _getPositionValue() {
+    const pos = this._editingBlock.position;
+    return pos ? `${pos.row},${pos.col}` : '0,0';
+  }
+
+  _updateEntityOptions() {
+    this._entityOptions = this.availableEntities || [];
+  }
+
+  _onEntitySelected(entityId) {
+    this._updateBlock('content', entityId);
+    
+    // 自动填充名称和图标
+    if (entityId && this.hass?.states[entityId]) {
+      const entity = this.hass.states[entityId];
+      
+      // 自动填充名称
+      if (!this._editingBlock.config?.title && entity.attributes?.friendly_name) {
+        this._updateConfig('title', entity.attributes.friendly_name);
+      }
+      
+      // 自动填充图标
+      if (!this._editingBlock.config?.icon && entity.attributes?.icon) {
+        this._updateConfig('icon', entity.attributes.icon);
+      }
+    }
+  }
+
+  _onPositionSelected(positionValue) {
+    const [row, col] = positionValue.split(',').map(Number);
+    this._updatePosition(row, col);
   }
 
   _updateBlock(key, value) {
@@ -346,14 +378,6 @@ export class InlineBlockEditor extends LitElement {
     this.dispatchEvent(new CustomEvent('block-saved', {
       detail: { block: this._editingBlock }
     }));
-  }
-
-  _onDelete() {
-    if (confirm('确定要删除这个内容块吗？')) {
-      this.dispatchEvent(new CustomEvent('block-deleted', {
-        detail: { blockId: this.block.id }
-      }));
-    }
   }
 
   _onCancel() {

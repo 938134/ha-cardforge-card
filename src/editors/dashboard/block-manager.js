@@ -21,6 +21,26 @@ export class BlockManager {
       name: '开关', 
       icon: 'mdi:power',
       editor: 'entity'
+    },
+    light: {
+      name: '灯光',
+      icon: 'mdi:lightbulb',
+      editor: 'entity'
+    },
+    climate: {
+      name: '空调',
+      icon: 'mdi:thermostat',
+      editor: 'entity'
+    },
+    cover: {
+      name: '窗帘',
+      icon: 'mdi:blinds',
+      editor: 'entity'
+    },
+    media_player: {
+      name: '媒体播放器',
+      icon: 'mdi:speaker',
+      editor: 'entity'
     }
   };
 
@@ -125,6 +145,68 @@ export class BlockManager {
     return typeInfo?.icon || 'mdi:cube';
   }
 
+  // 根据实体ID获取图标
+  static getEntityIcon(entityId, hass) {
+    if (!entityId || !hass) return 'mdi:help-circle';
+    
+    const entity = hass.states[entityId];
+    if (entity?.attributes?.icon) {
+      return entity.attributes.icon;
+    }
+    
+    // 根据实体ID前缀自动匹配图标
+    const entityType = entityId.split('.')[0];
+    const iconMap = {
+      'sensor': 'mdi:gauge',
+      'binary_sensor': 'mdi:checkbox-marked-circle-outline',
+      'switch': 'mdi:power',
+      'light': 'mdi:lightbulb',
+      'climate': 'mdi:thermostat',
+      'cover': 'mdi:blinds',
+      'media_player': 'mdi:speaker',
+      'person': 'mdi:account',
+      'device_tracker': 'mdi:account',
+      'sun': 'mdi:weather-sunny',
+      'weather': 'mdi:weather-cloudy',
+      'camera': 'mdi:camera',
+      'automation': 'mdi:robot',
+      'script': 'mdi:script-text',
+      'scene': 'mdi:palette',
+      'input_boolean': 'mdi:toggle-switch',
+      'input_number': 'mdi:ray-vertex',
+      'input_select': 'mdi:format-list-bulleted',
+      'input_text': 'mdi:form-textbox',
+      'timer': 'mdi:timer',
+      'zone': 'mdi:map-marker-radius',
+      'group': 'mdi:google-circles-communities'
+    };
+    
+    return iconMap[entityType] || 'mdi:cube';
+  }
+
+  // 获取实体显示名称
+  static getEntityDisplayName(entityId, hass) {
+    if (!entityId || !hass) return entityId;
+    
+    const entity = hass.states[entityId];
+    return entity?.attributes?.friendly_name || entityId;
+  }
+
+  // 获取实体状态信息
+  static getEntityStateInfo(entityId, hass) {
+    if (!entityId || !hass) return null;
+    
+    const entity = hass.states[entityId];
+    if (!entity) return null;
+    
+    return {
+      state: entity.state,
+      unit: entity.attributes?.unit_of_measurement || '',
+      friendlyName: entity.attributes?.friendly_name || entityId,
+      icon: entity.attributes?.icon || this.getEntityIcon(entityId, hass)
+    };
+  }
+
   // 验证块配置
   static validateBlock(block) {
     const errors = [];
@@ -147,14 +229,16 @@ export class BlockManager {
   static getBlockPreview(block) {
     if (block.type === 'text') {
       const content = block.content || '';
-      return content.substring(0, 20) + (content.length > 20 ? '...' : '');
+      return content.substring(0, 30) + (content.length > 30 ? '...' : '');
     }
     
     if (block.realTimeData) {
-      return `${block.realTimeData.state}`;
+      const state = block.realTimeData.state;
+      const unit = block.realTimeData.attributes?.unit_of_measurement || '';
+      return `${state}${unit ? ' ' + unit : ''}`;
     }
     
-    return block.content || '点击编辑';
+    return block.content ? `实体: ${block.content.split('.')[1] || block.content}` : '点击配置实体';
   }
 
   // 更新块内容
@@ -206,5 +290,104 @@ export class BlockManager {
     
     // 如果网格已满，返回第一个位置
     return { row: 0, col: 0 };
+  }
+
+  // 获取所有可用位置
+  static getAllPositions(layout) {
+    const grid = this.LAYOUT_PRESETS[layout] || this.LAYOUT_PRESETS['2x2'];
+    const positions = [];
+    
+    for (let row = 0; row < grid.rows; row++) {
+      for (let col = 0; col < grid.cols; col++) {
+        positions.push({ row, col });
+      }
+    }
+    
+    return positions;
+  }
+
+  // 获取位置显示文本
+  static getPositionDisplay(position) {
+    if (!position) return '0,0';
+    return `${position.row},${position.col}`;
+  }
+
+  // 检查位置是否可用
+  static isPositionAvailable(blocks, position, excludeBlockId = null) {
+    return !blocks.some(block => 
+      block.id !== excludeBlockId && 
+      block.position?.row === position.row && 
+      block.position?.col === position.col
+    );
+  }
+
+  // 获取块在网格中的统计信息
+  static getGridStats(blocks, layout) {
+    const grid = this.LAYOUT_PRESETS[layout] || this.LAYOUT_PRESETS['2x2'];
+    const usedPositions = new Set();
+    
+    blocks.forEach(block => {
+      if (block.position) {
+        usedPositions.add(`${block.position.row},${block.position.col}`);
+      }
+    });
+    
+    const totalPositions = grid.rows * grid.cols;
+    const usagePercent = totalPositions > 0 ? Math.round((usedPositions.size / totalPositions) * 100) : 0;
+    
+    return {
+      totalBlocks: blocks.length,
+      usedPositions: usedPositions.size,
+      totalPositions: totalPositions,
+      usagePercent: usagePercent
+    };
+  }
+
+  // 根据实体类型推荐块类型
+  static suggestBlockType(entityId) {
+    if (!entityId) return 'text';
+    
+    const entityType = entityId.split('.')[0];
+    const typeMap = {
+      'sensor': 'sensor',
+      'binary_sensor': 'sensor',
+      'weather': 'weather',
+      'switch': 'switch',
+      'light': 'light',
+      'climate': 'climate',
+      'cover': 'cover',
+      'media_player': 'media_player'
+    };
+    
+    return typeMap[entityType] || 'sensor';
+  }
+
+  // 获取所有支持的实体类型
+  static getSupportedEntityTypes() {
+    return Object.keys(this.BLOCK_TYPES).filter(type => type !== 'text');
+  }
+
+  // 导出块配置为可读格式（用于调试）
+  static exportBlocks(blocks) {
+    return blocks.map(block => ({
+      id: block.id,
+      type: block.type,
+      content: block.content,
+      config: block.config,
+      position: block.position,
+      displayName: this.getBlockDisplayName(block)
+    }));
+  }
+
+  // 导入块配置
+  static importBlocks(blockData) {
+    return blockData.map(data => ({
+      id: data.id || `block_${Date.now()}`,
+      type: data.type || 'text',
+      content: data.content || '',
+      config: data.config || {},
+      position: data.position || { row: 0, col: 0 },
+      order: data.order || 0
+    }));
   }
 }
