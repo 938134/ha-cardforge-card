@@ -58,6 +58,12 @@ export class DashboardEditor extends LitElement {
         color: var(--cf-text-primary);
       }
 
+      .section-description {
+        font-size: 0.85em;
+        color: var(--cf-text-secondary);
+        margin-top: var(--cf-spacing-xs);
+      }
+
       .add-btn {
         padding: var(--cf-spacing-xs) var(--cf-spacing-sm);
         background: var(--cf-primary-color);
@@ -196,27 +202,15 @@ export class DashboardEditor extends LitElement {
   render() {
     return html`
       <div class="dashboard-editor">
-        <!-- 布局配置 -->
+        <!-- 标题区域 -->
         <div class="editor-section">
           <div class="section-header">
-            <div class="section-title">
-              <ha-icon icon="mdi:view-grid"></ha-icon>
-              <span>布局配置</span>
-            </div>
-          </div>
-          
-          <layout-presets
-            .selectedLayout=${this._selectedLayout}
-            @layout-changed=${e => this._onLayoutChanged(e.detail.layout)}
-          ></layout-presets>
-        </div>
-
-        <!-- 标题设置 -->
-        <div class="editor-section">
-          <div class="section-header">
-            <div class="section-title">
-              <ha-icon icon="mdi:format-title"></ha-icon>
-              <span>标题设置</span>
+            <div>
+              <div class="section-title">
+                <ha-icon icon="mdi:format-title"></ha-icon>
+                <span>标题区域</span>
+              </div>
+              <div class="section-description">显示在卡片顶部的标题内容</div>
             </div>
             ${this._titleBlocks.length === 0 ? html`
               <button class="add-btn" @click=${this._addTitleBlock}>
@@ -242,12 +236,33 @@ export class DashboardEditor extends LitElement {
           `}
         </div>
 
-        <!-- 内容块管理 -->
+        <!-- 内容区域配置 -->
         <div class="editor-section">
           <div class="section-header">
-            <div class="section-title">
-              <ha-icon icon="mdi:cube"></ha-icon>
-              <span>内容块管理</span>
+            <div>
+              <div class="section-title">
+                <ha-icon icon="mdi:view-grid"></ha-icon>
+                <span>内容区域布局</span>
+              </div>
+              <div class="section-description">配置内容块的网格布局（仅影响内容区域）</div>
+            </div>
+          </div>
+          
+          <layout-presets
+            .selectedLayout=${this._selectedLayout}
+            @layout-changed=${e => this._onLayoutChanged(e.detail.layout)}
+          ></layout-presets>
+        </div>
+
+        <!-- 内容区域管理 -->
+        <div class="editor-section">
+          <div class="section-header">
+            <div>
+              <div class="section-title">
+                <ha-icon icon="mdi:cube"></ha-icon>
+                <span>内容区域</span>
+              </div>
+              <div class="section-description">网格布局中的内容块，支持多种实体类型</div>
             </div>
             <button class="add-btn" @click=${this._addContentBlock}>
               <ha-icon icon="mdi:plus"></ha-icon>
@@ -265,12 +280,15 @@ export class DashboardEditor extends LitElement {
           ></block-editor>
         </div>
 
-        <!-- 页脚设置 -->
+        <!-- 页脚区域 -->
         <div class="editor-section">
           <div class="section-header">
-            <div class="section-title">
-              <ha-icon icon="mdi:page-layout-footer"></ha-icon>
-              <span>页脚设置</span>
+            <div>
+              <div class="section-title">
+                <ha-icon icon="mdi:page-layout-footer"></ha-icon>
+                <span>页脚区域</span>
+              </div>
+              <div class="section-description">显示在卡片底部的页脚内容</div>
             </div>
             ${this._footerBlocks.length === 0 ? html`
               <button class="add-btn" @click=${this._addFooterBlock}>

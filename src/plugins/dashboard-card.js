@@ -4,18 +4,29 @@ import { BlockManager } from '../editors/dashboard/block-manager.js';
 
 class DashboardCard extends BasePlugin {
   getTemplate(config, hass, entities) {
-    const blocks = BlockManager.deserializeFromEntities(entities);
-    const enrichedBlocks = BlockManager.enrichWithRealtimeData(blocks, hass);
-    const layout = config.layout || '2x2';
+    const allBlocks = BlockManager.deserializeFromEntities(entities);
     
+    // 分离不同类型的块
+    const titleBlocks = allBlocks.filter(block => block.config?.blockType === 'title');
+    const contentBlocks = allBlocks.filter(block => 
+      !block.config?.blockType || block.config.blockType === 'content'
+    );
+    const footerBlocks = allBlocks.filter(block => block.config?.blockType === 'footer');
+    
+    const enrichedContentBlocks = BlockManager.enrichWithRealtimeData(contentBlocks, hass);
+    const layout = config.layout || '2x2';
+
     return this._renderCardContainer(`
-      ${this._renderCardHeader(config, entities)}
+      <!-- 标题区域 -->
+      ${titleBlocks.length > 0 ? this._renderTitleArea(titleBlocks) : ''}
       
+      <!-- 内容区域 -->
       <div class="dashboard-content">
-        ${this._renderGridLayout(enrichedBlocks, layout, hass)}
+        ${this._renderGridLayout(enrichedContentBlocks, layout, hass)}
       </div>
       
-      ${this._renderCardFooter(config, entities)}
+      <!-- 页脚区域 -->
+      ${footerBlocks.length > 0 ? this._renderFooterArea(footerBlocks) : ''}
     `, 'dashboard-card');
   }
 
@@ -31,6 +42,7 @@ class DashboardCard extends BasePlugin {
         flex: 1;
         display: flex;
         flex-direction: column;
+        min-height: 200px;
       }
       
       .dashboard-grid {
@@ -39,7 +51,6 @@ class DashboardCard extends BasePlugin {
         grid-template-rows: repeat(${gridConfig.rows}, 1fr);
         gap: var(--cf-spacing-md);
         flex: 1;
-        min-height: 200px;
       }
       
       .dashboard-block {
@@ -102,10 +113,31 @@ class DashboardCard extends BasePlugin {
         opacity: 0.7;
       }
       
-      /* 油价样式 */
-      .block-style-oil-price .block-value {
-        font-size: 1.3em;
-        color: var(--cf-accent-color);
+      /* 标题区域样式 */
+      .title-area {
+        margin-bottom: var(--cf-spacing-lg);
+        text-align: center;
+      }
+      
+      .title-content {
+        font-size: 1.4em;
+        font-weight: 600;
+        color: var(--cf-text-primary);
+        line-height: 1.2;
+      }
+      
+      /* 页脚区域样式 */
+      .footer-area {
+        margin-top: var(--cf-spacing-lg);
+        padding-top: var(--cf-spacing-md);
+        border-top: 1px solid var(--cf-border);
+        text-align: center;
+      }
+      
+      .footer-content {
+        font-size: 0.9em;
+        color: var(--cf-text-secondary);
+        line-height: 1.4;
       }
       
       @container cardforge-container (max-width: 400px) {
@@ -121,7 +153,33 @@ class DashboardCard extends BasePlugin {
         .block-value {
           font-size: 1.2em;
         }
+        
+        .title-content {
+          font-size: 1.2em;
+        }
       }
+    `;
+  }
+
+  _renderTitleArea(titleBlocks) {
+    if (titleBlocks.length === 0) return '';
+    
+    const titleContent = titleBlocks[0].content || '';
+    return `
+      <div class="title-area">
+        <div class="title-content">${titleContent}</div>
+      </div>
+    `;
+  }
+
+  _renderFooterArea(footerBlocks) {
+    if (footerBlocks.length === 0) return '';
+    
+    const footerContent = footerBlocks[0].content || '';
+    return `
+      <div class="footer-area">
+        <div class="footer-content">${footerContent}</div>
+      </div>
     `;
   }
 
@@ -165,6 +223,10 @@ class DashboardCard extends BasePlugin {
       case 'sensor':
       case 'weather':
       case 'switch':
+      case 'light':
+      case 'climate':
+      case 'cover':
+      case 'media_player':
         if (block.realTimeData) {
           return `
             <div class="block-value">${block.realTimeData.state}</div>
@@ -192,7 +254,7 @@ DashboardCard.manifest = {
   config_schema: {
     layout: {
       type: 'select',
-      label: '布局模板',
+      label: '内容区域布局',
       default: '2x2',
       options: ['1x1', '1x2', '1x3', '1x4', '2x2', '2x3', '3x3', 'free']
     }
