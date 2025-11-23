@@ -9,8 +9,7 @@ export class LayoutEditor extends LitElement {
     config: { type: Object },
     pluginManifest: { type: Object },
     _contentBlocks: { state: true },
-    _availableEntities: { state: true },
-    _selectedLayout: { state: true }
+    _availableEntities: { state: true }
   };
 
   static styles = [
@@ -21,52 +20,6 @@ export class LayoutEditor extends LitElement {
         display: flex;
         flex-direction: column;
         gap: var(--cf-spacing-lg);
-      }
-
-      /* 仪表盘布局样式 */
-      .layout-presets {
-        display: grid;
-        grid-template-columns: repeat(4, 1fr);
-        gap: var(--cf-spacing-sm);
-        margin-bottom: var(--cf-spacing-lg);
-      }
-
-      .layout-preset {
-        aspect-ratio: 1;
-        border: 2px solid var(--cf-border);
-        border-radius: var(--cf-radius-md);
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        justify-content: center;
-        cursor: pointer;
-        transition: all var(--cf-transition-fast);
-        padding: var(--cf-spacing-sm);
-        background: var(--cf-surface);
-      }
-
-      .layout-preset:hover {
-        border-color: var(--cf-primary-color);
-        transform: translateY(-1px);
-      }
-
-      .layout-preset.selected {
-        border-color: var(--cf-primary-color);
-        background: rgba(var(--cf-rgb-primary), 0.05);
-      }
-
-      .layout-preview {
-        flex: 1;
-        width: 100%;
-        display: grid;
-        gap: 2px;
-        margin-bottom: 4px;
-      }
-
-      .layout-name {
-        font-size: 0.7em;
-        text-align: center;
-        color: var(--cf-text-secondary);
       }
 
       /* 普通卡片实体配置样式 */
@@ -127,6 +80,20 @@ export class LayoutEditor extends LitElement {
         line-height: 1.4;
       }
 
+      /* 仪表盘布局设计样式 */
+      .layout-info {
+        background: var(--cf-surface);
+        border: 1px solid var(--cf-border);
+        border-radius: var(--cf-radius-md);
+        padding: var(--cf-spacing-md);
+        margin-bottom: var(--cf-spacing-lg);
+      }
+
+      .current-layout {
+        font-weight: 500;
+        color: var(--cf-primary-color);
+      }
+
       .blocks-section {
         margin-top: var(--cf-spacing-lg);
       }
@@ -139,10 +106,6 @@ export class LayoutEditor extends LitElement {
       }
 
       @media (max-width: 768px) {
-        .layout-presets {
-          grid-template-columns: repeat(2, 1fr);
-        }
-
         .entity-row {
           grid-template-columns: 1fr;
           gap: var(--cf-spacing-sm);
@@ -155,16 +118,11 @@ export class LayoutEditor extends LitElement {
     super();
     this._contentBlocks = [];
     this._availableEntities = [];
-    this._selectedLayout = '2x2';
   }
 
   willUpdate(changedProperties) {
     if (changedProperties.has('config') || changedProperties.has('hass')) {
       this._contentBlocks = BlockManager.deserializeFromEntities(this.config.entities);
-    }
-    
-    if (changedProperties.has('config')) {
-      this._selectedLayout = this.config.layout || '2x2';
     }
     
     if (changedProperties.has('hass') && this.hass) {
@@ -181,43 +139,29 @@ export class LayoutEditor extends LitElement {
 
     return html`
       <div class="layout-editor">
-        <div class="layout-presets-section">
-          <div class="section-title">选择布局</div>
-          <div class="layout-presets">
-            ${Object.entries(BlockManager.LAYOUT_PRESETS).map(([key, preset]) => html`
-              <div 
-                class="layout-preset ${this._selectedLayout === key ? 'selected' : ''}"
-                @click=${() => this._selectLayout(key)}
-                title="${preset.name}"
-              >
-                <div class="layout-preview" style="
-                  grid-template-columns: repeat(${preset.cols}, 1fr);
-                  grid-template-rows: repeat(${preset.rows}, 1fr);
-                ">
-                  ${Array.from({ length: preset.rows * preset.cols }, (_, i) => html`
-                    <div style="background: var(--cf-border); border-radius: 1px;"></div>
-                  `)}
-                </div>
-                <div class="layout-name">${preset.cols}×${preset.rows}</div>
-              </div>
-            `)}
-          </div>
+        <div class="layout-info">
+          <div class="cf-text-sm cf-text-secondary">当前布局</div>
+          <div class="current-layout">${this._getLayoutDisplayName()}</div>
         </div>
 
-        <div class="layout-content">
-          <div class="blocks-section">
-            <div class="section-title">内容块管理</div>
-            <block-editor
-              .blocks=${this._contentBlocks}
-              .hass=${this.hass}
-              .availableEntities=${this._availableEntities}
-              .layout=${this._selectedLayout}
-              @blocks-changed=${this._onBlocksChanged}
-            ></block-editor>
-          </div>
+        <div class="blocks-section">
+          <div class="section-title">内容块管理</div>
+          <block-editor
+            .blocks=${this._contentBlocks}
+            .hass=${this.hass}
+            .availableEntities=${this._availableEntities}
+            .layout=${this.config.layout || '2x2'}
+            @blocks-changed=${this._onBlocksChanged}
+          ></block-editor>
         </div>
       </div>
     `;
+  }
+
+  _getLayoutDisplayName() {
+    const layout = this.config.layout || '2x2';
+    const preset = BlockManager.LAYOUT_PRESETS[layout];
+    return preset ? `${preset.name} (${preset.cols}×${preset.rows})` : '未知布局';
   }
 
   _renderEntityDriven() {
@@ -270,24 +214,6 @@ export class LayoutEditor extends LitElement {
       return value;
     }
     return value || '';
-  }
-
-  _selectLayout(layout) {
-    this._selectedLayout = layout;
-    
-    // 布局变更时重新分配块位置
-    const redistributedBlocks = BlockManager.redistributePositions(
-      this._contentBlocks, 
-      this.config.layout || '2x2', 
-      layout
-    );
-    
-    const entities = BlockManager.serializeToEntities(redistributedBlocks);
-    this._updateEntities(entities);
-    
-    this.dispatchEvent(new CustomEvent('config-changed', {
-      detail: { config: { layout } }
-    }));
   }
 
   _updateAvailableEntities() {

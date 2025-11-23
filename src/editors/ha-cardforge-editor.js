@@ -1,8 +1,9 @@
-// src/editors/ha-cardforge-editor.js
+// src/editors/ha-cardforge-editor.js (关键部分修正)
 import { LitElement, html, css } from 'https://unpkg.com/lit@2.8.0/index.js?module';
 import { PluginRegistry } from '../core/plugin-registry.js';
 import { themeManager } from '../themes/index.js';
 import { designSystem } from '../core/design-system.js';
+import { BlockManager } from '../core/block-manager.js';
 import './config-editor.js';
 import './layout-editor.js';
 import './plugin-selector.js';
@@ -65,21 +66,73 @@ class HaCardForgeEditor extends LitElement {
         border-left: 4px solid var(--cf-primary-color);
       }
 
-      /* 不同区域的视觉区分 */
-      .editor-section:nth-child(1) .section-header {
-        border-left-color: #4CAF50; /* 绿色 - 卡片类型 */
+      /* 仪表盘基础设置样式 */
+      .dashboard-basic-form {
+        display: flex;
+        flex-direction: column;
+        gap: var(--cf-spacing-lg);
       }
 
-      .editor-section:nth-child(2) .section-header {
-        border-left-color: #2196F3; /* 蓝色 - 主题样式 */  
+      .form-field {
+        display: flex;
+        flex-direction: column;
+        gap: var(--cf-spacing-sm);
       }
 
-      .editor-section:nth-child(3) .section-header {
-        border-left-color: #FF9800; /* 橙色 - 基础设置 */
+      .form-label {
+        font-weight: 500;
+        font-size: 0.9em;
+        color: var(--cf-text-primary);
       }
 
-      .editor-section:nth-child(4) .section-header {
-        border-left-color: #9C27B0; /* 紫色 - 数据源配置 */
+      .layout-presets {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: var(--cf-spacing-sm);
+      }
+
+      .layout-preset {
+        aspect-ratio: 1;
+        border: 2px solid var(--cf-border);
+        border-radius: var(--cf-radius-md);
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        transition: all var(--cf-transition-fast);
+        padding: var(--cf-spacing-sm);
+        background: var(--cf-surface);
+      }
+
+      .layout-preset:hover {
+        border-color: var(--cf-primary-color);
+        transform: translateY(-1px);
+      }
+
+      .layout-preset.selected {
+        border-color: var(--cf-primary-color);
+        background: rgba(var(--cf-rgb-primary), 0.05);
+      }
+
+      .layout-preview {
+        flex: 1;
+        width: 100%;
+        display: grid;
+        gap: 2px;
+        margin-bottom: 4px;
+      }
+
+      .layout-name {
+        font-size: 0.7em;
+        text-align: center;
+        color: var(--cf-text-secondary);
+      }
+
+      @media (max-width: 768px) {
+        .layout-presets {
+          grid-template-columns: repeat(2, 1fr);
+        }
       }
 
       /* 深色模式适配 */
@@ -244,47 +297,109 @@ class HaCardForgeEditor extends LitElement {
       </div>
     `;
   }
-  
-_renderBaseConfigSection() {
-  if (!this.config.plugin) return '';
-  
-  return html`
-    <div class="editor-section">
-      <div class="section-header">
-        <ha-icon icon="mdi:tune"></ha-icon>
-        <span>卡片设置</span>
-      </div>
-      
-      <config-editor
-        .config=${this.config}
-        .pluginManifest=${this._pluginManifest}
-        @config-changed=${this._onConfigChanged}
-      ></config-editor>
-    </div>
-  `;
-}
 
-_renderDataSourceSection() {
-  if (!this.config.plugin || !this._pluginInstance) return '';
+  _renderBaseConfigSection() {
+    if (!this.config.plugin) return '';
+    
+    const isDashboard = this._pluginManifest?.free_layout;
+    
+    if (isDashboard) {
+      return this._renderDashboardBasicConfig();
+    } else {
+      return html`
+        <div class="editor-section">
+          <div class="section-header">
+            <ha-icon icon="mdi:tune"></ha-icon>
+            <span>卡片设置</span>
+          </div>
+          
+          <config-editor
+            .config=${this.config}
+            .pluginManifest=${this._pluginManifest}
+            @config-changed=${this._onConfigChanged}
+          ></config-editor>
+        </div>
+      `;
+    }
+  }
 
-  const isDashboard = this._pluginManifest?.free_layout;
-  
-  return html`
-    <div class="editor-section">
-      <div class="section-header">
-        <ha-icon icon="mdi:database"></ha-icon>
-        <span>${isDashboard ? '布局配置' : '数据源配置'}</span>
+  _renderDashboardBasicConfig() {
+    return html`
+      <div class="editor-section">
+        <div class="section-header">
+          <ha-icon icon="mdi:tune"></ha-icon>
+          <span>基础设置</span>
+        </div>
+        
+        <div class="dashboard-basic-form">
+          <div class="form-field">
+            <label class="form-label">标题</label>
+            <ha-textfield
+              .value=${this.config.title || ''}
+              @input=${e => this._onConfigChanged({ title: e.target.value })}
+              label="卡片标题"
+              placeholder="例如：家庭仪表板"
+              fullwidth
+            ></ha-textfield>
+          </div>
+
+          <div class="form-field">
+            <label class="form-label">布局模板</label>
+            <div class="layout-presets">
+              ${Object.entries(BlockManager.LAYOUT_PRESETS).map(([key, preset]) => html`
+                <div 
+                  class="layout-preset ${this.config.layout === key ? 'selected' : ''}"
+                  @click=${() => this._onConfigChanged({ layout: key })}
+                  title="${preset.name}"
+                >
+                  <div class="layout-preview" style="
+                    grid-template-columns: repeat(${preset.cols}, 1fr);
+                    grid-template-rows: repeat(${preset.rows}, 1fr);
+                  ">
+                    ${Array.from({ length: preset.rows * preset.cols }, (_, i) => html`
+                      <div style="background: var(--cf-border); border-radius: 1px;"></div>
+                    `)}
+                  </div>
+                  <div class="layout-name">${preset.cols}×${preset.rows}</div>
+                </div>
+              `)}
+            </div>
+          </div>
+
+          <div class="form-field">
+            <label class="form-label">页脚</label>
+            <ha-textfield
+              .value=${this.config.footer || ''}
+              @input=${e => this._onConfigChanged({ footer: e.target.value })}
+              label="页脚文本"
+              placeholder="例如：最后更新时间"
+              fullwidth
+            ></ha-textfield>
+          </div>
+        </div>
       </div>
-      
-      <layout-editor
-        .hass=${this.hass}
-        .config=${this.config}
-        .pluginManifest=${this._pluginManifest}
-        @entities-changed=${this._onEntitiesChanged}
-      ></layout-editor>
-    </div>
-  `;
-}
+    `;
+  }
+
+  _renderDataSourceSection() {
+    if (!this.config.plugin || !this._pluginInstance) return '';
+
+    return html`
+      <div class="editor-section">
+        <div class="section-header">
+          <ha-icon icon="mdi:database"></ha-icon>
+          <span>${this._pluginManifest?.free_layout ? '布局设计' : '数据源配置'}</span>
+        </div>
+        
+        <layout-editor
+          .hass=${this.hass}
+          .config=${this.config}
+          .pluginManifest=${this._pluginManifest}
+          @entities-changed=${this._onEntitiesChanged}
+        ></layout-editor>
+      </div>
+    `;
+  }
 
   async _onPluginChanged(e) {
     const newConfig = {
@@ -310,10 +425,10 @@ _renderDataSourceSection() {
     this._notifyConfigUpdate();
   }
 
-  _onConfigChanged(e) {
+  _onConfigChanged(configUpdate) {
     this.config = {
       ...this.config,
-      ...e.detail.config
+      ...configUpdate
     };
     this._notifyConfigUpdate();
   }

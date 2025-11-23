@@ -79,7 +79,7 @@ export class ConfigEditor extends LitElement {
 
   willUpdate(changedProperties) {
     if (changedProperties.has('pluginManifest')) {
-      // 只处理 config_schema，不处理 entity_requirements
+      // 只处理 config_schema，不包含布局配置
       this._schema = this.pluginManifest?.config_schema || {};
     }
   }
