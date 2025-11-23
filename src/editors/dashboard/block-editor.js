@@ -329,5 +329,3 @@ export class BlockEditor extends LitElement {
 if (!customElements.get('block-editor')) {
   customElements.define('block-editor', BlockEditor);
 }
-
-export { BlockEditor };

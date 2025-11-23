@@ -104,5 +104,3 @@ export class LayoutPresets extends LitElement {
 if (!customElements.get('layout-presets')) {
   customElements.define('layout-presets', LayoutPresets);
 }
-
-export { LayoutPresets };

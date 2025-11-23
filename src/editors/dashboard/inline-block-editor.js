@@ -297,5 +297,3 @@ export class InlineBlockEditor extends LitElement {
 if (!customElements.get('inline-block-editor')) {
   customElements.define('inline-block-editor', InlineBlockEditor);
 }
-
-export { InlineBlockEditor };
