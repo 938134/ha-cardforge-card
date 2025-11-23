@@ -285,5 +285,3 @@ export class DashboardEditor extends LitElement {
 if (!customElements.get('dashboard-editor')) {
   customElements.define('dashboard-editor', DashboardEditor);
 }
-
-export { DashboardEditor };
