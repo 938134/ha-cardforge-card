@@ -253,19 +253,62 @@ class HaCardForgeEditor extends LitElement {
     if (isDashboard) {
       return this._renderDashboardEditor();
     } else {
-      return html`
-        ${this._renderPluginConfigSection()}
-        ${this._renderEntityMappingSection()}
-      `;
+      return this._renderStandardCardEditor();
     }
+  }
+
+  _renderStandardCardEditor() {
+    return html`
+      ${this._renderPluginConfigSection()}
+      ${this._renderEntityMappingSection()}
+    `;
   }
 
   _renderDashboardEditor() {
     return html`
       <div class="editor-section">
         <div class="section-header">
-          <ha-icon icon="mdi:view-grid"></ha-icon>
-          <span>内容区域布局</span>
+          <ha-icon icon="mdi:tune"></ha-icon>
+          <span>卡片设置</span>
+        </div>
+        
+        <div class="layout-config">
+          <div class="config-row">
+            <label class="config-label">布局</label>
+            <ha-select
+              .value=${this.config.layout || '2x2'}
+              @closed=${this._preventClose}
+              naturalMenuWidth
+              fixedMenuPosition
+            >
+              <ha-list-item value="1x1">1×1</ha-list-item>
+              <ha-list-item value="1x2">1×2</ha-list-item>
+              <ha-list-item value="2x2">2×2</ha-list-item>
+              <ha-list-item value="2x3">2×3</ha-list-item>
+              <ha-list-item value="3x3">3×3</ha-list-item>
+            </ha-select>
+          </div>
+          
+          <div class="config-row">
+            <label class="config-label">内容对齐</label>
+            <ha-select
+              .value=${this.config.content_alignment || 'center'}
+              @closed=${this._preventClose}
+              naturalMenuWidth
+              fixedMenuPosition
+            >
+              <ha-list-item value="center">居中</ha-list-item>
+              <ha-list-item value="compact">紧凑</ha-list-item>
+              <ha-list-item value="stretch">拉伸</ha-list-item>
+            </ha-select>
+          </div>
+        </div>
+      </div>
+
+      <div class="editor-section">
+        <div class="section-header">
+          <ha-icon icon="mdi:database"></ha-icon>
+          <span>数据源配置</span>
         </div>
         
         <dashboard-editor
@@ -365,20 +408,8 @@ class HaCardForgeEditor extends LitElement {
     this.requestUpdate();
   }
 
-  _save() {
-    const configToSend = {
-      type: 'custom:ha-cardforge-card',
-      ...this.config
-    };
-    
-    this.dispatchEvent(new CustomEvent('config-changed', {
-      detail: { config: configToSend }
-    }));
-    this.dispatchEvent(new CustomEvent('config-saved'));
-  }
-
-  _cancel() {
-    this.dispatchEvent(new CustomEvent('config-cancelled'));
+  _preventClose(e) {
+    e.stopPropagation();
   }
 
   updated(changedProperties) {

@@ -15,24 +15,51 @@ class DashboardCard extends BasePlugin {
     
     const enrichedContentBlocks = BlockManager.enrichWithRealtimeData(contentBlocks, hass);
     const layout = config.layout || '2x2';
+    const alignment = config.content_alignment || 'center';
 
     return this._renderCardContainer(`
-      ${this._renderHeaderArea(headerBlocks)}
+      <!-- 标题区域 -->
+      ${headerBlocks.length > 0 ? this._renderHeaderArea(headerBlocks) : ''}
       
       <!-- 内容区域 -->
       <div class="dashboard-content">
-        ${this._renderGridLayout(enrichedContentBlocks, layout, hass)}
+        ${this._renderGridLayout(enrichedContentBlocks, layout, alignment, hass)}
       </div>
       
-      ${this._renderFooterArea(footerBlocks)}
+      <!-- 页脚区域 -->
+      ${footerBlocks.length > 0 ? this._renderFooterArea(footerBlocks) : ''}
     `, 'dashboard-card');
   }
 
   getStyles(config) {
     const baseStyles = this.getBaseStyles(config);
     const layout = config.layout || '2x2';
+    const alignment = config.content_alignment || 'center';
     const gridConfig = BlockManager.LAYOUT_PRESETS[layout];
     
+    // 根据对齐方式设置不同的样式
+    const alignmentStyles = {
+      'center': `
+        gap: var(--cf-spacing-md);
+        .dashboard-block {
+          margin: 4px;
+        }
+      `,
+      'compact': `
+        gap: 2px;
+        .dashboard-block {
+          margin: 0;
+        }
+      `,
+      'stretch': `
+        gap: 1px;
+        .dashboard-block {
+          margin: 0;
+          height: 100%;
+        }
+      `
+    };
+
     return `
       ${baseStyles}
       
@@ -47,58 +74,8 @@ class DashboardCard extends BasePlugin {
         display: grid;
         grid-template-columns: repeat(${gridConfig.cols}, 1fr);
         grid-template-rows: repeat(${gridConfig.rows}, 1fr);
-        gap: var(--cf-spacing-md);
         flex: 1;
-      }
-      
-      /* 标题区域样式 */
-      .header-area {
-        margin-bottom: var(--cf-spacing-lg);
-        padding: var(--cf-spacing-md);
-        text-align: center;
-        background: rgba(var(--cf-rgb-primary), 0.05);
-        border-radius: var(--cf-radius-md);
-        border-left: 4px solid var(--cf-primary-color);
-      }
-      
-      .header-content {
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        gap: var(--cf-spacing-sm);
-        font-size: 1.4em;
-        font-weight: 600;
-        color: var(--cf-text-primary);
-        line-height: 1.2;
-      }
-      
-      .header-icon {
-        color: var(--cf-primary-color);
-      }
-      
-      /* 页脚区域样式 */
-      .footer-area {
-        margin-top: var(--cf-spacing-lg);
-        padding: var(--cf-spacing-md);
-        text-align: center;
-        background: rgba(var(--cf-rgb-primary), 0.03);
-        border-radius: var(--cf-radius-md);
-        border-top: 1px solid var(--cf-border);
-      }
-      
-      .footer-content {
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        gap: var(--cf-spacing-sm);
-        font-size: 0.9em;
-        color: var(--cf-text-secondary);
-        line-height: 1.4;
-      }
-      
-      .footer-icon {
-        color: var(--cf-text-secondary);
-        opacity: 0.7;
+        ${alignmentStyles[alignment] || alignmentStyles.center}
       }
       
       .dashboard-block {
@@ -161,6 +138,34 @@ class DashboardCard extends BasePlugin {
         opacity: 0.7;
       }
       
+      /* 标题区域样式 */
+      .header-area {
+        margin-bottom: var(--cf-spacing-lg);
+        text-align: center;
+        padding: var(--cf-spacing-md);
+      }
+      
+      .header-content {
+        font-size: 1.4em;
+        font-weight: 600;
+        color: var(--cf-text-primary);
+        line-height: 1.2;
+      }
+      
+      /* 页脚区域样式 */
+      .footer-area {
+        margin-top: var(--cf-spacing-lg);
+        padding-top: var(--cf-spacing-md);
+        border-top: 1px solid var(--cf-border);
+        text-align: center;
+      }
+      
+      .footer-content {
+        font-size: 0.9em;
+        color: var(--cf-text-secondary);
+        line-height: 1.4;
+      }
+      
       /* 文本块特殊样式 */
       .text-block {
         background: rgba(var(--cf-rgb-primary), 0.05);
@@ -175,17 +180,6 @@ class DashboardCard extends BasePlugin {
       /* 传感器块样式 */
       .sensor-block .block-value {
         color: var(--cf-primary-color);
-      }
-      
-      /* 开关块样式 */
-      .switch-block .block-value {
-        color: var(--cf-accent-color);
-        font-weight: 600;
-      }
-      
-      /* 天气块样式 */
-      .weather-block .block-value {
-        color: #2196F3;
       }
       
       /* 自定义背景色支持 */
@@ -231,30 +225,36 @@ class DashboardCard extends BasePlugin {
   _renderHeaderArea(headerBlocks) {
     if (headerBlocks.length === 0) return '';
     
-    return headerBlocks.map(block => `
-      <div class="header-area" data-block-id="${block.id}">
+    const headerBlock = headerBlocks[0];
+    const icon = headerBlock.config?.icon ? `<ha-icon icon="${headerBlock.config.icon}" style="margin-right: 8px;"></ha-icon>` : '';
+    const title = headerBlock.config?.title || headerBlock.content || '';
+    
+    return `
+      <div class="header-area">
         <div class="header-content">
-          ${block.config?.icon ? `<ha-icon icon="${block.config.icon}" class="header-icon"></ha-icon>` : ''}
-          <span class="header-text">${block.content || ''}</span>
+          ${icon}${title}
         </div>
       </div>
-    `).join('');
+    `;
   }
 
   _renderFooterArea(footerBlocks) {
     if (footerBlocks.length === 0) return '';
     
-    return footerBlocks.map(block => `
-      <div class="footer-area" data-block-id="${block.id}">
+    const footerBlock = footerBlocks[0];
+    const icon = footerBlock.config?.icon ? `<ha-icon icon="${footerBlock.config.icon}" style="margin-right: 8px;"></ha-icon>` : '';
+    const content = footerBlock.config?.title || footerBlock.content || '';
+    
+    return `
+      <div class="footer-area">
         <div class="footer-content">
-          ${block.config?.icon ? `<ha-icon icon="${block.config.icon}" class="footer-icon"></ha-icon>` : ''}
-          <span class="footer-text">${block.content || ''}</span>
+          ${icon}${content}
         </div>
       </div>
-    `).join('');
+    `;
   }
 
-  _renderGridLayout(blocks, layout, hass) {
+  _renderGridLayout(blocks, layout, alignment, hass) {
     if (blocks.length === 0) {
       return `
         <div class="cf-flex cf-flex-center cf-flex-column cf-p-lg">
@@ -296,12 +296,6 @@ class DashboardCard extends BasePlugin {
         return `<div class="block-text">${block.content || ''}</div>`;
         
       case 'sensor':
-      case 'weather':
-      case 'switch':
-      case 'light':
-      case 'climate':
-      case 'cover':
-      case 'media_player':
         if (block.realTimeData) {
           const state = this._formatState(block.realTimeData.state, block.type);
           const unit = block.realTimeData.attributes?.unit_of_measurement || '';
@@ -320,27 +314,11 @@ class DashboardCard extends BasePlugin {
   _formatState(state, type) {
     // 对特定类型的状态进行格式化
     switch (type) {
-      case 'switch':
-      case 'light':
-        return state === 'on' ? '开启' : state === 'off' ? '关闭' : state;
-      case 'cover':
-        return state === 'open' ? '打开' : state === 'closed' ? '关闭' : state;
-      case 'climate':
-        return this._formatClimateState(state);
+      case 'sensor':
+        return state;
       default:
         return state;
     }
-  }
-
-  _formatClimateState(state) {
-    const stateMap = {
-      'heat': '制热',
-      'cool': '制冷', 
-      'auto': '自动',
-      'off': '关闭',
-      'fan_only': '仅风扇'
-    };
-    return stateMap[state] || state;
   }
 }
 
@@ -356,9 +334,15 @@ DashboardCard.manifest = {
   config_schema: {
     layout: {
       type: 'select',
-      label: '内容区域布局',
+      label: '网格布局',
       default: '2x2',
-      options: ['1x1', '1x2', '1x3', '1x4', '2x2', '2x3', '3x3', 'free']
+      options: ['1x1', '1x2', '2x2', '2x3', '3x3']
+    },
+    content_alignment: {
+      type: 'select',
+      label: '内容对齐',
+      default: 'center',
+      options: ['居中', '紧凑', '拉伸']
     }
   }
 };

@@ -245,4 +245,311 @@ export const designSystem = css`
     0% { transform: rotate(0deg); }
     100% { transform: rotate(360deg); }
   }
+
+  /* ===== 布局配置样式 ===== */
+  .layout-config {
+    display: flex;
+    flex-direction: column;
+    gap: var(--cf-spacing-md);
+  }
+
+  .config-row {
+    display: grid;
+    grid-template-columns: 120px 1fr;
+    gap: var(--cf-spacing-md);
+    align-items: center;
+  }
+
+  .config-label {
+    font-weight: 500;
+    font-size: 0.9em;
+    color: var(--cf-text-primary);
+  }
+
+  @media (max-width: 768px) {
+    .config-row {
+      grid-template-columns: 1fr;
+      gap: var(--cf-spacing-sm);
+    }
+  }
+
+  /* ===== 表单元素样式 ===== */
+  .form-field {
+    display: flex;
+    flex-direction: column;
+    gap: var(--cf-spacing-sm);
+  }
+
+  .form-label {
+    font-weight: 500;
+    font-size: 0.9em;
+    color: var(--cf-text-primary);
+    margin-bottom: var(--cf-spacing-xs);
+  }
+
+  .form-actions {
+    display: flex;
+    gap: var(--cf-spacing-sm);
+    justify-content: flex-end;
+    margin-top: var(--cf-spacing-md);
+    padding-top: var(--cf-spacing-md);
+    border-top: 1px solid var(--cf-border);
+  }
+
+  /* ===== 按钮样式 ===== */
+  .cf-button {
+    padding: var(--cf-spacing-sm) var(--cf-spacing-lg);
+    border: 1px solid var(--cf-border);
+    border-radius: var(--cf-radius-sm);
+    background: var(--cf-surface);
+    color: var(--cf-text-primary);
+    cursor: pointer;
+    font-size: 0.85em;
+    font-weight: 500;
+    transition: all var(--cf-transition-fast);
+    min-width: 100px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: var(--cf-spacing-sm);
+  }
+
+  .cf-button.primary {
+    background: var(--cf-primary-color);
+    color: white;
+    border-color: var(--cf-primary-color);
+  }
+
+  .cf-button:hover {
+    opacity: 0.8;
+    transform: translateY(-1px);
+  }
+
+  .cf-button:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    transform: none;
+  }
+
+  /* ===== 卡片样式 ===== */
+  .cf-card {
+    background: var(--cf-surface);
+    border: 1px solid var(--cf-border);
+    border-radius: var(--cf-radius-md);
+    padding: var(--cf-spacing-lg);
+    transition: all var(--cf-transition-fast);
+  }
+
+  .cf-card:hover {
+    border-color: var(--cf-primary-color);
+    box-shadow: var(--cf-shadow-sm);
+  }
+
+  .cf-card.selected {
+    border-color: var(--cf-primary-color);
+    background: rgba(var(--cf-rgb-primary), 0.05);
+  }
+
+  /* ===== 列表样式 ===== */
+  .cf-list {
+    display: flex;
+    flex-direction: column;
+    gap: var(--cf-spacing-sm);
+  }
+
+  .cf-list-item {
+    display: flex;
+    align-items: center;
+    gap: var(--cf-spacing-md);
+    padding: var(--cf-spacing-md);
+    background: var(--cf-surface);
+    border: 1px solid var(--cf-border);
+    border-radius: var(--cf-radius-md);
+    transition: all var(--cf-transition-fast);
+    cursor: pointer;
+  }
+
+  .cf-list-item:hover {
+    border-color: var(--cf-primary-color);
+    transform: translateY(-1px);
+  }
+
+  .cf-list-item.selected {
+    border-color: var(--cf-primary-color);
+    background: rgba(var(--cf-rgb-primary), 0.05);
+  }
+
+  /* ===== 图标样式 ===== */
+  .cf-icon {
+    width: 24px;
+    height: 24px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .cf-icon-small {
+    width: 16px;
+    height: 16px;
+  }
+
+  .cf-icon-large {
+    width: 32px;
+    height: 32px;
+  }
+
+  /* ===== 进度条样式 ===== */
+  .cf-progress {
+    height: 6px;
+    background: var(--cf-border);
+    border-radius: 3px;
+    overflow: hidden;
+  }
+
+  .cf-progress-fill {
+    height: 100%;
+    background: var(--cf-primary-color);
+    transition: width 0.3s ease;
+    border-radius: 3px;
+  }
+
+  /* ===== 徽章样式 ===== */
+  .cf-badge {
+    display: inline-flex;
+    align-items: center;
+    padding: 2px 6px;
+    background: var(--cf-primary-color);
+    color: white;
+    border-radius: var(--cf-radius-sm);
+    font-size: 0.7em;
+    font-weight: 600;
+    line-height: 1;
+  }
+
+  .cf-badge.success {
+    background: var(--cf-success-color);
+  }
+
+  .cf-badge.warning {
+    background: var(--cf-warning-color);
+  }
+
+  .cf-badge.error {
+    background: var(--cf-error-color);
+  }
+
+  /* ===== 分隔线样式 ===== */
+  .cf-divider {
+    height: 1px;
+    background: var(--cf-border);
+    margin: var(--cf-spacing-md) 0;
+    border: none;
+  }
+
+  .cf-divider-vertical {
+    width: 1px;
+    height: auto;
+    margin: 0 var(--cf-spacing-md);
+  }
+
+  /* ===== 工具提示样式 ===== */
+  .cf-tooltip {
+    position: relative;
+  }
+
+  .cf-tooltip:hover::before {
+    content: attr(data-tooltip);
+    position: absolute;
+    bottom: 100%;
+    left: 50%;
+    transform: translateX(-50%);
+    background: var(--cf-dark-background);
+    color: var(--cf-dark-text);
+    padding: var(--cf-spacing-sm) var(--cf-spacing-md);
+    border-radius: var(--cf-radius-sm);
+    font-size: 0.8em;
+    white-space: nowrap;
+    z-index: 1000;
+    margin-bottom: 4px;
+  }
+
+  /* ===== 空状态样式 ===== */
+  .cf-empty-state {
+    text-align: center;
+    padding: var(--cf-spacing-xl);
+    color: var(--cf-text-secondary);
+  }
+
+  .cf-empty-icon {
+    font-size: 3em;
+    opacity: 0.5;
+    margin-bottom: var(--cf-spacing-md);
+  }
+
+  /* ===== 加载状态样式 ===== */
+  .cf-loading {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: var(--cf-spacing-md);
+    padding: var(--cf-spacing-xl);
+  }
+
+  .cf-loading-spinner {
+    width: 24px;
+    height: 24px;
+    border: 2px solid var(--cf-border);
+    border-top: 2px solid var(--cf-primary-color);
+    border-radius: 50%;
+    animation: cf-spin 1s linear infinite;
+  }
+
+  @keyframes cf-spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+  }
+
+  /* ===== 网格系统 ===== */
+  .cf-grid-system {
+    display: grid;
+    gap: var(--cf-spacing-md);
+  }
+
+  .cf-grid-1 { grid-template-columns: 1fr; }
+  .cf-grid-2 { grid-template-columns: repeat(2, 1fr); }
+  .cf-grid-3 { grid-template-columns: repeat(3, 1fr); }
+  .cf-grid-4 { grid-template-columns: repeat(4, 1fr); }
+  .cf-grid-auto { grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); }
+
+  @container cardforge-container (max-width: 600px) {
+    .cf-grid-2,
+    .cf-grid-3,
+    .cf-grid-4 {
+      grid-template-columns: 1fr;
+    }
+  }
+
+  /* ===== 滚动条样式 ===== */
+  .cf-scrollable {
+    overflow-y: auto;
+    scrollbar-width: thin;
+    scrollbar-color: var(--cf-border) transparent;
+  }
+
+  .cf-scrollable::-webkit-scrollbar {
+    width: 6px;
+  }
+
+  .cf-scrollable::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  .cf-scrollable::-webkit-scrollbar-thumb {
+    background: var(--cf-border);
+    border-radius: 3px;
+  }
+
+  .cf-scrollable::-webkit-scrollbar-thumb:hover {
+    background: var(--cf-text-secondary);
+  }
 `;

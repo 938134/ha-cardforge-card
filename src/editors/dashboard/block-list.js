@@ -182,8 +182,26 @@ export class BlockList extends LitElement {
         margin-bottom: var(--cf-spacing-md);
       }
 
-      .empty-action {
+      .add-block-btn {
+        width: 100%;
+        padding: var(--cf-spacing-md);
+        background: var(--cf-surface);
+        border: 2px dashed var(--cf-border);
+        border-radius: var(--cf-radius-md);
+        color: var(--cf-text-secondary);
+        cursor: pointer;
+        transition: all var(--cf-transition-fast);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: var(--cf-spacing-sm);
         margin-top: var(--cf-spacing-md);
+      }
+
+      .add-block-btn:hover {
+        border-color: var(--cf-primary-color);
+        color: var(--cf-primary-color);
+        background: rgba(var(--cf-rgb-primary), 0.05);
       }
     `
   ];
@@ -202,6 +220,11 @@ export class BlockList extends LitElement {
         ${this.blocks.map((block, index) => this._renderBlockItem(block, index))}
         
         ${this.blocks.length === 0 ? this._renderEmptyState() : ''}
+        
+        <button class="add-block-btn" @click=${this._addBlock}>
+          <ha-icon icon="mdi:plus"></ha-icon>
+          添加块
+        </button>
       </div>
     `;
   }
@@ -272,21 +295,13 @@ export class BlockList extends LitElement {
       <div class="empty-state">
         <ha-icon class="empty-icon" icon="mdi:view-grid-plus"></ha-icon>
         <div class="cf-text-md cf-mb-sm">还没有任何块</div>
-        <div class="cf-text-sm cf-text-secondary">点击"添加"按钮开始创建</div>
-        <div class="empty-action">
-          <mwc-button 
-            outlined 
-            icon="add"
-            @click=${this._triggerAddBlock}
-            label="添加第一个块"
-          ></mwc-button>
-        </div>
+        <div class="cf-text-sm cf-text-secondary">点击"添加块"按钮开始创建</div>
       </div>
     `;
   }
 
-  _triggerAddBlock() {
-    this.dispatchEvent(new CustomEvent('add-block-requested'));
+  _addBlock() {
+    this.dispatchEvent(new CustomEvent('add-block'));
   }
 
   _editBlock(e, block) {
