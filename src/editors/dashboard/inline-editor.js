@@ -9,6 +9,7 @@ export class InlineEditor extends LitElement {
     block: { type: Object },
     availableEntities: { type: Object },
     layout: { type: String },
+    layoutType: { type: String },
     _editingBlock: { state: true }
   };
 
@@ -85,6 +86,16 @@ export class InlineEditor extends LitElement {
         border-radius: var(--cf-radius-sm);
       }
 
+      .layout-info {
+        font-size: 0.8em;
+        color: var(--cf-text-secondary);
+        padding: var(--cf-spacing-sm);
+        background: rgba(var(--cf-rgb-primary), 0.03);
+        border-radius: var(--cf-radius-sm);
+        border: 1px solid var(--cf-border);
+        margin-top: var(--cf-spacing-xs);
+      }
+
       @media (max-width: 768px) {
         .form-actions {
           flex-direction: column;
@@ -102,6 +113,7 @@ export class InlineEditor extends LitElement {
     this.block = {};
     this.availableEntities = [];
     this.layout = '2x2';
+    this.layoutType = 'grid';
     this._editingBlock = {};
   }
 
@@ -188,24 +200,56 @@ export class InlineEditor extends LitElement {
           </div>
 
           ${this._editingBlock.config?.blockType === 'content' ? html`
-            <div class="config-field">
-              <label class="config-label">网格位置</label>
-              <ha-select
-                .value=${this._getPositionValue()}
-                @closed=${this._preventClose}
-                naturalMenuWidth
-                fixedMenuPosition
-              >
-                ${positionOptions.map(option => html`
-                  <ha-list-item 
-                    .value=${option.value}
-                    @click=${() => this._onPositionSelected(option.value)}
-                  >
-                    ${option.label}
-                  </ha-list-item>
-                `)}
-              </ha-select>
-            </div>
+            ${this.layoutType === 'grid' ? html`
+              <div class="config-field">
+                <label class="config-label">网格位置</label>
+                <ha-select
+                  .value=${this._getPositionValue()}
+                  @closed=${this._preventClose}
+                  naturalMenuWidth
+                  fixedMenuPosition
+                >
+                  ${positionOptions.map(option => html`
+                    <ha-list-item 
+                      .value=${option.value}
+                      @click=${() => this._onPositionSelected(option.value)}
+                    >
+                      ${option.label}
+                    </ha-list-item>
+                  `)}
+                </ha-select>
+                <div class="layout-info">
+                  当前布局: ${gridConfig.name} (${gridConfig.cols}×${gridConfig.rows})
+                </div>
+              </div>
+            ` : ''}
+
+            ${this.layoutType === 'list' ? html`
+              <div class="config-field">
+                <label class="config-label">列表位置</label>
+                <div class="layout-info">
+                  列表布局中，块将按顺序排列显示
+                </div>
+              </div>
+            ` : ''}
+
+            ${this.layoutType === 'timeline' ? html`
+              <div class="config-field">
+                <label class="config-label">时间线位置</label>
+                <div class="layout-info">
+                  时间线布局中，块将按时间顺序排列显示
+                </div>
+              </div>
+            ` : ''}
+
+            ${this.layoutType === 'free' ? html`
+              <div class="config-field">
+                <label class="config-label">自由位置</label>
+                <div class="layout-info">
+                  自由面板布局中，您可以拖拽调整块的位置和大小
+                </div>
+              </div>
+            ` : ''}
           ` : ''}
 
           <div class="config-field">
@@ -248,34 +292,34 @@ export class InlineEditor extends LitElement {
     };
     return labels[this._editingBlock.type] || '内容';
   }
- 
-_renderContentField() {
-  const isHeaderOrFooter = this._editingBlock.config?.blockType === 'header' || 
-                          this._editingBlock.config?.blockType === 'footer';
-  
-  if (this._editingBlock.type === 'text' || isHeaderOrFooter) {
-    return html`
-      <ha-textarea
-        .value=${this._editingBlock.content || ''}
-        @input=${e => this._updateBlock('content', e.target.value)}
-        placeholder=${isHeaderOrFooter ? "输入标题或页脚内容..." : "输入内容..."}
-        rows=${isHeaderOrFooter ? "2" : "3"}
-        fullwidth
-      ></ha-textarea>
-    `;
-  } else {
-    return html`
-      <ha-combo-box
-        .items=${this.availableEntities}
-        .value=${this._editingBlock.content || ''}
-        @value-changed=${e => this._onEntitySelected(e.detail.value)}
-        placeholder="选择或输入实体ID"
-        allow-custom-value
-        fullwidth
-      ></ha-combo-box>
-    `;
+
+  _renderContentField() {
+    const isHeaderOrFooter = this._editingBlock.config?.blockType === 'header' || 
+                            this._editingBlock.config?.blockType === 'footer';
+    
+    if (this._editingBlock.type === 'text' || isHeaderOrFooter) {
+      return html`
+        <ha-textarea
+          .value=${this._editingBlock.content || ''}
+          @input=${e => this._updateBlock('content', e.target.value)}
+          placeholder=${isHeaderOrFooter ? "输入标题或页脚内容..." : "输入内容..."}
+          rows=${isHeaderOrFooter ? "2" : "3"}
+          fullwidth
+        ></ha-textarea>
+      `;
+    } else {
+      return html`
+        <ha-combo-box
+          .items=${this.availableEntities}
+          .value=${this._editingBlock.content || ''}
+          @value-changed=${e => this._onEntitySelected(e.detail.value)}
+          placeholder="选择或输入实体ID"
+          allow-custom-value
+          fullwidth
+        ></ha-combo-box>
+      `;
+    }
   }
-}
 
   _renderEntityInfo() {
     if (this._editingBlock.type === 'text' || !this._editingBlock.content) return '';

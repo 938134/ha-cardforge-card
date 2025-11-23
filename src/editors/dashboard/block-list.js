@@ -10,6 +10,7 @@ export class BlockList extends LitElement {
     blocks: { type: Array },
     availableEntities: { type: Array },
     layout: { type: String },
+    layoutType: { type: String },
     _editingBlockId: { state: true }
   };
 
@@ -167,19 +168,29 @@ export class BlockList extends LitElement {
         margin: var(--cf-spacing-sm) 0;
       }
 
-      .empty-state {
-        text-align: center;
-        padding: var(--cf-spacing-xl);
+      .layout-indicator {
+        font-size: 0.7em;
         color: var(--cf-text-secondary);
-        border: 2px dashed var(--cf-border);
-        border-radius: var(--cf-radius-md);
-        background: rgba(var(--cf-rgb-primary), 0.02);
+        background: rgba(var(--cf-rgb-primary), 0.05);
+        padding: 2px 6px;
+        border-radius: var(--cf-radius-sm);
+        border: 1px solid var(--cf-border);
       }
 
-      .empty-icon {
-        font-size: 3em;
-        opacity: 0.5;
-        margin-bottom: var(--cf-spacing-md);
+      @media (max-width: 768px) {
+        .block-item {
+          padding: var(--cf-spacing-sm);
+          gap: var(--cf-spacing-sm);
+        }
+
+        .block-icon {
+          width: 35px;
+          height: 35px;
+        }
+
+        .block-actions {
+          opacity: 1; /* 移动端始终显示操作按钮 */
+        }
       }
     `
   ];
@@ -189,15 +200,20 @@ export class BlockList extends LitElement {
     this.blocks = [];
     this.availableEntities = [];
     this.layout = '2x2';
+    this.layoutType = 'grid';
     this._editingBlockId = null;
   }
 
   render() {
+    const contentBlocks = this.blocks.filter(block => 
+      !block.config?.blockType || block.config.blockType === 'content'
+    );
+
     return html`
       <div class="block-list">
-        ${this.blocks.map((block, index) => this._renderBlockItem(block, index))}
+        ${contentBlocks.map((block, index) => this._renderBlockItem(block, index))}
         
-        ${this.blocks.length === 0 ? this._renderEmptyState() : ''}
+        ${contentBlocks.length === 0 ? this._renderEmptyState() : ''}
       </div>
     `;
   }
@@ -206,38 +222,31 @@ export class BlockList extends LitElement {
     const isEditing = this._editingBlockId === block.id;
     const customIcon = block.config?.icon;
     const blockType = block.config?.blockType || 'content';
-    const badgeText = {
-      'header': '标题',
-      'content': '内容', 
-      'footer': '页脚'
-    }[blockType];
 
     return html`
       <div class="block-item ${isEditing ? 'editing' : ''}" 
            @click=${() => this._editBlock(block)}>
         
-        ${blockType !== 'content' ? html`
-          <div class="block-badge ${blockType}">${badgeText}</div>
-        ` : ''}
-        
         <div class="block-icon">
           <ha-icon .icon=${customIcon || BlockManager.getBlockIcon(block)}></ha-icon>
         </div>
+        
         <div class="block-info">
           <div class="block-header">
             <div class="block-title">${block.config?.title || BlockManager.getBlockDisplayName(block)}</div>
             <div class="block-type">${BlockManager.getBlockDisplayName(block)}</div>
           </div>
+          
           <div class="block-preview">${BlockManager.getBlockPreview(block)}</div>
+          
           <div class="block-meta">
-            ${blockType === 'content' && block.position ? html`
-              <div class="block-position">位置: ${block.position.row || 0},${block.position.col || 0}</div>
-            ` : ''}
+            ${this._renderLayoutInfo(block)}
             ${block.type !== 'text' && block.content ? html`
               <div>实体: ${block.content.split('.')[1] || block.content}</div>
             ` : ''}
           </div>
         </div>
+        
         <div class="block-actions">
           <div class="block-action" @click=${(e) => this._editBlock(e, block)} title="编辑">
             <ha-icon icon="mdi:pencil"></ha-icon>
@@ -255,6 +264,7 @@ export class BlockList extends LitElement {
             .block=${block}
             .availableEntities=${this.availableEntities}
             .layout=${this.layout}
+            .layoutType=${this.layoutType}
             @block-saved=${e => this._saveBlock(e.detail.block)}
             @edit-cancelled=${() => this._cancelEdit()}
           ></inline-editor>
@@ -263,14 +273,25 @@ export class BlockList extends LitElement {
     `;
   }
 
+  _renderLayoutInfo(block) {
+    if (this.layoutType === 'grid' && block.position) {
+      return html`
+        <div class="block-position">位置: ${block.position.row || 0},${block.position.col || 0}</div>
+      `;
+    } else if (this.layoutType === 'list') {
+      return html`
+        <div class="layout-indicator">列表项 ${this.blocks.indexOf(block) + 1}</div>
+      `;
+    } else if (this.layoutType === 'timeline') {
+      return html`
+        <div class="layout-indicator">时间点</div>
+      `;
+    }
+    return '';
+  }
+
   _renderEmptyState() {
-    return html`
-      <div class="empty-state">
-        <ha-icon class="empty-icon" icon="mdi:view-grid-plus"></ha-icon>
-        <div class="cf-text-md cf-mb-sm">还没有任何块</div>
-        <div class="cf-text-sm cf-text-secondary">点击"添加块"按钮开始创建</div>
-      </div>
-    `;
+    return '';
   }
 
   _editBlock(e, block) {

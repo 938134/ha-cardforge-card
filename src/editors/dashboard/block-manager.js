@@ -56,6 +56,14 @@ export class BlockManager {
     'free': { rows: 4, cols: 4, name: '自由网格' }
   };
 
+  // 布局类型定义
+  static LAYOUT_TYPES = {
+    grid: { name: '网格布局', icon: 'mdi:view-grid', description: '整齐的网格排列' },
+    list: { name: '列表布局', icon: 'mdi:format-list-bulleted', description: '垂直列表显示' },
+    timeline: { name: '时间线', icon: 'mdi:timeline', description: '时间顺序排列' },
+    free: { name: '自由面板', icon: 'mdi:arrow-all', description: '自由拖拽排列' }
+  };
+
   // 创建新块
   static createBlock(type = 'text', id = null) {
     const blockId = id || `block_${Date.now()}`;
@@ -95,54 +103,53 @@ export class BlockManager {
   }
 
   // 从实体反序列化块
- 
-static deserializeFromEntities(entities) {
-  const blocks = [];
-  
-  if (!entities) return blocks;
-  
-  Object.entries(entities).forEach(([key, value]) => {
-    if (key.endsWith('_type')) {
-      const blockId = key.replace('_type', '');
-      const configKey = `${blockId}_config`;
-      const positionKey = `${blockId}_position`;
-      const orderKey = `${blockId}_order`;
-      
-      try {
-        const blockConfig = entities[configKey] ? JSON.parse(entities[configKey]) : {};
+  static deserializeFromEntities(entities) {
+    const blocks = [];
+    
+    if (!entities) return blocks;
+    
+    Object.entries(entities).forEach(([key, value]) => {
+      if (key.endsWith('_type')) {
+        const blockId = key.replace('_type', '');
+        const configKey = `${blockId}_config`;
+        const positionKey = `${blockId}_position`;
+        const orderKey = `${blockId}_order`;
         
-        // 确保配置有默认值
-        const config = {
-          blockType: 'content',
-          title: '',
-          icon: '',
-          background: '',
-          ...blockConfig
-        };
-        
-        // 对于标题和页脚块，如果内容看起来像实体ID，尝试获取友好名称
-        let content = entities[blockId] || '';
-        if ((config.blockType === 'header' || config.blockType === 'footer') && 
-            content.includes('.')) {
-          // 这看起来像实体ID，但我们保留原样，在渲染时处理
+        try {
+          const blockConfig = entities[configKey] ? JSON.parse(entities[configKey]) : {};
+          
+          // 确保配置有默认值
+          const config = {
+            blockType: 'content',
+            title: '',
+            icon: '',
+            background: '',
+            ...blockConfig
+          };
+          
+          // 对于标题和页脚块，如果内容看起来像实体ID，尝试获取友好名称
+          let content = entities[blockId] || '';
+          if ((config.blockType === 'header' || config.blockType === 'footer') && 
+              content.includes('.')) {
+            // 这看起来像实体ID，但我们保留原样，在渲染时处理
+          }
+          
+          blocks.push({
+            id: blockId,
+            type: value,
+            content: content,
+            config: config,
+            position: entities[positionKey] ? JSON.parse(entities[positionKey]) : { row: 0, col: 0 },
+            order: parseInt(entities[orderKey]) || 0
+          });
+        } catch (e) {
+          console.warn(`解析内容块配置失败: ${blockId}`, e);
         }
-        
-        blocks.push({
-          id: blockId,
-          type: value,
-          content: content,
-          config: config,
-          position: entities[positionKey] ? JSON.parse(entities[positionKey]) : { row: 0, col: 0 },
-          order: parseInt(entities[orderKey]) || 0
-        });
-      } catch (e) {
-        console.warn(`解析内容块配置失败: ${blockId}`, e);
       }
-    }
-  });
+    });
 
-  return blocks.sort((a, b) => a.order - b.order);
-}
+    return blocks.sort((a, b) => a.order - b.order);
+  }
 
   // 使用实时数据增强块
   static enrichWithRealtimeData(blocks, hass) {
@@ -314,8 +321,13 @@ static deserializeFromEntities(entities) {
     }));
   }
 
-  // 获取下一个可用位置（仅用于内容区域块）
-  static getNextPosition(blocks, layout) {
+  // 获取下一个可用位置（支持多种布局类型）
+  static getNextPosition(blocks, layout, layoutType = 'grid') {
+    if (layoutType !== 'grid') {
+      // 对于非网格布局，返回顺序索引
+      return { order: blocks.length };
+    }
+    
     const contentBlocks = blocks.filter(block => 
       !block.config?.blockType || block.config.blockType === 'content'
     );
@@ -500,5 +512,17 @@ static deserializeFromEntities(entities) {
       'footer': '页脚区域'
     };
     return names[areaType];
+  }
+
+  // 获取布局类型显示名称
+  static getLayoutTypeDisplayName(layoutType) {
+    const typeInfo = this.LAYOUT_TYPES[layoutType];
+    return typeInfo?.name || layoutType;
+  }
+
+  // 获取布局类型图标
+  static getLayoutTypeIcon(layoutType) {
+    const typeInfo = this.LAYOUT_TYPES[layoutType];
+    return typeInfo?.icon || 'mdi:view-grid';
   }
 }
