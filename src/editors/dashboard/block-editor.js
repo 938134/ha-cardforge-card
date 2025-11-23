@@ -7,8 +7,8 @@ import './inline-block-editor.js';
 export class BlockEditor extends LitElement {
   static properties = {
     blocks: { type: Array },
-    onBlocksChange: { type: Object },
-    onEditBlock: { type: Object },
+    availableEntities: { type: Array },
+    layout: { type: String },
     _editingBlockId: { state: true }
   };
 
@@ -17,30 +17,13 @@ export class BlockEditor extends LitElement {
     css`
       .block-editor {
         width: 100%;
-        display: flex;
-        flex-direction: column;
-        gap: var(--cf-spacing-lg);
-      }
-
-      .section-header {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        margin-bottom: var(--cf-spacing-md);
       }
 
       .section-title {
         font-size: 1.1em;
         font-weight: 600;
+        margin-bottom: var(--cf-spacing-md);
         color: var(--cf-text-primary);
-      }
-
-      .blocks-count {
-        font-size: 0.9em;
-        color: var(--cf-text-secondary);
-        background: rgba(var(--cf-rgb-primary), 0.1);
-        padding: 4px 8px;
-        border-radius: var(--cf-radius-sm);
       }
 
       .blocks-list {
@@ -162,57 +145,21 @@ export class BlockEditor extends LitElement {
         border: 2px dashed var(--cf-border);
         border-radius: var(--cf-radius-md);
       }
-
-      /* 块类型颜色标识 */
-      .block-type-sensor .block-icon {
-        color: #4CAF50;
-      }
-
-      .block-type-weather .block-icon {
-        color: #2196F3;
-      }
-
-      .block-type-switch .block-icon {
-        color: #FF9800;
-      }
-
-      .block-type-text .block-icon {
-        color: #9C27B0;
-      }
-
-      @media (max-width: 600px) {
-        .block-item {
-          padding: var(--cf-spacing-sm);
-          gap: var(--cf-spacing-sm);
-        }
-
-        .block-actions {
-          flex-direction: column;
-        }
-
-        .block-action {
-          width: 28px;
-          height: 28px;
-        }
-      }
     `
   ];
 
   constructor() {
     super();
     this.blocks = [];
-    this.onBlocksChange = () => {};
-    this.onEditBlock = () => {};
+    this.availableEntities = [];
+    this.layout = '2x2';
     this._editingBlockId = null;
   }
 
   render() {
     return html`
       <div class="block-editor">
-        <div class="section-header">
-          <span class="section-title">内容块管理</span>
-          <span class="blocks-count">${this.blocks.length} 个内容块</span>
-        </div>
+        <div class="section-title">内容块管理</div>
         
         <div class="blocks-list">
           ${this.blocks.map((block, index) => this._renderBlockItem(block, index))}
@@ -232,10 +179,8 @@ export class BlockEditor extends LitElement {
     const isEditing = this._editingBlockId === block.id;
     
     return html`
-      <div 
-        class="block-item block-type-${block.type} ${isEditing ? 'editing' : ''}"
-        @click=${() => this._editBlock(block)}
-      >
+      <div class="block-item ${isEditing ? 'editing' : ''}" 
+           @click=${() => this._editBlock(block)}>
         <ha-icon class="block-icon" .icon=${BlockManager.getBlockIcon(block)}></ha-icon>
         <div class="block-info">
           <div class="block-title">${block.config?.title || BlockManager.getBlockDisplayName(block)}</div>
@@ -247,10 +192,10 @@ export class BlockEditor extends LitElement {
           ` : ''}
         </div>
         <div class="block-actions">
-          <div class="block-action" @click=${(e) => this._editBlock(e, block)} title="编辑">
+          <div class="block-action" @click=${(e) => this._editBlock(e, block)}>
             <ha-icon icon="mdi:pencil"></ha-icon>
           </div>
-          <div class="block-action" @click=${(e) => this._deleteBlock(e, block.id)} title="删除">
+          <div class="block-action" @click=${(e) => this._deleteBlock(e, block.id)}>
             <ha-icon icon="mdi:delete"></ha-icon>
           </div>
         </div>
@@ -260,9 +205,11 @@ export class BlockEditor extends LitElement {
         <div class="inline-editor-container">
           <inline-block-editor
             .block=${block}
-            .onSave=${(updatedBlock) => this._saveBlock(updatedBlock)}
-            .onCancel=${() => this._cancelEdit()}
-            .onDelete=${() => this._deleteBlock(null, block.id)}
+            .availableEntities=${this.availableEntities}
+            .layout=${this.layout}
+            @block-saved=${e => this._saveBlock(e.detail.block)}
+            @edit-cancelled=${() => this._cancelEdit()}
+            @block-deleted=${e => this._deleteBlock(null, e.detail.blockId)}
           ></inline-block-editor>
         </div>
       ` : ''}
@@ -273,24 +220,21 @@ export class BlockEditor extends LitElement {
     return html`
       <div class="empty-state">
         <ha-icon icon="mdi:package-variant" style="font-size: 2em; opacity: 0.5;"></ha-icon>
-        <div class="cf-text-sm cf-mt-md">还没有内容块</div>
-        <div class="cf-text-xs cf-text-secondary cf-mt-xs">点击"添加内容块"开始构建布局</div>
+        <div class="cf-text-sm cf-mt-md">点击"添加内容块"开始构建布局</div>
       </div>
     `;
   }
 
   _addBlock() {
     const newBlock = BlockManager.createBlock('text');
+    newBlock.position = BlockManager.getNextPosition(this.blocks, this.layout);
     this.blocks = [...this.blocks, newBlock];
-    this._editingBlockId = newBlock.id;
-    this.onBlocksChange(this.blocks);
-    this.onEditBlock(newBlock);
+    this._notifyBlocksChanged();
   }
 
   _editBlock(e, block) {
     if (e) e.stopPropagation();
     this._editingBlockId = block.id;
-    this.onEditBlock(block);
   }
 
   _deleteBlock(e, blockId) {
@@ -300,7 +244,7 @@ export class BlockEditor extends LitElement {
     
     this.blocks = this.blocks.filter(block => block.id !== blockId);
     this._editingBlockId = null;
-    this.onBlocksChange(this.blocks);
+    this._notifyBlocksChanged();
   }
 
   _saveBlock(updatedBlock) {
@@ -308,21 +252,17 @@ export class BlockEditor extends LitElement {
       block.id === updatedBlock.id ? updatedBlock : block
     );
     this._editingBlockId = null;
-    this.onBlocksChange(this.blocks);
+    this._notifyBlocksChanged();
   }
 
   _cancelEdit() {
     this._editingBlockId = null;
   }
 
-  // 公开方法：设置编辑状态
-  setEditingBlock(blockId) {
-    this._editingBlockId = blockId;
-  }
-
-  // 公开方法：清除编辑状态
-  clearEditing() {
-    this._editingBlockId = null;
+  _notifyBlocksChanged() {
+    this.dispatchEvent(new CustomEvent('blocks-changed', {
+      detail: { blocks: this.blocks }
+    }));
   }
 }
 

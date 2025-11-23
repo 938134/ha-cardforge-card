@@ -14,7 +14,9 @@ export class DashboardEditor extends LitElement {
     _contentBlocks: { state: true },
     _selectedLayout: { state: true },
     _editingBlock: { state: true },
-    _availableEntities: { state: true }
+    _availableEntities: { state: true },
+    _title: { state: true },
+    _footer: { state: true }
   };
 
   static styles = [
@@ -52,50 +54,6 @@ export class DashboardEditor extends LitElement {
         margin-bottom: var(--cf-spacing-md);
       }
 
-      .grid-preview {
-        display: grid;
-        gap: var(--cf-spacing-sm);
-        margin-bottom: var(--cf-spacing-lg);
-        padding: var(--cf-spacing-md);
-        background: var(--cf-background);
-        border: 1px solid var(--cf-border);
-        border-radius: var(--cf-radius-md);
-        min-height: 120px;
-      }
-
-      .grid-cell {
-        background: var(--cf-surface);
-        border: 1px dashed var(--cf-border);
-        border-radius: var(--cf-radius-sm);
-        min-height: 40px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        position: relative;
-      }
-
-      .grid-cell.occupied {
-        border-style: solid;
-        border-color: var(--cf-primary-color);
-        background: rgba(var(--cf-rgb-primary), 0.05);
-      }
-
-      .cell-label {
-        font-size: 0.7em;
-        color: var(--cf-text-secondary);
-        position: absolute;
-        top: 2px;
-        left: 4px;
-      }
-
-      .block-count {
-        position: absolute;
-        top: 2px;
-        right: 4px;
-        font-size: 0.7em;
-        color: var(--cf-text-secondary);
-      }
-
       .stats-bar {
         display: flex;
         justify-content: space-between;
@@ -125,6 +83,20 @@ export class DashboardEditor extends LitElement {
         color: var(--cf-text-secondary);
       }
 
+      .config-field {
+        display: flex;
+        flex-direction: column;
+        gap: var(--cf-spacing-sm);
+        margin-bottom: var(--cf-spacing-md);
+      }
+
+      .config-label {
+        font-weight: 500;
+        font-size: 0.9em;
+        color: var(--cf-text-primary);
+        margin-bottom: var(--cf-spacing-xs);
+      }
+
       @media (max-width: 768px) {
         .stats-bar {
           flex-direction: column;
@@ -140,12 +112,16 @@ export class DashboardEditor extends LitElement {
     this._selectedLayout = '2x2';
     this._editingBlock = null;
     this._availableEntities = [];
+    this._title = '';
+    this._footer = '';
   }
 
   willUpdate(changedProperties) {
     if (changedProperties.has('config')) {
       this._contentBlocks = BlockManager.deserializeFromEntities(this.config.entities);
       this._selectedLayout = this.config.layout || '2x2';
+      this._title = this.config.title || '';
+      this._footer = this.config.footer || '';
     }
     
     if (changedProperties.has('hass') && this.hass) {
@@ -159,6 +135,34 @@ export class DashboardEditor extends LitElement {
         <!-- 统计信息 -->
         ${this._renderStatsBar()}
         
+        <!-- 基础设置 -->
+        <div class="editor-section">
+          <div class="section-header">
+            <ha-icon icon="mdi:tune"></ha-icon>
+            <span>基础设置</span>
+          </div>
+          
+          <div class="config-field">
+            <label class="config-label">卡片标题</label>
+            <ha-textfield
+              .value=${this._title}
+              @input=${e => this._onTitleChanged(e.target.value)}
+              placeholder="输入卡片标题"
+              fullwidth
+            ></ha-textfield>
+          </div>
+          
+          <div class="config-field">
+            <label class="config-label">页脚文本</label>
+            <ha-textfield
+              .value=${this._footer}
+              @input=${e => this._onFooterChanged(e.target.value)}
+              placeholder="输入页脚文本"
+              fullwidth
+            ></ha-textfield>
+          </div>
+        </div>
+
         <!-- 布局配置 -->
         <div class="editor-section">
           <div class="section-header">
@@ -169,10 +173,8 @@ export class DashboardEditor extends LitElement {
           <div class="section-title">选择布局模板</div>
           <layout-presets
             .selectedLayout=${this._selectedLayout}
-            .onLayoutChange=${(layout) => this._onLayoutChanged(layout)}
+            @layout-changed=${e => this._onLayoutChanged(e.detail.layout)}
           ></layout-presets>
-          
-          ${this._renderGridPreview()}
         </div>
 
         <!-- 内容块管理 -->
@@ -184,7 +186,10 @@ export class DashboardEditor extends LitElement {
           
           <block-editor
             .blocks=${this._contentBlocks}
-            .onBlocksChange=${(blocks) => this._onBlocksChanged(blocks)}
+            .availableEntities=${this._availableEntities}
+            .layout=${this._selectedLayout}
+            @blocks-changed=${e => this._onBlocksChanged(e.detail.blocks)}
+            @edit-block=${e => this._onEditBlock(e.detail.block)}
           ></block-editor>
         </div>
 
@@ -200,8 +205,9 @@ export class DashboardEditor extends LitElement {
               .block=${this._editingBlock}
               .availableEntities=${this._availableEntities}
               .layout=${this._selectedLayout}
-              .onSave=${(updatedBlock) => this._saveBlock(updatedBlock)}
-              .onCancel=${() => this._cancelEdit()}
+              @block-saved=${e => this._saveBlock(e.detail.block)}
+              @edit-cancelled=${() => this._cancelEdit()}
+              @block-deleted=${e => this._deleteBlock(e.detail.blockId)}
             ></inline-block-editor>
           </div>
         ` : ''}
@@ -244,37 +250,6 @@ export class DashboardEditor extends LitElement {
     `;
   }
 
-  _renderGridPreview() {
-    const gridConfig = BlockManager.LAYOUT_PRESETS[this._selectedLayout];
-    const gridCells = [];
-    
-    for (let row = 0; row < gridConfig.rows; row++) {
-      for (let col = 0; col < gridConfig.cols; col++) {
-        const blocksInCell = this._contentBlocks.filter(block => 
-          block.position?.row === row && block.position?.col === col
-        );
-        gridCells.push({ row, col, blocks: blocksInCell });
-      }
-    }
-
-    return html`
-      <div class="section-title">布局预览</div>
-      <div class="grid-preview" style="
-        grid-template-columns: repeat(${gridConfig.cols}, 1fr);
-        grid-template-rows: repeat(${gridConfig.rows}, 1fr);
-      ">
-        ${gridCells.map(cell => html`
-          <div class="grid-cell ${cell.blocks.length > 0 ? 'occupied' : ''}">
-            <span class="cell-label">${cell.row},${cell.col}</span>
-            ${cell.blocks.length > 0 ? html`
-              <span class="block-count">${cell.blocks.length}</span>
-            ` : ''}
-          </div>
-        `)}
-      </div>
-    `;
-  }
-
   _updateAvailableEntities() {
     if (!this.hass?.states) {
       this._availableEntities = [];
@@ -296,6 +271,20 @@ export class DashboardEditor extends LitElement {
     }));
   }
 
+  _onTitleChanged(title) {
+    this._title = title;
+    this.dispatchEvent(new CustomEvent('config-changed', {
+      detail: { config: { title } }
+    }));
+  }
+
+  _onFooterChanged(footer) {
+    this._footer = footer;
+    this.dispatchEvent(new CustomEvent('config-changed', {
+      detail: { config: { footer } }
+    }));
+  }
+
   _onBlocksChanged(blocks) {
     this._contentBlocks = blocks;
     const entities = BlockManager.serializeToEntities(blocks);
@@ -304,10 +293,20 @@ export class DashboardEditor extends LitElement {
     }));
   }
 
+  _onEditBlock(block) {
+    this._editingBlock = block;
+  }
+
   _saveBlock(updatedBlock) {
     this._contentBlocks = this._contentBlocks.map(block => 
       block.id === updatedBlock.id ? updatedBlock : block
     );
+    this._editingBlock = null;
+    this._onBlocksChanged(this._contentBlocks);
+  }
+
+  _deleteBlock(blockId) {
+    this._contentBlocks = this._contentBlocks.filter(block => block.id !== blockId);
     this._editingBlock = null;
     this._onBlocksChanged(this._contentBlocks);
   }

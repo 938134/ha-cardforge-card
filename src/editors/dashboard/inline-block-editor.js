@@ -10,7 +10,8 @@ export class InlineBlockEditor extends LitElement {
     layout: { type: String },
     onSave: { type: Object },
     onCancel: { type: Object },
-    _editingBlock: { state: true }
+    _editingBlock: { state: true },
+    hass: { type: Object }
   };
 
   static styles = [
@@ -219,17 +220,18 @@ export class InlineBlockEditor extends LitElement {
           @input=${e => this._updateBlock('content', e.target.value)}
           label="输入内容"
           rows="3"
+          fullwidth
         ></ha-textarea>
       `;
     } else {
       return html`
-        <ha-combo-box
-          .items=${this.availableEntities}
+        <ha-entity-picker
+          .hass=${this.hass}
           .value=${this._editingBlock.content || ''}
           @value-changed=${e => this._updateBlock('content', e.detail.value)}
           label="选择实体"
-          allow-custom-value
-        ></ha-combo-box>
+          allow-custom-entity
+        ></ha-entity-picker>
       `;
     }
   }
