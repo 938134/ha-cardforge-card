@@ -59,7 +59,7 @@ export class DashboardEditor extends LitElement {
   }
 
   _addContentBlock = () => {
-    const newBlock = BlockManager.createBlock('text');
+    const newBlock = BlockManager.createBlock();
     newBlock.config = { ...newBlock.config, blockType: 'content' };
     this._allBlocks = [...this._allBlocks, newBlock];
     this._saveAllBlocks();
