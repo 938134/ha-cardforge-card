@@ -248,31 +248,34 @@ export class InlineEditor extends LitElement {
     };
     return labels[this._editingBlock.type] || '内容';
   }
-
-  _renderContentField() {
-    if (this._editingBlock.type === 'text') {
-      return html`
-        <ha-textarea
-          .value=${this._editingBlock.content || ''}
-          @input=${e => this._updateBlock('content', e.target.value)}
-          placeholder="输入内容..."
-          rows="3"
-          fullwidth
-        ></ha-textarea>
-      `;
-    } else {
-      return html`
-        <ha-combo-box
-          .items=${this.availableEntities}
-          .value=${this._editingBlock.content || ''}
-          @value-changed=${e => this._onEntitySelected(e.detail.value)}
-          placeholder="选择或输入实体ID"
-          allow-custom-value
-          fullwidth
-        ></ha-combo-box>
-      `;
-    }
+ 
+_renderContentField() {
+  const isHeaderOrFooter = this._editingBlock.config?.blockType === 'header' || 
+                          this._editingBlock.config?.blockType === 'footer';
+  
+  if (this._editingBlock.type === 'text' || isHeaderOrFooter) {
+    return html`
+      <ha-textarea
+        .value=${this._editingBlock.content || ''}
+        @input=${e => this._updateBlock('content', e.target.value)}
+        placeholder=${isHeaderOrFooter ? "输入标题或页脚内容..." : "输入内容..."}
+        rows=${isHeaderOrFooter ? "2" : "3"}
+        fullwidth
+      ></ha-textarea>
+    `;
+  } else {
+    return html`
+      <ha-combo-box
+        .items=${this.availableEntities}
+        .value=${this._editingBlock.content || ''}
+        @value-changed=${e => this._onEntitySelected(e.detail.value)}
+        placeholder="选择或输入实体ID"
+        allow-custom-value
+        fullwidth
+      ></ha-combo-box>
+    `;
   }
+}
 
   _renderEntityInfo() {
     if (this._editingBlock.type === 'text' || !this._editingBlock.content) return '';

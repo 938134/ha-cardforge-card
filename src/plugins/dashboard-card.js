@@ -57,6 +57,56 @@ class DashboardCard extends BasePlugin {
         flex: 1;
       }
       
+      /* 标题区域样式 */
+      .header-area {
+        margin-bottom: var(--cf-spacing-lg);
+        padding: var(--cf-spacing-md);
+        text-align: center;
+        background: rgba(var(--cf-rgb-primary), 0.05);
+        border-radius: var(--cf-radius-md);
+        border-left: 4px solid var(--cf-primary-color);
+      }
+      
+      .header-content {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: var(--cf-spacing-sm);
+        font-size: 1.4em;
+        font-weight: 600;
+        color: var(--cf-text-primary);
+        line-height: 1.2;
+      }
+      
+      .header-icon {
+        color: var(--cf-primary-color);
+      }
+      
+      /* 页脚区域样式 */
+      .footer-area {
+        margin-top: var(--cf-spacing-lg);
+        padding: var(--cf-spacing-md);
+        text-align: center;
+        background: rgba(var(--cf-rgb-primary), 0.03);
+        border-radius: var(--cf-radius-md);
+        border-top: 1px solid var(--cf-border);
+      }
+      
+      .footer-content {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: var(--cf-spacing-sm);
+        font-size: 0.9em;
+        color: var(--cf-text-secondary);
+        line-height: 1.4;
+      }
+      
+      .footer-icon {
+        color: var(--cf-text-secondary);
+        opacity: 0.7;
+      }
+      
       .dashboard-block {
         background: var(--cf-surface);
         border: 1px solid var(--cf-border);
@@ -115,34 +165,6 @@ class DashboardCard extends BasePlugin {
         font-size: 0.85em;
         color: var(--cf-text-secondary);
         opacity: 0.7;
-      }
-      
-      /* 标题区域样式 */
-      .header-area {
-        margin-bottom: var(--cf-spacing-lg);
-        text-align: center;
-        padding: var(--cf-spacing-md);
-      }
-      
-      .header-content {
-        font-size: 1.4em;
-        font-weight: 600;
-        color: var(--cf-text-primary);
-        line-height: 1.2;
-      }
-      
-      /* 页脚区域样式 */
-      .footer-area {
-        margin-top: var(--cf-spacing-lg);
-        padding-top: var(--cf-spacing-md);
-        border-top: 1px solid var(--cf-border);
-        text-align: center;
-      }
-      
-      .footer-content {
-        font-size: 0.9em;
-        color: var(--cf-text-secondary);
-        line-height: 1.4;
       }
       
       /* 文本块特殊样式 */
@@ -215,23 +237,27 @@ class DashboardCard extends BasePlugin {
   _renderHeaderArea(headerBlocks) {
     if (headerBlocks.length === 0) return '';
     
-    const headerContent = headerBlocks[0].content || '';
-    return `
-      <div class="header-area">
-        <div class="header-content">${headerContent}</div>
+    return headerBlocks.map(block => `
+      <div class="header-area" data-block-id="${block.id}">
+        <div class="header-content">
+          ${block.config?.icon ? `<ha-icon icon="${block.config.icon}" class="header-icon"></ha-icon>` : ''}
+          <span class="header-text">${block.content || ''}</span>
+        </div>
       </div>
-    `;
+    `).join('');
   }
 
   _renderFooterArea(footerBlocks) {
     if (footerBlocks.length === 0) return '';
     
-    const footerContent = footerBlocks[0].content || '';
-    return `
-      <div class="footer-area">
-        <div class="footer-content">${footerContent}</div>
+    return footerBlocks.map(block => `
+      <div class="footer-area" data-block-id="${block.id}">
+        <div class="footer-content">
+          ${block.config?.icon ? `<ha-icon icon="${block.config.icon}" class="footer-icon"></ha-icon>` : ''}
+          <span class="footer-text">${block.content || ''}</span>
+        </div>
       </div>
-    `;
+    `).join('');
   }
 
   _renderGridLayout(blocks, layout, hass) {

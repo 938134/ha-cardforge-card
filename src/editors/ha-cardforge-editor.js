@@ -29,7 +29,7 @@ class HaCardForgeEditor extends LitElement {
         display: block;
         max-width: 100%;
       }
-
+  
       .editor-container {
         background: var(--cf-background);
         border-radius: var(--cf-radius-lg);
@@ -37,24 +37,39 @@ class HaCardForgeEditor extends LitElement {
         box-shadow: var(--cf-shadow-sm);
         overflow: hidden;
       }
-
+  
       .editor-layout {
         display: flex;
         flex-direction: column;
         gap: 0;
       }
-
+  
       .editor-section {
         background: var(--cf-surface);
         padding: var(--cf-spacing-lg);
         border-bottom: 1px solid var(--cf-border);
         position: relative;
       }
-
+  
       .editor-section:last-child {
         border-bottom: none;
       }
-
+  
+      /* 新增：标准编辑器并排布局 */
+      .standard-editor-layout {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: var(--cf-spacing-lg);
+        padding: var(--cf-spacing-lg);
+      }
+  
+      @media (max-width: 768px) {
+        .standard-editor-layout {
+          grid-template-columns: 1fr;
+          gap: var(--cf-spacing-md);
+        }
+      }
+  
       .section-header {
         display: flex;
         align-items: center;
@@ -65,52 +80,52 @@ class HaCardForgeEditor extends LitElement {
         border-radius: var(--cf-radius-md);
         border-left: 4px solid var(--cf-primary-color);
       }
-
+  
       /* 不同区域的视觉区分 */
       .editor-section:nth-child(1) .section-header {
         border-left-color: #4CAF50; /* 绿色 - 卡片类型 */
       }
-
+  
       .editor-section:nth-child(2) .section-header {
         border-left-color: #2196F3; /* 蓝色 - 主题样式 */  
       }
-
+  
       .editor-section:nth-child(3) .section-header {
         border-left-color: #FF9800; /* 橙色 - 基础设置 */
       }
-
+  
       .editor-section:nth-child(4) .section-header {
         border-left-color: #9C27B0; /* 紫色 - 数据源配置 */
       }
-
+  
       /* 深色模式适配 */
       @media (prefers-color-scheme: dark) {
         .editor-container {
           background: var(--cf-dark-background);
           border-color: var(--cf-dark-border);
         }
-
+  
         .editor-section {
           background: var(--cf-dark-surface);
           border-bottom-color: var(--cf-dark-border);
         }
-
+  
         .section-header {
           background: rgba(var(--cf-rgb-primary), 0.1);
           color: var(--cf-dark-text);
         }
       }
-
+  
       .cf-dark-mode .editor-container {
         background: var(--cf-dark-background) !important;
         border-color: var(--cf-dark-border) !important;
       }
-
+  
       .cf-dark-mode .editor-section {
         background: var(--cf-dark-surface) !important;
         border-bottom-color: var(--cf-dark-border) !important;
       }
-
+  
       .cf-dark-mode .section-header {
         background: rgba(var(--cf-rgb-primary), 0.1) !important;
         color: var(--cf-dark-text) !important;
@@ -247,13 +262,18 @@ class HaCardForgeEditor extends LitElement {
 
   _renderEditorContent() {
     if (!this.config.plugin) return '';
-
+  
     const isDashboard = this._pluginManifest?.free_layout;
     
     if (isDashboard) {
       return this._renderDashboardEditor();
     } else {
-      return this._renderStandardCardEditor();
+      return html`
+        <div class="standard-editor-layout">
+          ${this._renderPluginConfigSection()}
+          ${this._renderEntityMappingSection()}
+        </div>
+      `;
     }
   }
 
