@@ -13,6 +13,7 @@ export class DashboardEditor extends LitElement {
     pluginManifest: { type: Object },
     _allBlocks: { state: true },
     _selectedLayout: { state: true },
+    _contentAlignment: { state: true },
     _editingBlock: { state: true },
     _availableEntities: { state: true }
   };
@@ -78,6 +79,32 @@ export class DashboardEditor extends LitElement {
         opacity: 0.8;
         transform: translateY(-1px);
       }
+
+      .layout-config {
+        display: flex;
+        flex-direction: column;
+        gap: var(--cf-spacing-md);
+      }
+
+      .config-row {
+        display: grid;
+        grid-template-columns: 120px 1fr;
+        gap: var(--cf-spacing-md);
+        align-items: center;
+      }
+
+      .config-label {
+        font-weight: 500;
+        font-size: 0.9em;
+        color: var(--cf-text-primary);
+      }
+
+      @media (max-width: 768px) {
+        .config-row {
+          grid-template-columns: 1fr;
+          gap: var(--cf-spacing-sm);
+        }
+      }
     `
   ];
 
@@ -85,6 +112,7 @@ export class DashboardEditor extends LitElement {
     super();
     this._allBlocks = [];
     this._selectedLayout = '2x2';
+    this._contentAlignment = 'center';
     this._editingBlock = null;
     this._availableEntities = [];
   }
@@ -93,6 +121,7 @@ export class DashboardEditor extends LitElement {
     if (changedProperties.has('config')) {
       this._allBlocks = BlockManager.deserializeFromEntities(this.config.entities);
       this._selectedLayout = this.config.layout || '2x2';
+      this._contentAlignment = this.config.content_alignment || 'center';
     }
     
     if (changedProperties.has('hass') && this.hass) {
@@ -111,14 +140,49 @@ export class DashboardEditor extends LitElement {
                 <ha-icon icon="mdi:view-grid"></ha-icon>
                 <span>内容区域布局</span>
               </div>
-              <div class="section-description">配置内容块的网格布局</div>
+              <div class="section-description">配置内容块的网格布局和对齐方式</div>
             </div>
           </div>
           
-          <layout-presets
-            .selectedLayout=${this._selectedLayout}
-            @layout-changed=${e => this._onLayoutChanged(e.detail.layout)}
-          ></layout-presets>
+          <div class="layout-config">
+            <div class="config-row">
+              <label class="config-label">网格布局</label>
+              <layout-presets
+                .selectedLayout=${this._selectedLayout}
+                .blocks=${this._allBlocks}
+                @layout-changed=${e => this._onLayoutChanged(e.detail.layout)}
+              ></layout-presets>
+            </div>
+            
+            <div class="config-row">
+              <label class="config-label">内容对齐</label>
+              <ha-select
+                .value=${this._contentAlignment}
+                @closed=${this._preventClose}
+                naturalMenuWidth
+                fixedMenuPosition
+              >
+                <ha-list-item 
+                  .value=${'center'}
+                  @click=${() => this._onAlignmentChanged('center')}
+                >
+                  居中
+                </ha-list-item>
+                <ha-list-item 
+                  .value=${'compact'}
+                  @click=${() => this._onAlignmentChanged('compact')}
+                >
+                  紧凑
+                </ha-list-item>
+                <ha-list-item 
+                  .value=${'stretch'}
+                  @click=${() => this._onAlignmentChanged('stretch')}
+                >
+                  拉伸
+                </ha-list-item>
+              </ha-select>
+            </div>
+          </div>
         </div>
 
         <!-- 块管理 -->
@@ -127,13 +191,13 @@ export class DashboardEditor extends LitElement {
             <div>
               <div class="section-title">
                 <ha-icon icon="mdi:cube"></ha-icon>
-                <span>块管理</span>
+                <span>数据源配置</span>
               </div>
               <div class="section-description">管理标题、内容和页脚块</div>
             </div>
             <button class="add-btn" @click=${this._addContentBlock}>
               <ha-icon icon="mdi:plus"></ha-icon>
-              添加
+              添加块
             </button>
           </div>
           
@@ -145,26 +209,26 @@ export class DashboardEditor extends LitElement {
             @blocks-changed=${e => this._onBlocksChanged(e.detail.blocks)}
             @edit-block=${e => this._onEditBlock(e.detail.block)}
           ></block-list>
-        </div>
 
-        <!-- 内联编辑器 -->
-        ${this._editingBlock ? html`
-          <div class="editor-section">
-            <div class="section-header">
-              <ha-icon icon="mdi:pencil"></ha-icon>
-              <span>编辑块</span>
+          <!-- 内联编辑器 -->
+          ${this._editingBlock ? html`
+            <div style="margin-top: var(--cf-spacing-lg);">
+              <div class="section-header">
+                <ha-icon icon="mdi:pencil"></ha-icon>
+                <span>编辑块</span>
+              </div>
+              
+              <inline-editor
+                .hass=${this.hass}
+                .block=${this._editingBlock}
+                .availableEntities=${this._availableEntities}
+                .layout=${this._selectedLayout}
+                @block-saved=${e => this._saveBlock(e.detail.block)}
+                @edit-cancelled=${() => this._cancelEdit()}
+              ></inline-editor>
             </div>
-            
-            <inline-editor
-              .hass=${this.hass}
-              .block=${this._editingBlock}
-              .availableEntities=${this._availableEntities}
-              .layout=${this._selectedLayout}
-              @block-saved=${e => this._saveBlock(e.detail.block)}
-              @edit-cancelled=${() => this._cancelEdit()}
-            ></inline-editor>
-          </div>
-        ` : ''}
+          ` : ''}
+        </div>
       </div>
     `;
   }
@@ -202,6 +266,13 @@ export class DashboardEditor extends LitElement {
     }));
   }
 
+  _onAlignmentChanged(alignment) {
+    this._contentAlignment = alignment;
+    this.dispatchEvent(new CustomEvent('config-changed', {
+      detail: { config: { content_alignment: alignment } }
+    }));
+  }
+
   _onBlocksChanged(blocks) {
     this._allBlocks = blocks;
     this._saveAllBlocks();
@@ -228,6 +299,10 @@ export class DashboardEditor extends LitElement {
     this.dispatchEvent(new CustomEvent('entities-changed', {
       detail: { entities }
     }));
+  }
+
+  _preventClose(e) {
+    e.stopPropagation();
   }
 }
 

@@ -112,10 +112,10 @@ export class InlineEditor extends LitElement {
   }
 
   render() {
-    const blockTypes = Object.entries(BlockManager.BLOCK_TYPES).map(([value, info]) => ({
-      value,
-      label: info.name
-    }));
+    const blockTypes = [
+      { value: 'text', label: '文本块' },
+      { value: 'sensor', label: '传感器块' }
+    ];
 
     const areaTypes = [
       { value: 'content', label: '内容区域' },
@@ -178,7 +178,7 @@ export class InlineEditor extends LitElement {
           </div>
 
           <div class="config-field">
-            <label class="config-label">自定义图标</label>
+            <label class="config-label">图标</label>
             <ha-icon-picker
               .value=${this._editingBlock.config?.icon || ''}
               @value-changed=${e => this._updateConfig('icon', e.detail.value)}
@@ -242,40 +242,35 @@ export class InlineEditor extends LitElement {
   _getContentLabel() {
     const labels = {
       'text': '文本内容',
-      'sensor': '传感器实体',
-      'weather': '天气实体', 
-      'switch': '开关实体'
+      'sensor': '传感器实体'
     };
     return labels[this._editingBlock.type] || '内容';
   }
 
-_renderContentField() {
-  const isHeaderOrFooter = this._editingBlock.config?.blockType === 'header' || 
-                          this._editingBlock.config?.blockType === 'footer';
-  
-  if (this._editingBlock.type === 'text' || isHeaderOrFooter) {
-    return html`
-      <ha-textarea
-        .value=${this._editingBlock.content || ''}
-        @input=${e => this._updateBlock('content', e.target.value)}
-        placeholder=${isHeaderOrFooter ? "输入标题或页脚内容..." : "输入内容..."}
-        rows=${isHeaderOrFooter ? "2" : "3"}
-        fullwidth
-      ></ha-textarea>
-    `;
-  } else {
-    return html`
-      <ha-combo-box
-        .items=${this.availableEntities}
-        .value=${this._editingBlock.content || ''}
-        @value-changed=${e => this._onEntitySelected(e.detail.value)}
-        placeholder="选择或输入实体ID"
-        allow-custom-value
-        fullwidth
-      ></ha-combo-box>
-    `;
+  _renderContentField() {
+    if (this._editingBlock.type === 'text') {
+      return html`
+        <ha-textarea
+          .value=${this._editingBlock.content || ''}
+          @input=${e => this._updateBlock('content', e.target.value)}
+          placeholder="输入内容..."
+          rows="3"
+          fullwidth
+        ></ha-textarea>
+      `;
+    } else {
+      return html`
+        <ha-combo-box
+          .items=${this.availableEntities}
+          .value=${this._editingBlock.content || ''}
+          @value-changed=${e => this._onEntitySelected(e.detail.value)}
+          placeholder="选择或输入实体ID"
+          allow-custom-value
+          fullwidth
+        ></ha-combo-box>
+      `;
+    }
   }
-}
 
   _renderEntityInfo() {
     if (this._editingBlock.type === 'text' || !this._editingBlock.content) return '';
@@ -325,12 +320,12 @@ _renderContentField() {
     if (entityId && this.hass?.states[entityId]) {
       const entity = this.hass.states[entityId];
       
-      // 自动填充名称
+      // 自动填充名称（仅当用户未手动设置时）
       if (!this._editingBlock.config?.title && entity.attributes?.friendly_name) {
         this._updateConfig('title', entity.attributes.friendly_name);
       }
       
-      // 自动填充图标
+      // 自动填充图标（仅当用户未手动设置时）
       if (!this._editingBlock.config?.icon) {
         const suggestedIcon = BlockManager.getEntityIcon(entityId, this.hass);
         this._updateConfig('icon', suggestedIcon);

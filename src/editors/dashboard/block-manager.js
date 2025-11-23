@@ -1,6 +1,6 @@
 // src/editors/dashboard/block-manager.js
 export class BlockManager {
-  // 块类型定义
+  // 块类型定义 - 精简为两种类型
   static BLOCK_TYPES = {
     text: { 
       name: '文本块', 
@@ -8,38 +8,8 @@ export class BlockManager {
       editor: 'text'
     },
     sensor: { 
-      name: '传感器', 
+      name: '传感器块', 
       icon: 'mdi:gauge',
-      editor: 'entity'
-    },
-    weather: { 
-      name: '天气', 
-      icon: 'mdi:weather-cloudy',
-      editor: 'entity'
-    },
-    switch: { 
-      name: '开关', 
-      icon: 'mdi:power',
-      editor: 'entity'
-    },
-    light: {
-      name: '灯光',
-      icon: 'mdi:lightbulb',
-      editor: 'entity'
-    },
-    climate: {
-      name: '空调',
-      icon: 'mdi:thermostat',
-      editor: 'entity'
-    },
-    cover: {
-      name: '窗帘',
-      icon: 'mdi:blinds',
-      editor: 'entity'
-    },
-    media_player: {
-      name: '媒体播放器',
-      icon: 'mdi:speaker',
       editor: 'entity'
     }
   };
@@ -94,46 +64,47 @@ export class BlockManager {
     return entities;
   }
 
-static deserializeFromEntities(entities) {
-  const blocks = [];
-  
-  if (!entities) return blocks;
-  
-  Object.entries(entities).forEach(([key, value]) => {
-    if (key.endsWith('_type')) {
-      const blockId = key.replace('_type', '');
-      const configKey = `${blockId}_config`;
-      const positionKey = `${blockId}_position`;
-      const orderKey = `${blockId}_order`;
-      
-      try {
-        const blockConfig = entities[configKey] ? JSON.parse(entities[configKey]) : {};
+  // 从实体反序列化块
+  static deserializeFromEntities(entities) {
+    const blocks = [];
+    
+    if (!entities) return blocks;
+    
+    Object.entries(entities).forEach(([key, value]) => {
+      if (key.endsWith('_type')) {
+        const blockId = key.replace('_type', '');
+        const configKey = `${blockId}_config`;
+        const positionKey = `${blockId}_position`;
+        const orderKey = `${blockId}_order`;
         
-        // 确保配置有默认值
-        const config = {
-          blockType: 'content',
-          title: '',
-          icon: '',
-          background: '',
-          ...blockConfig
-        };
-        
-        blocks.push({
-          id: blockId,
-          type: value,
-          content: entities[blockId] || '',
-          config: config,
-          position: entities[positionKey] ? JSON.parse(entities[positionKey]) : { row: 0, col: 0 },
-          order: parseInt(entities[orderKey]) || 0
-        });
-      } catch (e) {
-        console.warn(`解析内容块配置失败: ${blockId}`, e);
+        try {
+          const blockConfig = entities[configKey] ? JSON.parse(entities[configKey]) : {};
+          
+          // 确保配置有默认值
+          const config = {
+            blockType: 'content',
+            title: '',
+            icon: '',
+            background: '',
+            ...blockConfig
+          };
+          
+          blocks.push({
+            id: blockId,
+            type: value,
+            content: entities[blockId] || '',
+            config: config,
+            position: entities[positionKey] ? JSON.parse(entities[positionKey]) : { row: 0, col: 0 },
+            order: parseInt(entities[orderKey]) || 0
+          });
+        } catch (e) {
+          console.warn(`解析内容块配置失败: ${blockId}`, e);
+        }
       }
-    }
-  });
+    });
 
-  return blocks.sort((a, b) => a.order - b.order);
-}
+    return blocks.sort((a, b) => a.order - b.order);
+  }
 
   // 使用实时数据增强块
   static enrichWithRealtimeData(blocks, hass) {
@@ -398,12 +369,12 @@ static deserializeFromEntities(entities) {
     const typeMap = {
       'sensor': 'sensor',
       'binary_sensor': 'sensor',
-      'weather': 'weather',
-      'switch': 'switch',
-      'light': 'light',
-      'climate': 'climate',
-      'cover': 'cover',
-      'media_player': 'media_player'
+      'weather': 'sensor',
+      'switch': 'sensor',
+      'light': 'sensor',
+      'climate': 'sensor',
+      'cover': 'sensor',
+      'media_player': 'sensor'
     };
     
     return typeMap[entityType] || 'sensor';
