@@ -269,14 +269,22 @@ export class LayoutEditor extends LitElement {
     if (typeof value === 'string') {
       return value;
     }
-    if (value && typeof value === 'object') {
-      return value._source || value.state || '';
-    }
     return value || '';
   }
 
   _selectLayout(layout) {
     this._selectedLayout = layout;
+    
+    // 布局变更时重新分配块位置
+    const redistributedBlocks = BlockManager.redistributePositions(
+      this._contentBlocks, 
+      this.config.layout || '2x2', 
+      layout
+    );
+    
+    const entities = BlockManager.serializeToEntities(redistributedBlocks);
+    this._updateEntities(entities);
+    
     this.dispatchEvent(new CustomEvent('config-changed', {
       detail: { config: { layout } }
     }));

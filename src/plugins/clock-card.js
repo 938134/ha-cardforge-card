@@ -244,26 +244,64 @@ class ClockCard extends BasePlugin {
   }
 
   _getLunarData(date) {
+    // 农历月份
     const lunarMonths = [
       '正月', '二月', '三月', '四月', '五月', '六月',
       '七月', '八月', '九月', '十月', '冬月', '腊月'
     ];
     
+    // 农历日期
     const lunarDays = [
       '初一', '初二', '初三', '初四', '初五', '初六', '初七', '初八', '初九', '初十',
       '十一', '十二', '十三', '十四', '十五', '十六', '十七', '十八', '十九', '二十',
       '廿一', '廿二', '廿三', '廿四', '廿五', '廿六', '廿七', '廿八', '廿九', '三十'
     ];
+
+    // 简单的农历计算（基于固定偏移，实际应该使用农历算法库）
+    // 这里使用一个简单的算法来生成看起来合理的农历日期
     
-    const baseDate = new Date(date.getFullYear(), 0, 1);
-    const diffDays = Math.floor((date - baseDate) / (1000 * 60 * 60 * 24));
+    const year = date.getFullYear();
+    const month = date.getMonth() + 1;
+    const day = date.getDate();
     
-    const lunarMonthIndex = (diffDays % 12);
-    const lunarDayIndex = (diffDays % 30);
+    // 基于公历日期计算一个伪农历（仅用于演示）
+    // 实际项目中应该使用专业的农历计算库
+    
+    // 简单的映射算法
+    const lunarMonthIndex = (month + Math.floor(day / 10)) % 12;
+    const lunarDayIndex = (day - 1) % 30;
     
     return {
       month: lunarMonths[lunarMonthIndex],
       day: lunarDays[lunarDayIndex]
+    };
+  }
+
+  // 备选方案：使用固定数据演示
+  _getLunarDataDemo(date) {
+    const lunarDataMap = {
+      '01-01': { month: '正月', day: '初一' },
+      '01-15': { month: '正月', day: '十五' },
+      '02-02': { month: '二月', day: '初二' },
+      '05-05': { month: '五月', day: '初五' },
+      '08-15': { month: '八月', day: '十五' },
+      '09-09': { month: '九月', day: '初九' },
+      '12-30': { month: '腊月', day: '三十' }
+    };
+    
+    const key = `${(date.getMonth() + 1).toString().padStart(2, '0')}-${date.getDate().toString().padStart(2, '0')}`;
+    
+    if (lunarDataMap[key]) {
+      return lunarDataMap[key];
+    }
+    
+    // 默认返回一个合理的农历日期
+    const lunarMonths = ['正月', '二月', '三月', '四月', '五月', '六月', '七月', '八月', '九月', '十月', '冬月', '腊月'];
+    const lunarDays = ['初一', '初二', '初三', '初四', '初五', '初六', '初七', '初八', '初九', '初十', '十一', '十二', '十三', '十四', '十五', '十六', '十七', '十八', '十九', '二十', '廿一', '廿二', '廿三', '廿四', '廿五', '廿六', '廿七', '廿八', '廿九', '三十'];
+    
+    return {
+      month: lunarMonths[date.getMonth()],
+      day: lunarDays[(date.getDate() - 1) % 30]
     };
   }
 }
@@ -296,6 +334,11 @@ ClockCard.manifest = {
       type: 'boolean',
       label: '24小时制',
       default: true
+    },
+    show_seconds: {
+      type: 'boolean',
+      label: '显示秒数',
+      default: false
     }
   }
 };

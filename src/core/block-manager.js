@@ -4,23 +4,19 @@ export class BlockManager {
   static BLOCK_TYPES = {
     text: { 
       name: '文本块', 
-      icon: 'mdi:text',
-      editor: 'text'
+      icon: 'mdi:text'
     },
     sensor: { 
       name: '传感器', 
-      icon: 'mdi:gauge',
-      editor: 'entity'
+      icon: 'mdi:gauge'
     },
     weather: { 
       name: '天气', 
-      icon: 'mdi:weather-cloudy',
-      editor: 'entity'
+      icon: 'mdi:weather-cloudy'
     },
     switch: { 
       name: '开关', 
-      icon: 'mdi:power',
-      editor: 'entity'
+      icon: 'mdi:power'
     }
   };
 
@@ -44,7 +40,7 @@ export class BlockManager {
       type: type,
       content: '',
       config: {},
-      position: { row: 0, col: 0 },
+      position: [0, 0], // 简化为数组
       order: 0
     };
   }
@@ -58,7 +54,7 @@ export class BlockManager {
       entities[blockId] = block.content || '';
       entities[`${blockId}_type`] = block.type;
       entities[`${blockId}_order`] = String(index);
-      entities[`${blockId}_position`] = JSON.stringify(block.position || { row: 0, col: 0 });
+      entities[`${blockId}_position`] = JSON.stringify(block.position || [0, 0]);
       
       if (Object.keys(block.config || {}).length > 0) {
         entities[`${blockId}_config`] = JSON.stringify(block.config);
@@ -84,7 +80,7 @@ export class BlockManager {
             type: value,
             content: entities[blockId] || '',
             config: entities[configKey] ? JSON.parse(entities[configKey]) : {},
-            position: entities[positionKey] ? JSON.parse(entities[positionKey]) : { row: 0, col: 0 },
+            position: entities[positionKey] ? JSON.parse(entities[positionKey]) : [0, 0],
             order: parseInt(entities[`${blockId}_order`]) || 0
           });
         } catch (e) {
@@ -123,24 +119,6 @@ export class BlockManager {
   static getBlockIcon(block) {
     const typeInfo = this.BLOCK_TYPES[block.type];
     return typeInfo?.icon || 'mdi:cube';
-  }
-
-  // 验证块配置
-  static validateBlock(block) {
-    const errors = [];
-    
-    if (!block.type) {
-      errors.push('块类型不能为空');
-    }
-    
-    if (!block.content && block.type !== 'text') {
-      errors.push('内容不能为空');
-    }
-    
-    return {
-      valid: errors.length === 0,
-      errors
-    };
   }
 
   // 获取块预览文本
@@ -182,7 +160,6 @@ export class BlockManager {
     const [movedBlock] = newBlocks.splice(fromIndex, 1);
     newBlocks.splice(toIndex, 0, movedBlock);
     
-    // 更新排序
     return newBlocks.map((block, index) => ({
       ...block,
       order: index
@@ -195,16 +172,37 @@ export class BlockManager {
     
     for (let row = 0; row < grid.rows; row++) {
       for (let col = 0; col < grid.cols; col++) {
-        const isOccupied = blocks.some(block => 
-          block.position?.row === row && block.position?.col === col
-        );
+        const isOccupied = blocks.some(block => {
+          const [blockRow, blockCol] = block.position || [0, 0];
+          return blockRow === row && blockCol === col;
+        });
         if (!isOccupied) {
-          return { row, col };
+          return [row, col];
         }
       }
     }
     
     // 如果网格已满，返回第一个位置
-    return { row: 0, col: 0 };
+    return [0, 0];
+  }
+
+  // 重新分配位置（布局变更时）
+  static redistributePositions(blocks, oldLayout, newLayout) {
+    const newGrid = this.LAYOUT_PRESETS[newLayout] || this.LAYOUT_PRESETS['2x2'];
+    const newBlocks = [...blocks];
+    
+    newBlocks.forEach((block, index) => {
+      const row = Math.floor(index / newGrid.cols);
+      const col = index % newGrid.cols;
+      
+      if (row < newGrid.rows && col < newGrid.cols) {
+        block.position = [row, col];
+      } else {
+        // 超出新网格范围，放到第一个位置
+        block.position = [0, 0];
+      }
+    });
+    
+    return newBlocks;
   }
 }

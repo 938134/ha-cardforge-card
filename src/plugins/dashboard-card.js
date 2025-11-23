@@ -3,21 +3,21 @@ import { BasePlugin } from '../core/base-plugin.js';
 import { BlockManager } from '../core/block-manager.js';
 
 class DashboardCard extends BasePlugin {
-getTemplate(config, hass, entities) {
-  const blocks = BlockManager.deserializeFromEntities(entities);
-  const enrichedBlocks = BlockManager.enrichWithRealtimeData(blocks, hass);
-  const layout = config.layout || '2x2';
-  
-  return this._renderCardContainer(`
-    ${this._renderCardHeader(config, entities)}  // 仪表盘使用通用标题
+  getTemplate(config, hass, entities) {
+    const blocks = BlockManager.deserializeFromEntities(entities);
+    const enrichedBlocks = BlockManager.enrichWithRealtimeData(blocks, hass);
+    const layout = config.layout || '2x2';
     
-    <div class="dashboard-content">
-      ${this._renderGridLayout(enrichedBlocks, layout, hass)}
-    </div>
-    
-    ${this._renderCardFooter(config, entities)}  // 仪表盘使用通用页脚
-  `, 'dashboard-card');
-}
+    return this._renderCardContainer(`
+      ${this._renderCardHeader(config, hass)}
+      
+      <div class="dashboard-content">
+        ${this._renderGridLayout(enrichedBlocks, layout, hass)}
+      </div>
+      
+      ${this._renderCardFooter(config, hass)}
+    `, 'dashboard-card');
+  }
 
   getStyles(config) {
     const baseStyles = this.getBaseStyles(config);
@@ -55,7 +55,6 @@ getTemplate(config, hass, entities) {
       
       .dashboard-block:hover {
         border-color: var(--cf-primary-color);
-        transform: translateY(-1px);
       }
       
       .block-header {
@@ -102,12 +101,6 @@ getTemplate(config, hass, entities) {
         opacity: 0.7;
       }
       
-      /* 油价样式 */
-      .block-style-oil-price .block-value {
-        font-size: 1.3em;
-        color: var(--cf-accent-color);
-      }
-      
       @container cardforge-container (max-width: 400px) {
         .dashboard-grid {
           gap: var(--cf-spacing-sm);
@@ -143,10 +136,8 @@ getTemplate(config, hass, entities) {
   }
 
   _renderBlock(block, hass) {
-    const blockStyle = block.config?.style ? `block-style-${block.config.style}` : '';
-    
     return `
-      <div class="dashboard-block ${blockStyle}" data-block-id="${block.id}">
+      <div class="dashboard-block" data-block-id="${block.id}">
         <div class="block-header">
           <span class="block-title">${block.config?.title || BlockManager.getBlockDisplayName(block)}</span>
         </div>
@@ -172,11 +163,35 @@ getTemplate(config, hass, entities) {
               `<div class="block-unit">${block.realTimeData.attributes.unit_of_measurement}</div>` : ''}
           `;
         }
-        return `<div class="block-placeholder">点击配置实体</div>`;
+        return `<div class="block-placeholder">${block.content || '点击配置实体'}</div>`;
         
       default:
         return `<div class="block-placeholder">未知类型</div>`;
     }
+  }
+
+  // 重写标题渲染以支持实体识别
+  _renderCardHeader(config, hass) {
+    const title = config.title || '';
+    if (!title) return '';
+
+    return `
+      <div class="cardforge-header">
+        <div class="cardforge-title">${this._renderTextWithEntities(title, hass)}</div>
+      </div>
+    `;
+  }
+
+  // 重写页脚渲染以支持实体识别
+  _renderCardFooter(config, hass) {
+    const footer = config.footer || '';
+    if (!footer) return '';
+
+    return `
+      <div class="cardforge-footer">
+        <div class="footer-text cf-text-small">${this._renderTextWithEntities(footer, hass)}</div>
+      </div>
+    `;
   }
 }
 

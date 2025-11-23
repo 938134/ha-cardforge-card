@@ -39,23 +39,19 @@ export class BasePlugin {
     return safeConfig;
   }
 
-  // === 实体数据获取 ===
+  // === 简化的实体数据获取 ===
   _getEntityState(entities, hass, key, fallback = '') {
     try {
       const entityId = entities?.[key];
-      
-      // 如果没有配置实体，直接返回 fallback
       if (!entityId) return fallback;
       
-      // 如果没有 hass 对象，返回实体ID本身（而不是"加载中"）
-      if (!hass) return entityId;
+      // 简单识别实体ID格式
+      if (entityId.includes('.') && hass?.states?.[entityId]) {
+        const entity = hass.states[entityId];
+        return entity.state || fallback;
+      }
       
-      const entity = hass.states?.[entityId];
-      
-      // 如果实体不存在，返回实体ID
-      if (!entity) return entityId;
-      
-      return entity.state || fallback;
+      return entityId; // 不是实体ID就返回原文本
     } catch (error) {
       return fallback;
     }
@@ -73,28 +69,47 @@ export class BasePlugin {
   }
 
   _renderCardHeader(config, entities) {
+    // 普通卡片不使用通用标题
+    if (!this.getManifest().free_layout) return '';
+    
     const title = config.title || '';
     if (!title) return '';
-  
-    const subtitle = config.subtitle || '';
-    
+
     return `
       <div class="cardforge-header">
-        <div class="cardforge-title">${this._renderSafeHTML(title)}</div>
-        ${subtitle ? `<div class="cardforge-subtitle">${this._renderSafeHTML(subtitle)}</div>` : ''}
+        <div class="cardforge-title">${this._renderTextWithEntities(title, null)}</div>
       </div>
     `;
   }
 
   _renderCardFooter(config, entities) {
+    // 普通卡片不使用通用页脚
+    if (!this.getManifest().free_layout) return '';
+    
     const footer = config.footer || '';
     if (!footer) return '';
-  
+
     return `
       <div class="cardforge-footer">
-        <div class="footer-text cf-text-small">${this._renderSafeHTML(footer)}</div>
+        <div class="footer-text cf-text-small">${this._renderTextWithEntities(footer, null)}</div>
       </div>
     `;
+  }
+
+  // === 简单实体文本渲染 ===
+  _renderTextWithEntities(text, hass) {
+    if (!text || !hass) return this._renderSafeHTML(text);
+    
+    // 简单识别实体ID并替换
+    const words = text.split(' ');
+    const renderedWords = words.map(word => {
+      if (word.includes('.') && hass.states?.[word]) {
+        return hass.states[word].state;
+      }
+      return word;
+    });
+    
+    return this._renderSafeHTML(renderedWords.join(' '));
   }
 
   // === 工具方法 ===

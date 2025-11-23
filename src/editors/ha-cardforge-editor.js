@@ -244,47 +244,47 @@ class HaCardForgeEditor extends LitElement {
       </div>
     `;
   }
-
-  _renderBaseConfigSection() {
-    if (!this.config.plugin) return '';
-    
-    return html`
-      <div class="editor-section">
-        <div class="section-header">
-          <ha-icon icon="mdi:tune"></ha-icon>
-          <span>卡片设置</span>
-        </div>
-        
-        <config-editor
-          .config=${this.config}
-          .pluginManifest=${this._pluginManifest}
-          @config-changed=${this._onConfigChanged}
-        ></config-editor>
-      </div>
-    `;
-  }
-
-  _renderDataSourceSection() {
-    if (!this.config.plugin || !this._pluginInstance) return '';
   
-    const isDashboard = this._pluginManifest?.free_layout;
-    
-    return html`
-      <div class="editor-section">
-        <div class="section-header">
-          <ha-icon icon="mdi:database"></ha-icon>
-          <span>${isDashboard ? '布局配置' : '数据源配置'}</span>
-        </div>
-        
-        <layout-editor
-          .hass=${this.hass}
-          .config=${this.config}
-          .pluginManifest=${this._pluginManifest}
-          @entities-changed=${this._onEntitiesChanged}
-        ></layout-editor>
+_renderBaseConfigSection() {
+  if (!this.config.plugin) return '';
+  
+  return html`
+    <div class="editor-section">
+      <div class="section-header">
+        <ha-icon icon="mdi:tune"></ha-icon>
+        <span>卡片设置</span>
       </div>
-    `;
-  }
+      
+      <config-editor
+        .config=${this.config}
+        .pluginManifest=${this._pluginManifest}
+        @config-changed=${this._onConfigChanged}
+      ></config-editor>
+    </div>
+  `;
+}
+
+_renderDataSourceSection() {
+  if (!this.config.plugin || !this._pluginInstance) return '';
+
+  const isDashboard = this._pluginManifest?.free_layout;
+  
+  return html`
+    <div class="editor-section">
+      <div class="section-header">
+        <ha-icon icon="mdi:database"></ha-icon>
+        <span>${isDashboard ? '布局配置' : '数据源配置'}</span>
+      </div>
+      
+      <layout-editor
+        .hass=${this.hass}
+        .config=${this.config}
+        .pluginManifest=${this._pluginManifest}
+        @entities-changed=${this._onEntitiesChanged}
+      ></layout-editor>
+    </div>
+  `;
+}
 
   async _onPluginChanged(e) {
     const newConfig = {
