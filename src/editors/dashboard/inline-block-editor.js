@@ -25,13 +25,6 @@ export class InlineBlockEditor extends LitElement {
       }
 
       .editor-form {
-        display: grid;
-        grid-template-columns: 1fr 1fr;
-        gap: var(--cf-spacing-lg);
-        align-items: start;
-      }
-
-      .form-column {
         display: flex;
         flex-direction: column;
         gap: var(--cf-spacing-md);
@@ -50,32 +43,7 @@ export class InlineBlockEditor extends LitElement {
         margin-bottom: var(--cf-spacing-xs);
       }
 
-      .icon-selector {
-        display: flex;
-        align-items: center;
-        gap: var(--cf-spacing-sm);
-      }
-
-      .icon-preview {
-        width: 48px;
-        height: 48px;
-        border-radius: var(--cf-radius-md);
-        background: rgba(var(--cf-rgb-primary), 0.1);
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        cursor: pointer;
-        transition: all var(--cf-transition-fast);
-        flex-shrink: 0;
-      }
-
-      .icon-preview:hover {
-        background: rgba(var(--cf-rgb-primary), 0.2);
-        transform: scale(1.05);
-      }
-
       .form-actions {
-        grid-column: 1 / -1;
         display: flex;
         gap: var(--cf-spacing-sm);
         justify-content: flex-end;
@@ -113,20 +81,29 @@ export class InlineBlockEditor extends LitElement {
         color: var(--cf-text-secondary);
         margin-top: 4px;
         line-height: 1.3;
+        padding: var(--cf-spacing-sm);
+        background: rgba(var(--cf-rgb-primary), 0.05);
+        border-radius: var(--cf-radius-sm);
+      }
+
+      .icon-field {
+        display: grid;
+        grid-template-columns: 1fr auto;
+        gap: var(--cf-spacing-sm);
+        align-items: end;
       }
 
       @media (max-width: 768px) {
-        .editor-form {
-          grid-template-columns: 1fr;
-          gap: var(--cf-spacing-md);
-        }
-        
         .form-actions {
           flex-direction: column;
         }
         
         .action-btn {
           min-width: auto;
+        }
+        
+        .icon-field {
+          grid-template-columns: 1fr;
         }
       }
     `
@@ -163,82 +140,84 @@ export class InlineBlockEditor extends LitElement {
     return html`
       <div class="inline-editor">
         <div class="editor-form">
-          <!-- 左栏：基础配置 -->
-          <div class="form-column">
-            <div class="config-field">
-              <label class="config-label">块类型</label>
-              <ha-select
-                .value=${this._editingBlock.type || 'text'}
-                @selected=${e => this._updateBlock('type', e.target.value)}
-                fullwidth
-              >
-                ${blockTypes.map(type => html`
-                  <ha-list-item .value=${type.value}>${type.label}</ha-list-item>
-                `)}
-              </ha-select>
-            </div>
+          <div class="config-field">
+            <label class="config-label">块类型</label>
+            <ha-select
+              .value=${this._editingBlock.type || 'text'}
+              @closed=${this._preventClose}
+              naturalMenuWidth
+              fixedMenuPosition
+            >
+              ${blockTypes.map(type => html`
+                <ha-list-item 
+                  .value=${type.value}
+                  @click=${() => this._updateBlock('type', type.value)}
+                >
+                  ${type.label}
+                </ha-list-item>
+              `)}
+            </ha-select>
+          </div>
 
+          <div class="config-field">
+            <label class="config-label">显示名称</label>
+            <ha-textfield
+              .value=${this._editingBlock.config?.title || ''}
+              @input=${e => this._updateConfig('title', e.target.value)}
+              placeholder="例如：室内温度"
+              fullwidth
+            ></ha-textfield>
+          </div>
+
+          <div class="config-field">
+            <label class="config-label">自定义图标</label>
+            <div class="icon-field">
+              <ha-icon-picker
+                .value=${this._editingBlock.config?.icon || ''}
+                @value-changed=${e => this._updateConfig('icon', e.detail.value)}
+                label="选择图标"
+                fullwidth
+              ></ha-icon-picker>
+            </div>
+          </div>
+
+          <div class="config-field">
+            <label class="config-label">网格位置</label>
+            <ha-select
+              .value=${this._getPositionValue()}
+              @closed=${this._preventClose}
+              naturalMenuWidth
+              fixedMenuPosition
+            >
+              ${positionOptions.map(option => html`
+                <ha-list-item 
+                  .value=${option.value}
+                  @click=${() => this._onPositionSelected(option.value)}
+                >
+                  ${option.label}
+                </ha-list-item>
+              `)}
+            </ha-select>
+          </div>
+
+          <div class="config-field">
+            <label class="config-label">${this._getContentLabel()}</label>
+            ${this._renderContentField()}
+            ${this._renderEntityInfo()}
+          </div>
+
+          ${this._editingBlock.type === 'text' ? html`
             <div class="config-field">
-              <label class="config-label">显示名称</label>
+              <label class="config-label">背景颜色</label>
               <ha-textfield
-                .value=${this._editingBlock.config?.title || ''}
-                @input=${e => this._updateConfig('title', e.target.value)}
-                placeholder="例如：室内温度"
+                .value=${this._editingBlock.config?.background || ''}
+                @input=${e => this._updateConfig('background', e.target.value)}
+                placeholder="#f0f0f0 或 rgba(255,255,255,0.1)"
                 fullwidth
               ></ha-textfield>
             </div>
+          ` : ''}
 
-            <div class="config-field">
-              <label class="config-label">自定义图标</label>
-              <div class="icon-selector">
-                <div class="icon-preview">
-                  <ha-icon .icon=${this._editingBlock.config?.icon || BlockManager.getBlockIcon(this._editingBlock)}></ha-icon>
-                </div>
-                <ha-icon-picker
-                  .value=${this._editingBlock.config?.icon || ''}
-                  @value-changed=${e => this._updateConfig('icon', e.detail.value)}
-                  label="选择图标"
-                  fullwidth
-                ></ha-icon-picker>
-              </div>
-            </div>
-
-            <div class="config-field">
-              <label class="config-label">网格位置</label>
-              <ha-select
-                .value=${this._getPositionValue()}
-                @selected=${e => this._onPositionSelected(e.target.value)}
-                fullwidth
-              >
-                ${positionOptions.map(option => html`
-                  <ha-list-item .value=${option.value}>${option.label}</ha-list-item>
-                `)}
-              </ha-select>
-            </div>
-          </div>
-
-          <!-- 右栏：内容配置 -->
-          <div class="form-column">
-            <div class="config-field">
-              <label class="config-label">${this._getContentLabel()}</label>
-              ${this._renderContentField()}
-              ${this._renderEntityInfo()}
-            </div>
-
-            ${this._editingBlock.type === 'text' ? html`
-              <div class="config-field">
-                <label class="config-label">背景颜色</label>
-                <ha-textfield
-                  .value=${this._editingBlock.config?.background || ''}
-                  @input=${e => this._updateConfig('background', e.target.value)}
-                  placeholder="#f0f0f0 或 rgba(255,255,255,0.1)"
-                  fullwidth
-                ></ha-textfield>
-              </div>
-            ` : ''}
-          </div>
-
-          <!-- 操作按钮 -->
           <div class="form-actions">
             <button class="action-btn" @click=${this._onCancel}>
               取消
@@ -269,7 +248,7 @@ export class InlineBlockEditor extends LitElement {
           .value=${this._editingBlock.content || ''}
           @input=${e => this._updateBlock('content', e.target.value)}
           placeholder="输入文本内容..."
-          rows="4"
+          rows="3"
           fullwidth
         ></ha-textarea>
       `;
@@ -295,12 +274,12 @@ export class InlineBlockEditor extends LitElement {
     
     return html`
       <div class="entity-info">
-        <div>状态: ${entity.state}</div>
+        <div><strong>状态:</strong> ${entity.state}</div>
         ${entity.attributes?.unit_of_measurement ? html`
-          <div>单位: ${entity.attributes.unit_of_measurement}</div>
+          <div><strong>单位:</strong> ${entity.attributes.unit_of_measurement}</div>
         ` : ''}
         ${entity.attributes?.friendly_name ? html`
-          <div>名称: ${entity.attributes.friendly_name}</div>
+          <div><strong>名称:</strong> ${entity.attributes.friendly_name}</div>
         ` : ''}
       </div>
     `;
@@ -328,6 +307,10 @@ export class InlineBlockEditor extends LitElement {
     this._entityOptions = this.availableEntities || [];
   }
 
+  _preventClose(e) {
+    e.stopPropagation();
+  }
+
   _onEntitySelected(entityId) {
     this._updateBlock('content', entityId);
     
@@ -341,8 +324,9 @@ export class InlineBlockEditor extends LitElement {
       }
       
       // 自动填充图标
-      if (!this._editingBlock.config?.icon && entity.attributes?.icon) {
-        this._updateConfig('icon', entity.attributes.icon);
+      if (!this._editingBlock.config?.icon) {
+        const suggestedIcon = BlockManager.getEntityIcon(entityId, this.hass);
+        this._updateConfig('icon', suggestedIcon);
       }
     }
   }

@@ -17,7 +17,7 @@ export class LayoutPresets extends LitElement {
 
       .layout-grid {
         display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(80px, 1fr));
+        grid-template-columns: repeat(auto-fit, minmax(60px, 1fr));
         gap: var(--cf-spacing-sm);
         width: 100%;
       }
@@ -33,74 +33,45 @@ export class LayoutPresets extends LitElement {
         cursor: pointer;
         transition: all var(--cf-transition-fast);
         background: var(--cf-surface);
-        min-height: 70px;
+        min-height: 50px;
         text-align: center;
-        position: relative;
-        overflow: hidden;
       }
 
       .layout-item:hover {
         border-color: var(--cf-primary-color);
         transform: translateY(-1px);
-        box-shadow: var(--cf-shadow-sm);
       }
 
       .layout-item.selected {
         border-color: var(--cf-primary-color);
         background: var(--cf-primary-color);
         color: white;
-        transform: translateY(-1px);
-      }
-
-      .layout-preview {
-        width: 100%;
-        height: 40px;
-        border-radius: var(--cf-radius-sm);
-        margin-bottom: 6px;
-        border: 2px solid transparent;
-        transition: all var(--cf-transition-fast);
-        display: grid;
-        gap: 2px;
-        padding: 4px;
-      }
-
-      .layout-item.selected .layout-preview {
-        border-color: rgba(255, 255, 255, 0.5);
       }
 
       .layout-name {
-        font-size: 0.8em;
+        font-size: 0.75em;
         font-weight: 500;
         line-height: 1.2;
-        max-width: 100%;
-        overflow: hidden;
-        text-overflow: ellipsis;
-        white-space: nowrap;
       }
 
       .layout-item.selected .layout-name {
         color: white;
       }
 
-      /* 紧凑模式 - 移动端优化 */
+      /* 紧凑模式 */
       @media (max-width: 768px) {
         .layout-grid {
-          grid-template-columns: repeat(auto-fit, minmax(70px, 1fr));
+          grid-template-columns: repeat(auto-fit, minmax(50px, 1fr));
           gap: var(--cf-spacing-xs);
         }
 
         .layout-item {
-          min-height: 60px;
-          padding: 6px 4px;
-        }
-
-        .layout-preview {
-          height: 35px;
-          margin-bottom: 4px;
+          min-height: 45px;
+          padding: 4px;
         }
 
         .layout-name {
-          font-size: 0.75em;
+          font-size: 0.7em;
         }
       }
 
@@ -124,17 +95,6 @@ export class LayoutPresets extends LitElement {
               @click=${() => this._selectLayout(key)}
               title="${preset.name}"
             >
-              <div class="layout-preview" style="
-                grid-template-columns: repeat(${preset.cols}, 1fr);
-                grid-template-rows: repeat(${preset.rows}, 1fr);
-              ">
-                ${Array.from({ length: preset.rows * preset.cols }, (_, i) => html`
-                  <div style="
-                    background: ${this.selectedLayout === key ? 'rgba(255,255,255,0.8)' : 'var(--cf-border)'}; 
-                    border-radius: 1px;
-                  "></div>
-                `)}
-              </div>
               <div class="layout-name">${preset.cols}×${preset.rows}</div>
             </div>
           `)}
