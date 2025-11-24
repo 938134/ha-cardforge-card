@@ -15,13 +15,42 @@ class BlockProperties extends LitElement {
     designSystem,
     css`
       .properties-container {
+        display: flex;
+        flex-direction: column;
+        gap: var(--cf-spacing-lg);
+      }
+
+      .block-info {
+        background: var(--cf-surface);
+        border: 1px solid var(--cf-border);
+        border-radius: var(--cf-radius-md);
         padding: var(--cf-spacing-md);
       }
 
-      .empty-state {
-        text-align: center;
-        padding: var(--cf-spacing-xl);
+      .info-header {
+        display: flex;
+        align-items: center;
+        gap: var(--cf-spacing-sm);
+        margin-bottom: var(--cf-spacing-md);
+      }
+
+      .info-icon {
+        font-size: 1.2em;
+      }
+
+      .info-title {
+        font-size: 1em;
+        font-weight: 600;
+        color: var(--cf-text-primary);
+      }
+
+      .info-type {
+        font-size: 0.8em;
         color: var(--cf-text-secondary);
+        background: rgba(var(--cf-rgb-primary), 0.1);
+        padding: 2px 8px;
+        border-radius: var(--cf-radius-sm);
+        margin-left: auto;
       }
 
       .property-form {
@@ -30,32 +59,10 @@ class BlockProperties extends LitElement {
         gap: var(--cf-spacing-md);
       }
 
-      .property-group {
-        background: var(--cf-surface);
-        border: 1px solid var(--cf-border);
-        border-radius: var(--cf-radius-md);
-        padding: var(--cf-spacing-md);
-      }
-
-      .group-title {
-        font-size: 0.9em;
-        font-weight: 600;
-        color: var(--cf-text-primary);
-        margin-bottom: var(--cf-spacing-md);
-        display: flex;
-        align-items: center;
-        gap: var(--cf-spacing-sm);
-      }
-
       .property-field {
         display: flex;
         flex-direction: column;
         gap: var(--cf-spacing-sm);
-        margin-bottom: var(--cf-spacing-md);
-      }
-
-      .property-field:last-child {
-        margin-bottom: 0;
       }
 
       .property-label {
@@ -64,34 +71,10 @@ class BlockProperties extends LitElement {
         color: var(--cf-text-primary);
       }
 
-      .property-actions {
-        display: flex;
-        gap: var(--cf-spacing-sm);
-        margin-top: var(--cf-spacing-lg);
-        padding-top: var(--cf-spacing-md);
-        border-top: 1px solid var(--cf-border);
-      }
-
-      .action-btn {
-        flex: 1;
-        padding: var(--cf-spacing-sm);
-        border: 1px solid var(--cf-border);
-        border-radius: var(--cf-radius-sm);
-        background: var(--cf-surface);
-        color: var(--cf-text-primary);
-        cursor: pointer;
-        font-size: 0.85em;
-        transition: all var(--cf-transition-fast);
-      }
-
-      .action-btn.remove {
-        background: var(--cf-error-color);
-        color: white;
-        border-color: var(--cf-error-color);
-      }
-
-      .action-btn:hover {
-        opacity: 0.8;
+      .no-config {
+        text-align: center;
+        padding: var(--cf-spacing-lg);
+        color: var(--cf-text-secondary);
       }
     `
   ];
@@ -114,71 +97,39 @@ class BlockProperties extends LitElement {
 
   render() {
     if (!this._editingBlock) {
-      return html`
-        <div class="properties-container">
-          <div class="empty-state">
-            <ha-icon icon="mdi:select" style="font-size: 2em; opacity: 0.5;"></ha-icon>
-            <div class="cf-text-sm cf-mt-md">选择一个块进行配置</div>
-          </div>
-        </div>
-      `;
+      return html`<div>请选择一个块</div>`;
     }
 
     const blockManifest = blockRegistry.getBlockManifest(this._editingBlock.type);
+    const schema = blockManifest?.config_schema || {};
     
     return html`
       <div class="properties-container">
-        <div class="property-form">
-          <!-- 块基本信息 -->
-          <div class="property-group">
-            <div class="group-title">
-              <ha-icon icon="mdi:information"></ha-icon>
-              块信息
-            </div>
-            <div class="property-field">
-              <label class="property-label">块类型</label>
-              <div class="cf-text-sm cf-text-secondary">${blockManifest?.name || this._editingBlock.type}</div>
-            </div>
+        <!-- 块信息 -->
+        <div class="block-info">
+          <div class="info-header">
+            <div class="info-icon">${blockManifest?.icon || '📦'}</div>
+            <div class="info-title">${blockManifest?.name || this._editingBlock.type}</div>
+            <div class="info-type">${this._editingBlock.type}</div>
           </div>
-
-          <!-- 块配置 -->
-          ${this._renderBlockConfig(blockManifest)}
-          
-          <!-- 操作按钮 -->
-          <div class="property-actions">
-            <button class="action-btn remove" @click=${this._removeBlock}>
-              删除块
-            </button>
+          <div class="cf-text-sm cf-text-secondary">
+            ${blockManifest?.description || '暂无描述'}
           </div>
         </div>
-      </div>
-    `;
-  }
 
-  _renderBlockConfig(blockManifest) {
-    const schema = blockManifest?.config_schema || {};
-    
-    if (Object.keys(schema).length === 0) {
-      return html`
-        <div class="property-group">
-          <div class="group-title">
-            <ha-icon icon="mdi:tune"></ha-icon>
-            配置
+        <!-- 配置表单 -->
+        ${Object.keys(schema).length === 0 ? html`
+          <div class="no-config">
+            <ha-icon icon="mdi:check-circle" style="color: var(--cf-success-color);"></ha-icon>
+            <div class="cf-text-sm cf-mt-sm">此块无需额外配置</div>
           </div>
-          <div class="cf-text-sm cf-text-secondary">此块无需额外配置</div>
-        </div>
-      `;
-    }
-
-    return html`
-      <div class="property-group">
-        <div class="group-title">
-          <ha-icon icon="mdi:tune"></ha-icon>
-          配置
-        </div>
-        ${Object.entries(schema).map(([key, field]) => 
-          this._renderConfigField(key, field)
-        )}
+        ` : html`
+          <div class="property-form">
+            ${Object.entries(schema).map(([key, field]) => 
+              this._renderConfigField(key, field)
+            )}
+          </div>
+        `}
       </div>
     `;
   }
@@ -240,6 +191,7 @@ class BlockProperties extends LitElement {
               @input=${e => this._updateConfig(key, e.target.value)}
               .type=${field.type === 'number' ? 'number' : 'text'}
               fullwidth
+              placeholder=${field.default || ''}
             ></ha-textfield>
           </div>
         `;
@@ -272,14 +224,6 @@ class BlockProperties extends LitElement {
     };
     
     this._notifyBlockUpdated();
-  }
-
-  _removeBlock() {
-    if (!this._editingBlock) return;
-    
-    this.dispatchEvent(new CustomEvent('block-removed', {
-      detail: { blockId: this._editingBlock.id }
-    }));
   }
 
   _notifyBlockUpdated() {

@@ -184,17 +184,7 @@ class HaCardForgeCard extends LitElement {
   static getStubConfig() {
     return {
       type: 'custom:ha-cardforge-card',
-      blocks: [
-        {
-          id: 'block_1',
-          type: 'time',
-          config: {
-            use_24_hour: true,
-            show_date: true
-          }
-        }
-      ],
-      layout: 'vertical',
+      blocks: [], // 默认空数组，不包含时间块
       theme: 'auto'
     };
   }

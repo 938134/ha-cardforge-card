@@ -12,71 +12,63 @@ class BlockPalette extends LitElement {
     designSystem,
     css`
       .palette-container {
-        padding: var(--cf-spacing-md);
-        display: flex;
-        flex-direction: column;
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
         gap: var(--cf-spacing-sm);
+        margin-bottom: var(--cf-spacing-lg);
       }
 
       .block-item {
         display: flex;
+        flex-direction: column;
         align-items: center;
-        gap: var(--cf-spacing-md);
+        justify-content: center;
         padding: var(--cf-spacing-md);
         background: var(--cf-surface);
         border: 1px solid var(--cf-border);
         border-radius: var(--cf-radius-md);
-        cursor: grab;
+        cursor: pointer;
         transition: all var(--cf-transition-fast);
-        user-select: none;
+        text-align: center;
+        min-height: 80px;
       }
 
       .block-item:hover {
         border-color: var(--cf-primary-color);
-        transform: translateY(-1px);
+        transform: translateY(-2px);
         box-shadow: var(--cf-shadow-sm);
       }
 
-      .block-item:active {
-        cursor: grabbing;
-      }
-
       .block-icon {
-        width: 24px;
-        height: 24px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        font-size: 1.2em;
-      }
-
-      .block-info {
-        flex: 1;
+        font-size: 1.5em;
+        margin-bottom: var(--cf-spacing-sm);
       }
 
       .block-name {
-        font-size: 0.9em;
+        font-size: 0.85em;
         font-weight: 500;
         color: var(--cf-text-primary);
+        line-height: 1.2;
       }
 
       .block-description {
-        font-size: 0.8em;
+        font-size: 0.7em;
         color: var(--cf-text-secondary);
         margin-top: 2px;
-      }
-
-      .category-section {
-        margin-top: var(--cf-spacing-lg);
+        display: none; /* 简化版隐藏描述 */
       }
 
       .category-title {
-        font-size: 0.85em;
+        font-size: 0.9em;
         font-weight: 600;
         color: var(--cf-text-secondary);
-        margin-bottom: var(--cf-spacing-sm);
+        margin: var(--cf-spacing-lg) 0 var(--cf-spacing-sm) 0;
         text-transform: uppercase;
         letter-spacing: 0.5px;
+      }
+
+      .category-title:first-child {
+        margin-top: 0;
       }
     `
   ];
@@ -94,27 +86,22 @@ class BlockPalette extends LitElement {
     const blocksByCategory = this._groupBlocksByCategory();
     
     return html`
-      <div class="palette-container">
-        ${Object.entries(blocksByCategory).map(([category, blocks]) => html`
-          <div class="category-section">
-            <div class="category-title">${category}</div>
-            ${blocks.map(block => html`
-              <div 
-                class="block-item" 
-                draggable="true"
-                @dragstart=${e => this._onDragStart(e, block.type)}
-                @click=${() => this._selectBlock(block.type)}
-              >
-                <div class="block-icon">${block.icon}</div>
-                <div class="block-info">
-                  <div class="block-name">${block.name}</div>
-                  <div class="block-description">${block.description}</div>
-                </div>
-              </div>
-            `)}
-          </div>
-        `)}
-      </div>
+      ${Object.entries(blocksByCategory).map(([category, blocks]) => html`
+        <div class="category-title">${category}</div>
+        <div class="palette-container">
+          ${blocks.map(block => html`
+            <div 
+              class="block-item" 
+              @click=${() => this._selectBlock(block.type)}
+              title="${block.description}"
+            >
+              <div class="block-icon">${block.icon}</div>
+              <div class="block-name">${block.name}</div>
+              <div class="block-description">${block.description}</div>
+            </div>
+          `)}
+        </div>
+      `)}
     `;
   }
 
@@ -122,7 +109,7 @@ class BlockPalette extends LitElement {
     const groups = {};
     
     this._availableBlocks.forEach(block => {
-      const category = block.category || 'other';
+      const category = block.category || '其他';
       if (!groups[category]) {
         groups[category] = [];
       }
@@ -130,11 +117,6 @@ class BlockPalette extends LitElement {
     });
     
     return groups;
-  }
-
-  _onDragStart(event, blockType) {
-    event.dataTransfer.setData('text/plain', blockType);
-    event.dataTransfer.effectAllowed = 'copy';
   }
 
   _selectBlock(blockType) {
