@@ -13,7 +13,7 @@ class BlockEditor extends LitElement {
     _blocks: { state: true },
     _selectedBlock: { state: true },
     _availableThemes: { state: true },
-    _activeTab: { state: true }
+    _initialized: { state: true }
   };
 
   static styles = [
@@ -22,47 +22,15 @@ class BlockEditor extends LitElement {
       .editor-container {
         display: flex;
         flex-direction: column;
-        gap: var(--cf-spacing-md);
+        gap: var(--cf-spacing-lg);
         background: var(--cf-background);
         border-radius: var(--cf-radius-lg);
         border: 1px solid var(--cf-border);
         overflow: hidden;
+        padding: var(--cf-spacing-lg);
       }
 
-      .tabs-container {
-        display: flex;
-        background: var(--cf-surface);
-        border-bottom: 1px solid var(--cf-border);
-      }
-
-      .tab {
-        flex: 1;
-        padding: var(--cf-spacing-md);
-        text-align: center;
-        background: transparent;
-        border: none;
-        color: var(--cf-text-secondary);
-        cursor: pointer;
-        transition: all var(--cf-transition-fast);
-        font-weight: 500;
-      }
-
-      .tab.active {
-        color: var(--cf-primary-color);
-        background: rgba(var(--cf-rgb-primary), 0.05);
-        border-bottom: 2px solid var(--cf-primary-color);
-      }
-
-      .tab:hover:not(.active) {
-        background: rgba(var(--cf-rgb-primary), 0.02);
-      }
-
-      .tab-content {
-        padding: var(--cf-spacing-md);
-        min-height: 400px;
-      }
-
-      .blocks-section {
+      .section {
         display: flex;
         flex-direction: column;
         gap: var(--cf-spacing-md);
@@ -72,12 +40,98 @@ class BlockEditor extends LitElement {
         font-size: 1.1em;
         font-weight: 600;
         color: var(--cf-text-primary);
+        display: flex;
+        align-items: center;
+        gap: var(--cf-spacing-sm);
+      }
+
+      .section-title ha-icon {
+        color: var(--cf-primary-color);
+      }
+
+      .blocks-container {
+        display: flex;
+        flex-direction: column;
+        gap: var(--cf-spacing-sm);
+        max-height: 300px;
+        overflow-y: auto;
+        padding: var(--cf-spacing-sm);
+        border: 1px solid var(--cf-border);
+        border-radius: var(--cf-radius-md);
+        background: var(--cf-surface);
+      }
+
+      .empty-state {
+        text-align: center;
+        padding: var(--cf-spacing-xl);
+        color: var(--cf-text-secondary);
+        border: 2px dashed var(--cf-border);
+        border-radius: var(--cf-radius-md);
+      }
+
+      .block-card {
+        background: var(--cf-surface);
+        border: 1px solid var(--cf-border);
+        border-radius: var(--cf-radius-md);
+        padding: var(--cf-spacing-md);
+        cursor: pointer;
+        transition: all var(--cf-transition-fast);
+      }
+
+      .block-card:hover {
+        border-color: var(--cf-primary-color);
+        transform: translateY(-1px);
+      }
+
+      .block-card.selected {
+        border-color: var(--cf-primary-color);
+        background: rgba(var(--cf-rgb-primary), 0.05);
+      }
+
+      .block-header {
+        display: flex;
+        align-items: center;
+        gap: var(--cf-spacing-sm);
         margin-bottom: var(--cf-spacing-sm);
       }
 
-      .theme-grid {
+      .block-icon {
+        width: 24px;
+        height: 24px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.2em;
+      }
+
+      .block-name {
+        font-size: 0.9em;
+        font-weight: 500;
+        color: var(--cf-text-primary);
+        flex: 1;
+      }
+
+      .block-type {
+        font-size: 0.7em;
+        color: var(--cf-text-secondary);
+        background: rgba(var(--cf-rgb-primary), 0.1);
+        padding: 2px 6px;
+        border-radius: var(--cf-radius-sm);
+      }
+
+      .block-content {
+        min-height: 40px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: var(--cf-spacing-sm);
+        border-radius: var(--cf-radius-sm);
+        background: rgba(var(--cf-rgb-primary), 0.03);
+      }
+
+      .themes-grid {
         display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(80px, 1fr));
+        grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
         gap: var(--cf-spacing-sm);
       }
 
@@ -86,13 +140,12 @@ class BlockEditor extends LitElement {
         flex-direction: column;
         align-items: center;
         justify-content: center;
-        padding: var(--cf-spacing-sm);
+        padding: var(--cf-spacing-md);
         border: 1px solid var(--cf-border);
         border-radius: var(--cf-radius-md);
         cursor: pointer;
         transition: all var(--cf-transition-fast);
         background: var(--cf-surface);
-        min-height: 70px;
         text-align: center;
       }
 
@@ -107,87 +160,38 @@ class BlockEditor extends LitElement {
         color: white;
       }
 
-      .theme-preview {
-        width: 100%;
-        height: 40px;
-        border-radius: var(--cf-radius-sm);
-        margin-bottom: 6px;
-        border: 2px solid transparent;
-      }
-
-      .theme-item.selected .theme-preview {
-        border-color: rgba(255, 255, 255, 0.5);
+      .theme-icon {
+        font-size: 1.5em;
+        margin-bottom: var(--cf-spacing-sm);
       }
 
       .theme-name {
-        font-size: 0.8em;
+        font-size: 0.85em;
         font-weight: 500;
         line-height: 1.2;
       }
 
-      .empty-state {
-        text-align: center;
-        padding: var(--cf-spacing-xl);
-        color: var(--cf-text-secondary);
-        border: 2px dashed var(--cf-border);
-        border-radius: var(--cf-radius-md);
-      }
-
-      .blocks-list {
-        display: flex;
-        flex-direction: column;
-        gap: var(--cf-spacing-sm);
-        max-height: 400px;
-        overflow-y: auto;
-      }
-
-      .block-item {
-        display: flex;
-        align-items: center;
-        gap: var(--cf-spacing-md);
-        padding: var(--cf-spacing-md);
+      .theme-preview-card {
         background: var(--cf-surface);
         border: 1px solid var(--cf-border);
         border-radius: var(--cf-radius-md);
-        cursor: pointer;
-        transition: all var(--cf-transition-fast);
-      }
-
-      .block-item:hover {
-        border-color: var(--cf-primary-color);
-        transform: translateY(-1px);
-      }
-
-      .block-item.selected {
-        border-color: var(--cf-primary-color);
-        background: rgba(var(--cf-rgb-primary), 0.05);
-      }
-
-      .block-icon {
-        width: 24px;
-        height: 24px;
+        padding: var(--cf-spacing-lg);
+        min-height: 80px;
         display: flex;
         align-items: center;
         justify-content: center;
-        font-size: 1.2em;
+        text-align: center;
       }
 
-      .block-info {
-        flex: 1;
+      .delete-btn {
+        color: var(--cf-error-color);
+        cursor: pointer;
+        opacity: 0.7;
+        transition: opacity var(--cf-transition-fast);
       }
 
-      .block-name {
-        font-size: 0.9em;
-        font-weight: 500;
-        color: var(--cf-text-primary);
-      }
-
-      .block-type {
-        font-size: 0.7em;
-        color: var(--cf-text-secondary);
-        background: rgba(var(--cf-rgb-primary), 0.1);
-        padding: 2px 6px;
-        border-radius: var(--cf-radius-sm);
+      .delete-btn:hover {
+        opacity: 1;
       }
     `
   ];
@@ -202,7 +206,7 @@ class BlockEditor extends LitElement {
     this._blocks = [];
     this._selectedBlock = null;
     this._availableThemes = [];
-    this._activeTab = 'blocks';
+    this._initialized = false;
   }
 
   async firstUpdated() {
@@ -214,6 +218,8 @@ class BlockEditor extends LitElement {
     if (this.config.blocks) {
       this._blocks = [...this.config.blocks];
     }
+    
+    this._initialized = true;
   }
 
   setConfig(config) {
@@ -224,135 +230,152 @@ class BlockEditor extends LitElement {
       ...config 
     };
     
-    if (this.config.blocks) {
+    if (this.config.blocks && this._initialized) {
       this._blocks = [...this.config.blocks];
     }
   }
 
   render() {
-    return html`
-      <div class="editor-container">
-        <!-- 标签页 -->
-        <div class="tabs-container">
-          <button 
-            class="tab ${this._activeTab === 'blocks' ? 'active' : ''}"
-            @click=${() => this._switchTab('blocks')}
-          >
-            块管理
-          </button>
-          <button 
-            class="tab ${this._activeTab === 'theme' ? 'active' : ''}"
-            @click=${() => this._switchTab('theme')}
-          >
-            主题样式
-          </button>
-          <button 
-            class="tab ${this._activeTab === 'properties' ? 'active' : ''}"
-            @click=${() => this._switchTab('properties')}
-            ?disabled=${!this._selectedBlock}
-          >
-            属性设置
-          </button>
-        </div>
-
-        <!-- 内容区域 -->
-        <div class="tab-content">
-          ${this._activeTab === 'blocks' ? this._renderBlocksTab() : ''}
-          ${this._activeTab === 'theme' ? this._renderThemeTab() : ''}
-          ${this._activeTab === 'properties' ? this._renderPropertiesTab() : ''}
-        </div>
-      </div>
-    `;
-  }
-
-  _renderBlocksTab() {
-    return html`
-      <div class="blocks-section">
-        <div class="section-title">添加块</div>
-        <block-palette
-          @block-selected=${this._onBlockSelected}
-        ></block-palette>
-
-        <div class="section-title">已添加的块</div>
-        ${this._blocks.length === 0 ? html`
-          <div class="empty-state">
-            <ha-icon icon="mdi:package-variant" style="font-size: 2em; opacity: 0.5;"></ha-icon>
-            <div class="cf-text-sm cf-mt-md">尚未添加任何块</div>
-            <div class="cf-text-xs cf-mt-sm cf-text-secondary">从上方选择块开始创建</div>
-          </div>
-        ` : html`
-          <div class="blocks-list">
-            ${this._blocks.map((block, index) => {
-              const manifest = blockRegistry.getBlockManifest(block.type);
-              return html`
-                <div 
-                  class="block-item ${this._selectedBlock?.id === block.id ? 'selected' : ''}"
-                  @click=${() => this._selectBlock(block)}
-                >
-                  <div class="block-icon">${manifest?.icon || '📦'}</div>
-                  <div class="block-info">
-                    <div class="block-name">${manifest?.name || block.type}</div>
-                  </div>
-                  <div class="block-type">${block.type}</div>
-                  <ha-icon 
-                    icon="mdi:delete" 
-                    style="color: var(--cf-error-color); cursor: pointer;"
-                    @click=${e => this._removeBlock(e, block.id)}
-                  ></ha-icon>
-                </div>
-              `;
-            })}
-          </div>
-        `}
-      </div>
-    `;
-  }
-
-  _renderThemeTab() {
-    return html`
-      <div class="blocks-section">
-        <div class="section-title">选择主题</div>
-        <div class="theme-grid">
-          ${this._availableThemes.map(theme => html`
-            <div 
-              class="theme-item ${this.config.theme === theme.id ? 'selected' : ''}"
-              @click=${() => this._selectTheme(theme.id)}
-              title="${theme.description}"
-            >
-              <div class="theme-preview" style="
-                background: ${theme.preview?.background || 'var(--cf-background)'};
-                color: ${theme.preview?.color || 'var(--cf-text-primary)'};
-                border: ${theme.preview?.border || '1px solid var(--cf-border)'};
-              "></div>
-              <div class="theme-name">${theme.name}</div>
-            </div>
-          `)}
-        </div>
-      </div>
-    `;
-  }
-
-  _renderPropertiesTab() {
-    if (!this._selectedBlock) {
-      return html`
-        <div class="empty-state">
-          <ha-icon icon="mdi:select" style="font-size: 2em; opacity: 0.5;"></ha-icon>
-          <div class="cf-text-sm cf-mt-md">请先选择一个块</div>
-        </div>
-      `;
+    if (!this._initialized) {
+      return html`<div class="cf-loading">初始化编辑器...</div>`;
     }
 
     return html`
-      <block-properties
-        .block=${this._selectedBlock}
-        .hass=${this.hass}
-        @block-updated=${this._onBlockUpdated}
-      ></block-properties>
+      <div class="editor-container">
+        <!-- 块选择区域 -->
+        <div class="section">
+          <div class="section-title">
+            <ha-icon icon="mdi:cube-outline"></ha-icon>
+            块选择
+          </div>
+          <block-palette
+            @block-selected=${this._onBlockSelected}
+          ></block-palette>
+        </div>
+
+        <!-- 已添加的块 -->
+        <div class="section">
+          <div class="section-title">
+            <ha-icon icon="mdi:view-grid"></ha-icon>
+            已添加的块
+          </div>
+          <div class="blocks-container">
+            ${this._blocks.length === 0 ? html`
+              <div class="empty-state">
+                <ha-icon icon="mdi:package-variant" style="font-size: 2em; opacity: 0.5;"></ha-icon>
+                <div class="cf-text-sm cf-mt-md">尚未添加任何块</div>
+                <div class="cf-text-xs cf-mt-sm cf-text-secondary">从上方选择块开始创建</div>
+              </div>
+            ` : this._blocks.map(block => this._renderBlockCard(block))}
+          </div>
+        </div>
+
+        <!-- 主题选择 -->
+        <div class="section">
+          <div class="section-title">
+            <ha-icon icon="mdi:palette"></ha-icon>
+            主题
+          </div>
+          <div class="themes-grid">
+            ${this._availableThemes.map(theme => html`
+              <div 
+                class="theme-item ${this.config.theme === theme.id ? 'selected' : ''}"
+                @click=${() => this._selectTheme(theme.id)}
+                title="${theme.description}"
+              >
+                <div class="theme-icon">${theme.icon}</div>
+                <div class="theme-name">${theme.name}</div>
+              </div>
+            `)}
+          </div>
+        </div>
+
+        <!-- 主题预览 -->
+        <div class="section">
+          <div class="section-title">
+            <ha-icon icon="mdi:eye"></ha-icon>
+            主题预览
+          </div>
+          <div class="theme-preview-card" style="${this._getThemeStyles()}">
+            <div class="cf-text-md">
+              ${this._getThemePreviewText()}
+            </div>
+          </div>
+        </div>
+
+        <!-- 属性设置 -->
+        <div class="section">
+          <div class="section-title">
+            <ha-icon icon="mdi:cog"></ha-icon>
+            属性设置
+          </div>
+          <block-properties
+            .block=${this._selectedBlock}
+            .hass=${this.hass}
+            @block-updated=${this._onBlockUpdated}
+          ></block-properties>
+        </div>
+      </div>
     `;
   }
 
-  _switchTab(tab) {
-    this._activeTab = tab;
+  _renderBlockCard(block) {
+    const manifest = blockRegistry.getBlockManifest(block.type);
+    const blockInstance = blockRegistry.createBlockInstance(block.type);
+    
+    let previewContent = '预览内容';
+    try {
+      if (blockInstance) {
+        const template = blockInstance.render(block.config, this.hass);
+        // 提取纯文本内容用于预览
+        const tempDiv = document.createElement('div');
+        tempDiv.innerHTML = template;
+        previewContent = tempDiv.textContent?.trim() || '预览内容';
+      }
+    } catch (error) {
+      previewContent = '渲染错误';
+    }
+
+    return html`
+      <div 
+        class="block-card ${this._selectedBlock?.id === block.id ? 'selected' : ''}"
+        @click=${() => this._selectBlock(block)}
+        style="${this._getThemeStyles()}"
+      >
+        <div class="block-header">
+          <div class="block-icon">${manifest?.icon || '📦'}</div>
+          <div class="block-name">${manifest?.name || block.type}</div>
+          <div class="block-type">${block.type}</div>
+          <ha-icon 
+            class="delete-btn"
+            icon="mdi:delete" 
+            @click=${e => this._removeBlock(e, block.id)}
+          ></ha-icon>
+        </div>
+        <div class="block-content">
+          ${previewContent}
+        </div>
+      </div>
+    `;
+  }
+
+  _getThemeStyles() {
+    const theme = themeManager.getTheme(this.config.theme);
+    if (theme && typeof theme.getStyles === 'function') {
+      return theme.getStyles(this.config);
+    }
+    return '';
+  }
+
+  _getThemePreviewText() {
+    const themeNames = {
+      'auto': '跟随系统主题',
+      'glass': '毛玻璃效果预览',
+      'gradient': '渐变动效预览', 
+      'neon': '霓虹光影预览',
+      'ink-wash': '水墨风格预览'
+    };
+    return themeNames[this.config.theme] || '主题预览';
   }
 
   _onBlockSelected(e) {
@@ -365,13 +388,11 @@ class BlockEditor extends LitElement {
     
     this._blocks = [...this._blocks, newBlock];
     this._selectedBlock = newBlock;
-    this._activeTab = 'properties'; // 自动切换到属性标签
     this._notifyConfigUpdate();
   }
 
   _selectBlock(block) {
     this._selectedBlock = block;
-    this._activeTab = 'properties'; // 自动切换到属性标签
   }
 
   _removeBlock(e, blockId) {
@@ -381,7 +402,6 @@ class BlockEditor extends LitElement {
     
     if (this._selectedBlock?.id === blockId) {
       this._selectedBlock = null;
-      this._activeTab = 'blocks'; // 回到块管理标签
     }
     
     this._notifyConfigUpdate();

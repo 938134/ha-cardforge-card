@@ -13,9 +13,12 @@ class BlockPalette extends LitElement {
     css`
       .palette-container {
         display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+        grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
         gap: var(--cf-spacing-sm);
-        margin-bottom: var(--cf-spacing-lg);
+        padding: var(--cf-spacing-sm);
+        border: 1px solid var(--cf-border);
+        border-radius: var(--cf-radius-md);
+        background: var(--cf-surface);
       }
 
       .block-item {
@@ -24,13 +27,12 @@ class BlockPalette extends LitElement {
         align-items: center;
         justify-content: center;
         padding: var(--cf-spacing-md);
-        background: var(--cf-surface);
         border: 1px solid var(--cf-border);
         border-radius: var(--cf-radius-md);
         cursor: pointer;
         transition: all var(--cf-transition-fast);
         text-align: center;
-        min-height: 80px;
+        background: var(--cf-background);
       }
 
       .block-item:hover {
@@ -40,35 +42,28 @@ class BlockPalette extends LitElement {
       }
 
       .block-icon {
-        font-size: 1.5em;
+        font-size: 1.8em;
         margin-bottom: var(--cf-spacing-sm);
       }
 
       .block-name {
-        font-size: 0.85em;
+        font-size: 0.8em;
         font-weight: 500;
         color: var(--cf-text-primary);
         line-height: 1.2;
       }
 
-      .block-description {
-        font-size: 0.7em;
-        color: var(--cf-text-secondary);
-        margin-top: 2px;
-        display: none; /* 简化版隐藏描述 */
+      .category-section {
+        margin-bottom: var(--cf-spacing-lg);
       }
 
       .category-title {
         font-size: 0.9em;
         font-weight: 600;
         color: var(--cf-text-secondary);
-        margin: var(--cf-spacing-lg) 0 var(--cf-spacing-sm) 0;
+        margin-bottom: var(--cf-spacing-sm);
         text-transform: uppercase;
         letter-spacing: 0.5px;
-      }
-
-      .category-title:first-child {
-        margin-top: 0;
       }
     `
   ];
@@ -87,19 +82,20 @@ class BlockPalette extends LitElement {
     
     return html`
       ${Object.entries(blocksByCategory).map(([category, blocks]) => html`
-        <div class="category-title">${category}</div>
-        <div class="palette-container">
-          ${blocks.map(block => html`
-            <div 
-              class="block-item" 
-              @click=${() => this._selectBlock(block.type)}
-              title="${block.description}"
-            >
-              <div class="block-icon">${block.icon}</div>
-              <div class="block-name">${block.name}</div>
-              <div class="block-description">${block.description}</div>
-            </div>
-          `)}
+        <div class="category-section">
+          <div class="category-title">${category}</div>
+          <div class="palette-container">
+            ${blocks.map(block => html`
+              <div 
+                class="block-item" 
+                @click=${() => this._selectBlock(block.type)}
+                title="${block.description}"
+              >
+                <div class="block-icon">${block.icon}</div>
+                <div class="block-name">${block.name}</div>
+              </div>
+            `)}
+          </div>
         </div>
       `)}
     `;
@@ -109,7 +105,7 @@ class BlockPalette extends LitElement {
     const groups = {};
     
     this._availableBlocks.forEach(block => {
-      const category = block.category || '其他';
+      const category = this._getCategoryDisplayName(block.category);
       if (!groups[category]) {
         groups[category] = [];
       }
@@ -117,6 +113,17 @@ class BlockPalette extends LitElement {
     });
     
     return groups;
+  }
+
+  _getCategoryDisplayName(category) {
+    const names = {
+      'basic': '基础块',
+      'data': '数据块', 
+      'time': '时间块',
+      'layout': '布局块',
+      'other': '其他块'
+    };
+    return names[category] || category;
   }
 
   _selectBlock(blockType) {

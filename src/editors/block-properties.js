@@ -20,7 +20,16 @@ class BlockProperties extends LitElement {
         gap: var(--cf-spacing-lg);
       }
 
-      .block-info {
+      .empty-state {
+        text-align: center;
+        padding: var(--cf-spacing-xl);
+        color: var(--cf-text-secondary);
+        border: 2px dashed var(--cf-border);
+        border-radius: var(--cf-radius-md);
+        background: var(--cf-surface);
+      }
+
+      .selected-block-info {
         background: var(--cf-surface);
         border: 1px solid var(--cf-border);
         border-radius: var(--cf-radius-md);
@@ -31,7 +40,7 @@ class BlockProperties extends LitElement {
         display: flex;
         align-items: center;
         gap: var(--cf-spacing-sm);
-        margin-bottom: var(--cf-spacing-md);
+        margin-bottom: var(--cf-spacing-sm);
       }
 
       .info-icon {
@@ -42,6 +51,7 @@ class BlockProperties extends LitElement {
         font-size: 1em;
         font-weight: 600;
         color: var(--cf-text-primary);
+        flex: 1;
       }
 
       .info-type {
@@ -50,7 +60,6 @@ class BlockProperties extends LitElement {
         background: rgba(var(--cf-rgb-primary), 0.1);
         padding: 2px 8px;
         border-radius: var(--cf-radius-sm);
-        margin-left: auto;
       }
 
       .property-form {
@@ -75,6 +84,9 @@ class BlockProperties extends LitElement {
         text-align: center;
         padding: var(--cf-spacing-lg);
         color: var(--cf-text-secondary);
+        background: var(--cf-surface);
+        border: 1px solid var(--cf-border);
+        border-radius: var(--cf-radius-md);
       }
     `
   ];
@@ -97,7 +109,13 @@ class BlockProperties extends LitElement {
 
   render() {
     if (!this._editingBlock) {
-      return html`<div>请选择一个块</div>`;
+      return html`
+        <div class="empty-state">
+          <ha-icon icon="mdi:select" style="font-size: 2em; opacity: 0.5;"></ha-icon>
+          <div class="cf-text-sm cf-mt-md">请先选择一个块</div>
+          <div class="cf-text-xs cf-mt-sm cf-text-secondary">点击上方的块卡片进行选择</div>
+        </div>
+      `;
     }
 
     const blockManifest = blockRegistry.getBlockManifest(this._editingBlock.type);
@@ -105,8 +123,8 @@ class BlockProperties extends LitElement {
     
     return html`
       <div class="properties-container">
-        <!-- 块信息 -->
-        <div class="block-info">
+        <!-- 选中块信息 -->
+        <div class="selected-block-info">
           <div class="info-header">
             <div class="info-icon">${blockManifest?.icon || '📦'}</div>
             <div class="info-title">${blockManifest?.name || this._editingBlock.type}</div>
