@@ -1,143 +1,135 @@
 // src/blocks/block-registry.js
 class BlockRegistry {
-  static _blocks = new Map();
+  static _blockTypes = new Map();
   static _initialized = false;
 
   static async initialize() {
     if (this._initialized) return;
 
-    try {
-      await this._discoverBlocks();
-      this._initialized = true;
-    } catch (error) {
-      console.error('❌ 块注册表初始化失败:', error);
-    }
-  }
-
-  static async _discoverBlocks() {
-    const blockModules = [
-      () => import('./types/text-block.js'),
-      () => import('./types/time-block.js'),
+    // 改为手动注册块类型，避免重复定义自定义元素
+    const blockClasses = [
+      await import('./types/sensor-block.js'),
+      await import('./types/text-block.js'),
+      await import('./types/time-block.js'),
+      await import('./types/weather-block.js'),
+      await import('./types/media-block.js'),
+      await import('./types/action-block.js'),
+      await import('./types/chart-block.js'),
+      await import('./types/layout-block.js')
     ];
 
-    for (const importFn of blockModules) {
-      try {
-        const module = await importFn();
-        this._registerBlockModule(module);
-      } catch (error) {
-        console.error(`❌ 加载块失败:`, error);
+    for (const module of blockClasses) {
+      this._registerBlockModule(module);
+    }
+
+    this._initialized = true;
+  }
+
+  static _registerBlockModule(module) {
+    if (module.default && module.default.blockType) {
+      const blockClass = module.default;
+      
+      // 检查是否已经注册过
+      if (!this._blockTypes.has(blockClass.blockType)) {
+        this._blockTypes.set(blockClass.blockType, blockClass);
       }
     }
   }
 
-  static _registerBlockModule(module) {
-    if (!module.default) {
-      console.warn('块缺少默认导出，跳过注册');
+  // 其他方法保持不变...
+  static register(blockType, blockClass) {
+    if (this._blockTypes.has(blockType)) {
+      console.warn(`块类型 ${blockType} 已经注册，跳过重复注册`);
       return;
     }
-
-    const BlockClass = module.default;
-    
-    if (!BlockClass.blockType) {
-      console.warn('块缺少 blockType，跳过注册');
-      return;
-    }
-
-    const blockId = BlockClass.blockType;
-    
-    if (typeof BlockClass.prototype.render === 'function' && 
-        typeof BlockClass.prototype.getStyles === 'function') {
-      
-      this._blocks.set(blockId, {
-        id: blockId,
-        class: BlockClass,
-        manifest: {
-          id: blockId,
-          name: BlockClass.blockName,
-          description: BlockClass.description,
-          icon: BlockClass.blockIcon,
-          category: BlockClass.category
-        }
-      });
-    } else {
-      console.warn(`块 ${blockId} 接口不完整，跳过`);
-    }
+    this._blockTypes.set(blockType, blockClass);
   }
 
-  // === 核心API ===
-  static getBlock(blockId) {
-    return this._blocks.get(blockId);
+  static getBlockClass(blockType) {
+    return this._blockTypes.get(blockType);
   }
 
-  static getAllBlocks() {
-    return Array.from(this._blocks.values()).map(item => ({
-      ...item.manifest,
-      id: item.id
+  static getAllBlockTypes() {
+    return Array.from(this._blockTypes.values()).map(BlockClass => ({
+      type: BlockClass.blockType,
+      name: BlockClass.blockName,
+      icon: BlockClass.blockIcon,
+      category: BlockClass.category,
+      description: BlockClass.description
     }));
   }
 
-  static getBlockClass(blockId) {
-    const block = this._blocks.get(blockId);
-    return block ? block.class : null;
-  }
-
-  static createBlockInstance(blockId) {
-    const BlockClass = this.getBlockClass(blockId);
-    return BlockClass ? new BlockClass() : null;
-  }
-
-  static getBlockManifest(blockId) {
-    const block = this._blocks.get(blockId);
-    return block ? block.manifest : null;
-  }
-
-  // 渲染方法
   static render(block, hass) {
-    const instance = this.createBlockInstance(block.type);
-    if (!instance) {
+    const BlockClass = this.getBlockClass(block.type);
+    if (!BlockClass) {
       throw new Error(`未知的块类型: ${block.type}`);
     }
+
+    const instance = new BlockClass();
     return instance.render(block, hass);
   }
 
   static getStyles(block) {
-    const instance = this.createBlockInstance(block.type);
-    if (!instance) return '';
+    const BlockClass = this.getBlockClass(block.type);
+    if (!BlockClass) return '';
+
+    const instance = new BlockClass();
     return instance.getStyles(block);
   }
 
   static getEditTemplate(block, hass, onConfigChange) {
-    const instance = this.createBlockInstance(block.type);
-    if (!instance) return '';
-    
-    if (typeof instance.getEditTemplate === 'function') {
-      return instance.getEditTemplate(block, hass, onConfigChange);
-    }
-    return '';
+    const BlockClass = this.getBlockClass(block.type);
+    if (!BlockClass) return '';
+
+    const instance = new BlockClass();
+    return instance.getEditTemplate(block, hass, onConfigChange);
   }
 
   static getDefaultConfig(blockType) {
-    const instance = this.createBlockInstance(blockType);
-    if (!instance) return {};
-    
-    if (typeof instance.getDefaultConfig === 'function') {
-      return instance.getDefaultConfig();
-    }
-    return {};
+    const BlockClass = this.getBlockClass(blockType);
+    if (!BlockClass) return {};
+
+    const instance = new BlockClass();
+    return instance.getDefaultConfig();
   }
 
   static validateConfig(blockType, config) {
-    const instance = this.createBlockInstance(blockType);
-    if (!instance) return { valid: false, errors: ['未知块类型'] };
-    
-    if (typeof instance.validateConfig === 'function') {
-      return instance.validateConfig(config);
-    }
-    return { valid: true, errors: [] };
+    const BlockClass = this.getBlockClass(blockType);
+    if (!BlockClass) return { valid: false, errors: ['未知块类型'] };
+
+    const instance = new BlockClass();
+    return instance.validateConfig(config);
   }
 }
 
-// 自动初始化
-BlockRegistry.initialize();
+// 延迟初始化，避免重复执行
+let initializationPromise = null;
+BlockRegistry.initialize = function() {
+  if (!initializationPromise) {
+    initializationPromise = (async () => {
+      if (this._initialized) return;
+      
+      // 改为手动注册块类型
+      const blockClasses = [
+        await import('./types/sensor-block.js'),
+        await import('./types/text-block.js'),
+        await import('./types/time-block.js'),
+        await import('./types/weather-block.js'),
+        await import('./types/media-block.js'),
+        await import('./types/action-block.js'),
+        await import('./types/chart-block.js'),
+        await import('./types/layout-block.js')
+      ];
+
+      for (const module of blockClasses) {
+        this._registerBlockModule(module);
+      }
+
+      this._initialized = true;
+    })();
+  }
+  
+  return initializationPromise;
+};
 
 export { BlockRegistry };
