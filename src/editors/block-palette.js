@@ -15,10 +15,6 @@ class BlockPalette extends LitElement {
         display: grid;
         grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
         gap: var(--cf-spacing-sm);
-        padding: var(--cf-spacing-sm);
-        border: 1px solid var(--cf-border);
-        border-radius: var(--cf-radius-md);
-        background: var(--cf-surface);
       }
 
       .block-item {
@@ -32,7 +28,7 @@ class BlockPalette extends LitElement {
         cursor: pointer;
         transition: all var(--cf-transition-fast);
         text-align: center;
-        background: var(--cf-background);
+        background: var(--cf-surface);
       }
 
       .block-item:hover {
@@ -52,19 +48,6 @@ class BlockPalette extends LitElement {
         color: var(--cf-text-primary);
         line-height: 1.2;
       }
-
-      .category-section {
-        margin-bottom: var(--cf-spacing-lg);
-      }
-
-      .category-title {
-        font-size: 0.9em;
-        font-weight: 600;
-        color: var(--cf-text-secondary);
-        margin-bottom: var(--cf-spacing-sm);
-        text-transform: uppercase;
-        letter-spacing: 0.5px;
-      }
     `
   ];
 
@@ -74,56 +57,29 @@ class BlockPalette extends LitElement {
   }
 
   willUpdate() {
-    this._availableBlocks = blockRegistry.getAllBlocks();
+    // 只显示4个指定的块类型
+    const allowedBlocks = ['text', 'entity', 'time', 'layout'];
+    const allBlocks = blockRegistry.getAllBlocks();
+    this._availableBlocks = allBlocks.filter(block => 
+      allowedBlocks.includes(block.type)
+    );
   }
 
   render() {
-    const blocksByCategory = this._groupBlocksByCategory();
-    
     return html`
-      ${Object.entries(blocksByCategory).map(([category, blocks]) => html`
-        <div class="category-section">
-          <div class="category-title">${category}</div>
-          <div class="palette-container">
-            ${blocks.map(block => html`
-              <div 
-                class="block-item" 
-                @click=${() => this._selectBlock(block.type)}
-                title="${block.description}"
-              >
-                <div class="block-icon">${block.icon}</div>
-                <div class="block-name">${block.name}</div>
-              </div>
-            `)}
+      <div class="palette-container">
+        ${this._availableBlocks.map(block => html`
+          <div 
+            class="block-item" 
+            @click=${() => this._selectBlock(block.type)}
+            title="${block.description}"
+          >
+            <div class="block-icon">${block.icon}</div>
+            <div class="block-name">${block.name}</div>
           </div>
-        </div>
-      `)}
+        `)}
+      </div>
     `;
-  }
-
-  _groupBlocksByCategory() {
-    const groups = {};
-    
-    this._availableBlocks.forEach(block => {
-      const category = this._getCategoryDisplayName(block.category);
-      if (!groups[category]) {
-        groups[category] = [];
-      }
-      groups[category].push(block);
-    });
-    
-    return groups;
-  }
-
-  _getCategoryDisplayName(category) {
-    const names = {
-      'basic': '基础块',
-      'data': '数据块', 
-      'time': '时间块',
-      'layout': '布局块',
-      'other': '其他块'
-    };
-    return names[category] || category;
   }
 
   _selectBlock(blockType) {

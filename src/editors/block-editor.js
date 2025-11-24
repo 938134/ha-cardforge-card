@@ -23,11 +23,6 @@ class BlockEditor extends LitElement {
         display: flex;
         flex-direction: column;
         gap: var(--cf-spacing-lg);
-        background: var(--cf-background);
-        border-radius: var(--cf-radius-lg);
-        border: 1px solid var(--cf-border);
-        overflow: hidden;
-        padding: var(--cf-spacing-lg);
       }
 
       .section {
@@ -55,10 +50,6 @@ class BlockEditor extends LitElement {
         gap: var(--cf-spacing-sm);
         max-height: 300px;
         overflow-y: auto;
-        padding: var(--cf-spacing-sm);
-        border: 1px solid var(--cf-border);
-        border-radius: var(--cf-radius-md);
-        background: var(--cf-surface);
       }
 
       .empty-state {
@@ -67,6 +58,7 @@ class BlockEditor extends LitElement {
         color: var(--cf-text-secondary);
         border: 2px dashed var(--cf-border);
         border-radius: var(--cf-radius-md);
+        background: var(--cf-surface);
       }
 
       .block-card {
@@ -171,18 +163,6 @@ class BlockEditor extends LitElement {
         line-height: 1.2;
       }
 
-      .theme-preview-card {
-        background: var(--cf-surface);
-        border: 1px solid var(--cf-border);
-        border-radius: var(--cf-radius-md);
-        padding: var(--cf-spacing-lg);
-        min-height: 80px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        text-align: center;
-      }
-
       .delete-btn {
         color: var(--cf-error-color);
         cursor: pointer;
@@ -246,7 +226,7 @@ class BlockEditor extends LitElement {
         <div class="section">
           <div class="section-title">
             <ha-icon icon="mdi:cube-outline"></ha-icon>
-            块选择
+            块
           </div>
           <block-palette
             @block-selected=${this._onBlockSelected}
@@ -257,7 +237,7 @@ class BlockEditor extends LitElement {
         <div class="section">
           <div class="section-title">
             <ha-icon icon="mdi:view-grid"></ha-icon>
-            已添加的块
+            块卡片
           </div>
           <div class="blocks-container">
             ${this._blocks.length === 0 ? html`
@@ -290,24 +270,11 @@ class BlockEditor extends LitElement {
           </div>
         </div>
 
-        <!-- 主题预览 -->
-        <div class="section">
-          <div class="section-title">
-            <ha-icon icon="mdi:eye"></ha-icon>
-            主题预览
-          </div>
-          <div class="theme-preview-card" style="${this._getThemeStyles()}">
-            <div class="cf-text-md">
-              ${this._getThemePreviewText()}
-            </div>
-          </div>
-        </div>
-
         <!-- 属性设置 -->
         <div class="section">
           <div class="section-title">
             <ha-icon icon="mdi:cog"></ha-icon>
-            属性设置
+            属性
           </div>
           <block-properties
             .block=${this._selectedBlock}
@@ -340,7 +307,6 @@ class BlockEditor extends LitElement {
       <div 
         class="block-card ${this._selectedBlock?.id === block.id ? 'selected' : ''}"
         @click=${() => this._selectBlock(block)}
-        style="${this._getThemeStyles()}"
       >
         <div class="block-header">
           <div class="block-icon">${manifest?.icon || '📦'}</div>
@@ -357,25 +323,6 @@ class BlockEditor extends LitElement {
         </div>
       </div>
     `;
-  }
-
-  _getThemeStyles() {
-    const theme = themeManager.getTheme(this.config.theme);
-    if (theme && typeof theme.getStyles === 'function') {
-      return theme.getStyles(this.config);
-    }
-    return '';
-  }
-
-  _getThemePreviewText() {
-    const themeNames = {
-      'auto': '跟随系统主题',
-      'glass': '毛玻璃效果预览',
-      'gradient': '渐变动效预览', 
-      'neon': '霓虹光影预览',
-      'ink-wash': '水墨风格预览'
-    };
-    return themeNames[this.config.theme] || '主题预览';
   }
 
   _onBlockSelected(e) {

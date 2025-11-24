@@ -4,22 +4,14 @@ import { BaseBlock } from '../core/base-block.js';
 class LayoutBlock extends BaseBlock {
   getTemplate(config, hass) {
     const layoutType = config.layout || 'vertical';
-    const childBlocks = config.blocks || [];
     
     return this._renderBlockContainer(`
-      <div class="layout-container ${layoutType}">
-        ${childBlocks.map(block => `
-          <div class="layout-item">
-            ${this._renderChildBlock(block, hass)}
-          </div>
-        `).join('')}
-        
-        ${childBlocks.length === 0 ? `
-          <div class="layout-empty">
-            <ha-icon icon="mdi:view-grid-plus"></ha-icon>
-            <div>添加子块</div>
-          </div>
-        ` : ''}
+      <div class="layout-content ${layoutType}">
+        <div class="layout-placeholder">
+          <ha-icon icon="mdi:view-grid-plus"></ha-icon>
+          <div>布局容器</div>
+          <div class="cf-text-xs cf-text-secondary">${layoutType} 布局</div>
+        </div>
       </div>
     `, 'layout-block');
   }
@@ -33,19 +25,16 @@ class LayoutBlock extends BaseBlock {
     switch (layoutType) {
       case 'horizontal':
         layoutStyles = `
-          .layout-container.horizontal {
+          .layout-content.horizontal {
             display: flex;
             gap: var(--cf-spacing-md);
             height: 100%;
-          }
-          .layout-item {
-            flex: 1;
           }
         `;
         break;
       case 'grid':
         layoutStyles = `
-          .layout-container.grid {
+          .layout-content.grid {
             display: grid;
             grid-template-columns: repeat(2, 1fr);
             gap: var(--cf-spacing-md);
@@ -55,7 +44,7 @@ class LayoutBlock extends BaseBlock {
         break;
       default: // vertical
         layoutStyles = `
-          .layout-container.vertical {
+          .layout-content.vertical {
             display: flex;
             flex-direction: column;
             gap: var(--cf-spacing-md);
@@ -68,7 +57,7 @@ class LayoutBlock extends BaseBlock {
       ${baseStyles}
       ${layoutStyles}
       
-      .layout-empty {
+      .layout-placeholder {
         display: flex;
         flex-direction: column;
         align-items: center;
@@ -80,23 +69,6 @@ class LayoutBlock extends BaseBlock {
         border-radius: var(--cf-radius-md);
         height: 100%;
       }
-      
-      .child-block {
-        height: 100%;
-      }
-    `;
-  }
-
-  _renderChildBlock(block, hass) {
-    // 这里应该调用其他块的渲染逻辑
-    // 简化实现，只显示块信息
-    return `
-      <div class="child-block">
-        <div class="child-info">
-          <strong>${block.type}</strong>
-          <div>${JSON.stringify(block.config)}</div>
-        </div>
-      </div>
     `;
   }
 }
