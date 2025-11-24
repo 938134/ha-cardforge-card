@@ -10,14 +10,14 @@ class BlockRegistry {
   
       // 使用相对路径导入（与原来插件系统相同的方式）
       const blockModules = [
-        () => import('./types/sensor-block.js'),
-        () => import('./types/text-block.js'), 
-        () => import('./types/time-block.js'),
-        () => import('./types/weather-block.js'),
-        () => import('./types/media-block.js'),
-        () => import('./types/action-block.js'),
-        () => import('./types/chart-block.js'),
-        () => import('./types/layout-block.js')
+        { name: 'sensor', importFn: () => import('./types/sensor-block.js') },
+        { name: 'text', importFn: () => import('./types/text-block.js') },
+        { name: 'time', importFn: () => import('./types/time-block.js') },
+        { name: 'weather', importFn: () => import('./types/weather-block.js') },
+        { name: 'media', importFn: () => import('./types/media-block.js') },
+        { name: 'action', importFn: () => import('./types/action-block.js') },
+        { name: 'chart', importFn: () => import('./types/chart-block.js') },
+        { name: 'layout', importFn: () => import('./types/layout-block.js') }
       ];
   
       for (const importFn of blockModules) {
