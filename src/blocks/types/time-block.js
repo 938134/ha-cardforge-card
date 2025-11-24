@@ -37,4 +37,4 @@ class TimeBlock {
   }
 }
 
-export default TimeBlock;
+export { TimeBlock as default, TimeBlock };

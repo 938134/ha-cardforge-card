@@ -45,4 +45,4 @@ class TextBlock {
   }
 }
 
-export default TextBlock;
+export { TextBlock as default, TextBlock };
