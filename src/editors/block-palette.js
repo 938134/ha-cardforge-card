@@ -1,6 +1,6 @@
 // src/editors/block-palette.js
 import { LitElement, html, css } from 'https://unpkg.com/lit@2.8.0/index.js?module';
-import { BlockRegistry } from '../blocks/block-registry.js';
+import { blockManager } from '../core/block-manager.js';
 import { designSystem } from '../core/design-system.js';
 
 class BlockPalette extends LitElement {
@@ -163,8 +163,8 @@ class BlockPalette extends LitElement {
   }
 
   async _loadBlockTypes() {
-    await BlockRegistry.initialize();
-    this._blockTypes = BlockRegistry.getAllBlockTypes();
+    await blockManager.initialize();
+    this._blockTypes = blockManager.getAllBlocks();
   }
 
   render() {

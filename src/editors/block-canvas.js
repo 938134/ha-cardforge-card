@@ -1,6 +1,6 @@
 // src/editors/block-canvas.js
 import { LitElement, html, css } from 'https://unpkg.com/lit@2.8.0/index.js?module';
-import { BlockRegistry } from '../blocks/block-registry.js';
+import { blockManager } from '../core/block-manager.js';
 import { designSystem } from '../core/design-system.js';
 
 class BlockCanvas extends LitElement {
@@ -291,30 +291,10 @@ class BlockCanvas extends LitElement {
   }
 
   _renderBlock(block, additionalClass = '') {
-    const isSelected = this.selectedBlock?.id === block.id;
-    const modeClass = this._previewMode ? 'block-preview' : 'block-edit';
-
     try {
-      const blockHtml = BlockRegistry.render(block, this.hass);
-      const blockStyles = BlockRegistry.getStyles(block);
-
-      return html`
-        <div 
-          class="grid-block ${additionalClass} ${modeClass} ${isSelected ? 'selected' : ''}"
-          @click=${() => this._selectBlock(block)}
-        >
-          ${!this._previewMode ? html`
-            <div class="block-actions">
-              <div class="block-action remove" @click=${e => this._removeBlock(e, block.id)} title="删除">
-                <ha-icon icon="mdi:close"></ha-icon>
-              </div>
-            </div>
-          ` : ''}
-          
-          ${unsafeHTML(blockHtml)}
-          <style>${blockStyles}</style>
-        </div>
-      `;
+      const blockHtml = blockManager.render(block, this.hass);
+      const blockStyles = blockManager.getStyles(block);
+      // ... 其他代码 ...
     } catch (error) {
       return this._renderBlockError(block, error);
     }

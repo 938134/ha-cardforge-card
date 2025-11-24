@@ -1,6 +1,6 @@
 // src/editors/block-inspector.js
 import { LitElement, html, css } from 'https://unpkg.com/lit@2.8.0/index.js?module';
-import { BlockRegistry } from '../blocks/block-registry.js';
+import { blockManager } from '../core/block-manager.js';
 import { designSystem } from '../core/design-system.js';
 
 class BlockInspector extends LitElement {
@@ -216,17 +216,17 @@ class BlockInspector extends LitElement {
       return html`<div class="empty-state">请选择块</div>`;
     }
 
-    const blockType = BlockRegistry.getBlockClass(this.block.type);
-    const validation = BlockRegistry.validateConfig(this.block.type, this.block.config);
+    const blockInfo = blockManager.getBlockManifest(this.block.type);
+    const validation = blockManager.validateConfig(this.block.type, this.block.config);
 
     return html`
       <div class="block-inspector">
         <div class="inspector-header">
           <div class="block-title">
             <div class="block-icon">
-              <ha-icon .icon=${blockType?.blockIcon || 'mdi:cube'}></ha-icon>
+              <ha-icon .icon=${blockInfo?.icon || 'mdi:cube'}></ha-icon>
             </div>
-            <div class="block-name">${blockType?.blockName || this.block.type}</div>
+            <div class="block-name">${blockInfo?.name || this.block.type}</div>
           </div>
           <div class="block-type">${this.block.type}</div>
         </div>
@@ -246,7 +246,7 @@ class BlockInspector extends LitElement {
           <div class="section">
             <div class="section-title">块配置</div>
             <div class="edit-form">
-              ${unsafeHTML(BlockRegistry.getEditTemplate(
+              ${unsafeHTML(blockManager.getEditTemplate(
                 this._editingBlock, 
                 this.hass, 
                 this._onConfigChange.bind(this)
