@@ -286,4 +286,4 @@ export class GridRenderer {
     }
   }
   
-  export default GridRenderer;
+  export {GridRenderer};

@@ -6,20 +6,24 @@ class BlockRegistry {
   static async initialize() {
     if (this._initialized) return;
 
-    // 改为手动注册块类型，避免重复定义自定义元素
-    const blockClasses = [
-      await import('./types/sensor-block.js'),
-      await import('./types/text-block.js'),
-      await import('./types/time-block.js'),
-      await import('./types/weather-block.js'),
-      await import('./types/media-block.js'),
-      await import('./types/action-block.js'),
-      await import('./types/chart-block.js'),
-      await import('./types/layout-block.js')
+    // 动态导入所有块类型
+    const blockModules = [
+      () => import('./types/sensor-block.js'),
+      () => import('./types/text-block.js'),
+      () => import('./types/time-block.js'),
+      () => import('./types/weather-block.js'),
+      () => import('./types/media-block.js'),
+      () => import('./types/action-block.js'),
+      () => import('./types/layout-block.js')
     ];
 
-    for (const module of blockClasses) {
-      this._registerBlockModule(module);
+    for (const importFn of blockModules) {
+      try {
+        const module = await importFn();
+        this._registerBlockModule(module);
+      } catch (error) {
+        console.warn('加载块类型失败:', error);
+      }
     }
 
     this._initialized = true;
@@ -28,20 +32,11 @@ class BlockRegistry {
   static _registerBlockModule(module) {
     if (module.default && module.default.blockType) {
       const blockClass = module.default;
-      
-      // 检查是否已经注册过
-      if (!this._blockTypes.has(blockClass.blockType)) {
-        this._blockTypes.set(blockClass.blockType, blockClass);
-      }
+      this._blockTypes.set(blockClass.blockType, blockClass);
     }
   }
 
-  // 其他方法保持不变...
   static register(blockType, blockClass) {
-    if (this._blockTypes.has(blockType)) {
-      console.warn(`块类型 ${blockType} 已经注册，跳过重复注册`);
-      return;
-    }
     this._blockTypes.set(blockType, blockClass);
   }
 
@@ -102,34 +97,7 @@ class BlockRegistry {
   }
 }
 
-// 延迟初始化，避免重复执行
-let initializationPromise = null;
-BlockRegistry.initialize = function() {
-  if (!initializationPromise) {
-    initializationPromise = (async () => {
-      if (this._initialized) return;
-      
-      // 改为手动注册块类型
-      const blockClasses = [
-        await import('./types/sensor-block.js'),
-        await import('./types/text-block.js'),
-        await import('./types/time-block.js'),
-        await import('./types/weather-block.js'),
-        await import('./types/media-block.js'),
-        await import('./types/action-block.js'),
-        await import('./types/chart-block.js'),
-        await import('./types/layout-block.js')
-      ];
-
-      for (const module of blockClasses) {
-        this._registerBlockModule(module);
-      }
-
-      this._initialized = true;
-    })();
-  }
-  
-  return initializationPromise;
-};
+// 自动初始化
+BlockRegistry.initialize();
 
 export { BlockRegistry };

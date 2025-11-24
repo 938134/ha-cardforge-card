@@ -495,4 +495,4 @@ export class AbsoluteRenderer {
     }
   }
   
-  export default AbsoluteRenderer;
+  export { AbsoluteRenderer } ;

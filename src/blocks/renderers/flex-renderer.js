@@ -378,4 +378,4 @@ export class FlexRenderer {
     }
   }
   
-  export default FlexRenderer;
+  export { FlexRenderer };
