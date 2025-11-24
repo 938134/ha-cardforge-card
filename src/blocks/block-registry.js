@@ -6,51 +6,53 @@ class BlockRegistry {
     static async initialize() {
       if (this._initialized) return;
   
-    // 动态导入所有块类型
-    const blockModules = [
-      { name: 'sensor', importFn: () => import('./types/sensor-block.js') },
-      { name: 'text', importFn: () => import('./types/text-block.js') },
-      { name: 'time', importFn: () => import('./types/time-block.js') },
-      { name: 'weather', importFn: () => import('./types/weather-block.js') },
-      { name: 'media', importFn: () => import('./types/media-block.js') },
-      { name: 'action', importFn: () => import('./types/action-block.js') },
-      { name: 'chart', importFn: () => import('./types/chart-block.js') },
-      { name: 'layout', importFn: () => import('./types/layout-block.js') }
-    ];
-
+      console.log('🔄 开始初始化块注册中心...');
   
-      for (const importFn of blockModules) {
+      // 动态导入所有块类型
+      const blockModules = [
+        { name: 'sensor', path: './types/sensor-block.js' },
+        { name: 'text', path: './types/text-block.js' },
+        { name: 'time', path: './types/time-block.js' },
+        { name: 'weather', path: './types/weather-block.js' },
+        { name: 'media', path: './types/media-block.js' },
+        { name: 'action', path: './types/action-block.js' },
+        { name: 'chart', path: './types/chart-block.js' },
+        { name: 'layout', path: './types/layout-block.js' }
+      ];
+  
+      for (const { name, path } of blockModules) {
         try {
-          const module = await importFn();
-          this._registerBlockModule(module);
+          console.log(`📦 加载块类型: ${name}`);
+          const module = await import(path);
+          
+          if (module && module.default) {
+            this._registerBlockModule(module.default);
+            console.log(`✅ 成功注册: ${name}`);
+          } else {
+            console.warn(`❌ 模块 ${name} 没有默认导出`);
+          }
         } catch (error) {
-          console.warn('加载块类型失败:', error);
+          console.error(`💥 加载块类型 ${name} 失败:`, error);
         }
       }
   
       this._initialized = true;
+      console.log(`🎉 块注册中心初始化完成，共注册 ${this._blockTypes.size} 个块类型`);
     }
   
-    static _registerBlockModule(blockType, module) {
-      // 修复：检查模块结构，支持多种导出方式
-      let BlockClass = null;
-      
-      if (module.default) {
-        // ES6 默认导出
-        BlockClass = module.default;
-      } else if (Object.keys(module).length > 0) {
-        // 命名导出，取第一个类
-        const firstKey = Object.keys(module)[0];
-        BlockClass = module[firstKey];
+    static _registerBlockModule(BlockClass) {
+      if (!BlockClass || !BlockClass.blockType) {
+        console.warn('❌ 无效的块类，缺少 blockType 属性');
+        return;
       }
-      
-      if (BlockClass && BlockClass.blockType) {
-        this._blockTypes.set(BlockClass.blockType, BlockClass);
-        console.log(`✅ 成功注册块类型: ${BlockClass.blockType}`);
-      } else {
-        console.warn(`❌ 块类型 ${blockType} 格式不正确，跳过注册`);
+  
+      if (typeof BlockClass.prototype.render !== 'function') {
+        console.warn(`❌ 块类 ${BlockClass.blockType} 缺少 render 方法`);
+        return;
       }
-    }
+  
+      this._blockTypes.set(BlockClass.blockType, BlockClass);
+    }  
   
     static register(blockType, blockClass) {
       this._blockTypes.set(blockType, blockClass);
@@ -93,7 +95,10 @@ class BlockRegistry {
       if (!BlockClass) return '';
   
       const instance = new BlockClass();
-      return instance.getEditTemplate(block, hass, onConfigChange);
+      if (typeof instance.getEditTemplate === 'function') {
+        return instance.getEditTemplate(block, hass, onConfigChange);
+      }
+      return '';
     }
   
     static getDefaultConfig(blockType) {
@@ -101,7 +106,10 @@ class BlockRegistry {
       if (!BlockClass) return {};
   
       const instance = new BlockClass();
-      return instance.getDefaultConfig();
+      if (typeof instance.getDefaultConfig === 'function') {
+        return instance.getDefaultConfig();
+      }
+      return {};
     }
   
     static validateConfig(blockType, config) {
@@ -109,11 +117,16 @@ class BlockRegistry {
       if (!BlockClass) return { valid: false, errors: ['未知块类型'] };
   
       const instance = new BlockClass();
-      return instance.validateConfig(config);
+      if (typeof instance.validateConfig === 'function') {
+        return instance.validateConfig(config);
+      }
+      return { valid: true, errors: [] };
     }
   }
   
-  // 自动初始化
-  BlockRegistry.initialize();
+// 自动初始化但捕获错误
+BlockRegistry.initialize().catch(error => {
+  console.error('块注册中心初始化失败:', error);
+});
   
   export { BlockRegistry };

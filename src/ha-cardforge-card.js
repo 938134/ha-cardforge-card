@@ -262,8 +262,12 @@ class HaCardForgeCard extends LitElement {
   }
 }
 
-if (!customElements.get('ha-cardforge-card')) {
-  customElements.define('ha-cardforge-card', HaCardForgeCard);
+try {
+  if (!customElements.get('ha-cardforge-card')) {
+    customElements.define('ha-cardforge-card', HaCardForgeCard);
+  }
+} catch (error) {
+  console.warn('卡片组件注册失败:', error);
 }
 
 export { HaCardForgeCard };
