@@ -210,4 +210,4 @@ class TimeBlock extends BaseBlock {
   }
 }
 
-export { TimeBlock as default };
+export default TimeBlock;

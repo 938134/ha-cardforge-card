@@ -256,4 +256,4 @@ class LayoutBlock extends BaseBlock {
   }
 }
 
-export { LayoutBlock as default };
+export default LayoutBlock;

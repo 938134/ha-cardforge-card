@@ -6,16 +6,18 @@ class BlockRegistry {
     static async initialize() {
       if (this._initialized) return;
   
-      // 动态导入所有块类型
-      const blockModules = [
-        () => import('./types/sensor-block.js'),
-        () => import('./types/text-block.js'),
-        () => import('./types/time-block.js'),
-        () => import('./types/weather-block.js'),
-        () => import('./types/media-block.js'),
-        () => import('./types/action-block.js'),
-        () => import('./types/layout-block.js')
-      ];
+    // 动态导入所有块类型
+    const blockModules = [
+      { name: 'sensor', importFn: () => import('./types/sensor-block.js') },
+      { name: 'text', importFn: () => import('./types/text-block.js') },
+      { name: 'time', importFn: () => import('./types/time-block.js') },
+      { name: 'weather', importFn: () => import('./types/weather-block.js') },
+      { name: 'media', importFn: () => import('./types/media-block.js') },
+      { name: 'action', importFn: () => import('./types/action-block.js') },
+      { name: 'chart', importFn: () => import('./types/chart-block.js') },
+      { name: 'layout', importFn: () => import('./types/layout-block.js') }
+    ];
+
   
       for (const importFn of blockModules) {
         try {
@@ -29,10 +31,24 @@ class BlockRegistry {
       this._initialized = true;
     }
   
-    static _registerBlockModule(module) {
-      if (module.default && module.default.blockType) {
-        const blockClass = module.default;
-        this._blockTypes.set(blockClass.blockType, blockClass);
+    static _registerBlockModule(blockType, module) {
+      // 修复：检查模块结构，支持多种导出方式
+      let BlockClass = null;
+      
+      if (module.default) {
+        // ES6 默认导出
+        BlockClass = module.default;
+      } else if (Object.keys(module).length > 0) {
+        // 命名导出，取第一个类
+        const firstKey = Object.keys(module)[0];
+        BlockClass = module[firstKey];
+      }
+      
+      if (BlockClass && BlockClass.blockType) {
+        this._blockTypes.set(BlockClass.blockType, BlockClass);
+        console.log(`✅ 成功注册块类型: ${BlockClass.blockType}`);
+      } else {
+        console.warn(`❌ 块类型 ${blockType} 格式不正确，跳过注册`);
       }
     }
   

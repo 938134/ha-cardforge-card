@@ -334,4 +334,4 @@ class ActionBlock extends BaseBlock {
   }
 }
 
-export { ActionBlock as default };
+export default ActionBlock;

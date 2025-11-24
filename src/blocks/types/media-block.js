@@ -289,4 +289,4 @@ class MediaBlock extends BaseBlock {
   }
 }
 
-export { MediaBlock as default };
+export default MediaBlock;

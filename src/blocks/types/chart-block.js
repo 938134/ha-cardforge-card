@@ -425,4 +425,4 @@ class ChartBlock extends BaseBlock {
   }
 }
 
-export { ChartBlock as default };
+export default ChartBlock;

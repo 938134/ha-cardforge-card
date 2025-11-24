@@ -292,4 +292,4 @@ class WeatherBlock extends BaseBlock {
   }
 }
 
-export { WeatherBlock as default };
+export default WeatherBlock;

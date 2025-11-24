@@ -152,4 +152,4 @@ class SensorBlock extends BaseBlock {
   }
 }
 
-export { SensorBlock as default };
+export default SensorBlock;

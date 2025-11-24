@@ -133,4 +133,4 @@ class TextBlock extends BaseBlock {
   }
 }
 
-export { TextBlock as default };
+export default TextBlock;
