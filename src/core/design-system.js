@@ -51,10 +51,6 @@ export const designSystem = css`
     --cf-transition-fast: 0.15s ease;
     --cf-transition-normal: 0.25s ease;
     --cf-transition-slow: 0.4s ease;
-
-    /* 块容器默认样式 */
-    --block-container-padding: var(--cf-spacing-md);
-    --block-container-min-height: 60px;
   }
 
   /* ===== 深色模式适配 ===== */
@@ -68,73 +64,6 @@ export const designSystem = css`
     }
   }
 
-  /* ===== 统一块容器样式 ===== */
-  .block-container {
-    background: var(--cf-surface);
-    border: 1px solid var(--cf-border);
-    border-radius: var(--cf-radius-md);
-    padding: var(--block-container-padding);
-    min-height: var(--block-container-min-height);
-    height: 100%;
-    transition: all var(--cf-transition-fast);
-    position: relative;
-    overflow: hidden;
-  }
-
-  .block-container:hover {
-    border-color: var(--cf-primary-color);
-    box-shadow: var(--cf-shadow-sm);
-  }
-
-  .block-content {
-    height: 100%;
-    display: flex;
-    flex-direction: column;
-  }
-
-  /* ===== 块内部组件样式 ===== */
-  .block-header {
-    margin-bottom: var(--cf-spacing-sm);
-  }
-
-  .block-title {
-    font-size: 0.9em;
-    font-weight: 600;
-    color: var(--cf-text-primary);
-    line-height: 1.2;
-    margin: 0;
-  }
-
-  .block-subtitle {
-    font-size: 0.8em;
-    color: var(--cf-text-secondary);
-    margin-top: 2px;
-    line-height: 1.2;
-  }
-
-  .block-value-section {
-    flex: 1;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    text-align: center;
-  }
-
-  .block-value {
-    font-size: 1.4em;
-    font-weight: 600;
-    color: var(--cf-primary-color);
-    line-height: 1;
-    margin: 0;
-  }
-
-  .block-unit {
-    font-size: 0.8em;
-    color: var(--cf-text-secondary);
-    margin-top: 2px;
-  }
-
   /* ===== 布局工具类 ===== */
   .cf-grid { display: grid; gap: var(--cf-spacing-md); }
   .cf-grid-2 { grid-template-columns: repeat(2, 1fr); }
@@ -145,7 +74,6 @@ export const designSystem = css`
   .cf-flex-column { flex-direction: column; }
   .cf-flex-center { align-items: center; justify-content: center; }
   .cf-flex-between { align-items: center; justify-content: space-between; }
-  .cf-flex-start { align-items: center; justify-content: flex-start; }
   
   /* ===== 间距工具类 ===== */
   .cf-gap-sm { gap: var(--cf-spacing-sm); }
@@ -160,6 +88,12 @@ export const designSystem = css`
   .cf-m-sm { margin: var(--cf-spacing-sm); }
   .cf-m-md { margin: var(--cf-spacing-md); }
   .cf-m-lg { margin: var(--cf-spacing-lg); }
+  .cf-mt-sm { margin-top: var(--cf-spacing-sm); }
+  .cf-mt-md { margin-top: var(--cf-spacing-md); }
+  .cf-mt-lg { margin-top: var(--cf-spacing-lg); }
+  .cf-mb-sm { margin-bottom: var(--cf-spacing-sm); }
+  .cf-mb-md { margin-bottom: var(--cf-spacing-md); }
+  .cf-mb-lg { margin-bottom: var(--cf-spacing-lg); }
 
   /* ===== 文本工具类 ===== */
   .cf-text-xs { font-size: 0.75em; }
@@ -167,7 +101,6 @@ export const designSystem = css`
   .cf-text-md { font-size: 1em; }
   .cf-text-lg { font-size: 1.2em; }
   .cf-text-xl { font-size: 1.5em; }
-  .cf-text-2xl { font-size: 2em; }
   
   .cf-text-center { text-align: center; }
   .cf-text-left { text-align: left; }
@@ -177,89 +110,47 @@ export const designSystem = css`
   .cf-font-semibold { font-weight: 600; }
   .cf-font-bold { font-weight: 700; }
 
-  /* ===== 颜色工具类 ===== */
-  .cf-text-primary { color: var(--cf-text-primary); }
-  .cf-text-secondary { color: var(--cf-text-secondary); }
+  /* ===== 状态样式 ===== */
   .cf-error { color: var(--cf-error-color); }
   .cf-warning { color: var(--cf-warning-color); }
   .cf-success { color: var(--cf-success-color); }
 
-  /* ===== 卡片样式 ===== */
-  .cf-card {
-    background: var(--cf-surface);
-    border: 1px solid var(--cf-border);
-    border-radius: var(--cf-radius-md);
-    padding: var(--cf-spacing-lg);
-    transition: all var(--cf-transition-fast);
+  /* ===== 加载状态 ===== */
+  .cf-loading {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: var(--cf-spacing-md);
+    padding: var(--cf-spacing-xl);
   }
 
-  .cf-card:hover {
-    border-color: var(--cf-primary-color);
-    box-shadow: var(--cf-shadow-sm);
-  }
-
-  /* ===== 响应式容器查询 ===== */
-  @container (max-width: 400px) {
-    .block-container {
-      padding: var(--cf-spacing-sm);
-      min-height: 50px;
-    }
-    
-    .block-value {
-      font-size: 1.2em;
-    }
-    
-    .block-title {
-      font-size: 0.85em;
-    }
-    
-    .cf-grid-2,
-    .cf-grid-3,
-    .cf-grid-4 {
-      grid-template-columns: 1fr;
-    }
-  }
-
-  /* ===== 动画系统 ===== */
-  @keyframes cf-fadeIn {
-    from { opacity: 0; transform: translateY(8px); }
-    to { opacity: 1; transform: translateY(0); }
-  }
-  
-  .cf-animate-fadeIn { animation: cf-fadeIn 0.3s ease; }
-
-  @keyframes cf-spin {
-    0% { transform: rotate(0deg); }
-    100% { transform: rotate(360deg); }
-  }
-  
   .cf-loading-spinner {
-    width: 20px;
-    height: 20px;
+    width: 24px;
+    height: 24px;
     border: 2px solid var(--cf-border);
     border-top: 2px solid var(--cf-primary-color);
     border-radius: 50%;
     animation: cf-spin 1s linear infinite;
   }
 
-  /* ===== 工具提示 ===== */
-  .cf-tooltip {
-    position: relative;
+  @keyframes cf-spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
   }
 
-  .cf-tooltip:hover::before {
-    content: attr(data-tooltip);
-    position: absolute;
-    bottom: 100%;
-    left: 50%;
-    transform: translateX(-50%);
-    background: var(--cf-dark-background);
-    color: var(--cf-dark-text);
-    padding: var(--cf-spacing-sm) var(--cf-spacing-md);
-    border-radius: var(--cf-radius-sm);
-    font-size: 0.8em;
-    white-space: nowrap;
-    z-index: 1000;
-    margin-bottom: 4px;
+  /* ===== 块容器样式 ===== */
+  .block-container {
+    container-type: inline-size;
+    container-name: block-container;
+    position: relative;
+    overflow: hidden;
+    box-sizing: border-box;
+  }
+
+  /* ===== 响应式容器查询 ===== */
+  @container block-container (max-width: 400px) {
+    .block-container {
+      padding: var(--cf-spacing-sm);
+    }
   }
 `;

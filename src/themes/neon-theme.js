@@ -6,6 +6,13 @@ export default {
   icon: '💡',
   category: 'effect',
 
+  preview: {
+    background: '#1a1a1a',
+    color: '#00ff88',
+    border: '1px solid #00ff88',
+    boxShadow: '0 0 8px #00ff88'
+  },
+
   getStyles(config = {}) {
     const glowColor = config.glowColor || '#00ff88';
     const intensity = config.glowIntensity || 1.0;
@@ -42,35 +49,5 @@ export default {
     } else {
       element.classList.remove('multicolor');
     }
-  },
-
-  getConfigSchema() {
-    return {
-      glowColor: {
-        type: 'string',
-        label: '霓虹颜色',
-        default: '#00ff88'
-      },
-      glowIntensity: {
-        type: 'number',
-        label: '发光强度',
-        min: 0.5,
-        max: 2,
-        step: 0.1,
-        default: 1.0
-      },
-      animationSpeed: {
-        type: 'number',
-        label: '动画速度',
-        min: 1,
-        max: 5,
-        default: 2
-      },
-      useMultipleColors: {
-        type: 'boolean',
-        label: '多色效果',
-        default: false
-      }
-    };
   }
 };
