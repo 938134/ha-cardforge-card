@@ -8,13 +8,8 @@ class BlockRegistry {
 
     // 动态导入所有块类型
     const blockModules = [
-      () => import('./types/sensor-block.js'),
       () => import('./types/text-block.js'),
       () => import('./types/time-block.js'),
-      () => import('./types/weather-block.js'),
-      () => import('./types/media-block.js'),
-      () => import('./types/action-block.js'),
-      () => import('./types/layout-block.js')
     ];
 
     for (const importFn of blockModules) {
