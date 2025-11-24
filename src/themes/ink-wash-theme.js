@@ -6,13 +6,6 @@ export default {
   icon: '🖌️',
   category: 'art',
 
-  preview: {
-    background: 'linear-gradient(135deg, #2c3e50 0%, #34495e 50%, #7f8c8d 100%)',
-    color: '#ecf0f1',
-    border: '1px solid #7f8c8d',
-    boxShadow: '0 4px 20px rgba(0, 0, 0, 0.3)'
-  },
-
   getStyles(config = {}) {
     const inkColor = config.inkColor || '#2c3e50';
     const paperColor = config.paperColor || '#f8f9fa';
@@ -62,28 +55,6 @@ export default {
         pointer-events: none;
         opacity: 0.4;
         z-index: 0;
-      }
-      
-      /* 确保内容在顶层 */
-      .cardforge-content {
-        position: relative;
-        z-index: 1;
-      }
-      
-      /* 文字效果 */
-      .cardforge-title {
-        text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
-        font-weight: 600;
-        letter-spacing: 1px;
-      }
-      
-      .cardforge-text-large {
-        text-shadow: 1px 1px 3px rgba(0, 0, 0, 0.4);
-        font-weight: 300;
-      }
-      
-      .cardforge-text-medium {
-        text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.3);
       }
     `;
   },
@@ -143,26 +114,24 @@ export default {
     }
   },
 
-  // 水墨主题特有的配置选项
   getConfigSchema() {
     return {
       inkColor: {
-        type: 'select',
+        type: 'string',
         label: '墨色',
-        options: ['浓墨(#2c3e50)', '淡墨(#5d6d7e)', '焦墨(#1c2833)', '青墨(#1a5276)'],
-        default: '浓墨(#2c3e50)'
+        default: '#2c3e50'
       },
       paperColor: {
-        type: 'select', 
+        type: 'string',
         label: '纸色',
-        options: ['宣纸白(#f8f9fa)', '米黄(#fdf6e3)', '古绢(#f5e6ca)', '青灰(#ecf0f1)'],
-        default: '宣纸白(#f8f9fa)'
+        default: '#f8f9fa'
       },
       brushStroke: {
-        type: 'select',
-        label: '笔触',
-        options: ['细笔(1px)', '中笔(2px)', '粗笔(3px)', '泼墨(4px)'],
-        default: '中笔(2px)'
+        type: 'number',
+        label: '笔触宽度',
+        min: 1,
+        max: 4,
+        default: 2
       },
       useCalligraphyFont: {
         type: 'boolean',

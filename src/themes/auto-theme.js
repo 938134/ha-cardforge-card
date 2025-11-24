@@ -6,12 +6,6 @@ export default {
   icon: '⚙️',
   category: 'system',
 
-  preview: {
-    background: 'var(--card-background-color)',
-    color: 'var(--primary-text-color)',
-    border: '1px solid var(--divider-color)'
-  },
-
   getStyles(config = {}) {
     return `
       background: var(--card-background-color);

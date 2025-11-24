@@ -6,29 +6,6 @@ export default {
   icon: '🔮',
   category: 'effect',
 
-  preview: {
-    background: `
-      linear-gradient(135deg, 
-        rgba(124, 58, 237, 0.6) 0%, 
-        rgba(236, 72, 153, 0.4) 50%,
-        rgba(239, 68, 68, 0.3) 100%
-      ),
-      radial-gradient(
-        circle at 20% 80%,
-        rgba(255, 255, 255, 0.4) 0%,
-        transparent 50%
-      ),
-      radial-gradient(
-        circle at 80% 20%,
-        rgba(255, 255, 255, 0.3) 0%,
-        transparent 50%
-      )
-    `,
-    color: 'white',
-    border: '1px solid rgba(255, 255, 255, 0.3)',
-    boxShadow: '0 8px 32px rgba(0, 0, 0, 0.1)'
-  },
-
   getStyles(config = {}) {
     const blur = config.blurIntensity || 20;
     const opacity = config.opacity || 0.8;
@@ -53,5 +30,30 @@ export default {
     } else {
       element.classList.remove('gradient-overlay');
     }
+  },
+
+  getConfigSchema() {
+    return {
+      blurIntensity: {
+        type: 'number',
+        label: '模糊强度',
+        min: 5,
+        max: 50,
+        default: 20
+      },
+      opacity: {
+        type: 'number',
+        label: '透明度',
+        min: 0.1,
+        max: 1,
+        step: 0.1,
+        default: 0.8
+      },
+      useGradientOverlay: {
+        type: 'boolean',
+        label: '使用渐变叠加',
+        default: true
+      }
+    };
   }
 };

@@ -1,17 +1,16 @@
 // src/ha-cardforge-card.js
 import { LitElement, html, css } from 'https://unpkg.com/lit@2.8.0/index.js?module';
 import { unsafeHTML } from 'https://unpkg.com/lit-html/directives/unsafe-html.js?module';
-import { PluginRegistry } from './core/plugin-registry.js';
+import { BlockRegistry } from './blocks/block-registry.js';
+import { LayoutEngine } from './core/layout-engine.js';
 import { designSystem } from './core/design-system.js';
 
 class HaCardForgeCard extends LitElement {
   static properties = {
     hass: { type: Object },
     config: { type: Object },
-    _plugin: { state: true },
-    _entities: { state: true },
-    _error: { state: true },
-    _loading: { state: true }
+    _blocks: { state: true },
+    _error: { state: true }
   };
 
   static styles = [
@@ -21,245 +20,245 @@ class HaCardForgeCard extends LitElement {
         position: relative;
         height: 100%;
         min-height: 80px;
+        container-type: inline-size;
       }
 
-      .cardforge-error-container,
-      .cardforge-loading-container,
-      .cardforge-empty-container {
-        flex: 1;
+      .card-layout-grid {
+        display: grid;
+        gap: var(--cf-spacing-sm);
+        height: 100%;
+      }
+
+      .card-layout-flex {
         display: flex;
-        flex-direction: column;
-        align-items: center;
-        justify-content: center;
-        gap: var(--cf-spacing-md);
-        min-height: 80px;
+        flex-wrap: wrap;
+        gap: var(--cf-spacing-sm);
+        align-content: flex-start;
+      }
+
+      .card-layout-absolute {
+        position: relative;
+        height: 100%;
+        min-height: 200px;
+      }
+
+      .block-item {
+        transition: all var(--cf-transition-fast);
+      }
+
+      .block-item:hover {
+        transform: translateY(-1px);
+      }
+
+      .error-container {
+        padding: var(--cf-spacing-lg);
         text-align: center;
+        color: var(--cf-error-color);
       }
 
-      .cardforge-loading-spinner {
-        width: 24px;
-        height: 24px;
-        border: 2px solid var(--cf-border);
-        border-top: 2px solid var(--cf-primary-color);
-        border-radius: 50%;
-        animation: cardforge-spin 1s linear infinite;
-      }
-
-      .cardforge-error-message,
-      .cardforge-loading-text,
-      .cardforge-empty-message {
-        font-size: 0.85em;
-        color: var(--cf-text-secondary);
-        line-height: 1.4;
-      }
-
-      @keyframes cardforge-spin {
-        0% { transform: rotate(0deg); }
-        100% { transform: rotate(360deg); }
-      }
-
-      /* 深色模式适配 */
-      @media (prefers-color-scheme: dark) {
-        .cardforge-loading-spinner {
-          border-color: var(--cf-dark-border);
-          border-top-color: var(--cf-primary-color);
-        }
-
-        .cardforge-error-message,
-        .cardforge-loading-text,
-        .cardforge-empty-message {
-          color: var(--cf-dark-text-secondary);
-        }
-      }
-
-      /* 确保卡片容器正确继承高度 */
-      ha-card {
-        height: 100%;
-      }
-
-      .cardforge-container > * {
-        height: 100%;
+      .loading-container {
+        padding: var(--cf-spacing-xl);
+        text-align: center;
       }
     `
   ];
 
   constructor() {
     super();
-    this._pluginCache = new Map();
-    this._plugin = null;
-    this._entities = {};
+    this.config = {};
+    this._blocks = [];
     this._error = null;
-    this._loading = false;
   }
 
-  async setConfig(config) {
+  setConfig(config) {
     try {
-      this._loading = true;
-      this._error = null;
-      
-      // 验证配置
       this.config = this._validateConfig(config);
-      
-      // 初始化插件系统
-      await PluginRegistry.initialize();
-      
-      // 加载插件
-      this._plugin = await this._loadPlugin(this.config.plugin);
-      
-      // 验证插件配置
-      this._validatePluginConfig();
-      
-      // 更新实体数据
-      this._updateEntities();
-      
+      this._blocks = this.config.blocks || [];
+      this._error = null;
     } catch (error) {
-      console.error('卡片加载失败:', error);
       this._error = error;
-    } finally {
-      this._loading = false;
-      this.requestUpdate();
     }
   }
 
   _validateConfig(config) {
-    if (!config || !config.plugin) {
-      throw new Error('必须指定 plugin 参数');
+    if (!config) {
+      throw new Error('配置不能为空');
     }
-    
+
     return {
       type: 'custom:ha-cardforge-card',
-      plugin: '',
-      entities: {},
+      layout: 'grid',
       theme: 'auto',
+      grid: { columns: 4, gap: '8px' },
+      blocks: [],
       ...config
     };
   }
 
-  _validatePluginConfig() {
-    // 简化配置验证，让插件自行处理
-    if (!this._plugin) return;
-    
-    try {
-      const manifest = this._plugin.getManifest();
-      // 不再进行复杂的配置验证
-    } catch (error) {
-      console.warn('插件配置验证警告:', error.message);
-    }
-  }
-
-  async _loadPlugin(pluginId) {
-    if (this._pluginCache.has(pluginId)) {
-      return this._pluginCache.get(pluginId);
-    }
-
-    const plugin = PluginRegistry.createPluginInstance(pluginId);
-    if (!plugin) {
-      throw new Error(`未知插件: ${pluginId}`);
-    }
-    
-    if (typeof plugin.getTemplate !== 'function' || 
-        typeof plugin.getStyles !== 'function') {
-      throw new Error('插件接口不完整');
-    }
-    
-    this._pluginCache.set(pluginId, plugin);
-    return plugin;
-  }
-
-  _updateEntities() {
-    // 简化实体处理，直接传递给插件
-    this._entities = this.config.entities || {};
-  }
-
   render() {
     if (this._error) {
-      return html`
-        <ha-card>
-          <div class="cardforge-container">
-            <div class="cf-flex cf-flex-center cf-flex-column cf-p-xl">
-              <div class="cf-error cf-text-xl cf-mb-md">❌</div>
-              <div class="cf-text-lg cf-font-bold cf-mb-sm">卡片加载失败</div>
-              <div class="cf-text-sm cf-text-secondary">${this._error.message}</div>
-            </div>
-          </div>
-        </ha-card>
-      `;
+      return this._renderError();
     }
-    
-    if (this._loading || !this._plugin) {
-      return html`
-        <ha-card>
-          <div class="cardforge-container">
-            <div class="cf-flex cf-flex-center cf-flex-column cf-p-xl">
-              <ha-circular-progress indeterminate></ha-circular-progress>
-              <div class="cf-text-md cf-mt-md">加载中...</div>
-            </div>
-          </div>
-        </ha-card>
-      `;
-    }
-    
-    try {
-      // 使用新的 render 方法而不是直接调用 getTemplate
-      const template = this._plugin.render(this.config, this.hass, this._entities);
-      const styles = this._plugin.getStyles(this.config);
 
+    if (!this._blocks || this._blocks.length === 0) {
+      return this._renderEmpty();
+    }
+
+    return html`
+      <ha-card>
+        <div class="cardforge-container">
+          ${this._renderLayout()}
+        </div>
+      </ha-card>
+    `;
+  }
+
+  _renderLayout() {
+    const layout = this.config.layout || 'grid';
+    
+    switch (layout) {
+      case 'grid':
+        return this._renderGridLayout();
+      case 'flex':
+        return this._renderFlexLayout();
+      case 'absolute':
+        return this._renderAbsoluteLayout();
+      default:
+        return this._renderGridLayout();
+    }
+  }
+
+  _renderGridLayout() {
+    const gridConfig = this.config.grid || { columns: 4, gap: '8px' };
+    const gridStyle = `
+      grid-template-columns: repeat(${gridConfig.columns}, 1fr);
+      gap: ${gridConfig.gap};
+    `;
+
+    return html`
+      <div class="card-layout-grid" style="${gridStyle}">
+        ${this._blocks.map(block => this._renderBlock(block))}
+      </div>
+    `;
+  }
+
+  _renderFlexLayout() {
+    return html`
+      <div class="card-layout-flex">
+        ${this._blocks.map(block => this._renderBlock(block))}
+      </div>
+    `;
+  }
+
+  _renderAbsoluteLayout() {
+    return html`
+      <div class="card-layout-absolute">
+        ${this._blocks.map(block => this._renderAbsoluteBlock(block))}
+      </div>
+    `;
+  }
+
+  _renderBlock(block) {
+    try {
+      const blockHtml = BlockRegistry.render(block, this.hass);
+      const blockStyles = BlockRegistry.getStyles(block);
+      
       return html`
-        <ha-card>
-          <div class="cardforge-container">
-            ${unsafeHTML(template)}
-          </div>
-        </ha-card>
-        
-        <style>
-          ${styles}
-        </style>
+        <div class="block-item" data-block-id="${block.id}">
+          ${unsafeHTML(blockHtml)}
+        </div>
+        <style>${blockStyles}</style>
       `;
     } catch (error) {
-      console.error('插件渲染失败:', error);
-      return html`
-        <ha-card>
-          <div class="cardforge-container">
-            <div class="cf-flex cf-flex-center cf-flex-column cf-p-xl">
-              <div class="cf-warning cf-text-xl cf-mb-md">⚠️</div>
-              <div class="cf-text-lg cf-font-bold cf-mb-sm">插件渲染错误</div>
-              <div class="cf-text-sm cf-text-secondary">${error.message}</div>
-            </div>
-          </div>
-        </ha-card>
-      `;
+      console.error(`渲染块 ${block.id} 失败:`, error);
+      return this._renderBlockError(block, error);
     }
+  }
+
+  _renderAbsoluteBlock(block) {
+    const position = block.position || { x: 0, y: 0, w: 1, h: 1 };
+    const style = `
+      position: absolute;
+      left: ${position.x * 25}%;
+      top: ${position.y * 25}%;
+      width: ${position.w * 25}%;
+      height: ${position.h * 25}%;
+    `;
+
+    return html`
+      <div class="block-item" data-block-id="${block.id}" style="${style}">
+        ${this._renderBlock(block)}
+      </div>
+    `;
+  }
+
+  _renderBlockError(block, error) {
+    return html`
+      <div class="cf-card cf-error" style="padding: var(--cf-spacing-md);">
+        <div class="cf-flex cf-flex-center cf-flex-column">
+          <ha-icon icon="mdi:alert-circle" class="cf-error"></ha-icon>
+          <div class="cf-text-sm cf-mt-sm">块渲染失败</div>
+          <div class="cf-text-xs cf-text-secondary">${block.type}</div>
+        </div>
+      </div>
+    `;
+  }
+
+  _renderError() {
+    return html`
+      <ha-card>
+        <div class="error-container">
+          <ha-icon icon="mdi:alert-circle-outline"></ha-icon>
+          <div class="cf-text-md cf-mt-sm">${this._error.message}</div>
+        </div>
+      </ha-card>
+    `;
+  }
+
+  _renderEmpty() {
+    return html`
+      <ha-card>
+        <div class="cf-flex cf-flex-center cf-flex-column cf-p-xl">
+          <ha-icon icon="mdi:view-grid-plus" style="font-size: 3em; opacity: 0.3;"></ha-icon>
+          <div class="cf-text-lg cf-mt-md cf-text-secondary">暂无内容块</div>
+          <div class="cf-text-sm cf-mt-sm">点击编辑按钮添加内容块</div>
+        </div>
+      </ha-card>
+    `;
   }
 
   updated(changedProperties) {
     if (changedProperties.has('hass')) {
-      this._updateEntities();
       this.requestUpdate();
     }
   }
 
   static getConfigElement() {
-    return document.createElement('ha-cardforge-editor');
+    return document.createElement('block-editor');
   }
 
   static getStubConfig() {
     return {
       type: 'custom:ha-cardforge-card',
-      plugin: 'clock-card',
-      entities: {},
-      theme: 'auto'
+      layout: 'grid',
+      theme: 'auto',
+      grid: { columns: 4, gap: '8px' },
+      blocks: [
+        {
+          id: 'time-1',
+          type: 'time',
+          config: {
+            format: 'HH:mm',
+            showDate: true
+          },
+          position: { x: 0, y: 0, w: 2, h: 1 }
+        }
+      ]
     };
   }
 
   getCardSize() {
-    // 根据插件类型返回合适的卡片大小
-    if (this._plugin) {
-      const manifest = this._plugin.getManifest?.();
-      if (manifest?.category === '时间') return 2;
-      if (manifest?.category === '信息') return 3;
-      if (manifest?.category === '文化') return 4;
-    }
-    return 3;
+    return Math.max(2, Math.ceil(this._blocks.length / 2));
   }
 }
 

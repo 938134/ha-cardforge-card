@@ -6,12 +6,6 @@ export default {
   icon: '🌈',
   category: 'color',
 
-  preview: {
-    background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-    color: 'white',
-    border: 'none'
-  },
-
   getGradients() {
     return [
       'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
@@ -59,5 +53,27 @@ export default {
         element.style.background = gradient;
       }
     }
+  },
+
+  getConfigSchema() {
+    return {
+      useRandomGradients: {
+        type: 'boolean',
+        label: '使用随机渐变',
+        default: true
+      },
+      customGradient: {
+        type: 'string',
+        label: '自定义渐变',
+        default: ''
+      },
+      animationSpeed: {
+        type: 'number',
+        label: '动画速度',
+        min: 1,
+        max: 10,
+        default: 6
+      }
+    };
   }
 };
