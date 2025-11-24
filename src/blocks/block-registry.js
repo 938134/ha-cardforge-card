@@ -8,31 +8,34 @@ class BlockRegistry {
   
       console.log('🔄 开始初始化块注册中心...');
   
-      // 动态导入所有块类型
+      // 使用相对路径导入（与原来插件系统相同的方式）
       const blockModules = [
-        { name: 'sensor', path: './types/sensor-block.js' },
-        { name: 'text', path: './types/text-block.js' },
-        { name: 'time', path: './types/time-block.js' },
-        { name: 'weather', path: './types/weather-block.js' },
-        { name: 'media', path: './types/media-block.js' },
-        { name: 'action', path: './types/action-block.js' },
-        { name: 'chart', path: './types/chart-block.js' },
-        { name: 'layout', path: './types/layout-block.js' }
+        () => import('./types/sensor-block.js'),
+        () => import('./types/text-block.js'), 
+        () => import('./types/time-block.js'),
+        () => import('./types/weather-block.js'),
+        () => import('./types/media-block.js'),
+        () => import('./types/action-block.js'),
+        () => import('./types/chart-block.js'),
+        () => import('./types/layout-block.js')
       ];
   
-      for (const { name, path } of blockModules) {
+      for (const importFn of blockModules) {
         try {
-          console.log(`📦 加载块类型: ${name}`);
-          const module = await import(path);
-          
-          if (module && module.default) {
-            this._registerBlockModule(module.default);
-            console.log(`✅ 成功注册: ${name}`);
-          } else {
-            console.warn(`❌ 模块 ${name} 没有默认导出`);
-          }
+          const module = await importFn();
+          this._registerBlockModule(module);
+          console.log(`✅ 成功加载块类型`);
         } catch (error) {
-          console.error(`💥 加载块类型 ${name} 失败:`, error);
+          console.error('💥 加载块类型失败:', error);
+          
+          // 详细错误信息
+          if (error.message.includes('Failed to fetch')) {
+            console.error('📁 文件路径错误，请检查文件是否存在');
+          } else if (error.message.includes('Unexpected token')) {
+            console.error('📝 语法错误，请检查文件格式');
+          } else {
+            console.error('🔧 未知错误:', error);
+          }
         }
       }
   
@@ -40,19 +43,29 @@ class BlockRegistry {
       console.log(`🎉 块注册中心初始化完成，共注册 ${this._blockTypes.size} 个块类型`);
     }
   
-    static _registerBlockModule(BlockClass) {
-      if (!BlockClass || !BlockClass.blockType) {
-        console.warn('❌ 无效的块类，缺少 blockType 属性');
-        return;
+    static _registerBlockModule(module) {
+      // 支持多种导出方式
+      let BlockClass = null;
+      
+      if (module.default) {
+        // ES6 默认导出
+        BlockClass = module.default;
+      } else {
+        // 命名导出，取第一个导出的类
+        const exportedKeys = Object.keys(module);
+        if (exportedKeys.length > 0) {
+          BlockClass = module[exportedKeys[0]];
+        }
       }
-  
-      if (typeof BlockClass.prototype.render !== 'function') {
-        console.warn(`❌ 块类 ${BlockClass.blockType} 缺少 render 方法`);
-        return;
+      
+      if (BlockClass && BlockClass.blockType) {
+        this._blockTypes.set(BlockClass.blockType, BlockClass);
+        console.log(`✅ 成功注册块类型: ${BlockClass.blockType}`);
+      } else {
+        console.warn('❌ 块类型格式不正确，跳过注册');
+        console.log('模块内容:', module);
       }
-  
-      this._blockTypes.set(BlockClass.blockType, BlockClass);
-    }  
+    }
   
     static register(blockType, blockClass) {
       this._blockTypes.set(blockType, blockClass);
