@@ -271,3 +271,17 @@ try {
 }
 
 export { HaCardForgeCard };
+
+// 在 ha-cardforge-card.js 文件末尾
+const safeDefine = (tagName, elementClass) => {
+  if (!customElements.get(tagName)) {
+    try {
+      customElements.define(tagName, elementClass);
+      console.log(`✅ 注册成功: ${tagName}`);
+    } catch (error) {
+      console.warn(`⚠️ 注册失败 ${tagName}:`, error);
+    }
+  }
+};
+
+safeDefine('ha-cardforge-card', HaCardForgeCard);
