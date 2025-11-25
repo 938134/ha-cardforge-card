@@ -21,20 +21,34 @@ class BlockEditor extends LitElement {
     css`
       .editor-container {
         display: flex;
-        flex-direction: column;
         gap: var(--cf-spacing-lg);
+        height: 500px;
       }
 
-      .section {
+      .blocks-panel {
+        width: 250px;
         display: flex;
         flex-direction: column;
         gap: var(--cf-spacing-md);
       }
 
+      .properties-panel {
+        flex: 1;
+        min-width: 300px;
+      }
+
+      .section {
+        background: var(--cf-surface);
+        border: 1px solid var(--cf-border);
+        border-radius: var(--cf-radius-md);
+        padding: var(--cf-spacing-md);
+      }
+
       .section-title {
-        font-size: 1.1em;
+        font-size: 1em;
         font-weight: 600;
         color: var(--cf-text-primary);
+        margin-bottom: var(--cf-spacing-md);
         display: flex;
         align-items: center;
         gap: var(--cf-spacing-sm);
@@ -44,7 +58,7 @@ class BlockEditor extends LitElement {
         color: var(--cf-primary-color);
       }
 
-      .blocks-container {
+      .blocks-list {
         display: flex;
         flex-direction: column;
         gap: var(--cf-spacing-sm);
@@ -58,49 +72,57 @@ class BlockEditor extends LitElement {
         color: var(--cf-text-secondary);
         border: 2px dashed var(--cf-border);
         border-radius: var(--cf-radius-md);
-        background: var(--cf-surface);
       }
 
-      .block-card {
-        background: var(--cf-surface);
+      .block-item {
+        display: flex;
+        align-items: center;
+        gap: var(--cf-spacing-sm);
+        padding: var(--cf-spacing-sm) var(--cf-spacing-md);
         border: 1px solid var(--cf-border);
         border-radius: var(--cf-radius-md);
-        padding: var(--cf-spacing-md);
         cursor: pointer;
         transition: all var(--cf-transition-fast);
+        background: var(--cf-surface);
       }
 
-      .block-card:hover {
-        border-color: var(--cf-primary-color);
-        transform: translateY(-1px);
-      }
-
-      .block-card.selected {
+      .block-item:hover {
         border-color: var(--cf-primary-color);
         background: rgba(var(--cf-rgb-primary), 0.05);
       }
 
-      .block-header {
-        display: flex;
-        align-items: center;
-        gap: var(--cf-spacing-sm);
-        margin-bottom: var(--cf-spacing-sm);
+      .block-item.selected {
+        border-color: var(--cf-primary-color);
+        background: rgba(var(--cf-rgb-primary), 0.1);
       }
 
       .block-icon {
-        width: 24px;
-        height: 24px;
+        width: 20px;
+        height: 20px;
         display: flex;
         align-items: center;
         justify-content: center;
-        font-size: 1.2em;
+        font-size: 1.1em;
+      }
+
+      .block-info {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
       }
 
       .block-name {
-        font-size: 0.9em;
+        font-size: 0.85em;
         font-weight: 500;
         color: var(--cf-text-primary);
-        flex: 1;
+      }
+
+      .block-preview {
+        font-size: 0.75em;
+        color: var(--cf-text-secondary);
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
       }
 
       .block-type {
@@ -111,19 +133,20 @@ class BlockEditor extends LitElement {
         border-radius: var(--cf-radius-sm);
       }
 
-      .block-content {
-        min-height: 40px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        padding: var(--cf-spacing-sm);
-        border-radius: var(--cf-radius-sm);
-        background: rgba(var(--cf-rgb-primary), 0.03);
+      .nested-blocks {
+        margin-left: var(--cf-spacing-lg);
+        border-left: 2px solid var(--cf-border);
+        padding-left: var(--cf-spacing-md);
+      }
+
+      .add-block-btn {
+        width: 100%;
+        margin-top: var(--cf-spacing-sm);
       }
 
       .themes-grid {
         display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
+        grid-template-columns: repeat(auto-fit, minmax(80px, 1fr));
         gap: var(--cf-spacing-sm);
       }
 
@@ -132,13 +155,14 @@ class BlockEditor extends LitElement {
         flex-direction: column;
         align-items: center;
         justify-content: center;
-        padding: var(--cf-spacing-md);
+        padding: var(--cf-spacing-sm);
         border: 1px solid var(--cf-border);
         border-radius: var(--cf-radius-md);
         cursor: pointer;
         transition: all var(--cf-transition-fast);
         background: var(--cf-surface);
         text-align: center;
+        aspect-ratio: 1;
       }
 
       .theme-item:hover {
@@ -153,25 +177,14 @@ class BlockEditor extends LitElement {
       }
 
       .theme-icon {
-        font-size: 1.5em;
-        margin-bottom: var(--cf-spacing-sm);
+        font-size: 1.2em;
+        margin-bottom: var(--cf-spacing-xs);
       }
 
       .theme-name {
-        font-size: 0.85em;
+        font-size: 0.7em;
         font-weight: 500;
         line-height: 1.2;
-      }
-
-      .delete-btn {
-        color: var(--cf-error-color);
-        cursor: pointer;
-        opacity: 0.7;
-        transition: opacity var(--cf-transition-fast);
-      }
-
-      .delete-btn:hover {
-        opacity: 1;
       }
     `
   ];
@@ -190,7 +203,7 @@ class BlockEditor extends LitElement {
   }
 
   async firstUpdated() {
-    await blockRegistry.initialize();
+    await blockManager.initialize();
     await themeManager.initialize();
     
     this._availableThemes = themeManager.getAllThemes();
@@ -222,107 +235,123 @@ class BlockEditor extends LitElement {
 
     return html`
       <div class="editor-container">
-        <!-- 块选择区域 -->
-        <div class="section">
-          <div class="section-title">
-            <ha-icon icon="mdi:cube-outline"></ha-icon>
-            块
+        <!-- 左侧：块管理面板 -->
+        <div class="blocks-panel">
+          <!-- 块选择 -->
+          <div class="section">
+            <div class="section-title">
+              <ha-icon icon="mdi:cube-outline"></ha-icon>
+              添加块
+            </div>
+            <block-palette
+              @block-selected=${this._onBlockSelected}
+            ></block-palette>
           </div>
-          <block-palette
-            @block-selected=${this._onBlockSelected}
-          ></block-palette>
+
+          <!-- 已添加的块 -->
+          <div class="section">
+            <div class="section-title">
+              <ha-icon icon="mdi:view-grid"></ha-icon>
+              块管理 (${this._blocks.length})
+            </div>
+            <div class="blocks-list">
+              ${this._blocks.length === 0 ? html`
+                <div class="empty-state">
+                  <ha-icon icon="mdi:package-variant" style="opacity: 0.5;"></ha-icon>
+                  <div class="cf-text-sm cf-mt-sm">尚未添加任何块</div>
+                </div>
+              ` : this._renderBlocksTree(this._blocks)}
+            </div>
+          </div>
+
+          <!-- 主题选择 -->
+          <div class="section">
+            <div class="section-title">
+              <ha-icon icon="mdi:palette"></ha-icon>
+              主题
+            </div>
+            <div class="themes-grid">
+              ${this._availableThemes.map(theme => html`
+                <div 
+                  class="theme-item ${this.config.theme === theme.id ? 'selected' : ''}"
+                  @click=${() => this._selectTheme(theme.id)}
+                  title="${theme.name}"
+                >
+                  <div class="theme-icon">${theme.icon}</div>
+                  <div class="theme-name">${theme.name}</div>
+                </div>
+              `)}
+            </div>
+          </div>
         </div>
 
-        <!-- 已添加的块 -->
-        <div class="section">
-          <div class="section-title">
-            <ha-icon icon="mdi:view-grid"></ha-icon>
-            块卡片
+        <!-- 右侧：属性配置面板 -->
+        <div class="properties-panel">
+          <div class="section" style="height: 100%;">
+            <block-properties
+              .block=${this._selectedBlock}
+              .hass=${this.hass}
+              @block-updated=${this._onBlockUpdated}
+            ></block-properties>
           </div>
-          <div class="blocks-container">
-            ${this._blocks.length === 0 ? html`
-              <div class="empty-state">
-                <ha-icon icon="mdi:package-variant" style="font-size: 2em; opacity: 0.5;"></ha-icon>
-                <div class="cf-text-sm cf-mt-md">尚未添加任何块</div>
-                <div class="cf-text-xs cf-mt-sm cf-text-secondary">从上方选择块开始创建</div>
-              </div>
-            ` : this._blocks.map(block => this._renderBlockCard(block))}
-          </div>
-        </div>
-
-        <!-- 主题选择 -->
-        <div class="section">
-          <div class="section-title">
-            <ha-icon icon="mdi:palette"></ha-icon>
-            主题
-          </div>
-          <div class="themes-grid">
-            ${this._availableThemes.map(theme => html`
-              <div 
-                class="theme-item ${this.config.theme === theme.id ? 'selected' : ''}"
-                @click=${() => this._selectTheme(theme.id)}
-                title="${theme.description}"
-              >
-                <div class="theme-icon">${theme.icon}</div>
-                <div class="theme-name">${theme.name}</div>
-              </div>
-            `)}
-          </div>
-        </div>
-
-        <!-- 属性设置 -->
-        <div class="section">
-          <div class="section-title">
-            <ha-icon icon="mdi:cog"></ha-icon>
-            属性
-          </div>
-          <block-properties
-            .block=${this._selectedBlock}
-            .hass=${this.hass}
-            @block-updated=${this._onBlockUpdated}
-          ></block-properties>
         </div>
       </div>
     `;
   }
 
-  _renderBlockCard(block) {
-    const manifest = blockRegistry.getBlockManifest(block.type);
-    const blockInstance = blockRegistry.createBlockInstance(block.type);
-    
-    let previewContent = '预览内容';
-    try {
-      if (blockInstance) {
-        const template = blockInstance.render(block.config, this.hass);
-        // 提取纯文本内容用于预览
-        const tempDiv = document.createElement('div');
-        tempDiv.innerHTML = template;
-        previewContent = tempDiv.textContent?.trim() || '预览内容';
-      }
-    } catch (error) {
-      previewContent = '渲染错误';
-    }
-
-    return html`
-      <div 
-        class="block-card ${this._selectedBlock?.id === block.id ? 'selected' : ''}"
-        @click=${() => this._selectBlock(block)}
-      >
-        <div class="block-header">
-          <div class="block-icon">${manifest?.icon || '📦'}</div>
-          <div class="block-name">${manifest?.name || block.type}</div>
-          <div class="block-type">${block.type}</div>
-          <ha-icon 
-            class="delete-btn"
-            icon="mdi:delete" 
-            @click=${e => this._removeBlock(e, block.id)}
-          ></ha-icon>
+  _renderBlocksTree(blocks, level = 0) {
+    return blocks.map(block => html`
+      <div class="block-item ${this._selectedBlock?.id === block.id ? 'selected' : ''}"
+           @click=${() => this._selectBlock(block)}
+           style="margin-left: ${level * 12}px;">
+        <div class="block-icon">${this._getBlockIcon(block.type)}</div>
+        <div class="block-info">
+          <div class="block-name">${this._getBlockDisplayName(block)}</div>
+          <div class="block-preview">${this._getBlockPreview(block)}</div>
         </div>
-        <div class="block-content">
-          ${previewContent}
-        </div>
+        <div class="block-type">${block.type}</div>
       </div>
-    `;
+      ${block.blocks ? this._renderBlocksTree(block.blocks, level + 1) : ''}
+    `);
+  }
+
+  _getBlockIcon(blockType) {
+    const manifest = blockManager.getBlockManifest(blockType);
+    return manifest?.icon || '📦';
+  }
+
+  _getBlockDisplayName(block) {
+    const manifest = blockManager.getBlockManifest(block.type);
+    const baseName = manifest?.name || block.type;
+    
+    // 根据块类型显示具体内容
+    switch (block.type) {
+      case 'text':
+        return block.config?.content ? `文本: ${block.config.content.substring(0, 10)}...` : baseName;
+      case 'entity':
+        return block.config?.entity ? `实体: ${block.config.entity.split('.')[1]}` : baseName;
+      case 'time':
+        return baseName;
+      case 'layout':
+        return `布局: ${block.config?.layout || 'vertical'}`;
+      default:
+        return baseName;
+    }
+  }
+
+  _getBlockPreview(block) {
+    switch (block.type) {
+      case 'text':
+        return block.config?.content || '暂无内容';
+      case 'entity':
+        return block.config?.entity || '未选择实体';
+      case 'time':
+        return block.config?.use_24_hour ? '24小时制' : '12小时制';
+      case 'layout':
+        return `包含 ${block.blocks?.length || 0} 个子块`;
+      default:
+        return '';
+    }
   }
 
   _onBlockSelected(e) {
@@ -340,18 +369,6 @@ class BlockEditor extends LitElement {
 
   _selectBlock(block) {
     this._selectedBlock = block;
-  }
-
-  _removeBlock(e, blockId) {
-    e.stopPropagation();
-    
-    this._blocks = this._blocks.filter(block => block.id !== blockId);
-    
-    if (this._selectedBlock?.id === blockId) {
-      this._selectedBlock = null;
-    }
-    
-    this._notifyConfigUpdate();
   }
 
   _selectTheme(themeId) {
