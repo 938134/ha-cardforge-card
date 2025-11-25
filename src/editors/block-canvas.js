@@ -1,7 +1,7 @@
 // src/editors/layout-canvas.js
 import { LitElement, html, css } from 'https://unpkg.com/lit@2.8.0/index.js?module';
 import { designSystem } from '../core/design-system.js';
-import { blockRegistry } from '../core/block-registry.js';
+import { blockManager } from '../core/block-manager.js';
 
 class LayoutCanvas extends LitElement {
   static properties = {
