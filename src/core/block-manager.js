@@ -71,19 +71,6 @@ class BlockManager {
     const block = this.blocks.get(blockType);
     return block ? block.manifest : null;
   }
-
-  registerDynamicBlock(blockConfig) {
-    if (!blockConfig.type || !blockConfig.class || !blockConfig.manifest) {
-      console.warn('动态块配置不完整，跳过注册');
-      return;
-    }
-
-    this.blocks.set(blockConfig.type, {
-      type: blockConfig.type,
-      class: blockConfig.class,
-      manifest: blockConfig.manifest
-    });
-  }
 }
 
 const blockManager = new BlockManager();
