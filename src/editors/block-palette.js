@@ -59,7 +59,7 @@ class BlockPalette extends LitElement {
   willUpdate() {
     // 只显示4个指定的块类型
     const allowedBlocks = ['text', 'entity', 'time', 'layout'];
-    const allBlocks = blockRegistry.getAllBlocks();
+    const allBlocks = blockManager.getAllBlocks();
     this._availableBlocks = allBlocks.filter(block => 
       allowedBlocks.includes(block.type)
     );
