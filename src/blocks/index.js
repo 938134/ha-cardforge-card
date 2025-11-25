@@ -1,37 +1,14 @@
 // src/blocks/index.js
-import { blockRegistry } from '../core/block-registry.js';
 
-// 自动导入并注册所有内置块
-async function registerAllBlocks() {
-  const blockModules = {
-    text: () => import('./text-block.js'),
-    entity: () => import('./entity-block.js'),
-    time: () => import('./time-block.js'),
-    layout: () => import('./layout-block.js'),
-    // 可在此处添加更多块，例如：
-    // image: () => import('./image-block.js'),
-    // button: () => import('./button-block.js'),
-  };
+export { default as TextBlock } from './text-block.js';
+export { default as EntityBlock } from './entity-block.js';
+export { default as TimeBlock } from './time-block.js';
+export { default as LayoutBlock } from './layout-block.js';
 
-  for (const [type, importFn] of Object.entries(blockModules)) {
-    try {
-      const module = await importFn();
-      if (module.default) {
-        blockRegistry.blocks.set(type, {
-          type,
-          class: module.default,
-          manifest: module.default.manifest,
-        });
-      }
-    } catch (error) {
-      console.warn(`⚠️ 块 ${type} 加载失败:`, error);
-    }
-  }
-}
-
-// 立即执行注册（也可改为按需调用）
-registerAllBlocks().then(() => {
-  blockRegistry._initialized = true;
-});
-
-export { registerAllBlocks };
+// 可选：导出 manifest 便于外部使用
+export const blockManifests = {
+  text: TextBlock.manifest,
+  entity: EntityBlock.manifest,
+  time: TimeBlock.manifest,
+  layout: LayoutBlock.manifest,
+};
