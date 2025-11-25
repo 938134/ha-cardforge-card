@@ -1,7 +1,7 @@
 // src/ha-cardforge-card.js
 import { LitElement, html, css } from 'https://unpkg.com/lit@2.8.0/index.js?module';
 import { unsafeHTML } from 'https://unpkg.com/lit-html/directives/unsafe-html.js?module';
-import { blockRegistry } from './core/block-registry.js';
+import { blockManager } from './core/block-manager.js';
 import { designSystem } from './core/design-system.js';
 
 class HaCardForgeCard extends LitElement {
