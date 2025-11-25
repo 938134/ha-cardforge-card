@@ -61,7 +61,7 @@ class HaCardForgeCard extends LitElement {
       this._error = null;
       
       this.config = this._validateConfig(config);
-      await blockRegistry.initialize();
+      await blockManager.initialize();
       
       this._blocks = this.config.blocks || [];
       
@@ -147,7 +147,7 @@ class HaCardForgeCard extends LitElement {
   }
 
   _renderBlock(block) {
-    const blockInstance = blockRegistry.createBlockInstance(block.type);
+    const blockInstance = blockManager.createBlockInstance(block.type);
     if (!blockInstance) {
       return html`<div class="block-item cf-error">未知块类型: ${block.type}</div>`;
     }
@@ -172,7 +172,7 @@ class HaCardForgeCard extends LitElement {
 
   _renderAllStyles() {
     return this._blocks.map(block => {
-      const blockInstance = blockRegistry.createBlockInstance(block.type);
+      const blockInstance = blockManager.createBlockInstance(block.type);
       return blockInstance ? blockInstance.getStyles(block.config) : '';
     }).join('\n');
   }
