@@ -4,13 +4,6 @@ export default {
   name: '随机渐变',
   description: '动态变化的渐变背景',
   icon: '🌈',
-  category: 'color',
-
-  preview: {
-    background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-    color: 'white',
-    border: 'none'
-  },
 
   getGradients() {
     return [
@@ -50,14 +43,5 @@ export default {
         100% { background-position: 0% 50%; }
       }
     `;
-  },
-
-  applyTheme(element, config = {}) {
-    if (config.useRandomGradients) {
-      const gradient = this.getRandomGradient();
-      if (gradient) {
-        element.style.background = gradient;
-      }
-    }
   }
 };
