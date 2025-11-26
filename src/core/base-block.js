@@ -14,6 +14,7 @@ export class BaseBlock {
   }
 
   getStyles(config) {
+    // 移除对 getBaseStyles 的调用，直接返回块的样式
     const themeId = config.theme || 'auto';
     const themeStyles = themeManager.getThemeStyles(themeId, config);
     
