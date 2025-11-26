@@ -37,12 +37,15 @@ class ClockCard extends BaseCard {
   render(config, hass, entities) {
     const safeConfig = this._getSafeConfig(config);
     
+    // 创建配置的深拷贝，避免修改原始配置
+    const dynamicConfig = JSON.parse(JSON.stringify(safeConfig));
+    
     // 更新时间为当前时间
     const now = new Date();
-    safeConfig.blocks.time_display.content = this._formatTime(now, safeConfig.use_24_hour);
-    safeConfig.blocks.date_display.content = this._formatDate(now);
+    dynamicConfig.blocks.time_display.content = this._formatTime(now, dynamicConfig.use_24_hour);
+    dynamicConfig.blocks.date_display.content = this._formatDate(now);
     
-    return super.render(safeConfig, hass, entities);
+    return super.render(dynamicConfig, hass, entities);
   }
 
   _formatTime(date, use24Hour = true) {

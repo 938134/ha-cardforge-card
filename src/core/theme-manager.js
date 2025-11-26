@@ -22,6 +22,7 @@ class ThemeManager {
       'glass': () => import('../themes/glass-theme.js'),
       'gradient': () => import('../themes/gradient-theme.js'),
       'neon': () => import('../themes/neon-theme.js'),
+      'inkwash': () => import('../themes/ink-wash-theme.js'),
     };
 
     for (const [themeId, importFn] of Object.entries(themeFiles)) {

@@ -31,11 +31,14 @@ class WelcomeCard extends BaseCard {
   render(config, hass, entities) {
     const safeConfig = this._getSafeConfig(config);
     
+    // 创建配置的深拷贝，避免修改原始配置
+    const dynamicConfig = JSON.parse(JSON.stringify(safeConfig));
+    
     // 动态生成欢迎语
     const welcomeMessage = this._generateWelcomeMessage(hass);
-    safeConfig.blocks.welcome_message.content = welcomeMessage;
+    dynamicConfig.blocks.welcome_message.content = welcomeMessage;
     
-    return super.render(safeConfig, hass, entities);
+    return super.render(dynamicConfig, hass, entities);
   }
 
   _generateWelcomeMessage(hass) {
