@@ -3,17 +3,19 @@ class ThemeManager {
   constructor() {
     this.themes = new Map();
     this._initialized = false;
+    this._initializationPromise = null;
   }
 
   async initialize() {
     if (this._initialized) return;
 
-    try {
-      await this._discoverThemes();
-      this._initialized = true;
-    } catch (error) {
-      console.error('❌ 主题系统初始化失败:', error);
+    // 防止重复初始化
+    if (!this._initializationPromise) {
+      this._initializationPromise = this._discoverThemes();
     }
+
+    await this._initializationPromise;
+    this._initialized = true;
   }
 
   async _discoverThemes() {
@@ -46,6 +48,7 @@ class ThemeManager {
         icon: theme.icon || '🎨',
         getStyles: theme.getStyles.bind(theme)
       });
+      console.log(`✅ 注册主题: ${themeId}`, theme.name);
     }
   }
 
@@ -71,9 +74,18 @@ class ThemeManager {
     }
     return '';
   }
+
+  // 检查是否已初始化
+  isInitialized() {
+    return this._initialized;
+  }
 }
 
 const themeManager = new ThemeManager();
-themeManager.initialize();
+
+// 立即开始初始化，但不阻塞
+themeManager.initialize().catch(error => {
+  console.error('主题管理器初始化失败:', error);
+});
 
 export { themeManager, ThemeManager };
