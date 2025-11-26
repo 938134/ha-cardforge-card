@@ -1,8 +1,10 @@
 // src/ha-cardforge-card.js
 import { LitElement, html, css } from 'https://unpkg.com/lit@2.8.0/index.js?module';
 import { unsafeHTML } from 'https://unpkg.com/lit-html/directives/unsafe-html.js?module';
-import { blockManager } from './core/block-manager.js';
 import { designSystem } from './core/design-system.js';
+import { blockManager } from './core/block-manager.js';
+import { themeManager } from './core/theme-manager.js';
+import { DEFAULT_CONFIG } from './core/config-schema.js';
 
 class HaCardForgeCard extends LitElement {
   static properties = {
@@ -22,18 +24,6 @@ class HaCardForgeCard extends LitElement {
         min-height: 80px;
       }
 
-      .blocks-container {
-        display: flex;
-        flex-direction: column;
-        gap: var(--cf-spacing-sm);
-        height: 100%;
-      }
-
-      .block-item {
-        flex: 1;
-        min-height: 60px;
-      }
-
       .cardforge-error-container {
         flex: 1;
         display: flex;
@@ -44,6 +34,42 @@ class HaCardForgeCard extends LitElement {
         min-height: 80px;
         text-align: center;
         padding: var(--cf-spacing-lg);
+      }
+
+      .vertical-layout {
+        display: flex;
+        flex-direction: column;
+        gap: var(--cf-spacing-sm);
+        height: 100%;
+      }
+
+      .horizontal-layout {
+        display: flex;
+        gap: var(--cf-spacing-sm);
+        height: 100%;
+      }
+
+      .grid-layout {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: var(--cf-spacing-sm);
+        height: 100%;
+      }
+
+      .card-grid-layout {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+        gap: var(--cf-spacing-sm);
+      }
+
+      .section {
+        flex: 1;
+        min-height: 60px;
+      }
+
+      .block-item {
+        height: 100%;
+        min-height: 60px;
       }
     `
   ];
@@ -62,8 +88,10 @@ class HaCardForgeCard extends LitElement {
       
       this.config = this._validateConfig(config);
       await blockManager.initialize();
+      await themeManager.initialize();
       
-      this._blocks = this.config.blocks || [];
+      // 从配置中提取所有块
+      this._blocks = this._extractAllBlocks(this.config);
       
     } catch (error) {
       console.error('卡片加载失败:', error);
@@ -80,12 +108,22 @@ class HaCardForgeCard extends LitElement {
     }
     
     return {
-      type: 'custom:ha-cardforge-card',
-      blocks: [],
-      layout: 'vertical',
-      theme: 'auto',
+      ...DEFAULT_CONFIG,
       ...config
     };
+  }
+
+  _extractAllBlocks(config) {
+    const blocks = [];
+    const sections = config.sections || {};
+    
+    Object.values(sections).forEach(section => {
+      if (section.blocks) {
+        blocks.push(...section.blocks);
+      }
+    });
+    
+    return blocks;
   }
 
   render() {
@@ -120,9 +158,7 @@ class HaCardForgeCard extends LitElement {
       return html`
         <ha-card>
           <div class="cardforge-container">
-            <div class="blocks-container">
-              ${this._blocks.map(block => this._renderBlock(block))}
-            </div>
+            ${this._renderLayout()}
           </div>
         </ha-card>
         
@@ -144,6 +180,49 @@ class HaCardForgeCard extends LitElement {
         </ha-card>
       `;
     }
+  }
+
+  _renderLayout() {
+    const layoutType = this.config.layout?.type || 'vertical';
+    const sections = this.config.layout?.sections || ['main'];
+
+    switch (layoutType) {
+      case 'horizontal':
+        return html`
+          <div class="horizontal-layout">
+            ${sections.map(sectionId => this._renderSection(sectionId))}
+          </div>
+        `;
+      case 'grid':
+        return html`
+          <div class="grid-layout">
+            ${sections.map(sectionId => this._renderSection(sectionId))}
+          </div>
+        `;
+      case 'card-grid':
+        return html`
+          <div class="card-grid-layout">
+            ${sections.map(sectionId => this._renderSection(sectionId))}
+          </div>
+        `;
+      default: // vertical
+        return html`
+          <div class="vertical-layout">
+            ${sections.map(sectionId => this._renderSection(sectionId))}
+          </div>
+        `;
+    }
+  }
+
+  _renderSection(sectionId) {
+    const section = this.config.sections?.[sectionId];
+    const blocks = section?.blocks || [];
+
+    return html`
+      <div class="section">
+        ${blocks.map(block => this._renderBlock(block))}
+      </div>
+    `;
   }
 
   _renderBlock(block) {
@@ -178,15 +257,11 @@ class HaCardForgeCard extends LitElement {
   }
 
   static getConfigElement() {
-    return document.createElement('block-editor');
+    return document.createElement('card-forge-editor');
   }
 
   static getStubConfig() {
-    return {
-      type: 'custom:ha-cardforge-card',
-      blocks: [], // 默认空数组，不包含时间块
-      theme: 'auto'
-    };
+    return { ...DEFAULT_CONFIG };
   }
 
   getCardSize() {
