@@ -13,23 +13,10 @@ class TextBlock extends BaseBlock {
   }
 
   getStyles(config) {
-    // 直接返回样式，不调用 getBaseStyles
+    const baseStyles = this.getBaseStyles(config);
+    
     return `
-      .text-block .block-container {
-        background: var(--card-background-color);
-        color: var(--primary-text-color);
-        border-color: var(--divider-color);
-        height: 100%;
-        display: flex;
-        flex-direction: column;
-      }
-      
-      .text-block .block-content {
-        flex: 1;
-        display: flex;
-        flex-direction: column;
-        justify-content: center;
-      }
+      ${baseStyles}
       
       .text-block .text-content {
         padding: var(--cf-spacing-md);
