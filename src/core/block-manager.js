@@ -26,17 +26,14 @@ class BlockManager {
       'layout': () => import('../blocks/layout-block.js')
     };
 
-    const promises = Object.entries(blockFiles).map(async ([blockType, importFn]) => {
+    for (const [blockType, importFn] of Object.entries(blockFiles)) {
       try {
         const module = await importFn();
         this._registerBlockModule(blockType, module);
-        console.log(`✅ 成功加载块: ${blockType}`);
       } catch (error) {
         console.warn(`⚠️ 加载块 ${blockType} 失败:`, error);
       }
-    });
-
-    await Promise.allSettled(promises);
+    }
   }
 
   _registerBlockModule(blockType, module) {
@@ -48,7 +45,7 @@ class BlockManager {
         class: BlockClass,
         manifest: BlockClass.manifest
       });
-      console.log(`📦 注册块: ${blockType}`, BlockClass.manifest);
+      console.log(`✅ 注册块: ${blockType}`, BlockClass.manifest);
     }
   }
 
@@ -57,12 +54,10 @@ class BlockManager {
   }
 
   getAllBlocks() {
-    const blocks = Array.from(this.blocks.values()).map(item => ({
+    return Array.from(this.blocks.values()).map(item => ({
       ...item.manifest,
       type: item.type
     }));
-    console.log('📋 可用块列表:', blocks);
-    return blocks;
   }
 
   getBlockClass(blockType) {
@@ -80,7 +75,7 @@ class BlockManager {
     return block ? block.manifest : null;
   }
 
-  // 检查初始化状态
+  // 检查是否已初始化
   isInitialized() {
     return this._initialized;
   }
@@ -88,9 +83,9 @@ class BlockManager {
 
 const blockManager = new BlockManager();
 
-// 立即开始初始化，但不等待
+// 立即开始初始化，但不阻塞
 blockManager.initialize().catch(error => {
-  console.error('❌ 块管理器初始化失败:', error);
+  console.error('块管理器初始化失败:', error);
 });
 
 export { blockManager, BlockManager };
