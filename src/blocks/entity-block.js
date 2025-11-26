@@ -20,22 +20,10 @@ class EntityBlock extends BaseBlock {
   }
 
   getStyles(config) {
+    const baseStyles = this.getBaseStyles(config);
+    
     return `
-      .entity-block .block-container {
-        background: var(--card-background-color);
-        color: var(--primary-text-color);
-        border-color: var(--divider-color);
-        height: 100%;
-        display: flex;
-        flex-direction: column;
-      }
-      
-      .entity-block .block-content {
-        flex: 1;
-        display: flex;
-        flex-direction: column;
-        justify-content: center;
-      }
+      ${baseStyles}
       
       .entity-block .entity-content {
         padding: var(--cf-spacing-md);
@@ -63,7 +51,7 @@ class EntityBlock extends BaseBlock {
   }
 }
 
-TextBlock.manifest = {
+EntityBlock.manifest = {
   type: 'entity',
   name: '实体块',
   description: '显示Home Assistant实体状态',
