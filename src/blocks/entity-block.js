@@ -12,6 +12,7 @@ class EntityBlock extends BaseBlock {
     
     return this._renderBlockContainer(`
       <div class="entity-content">
+        ${config.show_icon && config.icon ? `<div class="entity-icon">${config.icon}</div>` : ''}
         ${config.show_name ? `<div class="entity-name">${friendlyName}</div>` : ''}
         <div class="entity-state">${state}${unit ? ` ${unit}` : ''}</div>
       </div>
@@ -30,6 +31,10 @@ class EntityBlock extends BaseBlock {
         display: flex;
         flex-direction: column;
         gap: var(--cf-spacing-sm);
+      }
+      
+      .entity-icon {
+        font-size: 1.5em;
       }
       
       .entity-name {
@@ -58,9 +63,29 @@ EntityBlock.manifest = {
       label: '实体ID',
       default: ''
     },
+    name: {
+      type: 'string',
+      label: '显示名称',
+      default: ''
+    },
+    icon: {
+      type: 'string',
+      label: '图标',
+      default: ''
+    },
     show_name: {
       type: 'boolean',
       label: '显示名称',
+      default: true
+    },
+    show_icon: {
+      type: 'boolean',
+      label: '显示图标',
+      default: true
+    },
+    show_unit: {
+      type: 'boolean',
+      label: '显示单位',
       default: true
     }
   }
