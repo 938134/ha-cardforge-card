@@ -8,16 +8,13 @@ class OilPriceCard extends BaseCard {
       theme: 'auto',
       areas: {
         header: {
-          layout: 'single',
-          blocks: ['title']
+          layout: 'single'
         },
         content: {
-          layout: 'grid-1x4',
-          blocks: ['gas_89', 'gas_92', 'gas_95', 'gas_diesel']
+          layout: 'grid-1x4'
         },
         footer: {
-          layout: 'single',
-          blocks: ['update_info']
+          layout: 'single'
         }
       },
       blocks: {
@@ -25,36 +22,42 @@ class OilPriceCard extends BaseCard {
           type: 'text',
           title: '',
           content: '今日油价',
+          area: 'header',
           style: 'text-align: center; font-size: 1.3em; font-weight: 600;'
         },
         gas_89: {
           type: 'text',
           title: '89号',
           content: '7.50元/L',
+          area: 'content',
           style: 'text-align: center; background: rgba(76, 175, 80, 0.1); padding: 1em; border-radius: var(--cf-radius-md);'
         },
         gas_92: {
           type: 'text',
           title: '92号',
           content: '7.85元/L',
+          area: 'content',
           style: 'text-align: center; background: rgba(33, 150, 243, 0.1); padding: 1em; border-radius: var(--cf-radius-md);'
         },
         gas_95: {
           type: 'text',
           title: '95号',
           content: '8.35元/L',
+          area: 'content',
           style: 'text-align: center; background: rgba(255, 152, 0, 0.1); padding: 1em; border-radius: var(--cf-radius-md);'
         },
         gas_diesel: {
           type: 'text',
           title: '0号柴油',
           content: '7.45元/L',
+          area: 'content',
           style: 'text-align: center; background: rgba(158, 158, 158, 0.1); padding: 1em; border-radius: var(--cf-radius-md);'
         },
         update_info: {
           type: 'text',
           title: '',
           content: '更新于：今日 08:00',
+          area: 'footer',
           style: 'text-align: center; font-size: 0.8em; color: var(--cf-text-secondary);'
         }
       }

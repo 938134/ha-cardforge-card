@@ -8,8 +8,7 @@ class ClockCard extends BaseCard {
       theme: 'auto',
       areas: {
         content: {
-          layout: 'single',
-          blocks: ['time_display', 'date_display']
+          layout: 'single'
         }
       },
       blocks: {
@@ -17,12 +16,14 @@ class ClockCard extends BaseCard {
           type: 'text',
           title: '',
           content: '12:00',
+          area: 'content',
           style: 'font-size: 3em; font-weight: 300; text-align: center; line-height: 1; margin-bottom: 0.2em;'
         },
         date_display: {
           type: 'text',
           title: '',
           content: '2024年1月1日 星期一',
+          area: 'content',
           style: 'text-align: center; font-size: 1.1em; color: var(--cf-text-secondary);'
         }
       }

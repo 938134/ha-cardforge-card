@@ -8,7 +8,8 @@ class AreaEditor extends LitElement {
   static properties = {
     config: { type: Object },
     hass: { type: Object },
-    _expandedAreas: { state: true }
+    _expandedAreas: { state: true },
+    _blocksByArea: { state: true }
   };
 
   static styles = [
@@ -204,6 +205,34 @@ class AreaEditor extends LitElement {
       content: true,
       footer: false
     };
+    this._blocksByArea = {
+      header: [],
+      content: [],
+      footer: []
+    };
+  }
+
+  willUpdate(changedProperties) {
+    if (changedProperties.has('config')) {
+      this._groupBlocksByArea();
+    }
+  }
+
+  _groupBlocksByArea() {
+    const blocksByArea = {
+      header: [],
+      content: [],
+      footer: []
+    };
+
+    Object.entries(this.config.blocks || {}).forEach(([blockId, blockConfig]) => {
+      const area = blockConfig.area || 'content';
+      if (blocksByArea[area]) {
+        blocksByArea[area].push({ id: blockId, config: blockConfig });
+      }
+    });
+
+    this._blocksByArea = blocksByArea;
   }
 
   render() {
@@ -223,7 +252,8 @@ class AreaEditor extends LitElement {
   _renderAreaSection(area) {
     const areaConfig = this.config.areas?.[area.id];
     const isExpanded = this._expandedAreas[area.id];
-    const blockCount = areaConfig?.blocks?.length || 0;
+    const blocks = this._blocksByArea[area.id] || [];
+    const blockCount = blocks.length;
 
     return html`
       <div class="area-section">
@@ -239,7 +269,7 @@ class AreaEditor extends LitElement {
         ${isExpanded ? html`
           <div class="area-content">
             ${this._renderLayoutSection(area.id, areaConfig)}
-            ${this._renderBlocksSection(area.id, areaConfig)}
+            ${this._renderBlocksSection(area.id, blocks)}
             ${this._renderAddBlockButton(area.id)}
           </div>
         ` : ''}
@@ -265,10 +295,8 @@ class AreaEditor extends LitElement {
     `;
   }
 
-  _renderBlocksSection(areaId, areaConfig) {
-    const blockIds = areaConfig?.blocks || [];
-    
-    if (blockIds.length === 0) {
+  _renderBlocksSection(areaId, blocks) {
+    if (blocks.length === 0) {
       return html`
         <div class="empty-state">
           <ha-icon icon="mdi:cube-outline" style="font-size: 2em; opacity: 0.5; margin-bottom: var(--cf-spacing-sm);"></ha-icon>
@@ -280,30 +308,27 @@ class AreaEditor extends LitElement {
 
     return html`
       <div class="blocks-section">
-        ${blockIds.map(blockId => this._renderBlockItem(blockId))}
+        ${blocks.map(block => this._renderBlockItem(block))}
       </div>
     `;
   }
 
-  _renderBlockItem(blockId) {
-    const blockConfig = this.config.blocks?.[blockId];
-    if (!blockConfig) return '';
-
-    const displayName = BlockSystem.getBlockDisplayName(blockConfig);
-    const icon = BlockSystem.getBlockIcon(blockConfig);
-    const preview = BlockSystem.getBlockPreview(blockConfig, this.hass);
+  _renderBlockItem(block) {
+    const displayName = BlockSystem.getBlockDisplayName(block.config);
+    const icon = BlockSystem.getBlockIcon(block.config);
+    const preview = BlockSystem.getBlockPreview(block.config, this.hass);
 
     return html`
-      <div class="block-item" @click=${() => this._editBlock(blockId)}>
+      <div class="block-item" @click=${() => this._editBlock(block.id)}>
         <div class="block-icon">
           <ha-icon .icon=${icon}></ha-icon>
         </div>
         <div class="block-info">
-          <div class="block-title">${blockConfig.title || displayName}</div>
+          <div class="block-title">${block.config.title || displayName}</div>
           <div class="block-preview">${preview}</div>
         </div>
         <div class="block-actions">
-          <div class="block-action" @click=${e => this._deleteBlock(e, blockId)} title="删除">
+          <div class="block-action" @click=${e => this._deleteBlock(e, block.id)} title="删除">
             <ha-icon icon="mdi:delete"></ha-icon>
           </div>
         </div>
@@ -315,7 +340,7 @@ class AreaEditor extends LitElement {
     return html`
       <button class="add-block-btn" @click=${() => this._addBlock(areaId)}>
         <ha-icon icon="mdi:plus"></ha-icon>
-        添加块
+        添加块到${BlockSystem.getAreaDisplayName(areaId)}
       </button>
     `;
   }
@@ -329,11 +354,12 @@ class AreaEditor extends LitElement {
     if (!this.config.areas) {
       this.config.areas = {};
     }
-    if (!this.config.areas[areaId]) {
-      this.config.areas[areaId] = { blocks: [] };
-    }
     
-    this.config.areas[areaId].layout = layout;
+    this.config.areas[areaId] = {
+      ...this.config.areas[areaId],
+      layout
+    };
+    
     this._notifyConfigUpdate();
   }
 
@@ -345,7 +371,7 @@ class AreaEditor extends LitElement {
 
   _addBlock(areaId) {
     const blockId = `block_${Date.now()}`;
-    const blockConfig = BlockSystem.createBlock();
+    const blockConfig = BlockSystem.createBlock({ area: areaId });
     
     this.dispatchEvent(new CustomEvent('add-block', {
       detail: {
@@ -360,13 +386,6 @@ class AreaEditor extends LitElement {
     e.stopPropagation();
     
     if (!confirm('确定要删除这个块吗？')) return;
-    
-    // 从所有区域中移除该块
-    Object.values(this.config.areas || {}).forEach(area => {
-      if (area.blocks) {
-        area.blocks = area.blocks.filter(id => id !== blockId);
-      }
-    });
     
     // 删除块配置
     delete this.config.blocks[blockId];

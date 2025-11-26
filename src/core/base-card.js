@@ -46,7 +46,8 @@ export class BaseCard {
   }
 
   _renderTemplate(config, hass, entities) {
-    const areas = this._renderAreas(config, hass, entities);
+    // 根据块的 area 属性自动分组到区域
+    const areas = this._groupBlocksByArea(config);
     
     return `
       <div class="cardforge-card ${config.card_type || ''}">
@@ -57,35 +58,50 @@ export class BaseCard {
     `;
   }
 
-  _renderAreas(config, hass, entities) {
-    const areas = {};
-    
-    ['header', 'content', 'footer'].forEach(area => {
-      if (config.areas && config.areas[area] && config.areas[area].blocks) {
-        areas[area] = this._renderArea(area, config.areas[area], config, hass, entities);
-      } else {
-        areas[area] = '';
-      }
-    });
+  _groupBlocksByArea(config) {
+    const areas = {
+      header: this._renderArea('header', config),
+      content: this._renderArea('content', config),
+      footer: this._renderArea('footer', config)
+    };
     
     return areas;
   }
 
-  _renderArea(areaName, areaConfig, config, hass, entities) {
-    const blocks = areaConfig.blocks.map(blockId => 
-      this._renderBlock(blockId, config.blocks[blockId], hass, entities)
+  _renderArea(areaName, config) {
+    // 获取属于该区域的所有块
+    const areaBlocks = this._getBlocksByArea(areaName, config.blocks);
+    
+    if (areaBlocks.length === 0) {
+      return '';
+    }
+    
+    const blocksHtml = areaBlocks.map(block => 
+      this._renderBlock(block.id, block.config, config, config.hass, config.entities)
     ).join('');
     
-    const layout = areaConfig.layout || 'single';
+    const layout = config.areas?.[areaName]?.layout || 'single';
     
     return `
       <div class="cardforge-area area-${areaName}">
-        ${this._renderLayout(layout, blocks)}
+        ${this._renderLayout(layout, blocksHtml)}
       </div>
     `;
   }
 
-  _renderBlock(blockId, blockConfig, hass, entities) {
+  _getBlocksByArea(areaName, blocksConfig) {
+    const blocks = [];
+    
+    Object.entries(blocksConfig || {}).forEach(([blockId, blockConfig]) => {
+      if (blockConfig.area === areaName) {
+        blocks.push({ id: blockId, config: blockConfig });
+      }
+    });
+    
+    return blocks;
+  }
+
+  _renderBlock(blockId, blockConfig, config, hass, entities) {
     if (!blockConfig) return '';
     
     const content = this._getBlockContent(blockConfig, hass, entities);
@@ -114,6 +130,8 @@ export class BaseCard {
         return `<div class="layout-grid grid-2x2">${blocks}</div>`;
       case 'grid-1x4':
         return `<div class="layout-grid grid-1x4">${blocks}</div>`;
+      case 'grid-3x3':
+        return `<div class="layout-grid grid-3x3">${blocks}</div>`;
       default:
         return `<div class="layout-single">${blocks}</div>`;
     }

@@ -8,8 +8,7 @@ class WelcomeCard extends BaseCard {
       theme: 'auto',
       areas: {
         content: {
-          layout: 'single',
-          blocks: ['welcome_message']
+          layout: 'single'
         }
       },
       blocks: {
@@ -17,6 +16,7 @@ class WelcomeCard extends BaseCard {
           type: 'text',
           title: '',
           content: '欢迎回家！',
+          area: 'content',
           style: 'text-align: center; font-size: 1.5em; font-weight: 600;'
         }
       }

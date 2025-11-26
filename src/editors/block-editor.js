@@ -97,6 +97,11 @@ class BlockEditor extends LitElement {
     super();
     this._editingConfig = {};
     this._entityInfo = null;
+    this._areaOptions = [
+      { value: 'header', label: '标题区域' },
+      { value: 'content', label: '内容区域' },
+      { value: 'footer', label: '页脚区域' }
+    ];
   }
 
   willUpdate(changedProperties) {
@@ -112,6 +117,27 @@ class BlockEditor extends LitElement {
     return html`
       <div class="block-editor">
         <div class="editor-form">
+          <!-- 区域选择 -->
+          <div class="config-field">
+            <label class="config-label">所属区域</label>
+            <ha-select
+              .value=${this._editingConfig.area || 'content'}
+              @closed=${this._preventClose}
+              naturalMenuWidth
+              fixedMenuPosition
+              fullwidth
+            >
+              ${this._areaOptions.map(area => html`
+                <ha-list-item 
+                  .value=${area.value}
+                  @click=${() => this._updateConfig('area', area.value)}
+                >
+                  ${area.label}
+                </ha-list-item>
+              `)}
+            </ha-select>
+          </div>
+
           <!-- 实体选择 -->
           <div class="config-field">
             <label class="config-label">实体</label>
@@ -200,6 +226,10 @@ class BlockEditor extends LitElement {
         ` : ''}
       </div>
     `;
+  }
+
+  _preventClose(e) {
+    e.stopPropagation();
   }
 
   _onEntitySelected(e) {
