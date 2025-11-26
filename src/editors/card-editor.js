@@ -7,6 +7,7 @@ import './card-selector.js';
 import './theme-selector.js';
 import './block-manager.js';
 import './block-editor.js';
+import './dynamic-form.js';
 
 class CardEditor extends LitElement {
   static properties = {
@@ -17,7 +18,8 @@ class CardEditor extends LitElement {
     _selectedCard: { state: true },
     _initialized: { state: true },
     _editingBlockId: { state: true },
-    _availableEntities: { state: true }
+    _availableEntities: { state: true },
+    _cardSchema: { state: true }
   };
 
   static styles = [
@@ -63,12 +65,6 @@ class CardEditor extends LitElement {
         font-weight: 600;
         color: var(--cf-text-primary);
       }
-
-      .empty-state {
-        text-align: center;
-        padding: var(--cf-spacing-xl);
-        color: var(--cf-text-secondary);
-      }
     `
   ];
 
@@ -87,6 +83,7 @@ class CardEditor extends LitElement {
     this._initialized = false;
     this._editingBlockId = null;
     this._availableEntities = [];
+    this._cardSchema = null;
   }
 
   async firstUpdated() {
@@ -119,6 +116,7 @@ class CardEditor extends LitElement {
 
   _loadCardInstance() {
     this._selectedCard = cardRegistry.getCard(this.config.card_type);
+    this._cardSchema = this._selectedCard?.manifest?.config_schema || null;
     
     // 如果没有区域配置，使用卡片的默认配置
     if (!this.config.areas || Object.keys(this.config.areas).length === 0) {
@@ -141,7 +139,8 @@ class CardEditor extends LitElement {
         <div class="editor-layout">
           ${this._renderCardSelectionSection()}
           ${this.config.card_type ? this._renderThemeSection() : ''}
-          ${this.config.card_type ? this._renderAreaEditor() : ''}
+          ${this.config.card_type && this._cardSchema ? this._renderCardSettings() : ''}
+          ${this.config.card_type ? this._renderBlockManager() : ''}
           ${this._editingBlockId ? this._renderBlockEditor() : ''}
         </div>
       </div>
@@ -193,9 +192,24 @@ class CardEditor extends LitElement {
     `;
   }
 
-  _renderAreaEditor() {
-    if (!this.config.blocks) return '';
+  _renderCardSettings() {
+    return html`
+      <div class="editor-section">
+        <div class="section-header">
+          <ha-icon icon="mdi:tune"></ha-icon>
+          <span class="section-title">卡片设置</span>
+        </div>
+        
+        <dynamic-form
+          .config=${this.config}
+          .schema=${this._cardSchema}
+          @config-changed=${this._onConfigChanged}
+        ></dynamic-form>
+      </div>
+    `;
+  }
 
+  _renderBlockManager() {
     return html`
       <div class="editor-section">
         <div class="section-header">
@@ -240,12 +254,24 @@ class CardEditor extends LitElement {
     const cardType = e.detail.cardId;
     this.config.card_type = cardType;
     
-    // 加载卡片的默认配置
+    // 加载卡片的默认配置和schema
+    this._selectedCard = cardRegistry.getCard(cardType);
+    this._cardSchema = this._selectedCard?.manifest?.config_schema || null;
+    
     const cardInstance = cardRegistry.createCardInstance(cardType);
     if (cardInstance) {
       const defaultConfig = cardInstance.getDefaultConfig();
       this.config.areas = defaultConfig.areas;
       this.config.blocks = defaultConfig.blocks;
+      
+      // 应用卡片配置的默认值
+      if (this._cardSchema) {
+        Object.entries(this._cardSchema).forEach(([key, field]) => {
+          if (this.config[key] === undefined && field.default !== undefined) {
+            this.config[key] = field.default;
+          }
+        });
+      }
     }
     
     this._notifyConfigUpdate();
@@ -269,7 +295,6 @@ class CardEditor extends LitElement {
   }
 
   _onAddBlock() {
-    // 显示区域选择对话框
     const area = prompt('请选择要添加到的区域：\n\n输入: header(标题) / content(内容) / footer(页脚)', 'content');
     
     if (!area || !['header', 'content', 'footer'].includes(area)) {
@@ -292,7 +317,6 @@ class CardEditor extends LitElement {
     this._editingBlockId = blockId;
     this._notifyConfigUpdate();
   }
-
 
   _onBlockSaved(blockId, updatedConfig) {
     this.config.blocks[blockId] = updatedConfig;
