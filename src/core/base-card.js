@@ -60,13 +60,24 @@ export class BaseCard {
   _renderAreas(config, hass, entities) {
     const areas = {};
     
-    ['header', 'content', 'footer'].forEach(area => {
-      if (config.areas && config.areas[area] && config.areas[area].blocks) {
-        areas[area] = this._renderArea(area, config.areas[area], config, hass, entities);
-      } else {
-        areas[area] = '';
-      }
-    });
+    // 支持新的扁平化配置结构
+    const blocks = config.blocks || {};
+    
+    // 按区域分组块
+    const headerBlocks = this._getBlocksByArea(blocks, 'header');
+    const contentBlocks = this._getBlocksByArea(blocks, 'content'); 
+    const footerBlocks = this._getBlocksByArea(blocks, 'footer');
+    
+    // 渲染各区域
+    areas.header = headerBlocks.length > 0 ? 
+      this._renderArea('header', { blocks: headerBlocks }, config, hass, entities) : '';
+    
+    areas.content = contentBlocks.length > 0 ? 
+      this._renderArea('content', { blocks: contentBlocks }, config, hass, entities) : 
+      this._renderArea('content', { blocks: [] }, config, hass, entities);
+    
+    areas.footer = footerBlocks.length > 0 ? 
+      this._renderArea('footer', { blocks: footerBlocks }, config, hass, entities) : '';
     
     return areas;
   }
@@ -83,6 +94,18 @@ export class BaseCard {
         ${this._renderLayout(layout, blocks)}
       </div>
     `;
+  }
+
+  _getBlocksByArea(blocks, area) {
+    return Object.entries(blocks)
+      .filter(([blockId, blockConfig]) => {
+        // 内容区域是默认区域
+        if (area === 'content') {
+          return !blockConfig.area || blockConfig.area === 'content';
+        }
+        return blockConfig.area === area;
+      })
+      .map(([blockId]) => blockId);
   }
 
   _renderBlock(blockId, blockConfig, hass, entities) {

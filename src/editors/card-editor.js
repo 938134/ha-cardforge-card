@@ -5,9 +5,8 @@ import { themeManager } from '../themes/index.js';
 import { designSystem } from '../core/design-system.js';
 import './card-selector.js';
 import './theme-selector.js';
-import './area-editor.js';
+import './block-manager.js';
 import './block-editor.js';
-import './layout-selector.js';
 
 class CardEditor extends LitElement {
   static properties = {
@@ -195,22 +194,22 @@ class CardEditor extends LitElement {
   }
 
   _renderAreaEditor() {
-    if (!this.config.areas) return '';
+    if (!this.config.blocks) return '';
 
     return html`
       <div class="editor-section">
         <div class="section-header">
-          <ha-icon icon="mdi:view-grid"></ha-icon>
-          <span class="section-title">区域配置</span>
+          <ha-icon icon="mdi:cube"></ha-icon>
+          <span class="section-title">块管理</span>
         </div>
         
-        <area-editor
+        <block-manager
           .config=${this.config}
           .hass=${this.hass}
           @config-changed=${this._onConfigChanged}
           @edit-block=${this._onEditBlock}
           @add-block=${this._onAddBlock}
-        ></area-editor>
+        ></block-manager>
       </div>
     `;
   }
@@ -269,21 +268,31 @@ class CardEditor extends LitElement {
     this._editingBlockId = e.detail.blockId;
   }
 
-  _onAddBlock(e) {
-    const { area, blockId, blockConfig } = e.detail;
+  _onAddBlock() {
+    // 显示区域选择对话框
+    const area = prompt('请选择要添加到的区域：\n\n输入: header(标题) / content(内容) / footer(页脚)', 'content');
     
-    // 创建新块
-    this.config.blocks[blockId] = blockConfig;
-    
-    // 添加到区域
-    if (!this.config.areas[area]) {
-      this.config.areas[area] = { blocks: [], layout: 'single' };
+    if (!area || !['header', 'content', 'footer'].includes(area)) {
+      return;
     }
-    this.config.areas[area].blocks.push(blockId);
     
+    const blockId = `block_${Date.now()}`;
+    const blockConfig = {
+      type: 'text',
+      title: '',
+      content: '',
+      area: area
+    };
+    
+    if (!this.config.blocks) {
+      this.config.blocks = {};
+    }
+    
+    this.config.blocks[blockId] = blockConfig;
     this._editingBlockId = blockId;
     this._notifyConfigUpdate();
   }
+
 
   _onBlockSaved(blockId, updatedConfig) {
     this.config.blocks[blockId] = updatedConfig;
