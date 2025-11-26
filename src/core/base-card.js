@@ -46,7 +46,8 @@ export class BaseCard {
   }
 
   _renderTemplate(config, hass, entities) {
-    const areas = this._renderAreas(config, hass, entities);
+    // 自动分组块到区域
+    const areas = this._groupBlocksByArea(config.blocks);
     
     return `
       <div class="cardforge-card ${config.card_type || ''}">
@@ -57,32 +58,58 @@ export class BaseCard {
     `;
   }
 
-  _renderAreas(config, hass, entities) {
-    const areas = {};
+  _groupBlocksByArea(blocks) {
+    const areas = {
+      header: { blocks: [] },
+      content: { blocks: [] },
+      footer: { blocks: [] }
+    };
     
-    ['header', 'content', 'footer'].forEach(area => {
-      if (config.areas && config.areas[area] && config.areas[area].blocks) {
-        areas[area] = this._renderArea(area, config.areas[area], config, hass, entities);
-      } else {
-        areas[area] = '';
+    // 根据块的area属性自动分组
+    Object.entries(blocks || {}).forEach(([blockId, blockConfig]) => {
+      const area = blockConfig.area || 'content'; // 默认内容区域
+      if (areas[area]) {
+        areas[area].blocks.push({ id: blockId, ...blockConfig });
       }
     });
     
-    return areas;
+    // 渲染各区域
+    return {
+      header: this._renderArea('header', areas.header.blocks),
+      content: this._renderArea('content', areas.content.blocks),
+      footer: this._renderArea('footer', areas.footer.blocks)
+    };
   }
 
-  _renderArea(areaName, areaConfig, config, hass, entities) {
-    const blocks = areaConfig.blocks.map(blockId => 
-      this._renderBlock(blockId, config.blocks[blockId], hass, entities)
+  _renderArea(areaName, blocks) {
+    if (blocks.length === 0) return '';
+    
+    const blockElements = blocks.map(block => 
+      this._renderBlock(block.id, block, this.hass, this.entities)
     ).join('');
     
-    const layout = areaConfig.layout || 'single';
+    const layoutClass = this._getAutoLayoutClass(areaName, blocks.length);
     
     return `
       <div class="cardforge-area area-${areaName}">
-        ${this._renderLayout(layout, blocks)}
+        <div class="layout-container ${layoutClass}">
+          ${blockElements}
+        </div>
       </div>
     `;
+  }
+
+  _getAutoLayoutClass(areaName, blockCount) {
+    // 智能自动布局
+    if (areaName === 'header' || areaName === 'footer') {
+      return 'layout-single';
+    }
+    
+    // 内容区域智能布局
+    if (blockCount <= 1) return 'layout-single';
+    if (blockCount <= 4) return 'layout-grid-2x2';
+    if (blockCount <= 9) return 'layout-grid-3x3';
+    return 'layout-single'; // 更多块使用单列滚动
   }
 
   _renderBlock(blockId, blockConfig, hass, entities) {
@@ -106,17 +133,6 @@ export class BaseCard {
     }
     
     return blockConfig.content || '';
-  }
-
-  _renderLayout(layout, blocks) {
-    switch (layout) {
-      case 'grid-2x2':
-        return `<div class="layout-grid grid-2x2">${blocks}</div>`;
-      case 'grid-1x4':
-        return `<div class="layout-grid grid-1x4">${blocks}</div>`;
-      default:
-        return `<div class="layout-single">${blocks}</div>`;
-    }
   }
 
   _renderStyles(config, themeStyles) {

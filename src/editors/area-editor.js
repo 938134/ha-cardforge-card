@@ -2,13 +2,13 @@
 import { LitElement, html, css } from 'https://unpkg.com/lit@2.8.0/index.js?module';
 import { designSystem } from '../core/design-system.js';
 import { BlockSystem } from '../core/block-system.js';
-import { LayoutSystem } from '../core/layout-system.js';
 
 class AreaEditor extends LitElement {
   static properties = {
     config: { type: Object },
     hass: { type: Object },
-    _expandedAreas: { state: true }
+    _expandedAreas: { state: true },
+    _blocksByArea: { state: true }
   };
 
   static styles = [
@@ -60,17 +60,6 @@ class AreaEditor extends LitElement {
       .area-content {
         padding: var(--cf-spacing-md);
         background: var(--cf-surface);
-      }
-
-      .layout-section {
-        margin-bottom: var(--cf-spacing-lg);
-      }
-
-      .layout-label {
-        font-size: 0.9em;
-        font-weight: 500;
-        margin-bottom: var(--cf-spacing-sm);
-        color: var(--cf-text-primary);
       }
 
       .blocks-section {
@@ -129,6 +118,15 @@ class AreaEditor extends LitElement {
         overflow: hidden;
         text-overflow: ellipsis;
         white-space: nowrap;
+      }
+
+      .block-area {
+        font-size: 0.7em;
+        color: var(--cf-text-secondary);
+        background: rgba(var(--cf-rgb-primary), 0.1);
+        padding: 2px 6px;
+        border-radius: var(--cf-radius-sm);
+        margin-left: auto;
       }
 
       .block-actions {
@@ -204,6 +202,34 @@ class AreaEditor extends LitElement {
       content: true,
       footer: false
     };
+    this._blocksByArea = {
+      header: [],
+      content: [],
+      footer: []
+    };
+  }
+
+  willUpdate(changedProperties) {
+    if (changedProperties.has('config')) {
+      this._groupBlocksByArea();
+    }
+  }
+
+  _groupBlocksByArea() {
+    const blocksByArea = {
+      header: [],
+      content: [],
+      footer: []
+    };
+    
+    Object.entries(this.config.blocks || {}).forEach(([blockId, blockConfig]) => {
+      const area = blockConfig.area || 'content';
+      if (blocksByArea[area]) {
+        blocksByArea[area].push({ id: blockId, ...blockConfig });
+      }
+    });
+    
+    this._blocksByArea = blocksByArea;
   }
 
   render() {
@@ -221,9 +247,9 @@ class AreaEditor extends LitElement {
   }
 
   _renderAreaSection(area) {
-    const areaConfig = this.config.areas?.[area.id];
+    const blocks = this._blocksByArea[area.id] || [];
     const isExpanded = this._expandedAreas[area.id];
-    const blockCount = areaConfig?.blocks?.length || 0;
+    const blockCount = blocks.length;
 
     return html`
       <div class="area-section">
@@ -238,8 +264,7 @@ class AreaEditor extends LitElement {
         
         ${isExpanded ? html`
           <div class="area-content">
-            ${this._renderLayoutSection(area.id, areaConfig)}
-            ${this._renderBlocksSection(area.id, areaConfig)}
+            ${this._renderBlocksSection(area.id, blocks)}
             ${this._renderAddBlockButton(area.id)}
           </div>
         ` : ''}
@@ -247,28 +272,8 @@ class AreaEditor extends LitElement {
     `;
   }
 
-  _renderLayoutSection(areaId, areaConfig) {
-    if (areaId !== 'content') return '';
-
-    const currentLayout = areaConfig?.layout || 'single';
-    const layoutOptions = LayoutSystem.getLayoutOptions();
-
-    return html`
-      <div class="layout-section">
-        <div class="layout-label">布局方式</div>
-        <layout-selector
-          .layouts=${layoutOptions}
-          .selectedLayout=${currentLayout}
-          @layout-changed=${e => this._onLayoutChanged(areaId, e.detail.layout)}
-        ></layout-selector>
-      </div>
-    `;
-  }
-
-  _renderBlocksSection(areaId, areaConfig) {
-    const blockIds = areaConfig?.blocks || [];
-    
-    if (blockIds.length === 0) {
+  _renderBlocksSection(areaId, blocks) {
+    if (blocks.length === 0) {
       return html`
         <div class="empty-state">
           <ha-icon icon="mdi:cube-outline" style="font-size: 2em; opacity: 0.5; margin-bottom: var(--cf-spacing-sm);"></ha-icon>
@@ -280,30 +285,36 @@ class AreaEditor extends LitElement {
 
     return html`
       <div class="blocks-section">
-        ${blockIds.map(blockId => this._renderBlockItem(blockId))}
+        ${blocks.map(block => this._renderBlockItem(block))}
       </div>
     `;
   }
 
-  _renderBlockItem(blockId) {
-    const blockConfig = this.config.blocks?.[blockId];
-    if (!blockConfig) return '';
-
-    const displayName = BlockSystem.getBlockDisplayName(blockConfig);
-    const icon = BlockSystem.getBlockIcon(blockConfig);
-    const preview = BlockSystem.getBlockPreview(blockConfig, this.hass);
+  _renderBlockItem(block) {
+    const displayName = BlockSystem.getBlockDisplayName(block);
+    const icon = BlockSystem.getBlockIcon(block);
+    const preview = BlockSystem.getBlockPreview(block, this.hass);
+    const areaNames = {
+      'header': '标题',
+      'content': '内容', 
+      'footer': '页脚'
+    };
 
     return html`
-      <div class="block-item" @click=${() => this._editBlock(blockId)}>
+      <div class="block-item" @click=${() => this._editBlock(block.id)}>
         <div class="block-icon">
           <ha-icon .icon=${icon}></ha-icon>
         </div>
         <div class="block-info">
-          <div class="block-title">${blockConfig.title || displayName}</div>
+          <div class="block-title">${block.title || displayName}</div>
           <div class="block-preview">${preview}</div>
         </div>
+        <div class="block-area">${areaNames[block.area || 'content']}</div>
         <div class="block-actions">
-          <div class="block-action" @click=${e => this._deleteBlock(e, blockId)} title="删除">
+          <div class="block-action" @click=${e => this._moveBlock(e, block.id)} title="移动区域">
+            <ha-icon icon="mdi:swap-horizontal"></ha-icon>
+          </div>
+          <div class="block-action" @click=${e => this._deleteBlock(e, block.id)} title="删除">
             <ha-icon icon="mdi:delete"></ha-icon>
           </div>
         </div>
@@ -315,26 +326,23 @@ class AreaEditor extends LitElement {
     return html`
       <button class="add-block-btn" @click=${() => this._addBlock(areaId)}>
         <ha-icon icon="mdi:plus"></ha-icon>
-        添加块
+        添加块到${this._getAreaName(areaId)}
       </button>
     `;
+  }
+
+  _getAreaName(areaId) {
+    const names = {
+      'header': '标题区域',
+      'content': '内容区域',
+      'footer': '页脚区域'
+    };
+    return names[areaId] || '区域';
   }
 
   _toggleArea(areaId) {
     this._expandedAreas[areaId] = !this._expandedAreas[areaId];
     this.requestUpdate();
-  }
-
-  _onLayoutChanged(areaId, layout) {
-    if (!this.config.areas) {
-      this.config.areas = {};
-    }
-    if (!this.config.areas[areaId]) {
-      this.config.areas[areaId] = { blocks: [] };
-    }
-    
-    this.config.areas[areaId].layout = layout;
-    this._notifyConfigUpdate();
   }
 
   _editBlock(blockId) {
@@ -343,9 +351,23 @@ class AreaEditor extends LitElement {
     }));
   }
 
+  _moveBlock(e, blockId) {
+    e.stopPropagation();
+    
+    const currentArea = this.config.blocks[blockId]?.area || 'content';
+    const areas = ['header', 'content', 'footer'];
+    const currentIndex = areas.indexOf(currentArea);
+    const nextArea = areas[(currentIndex + 1) % areas.length];
+    
+    this.config.blocks[blockId].area = nextArea;
+    this._groupBlocksByArea();
+    this._notifyConfigUpdate();
+  }
+
   _addBlock(areaId) {
     const blockId = `block_${Date.now()}`;
     const blockConfig = BlockSystem.createBlock();
+    blockConfig.area = areaId; // 设置区域属性
     
     this.dispatchEvent(new CustomEvent('add-block', {
       detail: {
@@ -361,22 +383,16 @@ class AreaEditor extends LitElement {
     
     if (!confirm('确定要删除这个块吗？')) return;
     
-    // 从所有区域中移除该块
-    Object.values(this.config.areas || {}).forEach(area => {
-      if (area.blocks) {
-        area.blocks = area.blocks.filter(id => id !== blockId);
-      }
-    });
-    
     // 删除块配置
     delete this.config.blocks[blockId];
     
+    this._groupBlocksByArea();
     this._notifyConfigUpdate();
   }
 
   _notifyConfigUpdate() {
     this.dispatchEvent(new CustomEvent('config-changed', {
-      detail: { config: { areas: this.config.areas, blocks: this.config.blocks } }
+      detail: { config: { blocks: this.config.blocks } }
     }));
   }
 }
