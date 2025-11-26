@@ -94,16 +94,18 @@ export class BaseCard {
       .map(([blockId]) => blockId);
   }
 
-  _getBlocksByArea(blocks, area) {
-    return Object.entries(blocks)
-      .filter(([blockId, blockConfig]) => {
-        // 内容区域是默认区域
-        if (area === 'content') {
-          return !blockConfig.area || blockConfig.area === 'content';
-        }
-        return blockConfig.area === area;
-      })
-      .map(([blockId]) => blockId);
+  _renderArea(areaName, areaConfig, config, hass, entities) {
+    const blocks = areaConfig.blocks.map(blockId => 
+      this._renderBlock(blockId, config.blocks[blockId], hass, entities)
+    ).join('');
+    
+    const layout = areaConfig.layout || 'single';
+    
+    return `
+      <div class="cardforge-area area-${areaName}">
+        ${this._renderLayout(layout, blocks)}
+      </div>
+    `;
   }
 
   _renderBlock(blockId, blockConfig, hass, entities) {
@@ -135,6 +137,8 @@ export class BaseCard {
         return `<div class="layout-grid grid-2x2">${blocks}</div>`;
       case 'grid-1x4':
         return `<div class="layout-grid grid-1x4">${blocks}</div>`;
+      case 'grid-3x3':
+        return `<div class="layout-grid grid-3x3">${blocks}</div>`;
       default:
         return `<div class="layout-single">${blocks}</div>`;
     }
