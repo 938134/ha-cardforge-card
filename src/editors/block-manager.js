@@ -61,15 +61,15 @@ class BlockManager extends LitElement {
       }
 
       .area-dot.header {
-        background: #2196F3; /* 蓝色 - 标题区域 */
+        background: #2196F3;
       }
 
       .area-dot.content {
-        background: #4CAF50; /* 绿色 - 内容区域 */
+        background: #4CAF50;
       }
 
       .area-dot.footer {
-        background: #FF9800; /* 橙色 - 页脚区域 */
+        background: #FF9800;
       }
 
       .area-text {
@@ -202,27 +202,6 @@ class BlockManager extends LitElement {
         margin-bottom: var(--cf-spacing-md);
       }
 
-      /* 表头 */
-      .grid-header {
-        display: grid;
-        grid-template-columns: 40px 48px 1fr 40px 40px;
-        gap: var(--cf-spacing-sm);
-        padding: 0 var(--cf-spacing-sm) var(--cf-spacing-xs);
-        font-size: 0.8em;
-        font-weight: 600;
-        color: var(--cf-text-secondary);
-        border-bottom: 1px solid var(--cf-border);
-        margin-bottom: var(--cf-spacing-xs);
-      }
-
-      .header-cell {
-        text-align: center;
-      }
-
-      .header-cell:nth-child(3) {
-        text-align: left;
-      }
-
       /* 响应式适配 */
       @media (max-width: 600px) {
         .block-row {
@@ -259,7 +238,6 @@ class BlockManager extends LitElement {
     
     return html`
       <div class="block-manager">
-        ${blocks.length > 0 ? this._renderGridHeader() : ''}
         ${this._renderBlocksGrid(blocks)}
         ${this._renderAddBlockButton()}
       </div>
@@ -273,18 +251,6 @@ class BlockManager extends LitElement {
       id: blockId,
       ...blockConfig
     }));
-  }
-
-  _renderGridHeader() {
-    return html`
-      <div class="grid-header">
-        <div class="header-cell">区域</div>
-        <div class="header-cell">图标</div>
-        <div class="header-cell">名称与状态</div>
-        <div class="header-cell">编辑</div>
-        <div class="header-cell">删除</div>
-      </div>
-    `;
   }
 
   _renderBlocksGrid(blocks) {

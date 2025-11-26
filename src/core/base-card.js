@@ -82,18 +82,16 @@ export class BaseCard {
     return areas;
   }
 
-  _renderArea(areaName, areaConfig, config, hass, entities) {
-    const blocks = areaConfig.blocks.map(blockId => 
-      this._renderBlock(blockId, config.blocks[blockId], hass, entities)
-    ).join('');
-    
-    const layout = areaConfig.layout || 'single';
-    
-    return `
-      <div class="cardforge-area area-${areaName}">
-        ${this._renderLayout(layout, blocks)}
-      </div>
-    `;
+  _getBlocksByArea(blocks, area) {
+    return Object.entries(blocks)
+      .filter(([blockId, blockConfig]) => {
+        // 内容区域是默认区域
+        if (area === 'content') {
+          return !blockConfig.area || blockConfig.area === 'content';
+        }
+        return blockConfig.area === area;
+      })
+      .map(([blockId]) => blockId);
   }
 
   _getBlocksByArea(blocks, area) {
