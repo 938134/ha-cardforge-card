@@ -6,7 +6,8 @@ import { themeManager } from '../core/theme-manager.js';
 class ThemeEditor extends LitElement {
   static properties = {
     config: { type: Object },
-    _availableThemes: { state: true }
+    _availableThemes: { state: true },
+    _loading: { state: true }
   };
 
   static styles = [
@@ -52,21 +53,45 @@ class ThemeEditor extends LitElement {
         font-weight: 500;
         line-height: 1.2;
       }
+
+      .loading-state {
+        text-align: center;
+        padding: var(--cf-spacing-xl);
+        color: var(--cf-text-secondary);
+      }
     `
   ];
 
   constructor() {
     super();
     this._availableThemes = [];
+    this._loading = true;
   }
 
   async firstUpdated() {
-    await themeManager.initialize();
-    this._availableThemes = themeManager.getAllThemes();
-    this.requestUpdate();
+    try {
+      // 等待主题管理器初始化完成
+      await themeManager.initialize();
+      this._availableThemes = themeManager.getAllThemes();
+      console.log('可用主题:', this._availableThemes);
+    } catch (error) {
+      console.error('加载主题失败:', error);
+    } finally {
+      this._loading = false;
+      this.requestUpdate();
+    }
   }
 
   render() {
+    if (this._loading) {
+      return html`
+        <div class="loading-state">
+          <ha-circular-progress indeterminate></ha-circular-progress>
+          <div class="cf-text-sm cf-mt-md">加载主题中...</div>
+        </div>
+      `;
+    }
+
     const currentTheme = this.config?.theme || 'auto';
 
     return html`
