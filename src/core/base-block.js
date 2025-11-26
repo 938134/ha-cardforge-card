@@ -8,17 +8,34 @@ export class BaseBlock {
     }
   }
 
-  getTemplate(config, hass) {
-    throw new Error('必须实现 getTemplate 方法');
-  }
-
-  getStyles(config) {
-    throw new Error('必须实现 getStyles 方法');
-  }
-
   render(config, hass) {
     const safeConfig = this._getSafeConfig(config);
     return this.getTemplate(safeConfig, hass);
+  }
+
+  getStyles(config) {
+    const themeId = config.theme || 'auto';
+    const themeStyles = themeManager.getThemeStyles(themeId, config);
+    
+    return `
+      .block-container {
+        ${themeStyles}
+        height: 100%;
+        display: flex;
+        flex-direction: column;
+      }
+      
+      .block-content {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+      }
+    `;
+  }
+
+  getTemplate(config, hass) {
+    throw new Error('必须实现 getTemplate 方法');
   }
 
   _getSafeConfig(config) {
@@ -42,27 +59,6 @@ export class BaseBlock {
           ${content}
         </div>
       </div>
-    `;
-  }
-
-  getBaseStyles(config) {
-    const themeId = config.theme || 'auto';
-    const themeStyles = themeManager.getThemeStyles(themeId, config);
-    
-    return `
-      .block-container {
-        ${themeStyles}
-        height: 100%;
-        display: flex;
-        flex-direction: column;
-      }
-      
-      .block-content {
-        flex: 1;
-        display: flex;
-        flex-direction: column;
-        justify-content: center;
-      }
     `;
   }
 
