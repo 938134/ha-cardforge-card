@@ -1,14 +1,14 @@
 // src/ha-cardforge-card.js
 import { LitElement, html, css } from 'https://unpkg.com/lit@2.8.0/index.js?module';
 import { unsafeHTML } from 'https://unpkg.com/lit-html/directives/unsafe-html.js?module';
-import { blockRegistry } from './core/block-registry.js';
+import { cardRegistry } from './core/card-registry.js';
 import { designSystem } from './core/design-system.js';
 
 class HaCardForgeCard extends LitElement {
   static properties = {
     hass: { type: Object },
     config: { type: Object },
-    _blocks: { state: true },
+    _cardInstance: { state: true },
     _error: { state: true },
     _loading: { state: true }
   };
@@ -22,18 +22,6 @@ class HaCardForgeCard extends LitElement {
         min-height: 80px;
       }
 
-      .blocks-container {
-        display: flex;
-        flex-direction: column;
-        gap: var(--cf-spacing-sm);
-        height: 100%;
-      }
-
-      .block-item {
-        flex: 1;
-        min-height: 60px;
-      }
-
       .cardforge-error-container {
         flex: 1;
         display: flex;
@@ -43,14 +31,28 @@ class HaCardForgeCard extends LitElement {
         gap: var(--cf-spacing-md);
         min-height: 80px;
         text-align: center;
-        padding: var(--cf-spacing-lg);
+      }
+
+      .cardforge-error-message {
+        font-size: 0.85em;
+        color: var(--cf-text-secondary);
+        line-height: 1.4;
+      }
+
+      /* 确保卡片容器正确继承高度 */
+      ha-card {
+        height: 100%;
+      }
+
+      .cardforge-container > * {
+        height: 100%;
       }
     `
   ];
 
   constructor() {
     super();
-    this._blocks = [];
+    this._cardInstance = null;
     this._error = null;
     this._loading = false;
   }
@@ -60,10 +62,18 @@ class HaCardForgeCard extends LitElement {
       this._loading = true;
       this._error = null;
       
+      // 验证配置
       this.config = this._validateConfig(config);
-      await blockRegistry.initialize();
       
-      this._blocks = this.config.blocks || [];
+      // 初始化卡片系统
+      await cardRegistry.initialize();
+      
+      // 加载卡片实例
+      this._cardInstance = cardRegistry.createCardInstance(this.config.card_type);
+      
+      if (!this._cardInstance) {
+        throw new Error(`未知卡片类型: ${this.config.card_type}`);
+      }
       
     } catch (error) {
       console.error('卡片加载失败:', error);
@@ -75,15 +85,16 @@ class HaCardForgeCard extends LitElement {
   }
 
   _validateConfig(config) {
-    if (!config) {
-      throw new Error('配置不能为空');
+    if (!config || !config.card_type) {
+      throw new Error('必须指定 card_type 参数');
     }
     
     return {
       type: 'custom:ha-cardforge-card',
-      blocks: [],
-      layout: 'vertical',
+      card_type: '',
       theme: 'auto',
+      areas: {},
+      blocks: {},
       ...config
     };
   }
@@ -93,7 +104,7 @@ class HaCardForgeCard extends LitElement {
       return html`
         <ha-card>
           <div class="cardforge-container">
-            <div class="cardforge-error-container">
+            <div class="cf-flex cf-flex-center cf-flex-column cf-p-xl">
               <div class="cf-error cf-text-xl cf-mb-md">❌</div>
               <div class="cf-text-lg cf-font-bold cf-mb-sm">卡片加载失败</div>
               <div class="cf-text-sm cf-text-secondary">${this._error.message}</div>
@@ -103,7 +114,7 @@ class HaCardForgeCard extends LitElement {
       `;
     }
     
-    if (this._loading) {
+    if (this._loading || !this._cardInstance) {
       return html`
         <ha-card>
           <div class="cardforge-container">
@@ -117,17 +128,17 @@ class HaCardForgeCard extends LitElement {
     }
     
     try {
+      const renderResult = this._cardInstance.render(this.config, this.hass, this.config.entities || {});
+      
       return html`
         <ha-card>
           <div class="cardforge-container">
-            <div class="blocks-container">
-              ${this._blocks.map(block => this._renderBlock(block))}
-            </div>
+            ${unsafeHTML(renderResult.template)}
           </div>
         </ha-card>
         
         <style>
-          ${this._renderAllStyles()}
+          ${renderResult.styles}
         </style>
       `;
     } catch (error) {
@@ -135,9 +146,9 @@ class HaCardForgeCard extends LitElement {
       return html`
         <ha-card>
           <div class="cardforge-container">
-            <div class="cardforge-error-container">
+            <div class="cf-flex cf-flex-center cf-flex-column cf-p-xl">
               <div class="cf-warning cf-text-xl cf-mb-md">⚠️</div>
-              <div class="cf-text-lg cf-font-bold cf-mb-sm">渲染错误</div>
+              <div class="cf-text-lg cf-font-bold cf-mb-sm">卡片渲染错误</div>
               <div class="cf-text-sm cf-text-secondary">${error.message}</div>
             </div>
           </div>
@@ -146,51 +157,35 @@ class HaCardForgeCard extends LitElement {
     }
   }
 
-  _renderBlock(block) {
-    const blockInstance = blockRegistry.createBlockInstance(block.type);
-    if (!blockInstance) {
-      return html`<div class="block-item cf-error">未知块类型: ${block.type}</div>`;
+  updated(changedProperties) {
+    if (changedProperties.has('hass')) {
+      this.requestUpdate();
     }
-    
-    try {
-      const template = blockInstance.render(block.config, this.hass);
-      const styles = blockInstance.getStyles(block.config);
-      
-      return html`
-        <div class="block-item">
-          ${unsafeHTML(template)}
-        </div>
-        
-        <style>
-          ${styles}
-        </style>
-      `;
-    } catch (error) {
-      return html`<div class="block-item cf-error">块渲染错误: ${error.message}</div>`;
-    }
-  }
-
-  _renderAllStyles() {
-    return this._blocks.map(block => {
-      const blockInstance = blockRegistry.createBlockInstance(block.type);
-      return blockInstance ? blockInstance.getStyles(block.config) : '';
-    }).join('\n');
   }
 
   static getConfigElement() {
-    return document.createElement('block-editor');
+    return document.createElement('card-editor');
   }
 
   static getStubConfig() {
     return {
       type: 'custom:ha-cardforge-card',
-      blocks: [], // 默认空数组，不包含时间块
-      theme: 'auto'
+      card_type: 'welcome-card',
+      theme: 'auto',
+      areas: {},
+      blocks: {}
     };
   }
 
   getCardSize() {
-    return this._blocks.length + 1;
+    // 根据卡片类型返回合适的卡片大小
+    if (this._cardInstance) {
+      const manifest = this._cardInstance.getManifest?.();
+      if (manifest?.category === '时间') return 2;
+      if (manifest?.category === '信息') return 3;
+      if (manifest?.category === '文化') return 4;
+    }
+    return 3;
   }
 }
 

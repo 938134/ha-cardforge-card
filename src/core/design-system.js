@@ -51,6 +51,10 @@ export const designSystem = css`
     --cf-transition-fast: 0.15s ease;
     --cf-transition-normal: 0.25s ease;
     --cf-transition-slow: 0.4s ease;
+
+    /* 卡片容器默认样式 */
+    --cardforge-container-padding: var(--cf-spacing-lg);
+    --cardforge-container-min-height: 80px;
   }
 
   /* ===== 深色模式适配 ===== */
@@ -62,6 +66,73 @@ export const designSystem = css`
       --cf-text-primary: var(--cf-dark-text);
       --cf-text-secondary: var(--cf-dark-text-secondary);
     }
+  }
+
+  /* ===== 统一卡片容器样式 ===== */
+  .cardforge-card {
+    display: flex;
+    flex-direction: column;
+    min-height: var(--cardforge-container-min-height);
+    height: auto;
+    padding: var(--cardforge-container-padding);
+    container-type: inline-size;
+    container-name: cardforge-container;
+    position: relative;
+    overflow: hidden;
+    box-sizing: border-box;
+  }
+
+  .cardforge-area {
+    display: flex;
+    flex-direction: column;
+    gap: var(--cf-spacing-md);
+  }
+
+  /* ===== 布局系统 ===== */
+  .layout-single {
+    display: flex;
+    flex-direction: column;
+    gap: var(--cf-spacing-md);
+  }
+
+  .layout-grid {
+    display: grid;
+    gap: var(--cf-spacing-md);
+  }
+
+  .layout-grid.grid-2x2 {
+    grid-template: repeat(2, 1fr) / repeat(2, 1fr);
+  }
+
+  .layout-grid.grid-1x4 {
+    grid-template: 1fr / repeat(4, 1fr);
+  }
+
+  .layout-grid.grid-3x3 {
+    grid-template: repeat(3, 1fr) / repeat(3, 1fr);
+  }
+
+  /* ===== 块样式 ===== */
+  .cardforge-block {
+    display: flex;
+    flex-direction: column;
+    gap: var(--cf-spacing-sm);
+    min-height: 60px;
+  }
+
+  .block-title {
+    font-size: 0.9em;
+    font-weight: 500;
+    color: var(--cf-text-primary);
+    margin: 0;
+  }
+
+  .block-content {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    color: var(--cf-text-primary);
   }
 
   /* ===== 布局工具类 ===== */
@@ -83,20 +154,12 @@ export const designSystem = css`
   .cf-p-sm { padding: var(--cf-spacing-sm); }
   .cf-p-md { padding: var(--cf-spacing-md); }
   .cf-p-lg { padding: var(--cf-spacing-lg); }
-  .cf-p-xl { padding: var(--cf-spacing-xl); }
   
   .cf-m-sm { margin: var(--cf-spacing-sm); }
   .cf-m-md { margin: var(--cf-spacing-md); }
   .cf-m-lg { margin: var(--cf-spacing-lg); }
-  .cf-mt-sm { margin-top: var(--cf-spacing-sm); }
-  .cf-mt-md { margin-top: var(--cf-spacing-md); }
-  .cf-mt-lg { margin-top: var(--cf-spacing-lg); }
-  .cf-mb-sm { margin-bottom: var(--cf-spacing-sm); }
-  .cf-mb-md { margin-bottom: var(--cf-spacing-md); }
-  .cf-mb-lg { margin-bottom: var(--cf-spacing-lg); }
 
   /* ===== 文本工具类 ===== */
-  .cf-text-xs { font-size: 0.75em; }
   .cf-text-sm { font-size: 0.85em; }
   .cf-text-md { font-size: 1em; }
   .cf-text-lg { font-size: 1.2em; }
@@ -111,46 +174,81 @@ export const designSystem = css`
   .cf-font-bold { font-weight: 700; }
 
   /* ===== 状态样式 ===== */
+  .cf-status-on { color: var(--cf-success-color); }
+  .cf-status-off { color: var(--cf-text-secondary); }
+  .cf-status-unavailable { color: var(--cf-error-color); opacity: 0.5; }
+  
   .cf-error { color: var(--cf-error-color); }
   .cf-warning { color: var(--cf-warning-color); }
   .cf-success { color: var(--cf-success-color); }
 
-  /* ===== 加载状态 ===== */
-  .cf-loading {
+  /* ===== 动画系统 ===== */
+  @keyframes cf-fadeIn {
+    from { opacity: 0; transform: translateY(8px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  
+  .cf-animate-fadeIn { animation: cf-fadeIn 0.25s ease; }
+
+  /* ===== 响应式容器查询 ===== */
+  @container cardforge-container (max-width: 400px) {
+    .cardforge-card {
+      padding: var(--cf-spacing-md);
+    }
+    
+    .layout-grid.grid-2x2,
+    .layout-grid.grid-1x4,
+    .layout-grid.grid-3x3 {
+      grid-template: 1fr / 1fr;
+    }
+    
+    .cf-grid-2,
+    .cf-grid-3,
+    .cf-grid-4 {
+      grid-template-columns: 1fr;
+    }
+  }
+
+  /* ===== 错误和加载状态 ===== */
+  .cardforge-error-container,
+  .cardforge-loading-container,
+  .cardforge-empty-container {
+    flex: 1;
     display: flex;
+    flex-direction: column;
     align-items: center;
     justify-content: center;
     gap: var(--cf-spacing-md);
-    padding: var(--cf-spacing-xl);
+    min-height: 80px;
+    text-align: center;
   }
 
-  .cf-loading-spinner {
+  .cardforge-loading-spinner {
     width: 24px;
     height: 24px;
     border: 2px solid var(--cf-border);
     border-top: 2px solid var(--cf-primary-color);
     border-radius: 50%;
-    animation: cf-spin 1s linear infinite;
+    animation: cardforge-spin 1s linear infinite;
   }
 
-  @keyframes cf-spin {
+  @keyframes cardforge-spin {
     0% { transform: rotate(0deg); }
     100% { transform: rotate(360deg); }
   }
 
-  /* ===== 块容器样式 ===== */
-  .block-container {
-    container-type: inline-size;
-    container-name: block-container;
-    position: relative;
-    overflow: hidden;
-    box-sizing: border-box;
+  /* ===== 编辑器样式 ===== */
+  .editor-container {
+    font-family: var(--paper-font-body1_-_font-family);
+    -webkit-font-smoothing: var(--paper-font-body1_-_-webkit-font-smoothing);
   }
 
-  /* ===== 响应式容器查询 ===== */
-  @container block-container (max-width: 400px) {
-    .block-container {
-      padding: var(--cf-spacing-sm);
-    }
+  /* ===== 深色模式类 ===== */
+  .cf-dark-mode {
+    --cf-background: var(--cf-dark-background);
+    --cf-surface: var(--cf-dark-surface);
+    --cf-border: var(--cf-dark-border);
+    --cf-text-primary: var(--cf-dark-text);
+    --cf-text-secondary: var(--cf-dark-text-secondary);
   }
 `;

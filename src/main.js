@@ -1,23 +1,25 @@
 // src/main.js
 import { HaCardForgeCard } from './ha-cardforge-card.js';
-import { BlockEditor } from './editors/block-editor.js';
+import { CardEditor } from './editors/card-editor.js';
 
+// 注册自定义元素
 if (!customElements.get('ha-cardforge-card')) {
   customElements.define('ha-cardforge-card', HaCardForgeCard);
 }
 
-if (!customElements.get('block-editor')) {
-  customElements.define('block-editor', BlockEditor);
+if (!customElements.get('card-editor')) {
+  customElements.define('card-editor', CardEditor);
 }
 
+// 注册到 Home Assistant 自定义卡片系统
 if (window.customCards) {
   window.customCards.push({
     type: 'ha-cardforge-card',
     name: '卡片工坊',
-    description: '基于块系统的卡片工坊，支持拖拽布局',
+    description: '基于插件系统的卡片工坊，支持自由布局和数据看板',
     preview: true,
     documentationURL: 'https://github.com/your-repo/ha-cardforge-card'
   });
 }
 
-console.log('🎉 卡片工坊块系统初始化完成');
+console.log('🎉 卡片工坊初始化完成');

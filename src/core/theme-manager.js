@@ -21,7 +21,7 @@ class ThemeManager {
       'auto': () => import('../themes/auto-theme.js'),
       'glass': () => import('../themes/glass-theme.js'),
       'gradient': () => import('../themes/gradient-theme.js'),
-      'neon': () => import('../themes/neon-theme.js')
+      'neon': () => import('../themes/neon-theme.js'),
     };
 
     for (const [themeId, importFn] of Object.entries(themeFiles)) {
@@ -106,6 +106,7 @@ class ThemeManager {
       .join(' ');
   }
 
+  // === 主题管理 API ===
   getTheme(themeId) {
     return this.themes.get(themeId) || this.themes.get('auto');
   }
@@ -139,48 +140,12 @@ class ThemeManager {
       theme.applyTheme(element, config);
     }
   }
-
-  registerDynamicTheme(themeConfig) {
-    if (!themeConfig.id || !themeConfig.name || !themeConfig.getStyles) {
-      console.warn('动态主题配置不完整，跳过注册');
-      return;
-    }
-
-    this.themes.set(themeConfig.id, {
-      id: themeConfig.id,
-      manifest: {
-        id: themeConfig.id,
-        name: themeConfig.name,
-        description: themeConfig.description || `${themeConfig.name}主题`,
-        icon: themeConfig.icon || '🎨',
-        category: themeConfig.category || 'general',
-        preview: themeConfig.preview || this._generatePreviewFromConfig(themeConfig)
-      },
-      getStyles: themeConfig.getStyles,
-      applyTheme: themeConfig.applyTheme || (() => {}),
-      getPreview: () => themeConfig.preview || this._generatePreviewFromConfig(themeConfig)
-    });
-  }
-
-  _generatePreviewFromConfig(themeConfig) {
-    try {
-      const styles = themeConfig.getStyles({});
-      const backgroundMatch = styles.match(/background:\s*([^;]+)/);
-      const colorMatch = styles.match(/color:\s*([^;]+)/);
-      const borderMatch = styles.match(/border:\s*([^;]+)/);
-      
-      return {
-        background: backgroundMatch ? backgroundMatch[1].trim() : this._getDefaultBackground(themeConfig.id),
-        color: colorMatch ? colorMatch[1].trim() : '#ffffff',
-        border: borderMatch ? borderMatch[1].trim() : '1px solid var(--divider-color)'
-      };
-    } catch (error) {
-      return this._getDefaultPreview(themeConfig.id);
-    }
-  }
 }
 
+// 创建全局主题管理器实例
 const themeManager = new ThemeManager();
+
+// 自动初始化
 themeManager.initialize();
 
 export { themeManager, ThemeManager };
