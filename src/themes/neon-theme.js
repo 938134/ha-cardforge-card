@@ -4,14 +4,6 @@ export default {
   name: '霓虹光影',
   description: '赛博朋克风格的霓虹灯效果',
   icon: '💡',
-  category: 'effect',
-
-  preview: {
-    background: '#1a1a1a',
-    color: '#00ff88',
-    border: '1px solid #00ff88',
-    boxShadow: '0 0 8px #00ff88'
-  },
 
   getStyles(config = {}) {
     const glowColor = config.glowColor || '#00ff88';
@@ -41,13 +33,5 @@ export default {
         }
       }
     `;
-  },
-
-  applyTheme(element, config = {}) {
-    if (config.useMultipleColors) {
-      element.classList.add('multicolor');
-    } else {
-      element.classList.remove('multicolor');
-    }
   }
 };
