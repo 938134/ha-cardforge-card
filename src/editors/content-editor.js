@@ -2,7 +2,6 @@
 import { LitElement, html, css } from 'https://unpkg.com/lit@2.8.0/index.js?module';
 import { designSystem } from '../core/design-system.js';
 import { blockManager } from '../core/block-manager.js';
-import './block-forms/base-form.js';
 
 class ContentEditor extends LitElement {
   static properties = {
@@ -11,7 +10,8 @@ class ContentEditor extends LitElement {
     activeSection: { type: String },
     _availableBlocks: { state: true },
     _editingBlock: { state: true },
-    _showBlockPicker: { state: true }
+    _showBlockPicker: { state: true },
+    _loading: { state: true }
   };
 
   static styles = [
@@ -109,6 +109,12 @@ class ContentEditor extends LitElement {
         border-radius: var(--cf-radius-md);
         background: var(--cf-surface);
       }
+
+      .loading-state {
+        text-align: center;
+        padding: var(--cf-spacing-xl);
+        color: var(--cf-text-secondary);
+      }
     `
   ];
 
@@ -117,12 +123,22 @@ class ContentEditor extends LitElement {
     this._availableBlocks = [];
     this._editingBlock = null;
     this._showBlockPicker = false;
+    this._loading = true;
   }
 
   async firstUpdated() {
-    await blockManager.initialize();
-    this._availableBlocks = blockManager.getAllBlocks();
-    this.requestUpdate();
+    try {
+      console.log('🔄 开始加载块...');
+      await blockManager.initialize();
+      this._availableBlocks = blockManager.getAllBlocks();
+      console.log('✅ 块加载完成:', this._availableBlocks);
+      this._loading = false;
+      this.requestUpdate();
+    } catch (error) {
+      console.error('❌ 块加载失败:', error);
+      this._loading = false;
+      this.requestUpdate();
+    }
   }
 
   render() {
@@ -135,55 +151,70 @@ class ContentEditor extends LitElement {
           当前区域: ${currentSection}
         </div>
 
-        <!-- 块选择器 -->
-        ${this._showBlockPicker ? html`
-          <div class="block-picker">
-            <div class="cf-text-sm cf-font-medium cf-mb-md">选择块类型:</div>
-            <div class="blocks-grid">
-              ${this._availableBlocks.map(block => html`
-                <div 
-                  class="block-type-item"
-                  @click=${() => this._addBlock(block.type)}
-                  title="${block.name}"
-                >
-                  <div class="block-icon">${block.icon}</div>
-                  <div class="block-type-name">${block.name}</div>
-                </div>
-              `)}
-            </div>
-          </div>
-        ` : ''}
-
-        <!-- 添加块按钮 -->
-        <div 
-          class="add-block-btn"
-          @click=${this._toggleBlockPicker}
-        >
-          <ha-icon icon="mdi:plus" class="cf-mr-sm"></ha-icon>
-          ${this._showBlockPicker ? '取消添加' : '添加块'}
-        </div>
-
-        <!-- 块列表 -->
-        <div class="blocks-list">
-          ${sectionBlocks.length === 0 ? html`
-            <div class="empty-state">
-              <ha-icon icon="mdi:package-variant" style="font-size: 2em; opacity: 0.5;"></ha-icon>
-              <div class="cf-text-sm cf-mt-md">此区域尚未添加任何块</div>
-              <div class="cf-text-xs cf-mt-sm">点击上方"添加块"开始创建</div>
-            </div>
-          ` : sectionBlocks.map(block => this._renderBlockItem(block))}
-        </div>
-
-        <!-- 块编辑表单 -->
-        ${this._editingBlock ? html`
-          <block-form
-            .block=${this._editingBlock}
-            .hass=${this.hass}
-            @block-updated=${this._onBlockUpdated}
-            @block-deleted=${this._onBlockDeleted}
-          ></block-form>
-        ` : ''}
+        ${this._loading ? this._renderLoading() : this._renderContent(sectionBlocks)}
       </div>
+    `;
+  }
+
+  _renderLoading() {
+    return html`
+      <div class="loading-state">
+        <ha-circular-progress indeterminate></ha-circular-progress>
+        <div class="cf-text-sm cf-mt-md">加载块类型...</div>
+      </div>
+    `;
+  }
+
+  _renderContent(sectionBlocks) {
+    return html`
+      <!-- 块选择器 -->
+      ${this._showBlockPicker ? html`
+        <div class="block-picker">
+          <div class="cf-text-sm cf-font-medium cf-mb-md">选择块类型:</div>
+          <div class="blocks-grid">
+            ${this._availableBlocks.map(block => html`
+              <div 
+                class="block-type-item"
+                @click=${() => this._addBlock(block.type)}
+                title="${block.name}"
+              >
+                <div class="block-icon">${block.icon}</div>
+                <div class="block-type-name">${block.name}</div>
+              </div>
+            `)}
+          </div>
+        </div>
+      ` : ''}
+
+      <!-- 添加块按钮 -->
+      <div 
+        class="add-block-btn"
+        @click=${this._toggleBlockPicker}
+      >
+        <ha-icon icon="mdi:plus" class="cf-mr-sm"></ha-icon>
+        ${this._showBlockPicker ? '取消添加' : '添加块'}
+      </div>
+
+      <!-- 块列表 -->
+      <div class="blocks-list">
+        ${sectionBlocks.length === 0 ? html`
+          <div class="empty-state">
+            <ha-icon icon="mdi:package-variant" style="font-size: 2em; opacity: 0.5;"></ha-icon>
+            <div class="cf-text-sm cf-mt-md">此区域尚未添加任何块</div>
+            <div class="cf-text-xs cf-mt-sm">点击上方"添加块"开始创建</div>
+          </div>
+        ` : sectionBlocks.map(block => this._renderBlockItem(block))}
+      </div>
+
+      <!-- 块编辑表单 -->
+      ${this._editingBlock ? html`
+        <block-form
+          .block=${this._editingBlock}
+          .hass=${this.hass}
+          @block-updated=${this._onBlockUpdated}
+          @block-deleted=${this._onBlockDeleted}
+        ></block-form>
+      ` : ''}
     `;
   }
 
