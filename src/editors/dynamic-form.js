@@ -16,11 +16,27 @@ class DynamicForm extends LitElement {
         width: 100%;
       }
 
-      .form-grid {
+      /* 布尔值字段网格 - 2列 */
+      .boolean-grid {
         display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: var(--cf-spacing-sm);
+        margin-bottom: var(--cf-spacing-lg);
+      }
+
+      /* 选择器字段网格 - 2列 */
+      .select-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
         gap: var(--cf-spacing-md);
-        align-items: start;
+        margin-bottom: var(--cf-spacing-lg);
+      }
+
+      /* 输入字段 - 全宽度 */
+      .input-grid {
+        display: flex;
+        flex-direction: column;
+        gap: var(--cf-spacing-md);
       }
 
       .form-field {
@@ -36,6 +52,7 @@ class DynamicForm extends LitElement {
         margin-bottom: var(--cf-spacing-xs);
       }
 
+      /* 布尔值字段样式 */
       .switch-field {
         display: flex;
         align-items: center;
@@ -59,26 +76,52 @@ class DynamicForm extends LitElement {
         flex: 1;
       }
 
+      /* 选择器和输入字段 */
       .select-field,
-      .text-field {
+      .text-field,
+      .color-field {
         width: 100%;
       }
 
-      .color-preview {
-        width: 20px;
-        height: 20px;
-        border-radius: var(--cf-radius-sm);
-        border: 1px solid var(--cf-border);
-        margin-left: var(--cf-spacing-sm);
+      /* 颜色选择器容器 */
+      .color-picker-container {
+        display: flex;
+        align-items: center;
+        gap: var(--cf-spacing-sm);
       }
 
+      .color-preview {
+        width: 24px;
+        height: 24px;
+        border-radius: var(--cf-radius-sm);
+        border: 1px solid var(--cf-border);
+        cursor: pointer;
+        transition: transform var(--cf-transition-fast);
+      }
+
+      .color-preview:hover {
+        transform: scale(1.1);
+      }
+
+      /* 全宽度字段 */
       .full-width {
         grid-column: 1 / -1;
       }
 
+      /* 组标题 */
+      .group-title {
+        font-size: 1em;
+        font-weight: 600;
+        color: var(--cf-text-primary);
+        margin: var(--cf-spacing-lg) 0 var(--cf-spacing-md) 0;
+        padding-bottom: var(--cf-spacing-xs);
+        border-bottom: 1px solid var(--cf-border);
+      }
+
       /* 移动端适配 */
       @media (max-width: 768px) {
-        .form-grid {
+        .boolean-grid,
+        .select-grid {
           grid-template-columns: 1fr;
           gap: var(--cf-spacing-sm);
         }
@@ -128,149 +171,183 @@ class DynamicForm extends LitElement {
       return this._renderEmptyState();
     }
 
+    const booleanFields = this._getFieldsByType('boolean');
+    const selectFields = this._getFieldsByType('select');
+    const colorFields = this._getFieldsByType('color');
+    const otherFields = this._getOtherFields();
+
     return html`
       <div class="dynamic-form">
-        <div class="form-grid">
-          ${Object.entries(this.schema).map(([key, field]) => 
-            this._renderField(key, field)
-          )}
-        </div>
+        ${booleanFields.length > 0 ? this._renderBooleanGrid(booleanFields) : ''}
+        ${selectFields.length > 0 ? this._renderSelectGrid(selectFields) : ''}
+        ${colorFields.length > 0 ? this._renderColorFields(colorFields) : ''}
+        ${otherFields.length > 0 ? this._renderInputGrid(otherFields) : ''}
       </div>
     `;
   }
 
-  _renderField(key, field) {
-    const value = this._formValues[key] !== undefined ? this._formValues[key] : field.default;
-    const isFullWidth = field.type === 'text' || field.type === 'textarea';
+  _getFieldsByType(type) {
+    if (!this.schema) return [];
+    return Object.entries(this.schema)
+      .filter(([key, field]) => field.type === type)
+      .map(([key, field]) => ({ key, ...field }));
+  }
+
+  _getOtherFields() {
+    if (!this.schema) return [];
+    const excludedTypes = ['boolean', 'select', 'color'];
+    return Object.entries(this.schema)
+      .filter(([key, field]) => !excludedTypes.includes(field.type))
+      .map(([key, field]) => ({ key, ...field }));
+  }
+
+  _renderBooleanGrid(fields) {
+    return html`
+      <div class="group-title">显示控制</div>
+      <div class="boolean-grid">
+        ${fields.map(field => this._renderBooleanField(field))}
+      </div>
+    `;
+  }
+
+  _renderSelectGrid(fields) {
+    return html`
+      <div class="group-title">样式设置</div>
+      <div class="select-grid">
+        ${fields.map(field => this._renderSelectField(field))}
+      </div>
+    `;
+  }
+
+  _renderColorFields(fields) {
+    return html`
+      <div class="select-grid">
+        ${fields.map(field => this._renderColorField(field))}
+      </div>
+    `;
+  }
+
+  _renderInputGrid(fields) {
+    if (fields.length === 0) return '';
 
     return html`
-      <div class="form-field ${isFullWidth ? 'full-width' : ''}">
-        ${this._renderFieldLabel(field)}
-        ${this._renderFieldInput(key, field, value)}
+      <div class="group-title">高级设置</div>
+      <div class="input-grid">
+        ${fields.map(field => this._renderInputField(field))}
       </div>
     `;
   }
 
-  _renderFieldLabel(field) {
-    return html`
-      <div class="field-label">
-        ${field.label}
-        ${field.required ? html`<span style="color: var(--cf-error-color);"> *</span>` : ''}
-      </div>
-    `;
-  }
+  _renderBooleanField(field) {
+    const value = this._formValues[field.key] !== undefined ? this._formValues[field.key] : field.default;
 
-  _renderFieldInput(key, field, value) {
-    switch (field.type) {
-      case 'boolean':
-        return this._renderSwitchField(key, field, value);
-      case 'select':
-        return this._renderSelectField(key, field, value);
-      case 'number':
-        return this._renderNumberField(key, field, value);
-      case 'color':
-        return this._renderColorField(key, field, value);
-      case 'textarea':
-        return this._renderTextareaField(key, field, value);
-      default:
-        return this._renderTextField(key, field, value);
-    }
-  }
-
-  _renderSwitchField(key, field, value) {
     return html`
       <div class="switch-field">
         <span class="switch-label">${field.label}</span>
         <ha-switch
           .checked=${!!value}
-          @change=${e => this._onFieldChange(key, e.target.checked)}
+          @change=${e => this._onFieldChange(field.key, e.target.checked)}
         ></ha-switch>
       </div>
     `;
   }
 
-  _renderSelectField(key, field, value) {
+  _renderSelectField(field) {
+    const value = this._formValues[field.key] !== undefined ? this._formValues[field.key] : field.default;
     const options = field.options || [];
-    
+
     return html`
-      <ha-select
-        .label=${field.label}
-        .value=${value || ''}
-        @closed=${this._preventClose}
-        naturalMenuWidth
-        fixedMenuPosition
-        class="select-field"
-      >
-        ${options.map(option => html`
-          <ha-list-item 
-            .value=${option}
-            @click=${() => this._onFieldChange(key, option)}
-          >
-            ${option}
-          </ha-list-item>
-        `)}
-      </ha-select>
+      <div class="form-field">
+        <div class="field-label">${field.label}</div>
+        <ha-select
+          .value=${value || ''}
+          @closed=${this._preventClose}
+          naturalMenuWidth
+          fixedMenuPosition
+          class="select-field"
+        >
+          ${options.map(option => html`
+            <ha-list-item 
+              .value=${option}
+              @click=${() => this._onFieldChange(field.key, option)}
+            >
+              ${option}
+            </ha-list-item>
+          `)}
+        </ha-select>
+      </div>
     `;
   }
 
-  _renderTextField(key, field, value) {
+  _renderColorField(field) {
+    const value = this._formValues[field.key] !== undefined ? this._formValues[field.key] : field.default;
+
+    return html`
+      <div class="form-field">
+        <div class="field-label">${field.label}</div>
+        <div class="color-picker-container">
+          <ha-textfield
+            .value=${value || ''}
+            @input=${e => this._onFieldChange(field.key, e.target.value)}
+            fullwidth
+            class="color-field"
+            placeholder="#000000"
+          ></ha-textfield>
+          <ha-icon-picker
+            .value=${value || ''}
+            @value-changed=${e => this._onFieldChange(field.key, e.detail.value)}
+            .label=${`选择${field.label}`}
+          ></ha-icon-picker>
+          <div 
+            class="color-preview" 
+            style="background: ${value || '#000000'};"
+            title="颜色预览"
+            @click=${() => this._openColorPicker(field.key, value || '#000000')}
+          ></div>
+        </div>
+      </div>
+    `;
+  }
+
+  _renderInputField(field) {
+    const value = this._formValues[field.key] !== undefined ? this._formValues[field.key] : field.default;
+    const isFullWidth = field.type === 'text' || field.type === 'textarea';
+
+    return html`
+      <div class="form-field ${isFullWidth ? 'full-width' : ''}">
+        <div class="field-label">${field.label}</div>
+        ${field.type === 'textarea' ? 
+          this._renderTextareaField(field, value) :
+          this._renderTextField(field, value)
+        }
+      </div>
+    `;
+  }
+
+  _renderTextField(field, value) {
     return html`
       <ha-textfield
-        .label=${field.label}
         .value=${value || ''}
-        @input=${e => this._onFieldChange(key, e.target.value)}
+        @input=${e => this._onFieldChange(field.key, field.type === 'number' ? Number(e.target.value) : e.target.value)}
         .type=${field.type === 'number' ? 'number' : 'text'}
         .min=${field.min}
         .max=${field.max}
         fullwidth
         class="text-field"
+        placeholder=${field.placeholder || ''}
       ></ha-textfield>
     `;
   }
 
-  _renderNumberField(key, field, value) {
-    return html`
-      <ha-textfield
-        .label=${field.label}
-        .value=${value || ''}
-        @input=${e => this._onFieldChange(key, Number(e.target.value))}
-        type="number"
-        .min=${field.min}
-        .max=${field.max}
-        fullwidth
-        class="text-field"
-      ></ha-textfield>
-    `;
-  }
-
-  _renderColorField(key, field, value) {
-    return html`
-      <div style="display: flex; align-items: center; gap: var(--cf-spacing-sm);">
-        <ha-textfield
-          .label=${field.label}
-          .value=${value || ''}
-          @input=${e => this._onFieldChange(key, e.target.value)}
-          fullwidth
-          class="text-field"
-        ></ha-textfield>
-        <div 
-          class="color-preview" 
-          style="background: ${value || '#000000'};"
-          title="颜色预览"
-        ></div>
-      </div>
-    `;
-  }
-
-  _renderTextareaField(key, field, value) {
+  _renderTextareaField(field, value) {
     return html`
       <ha-textarea
-        .label=${field.label}
         .value=${value || ''}
-        @input=${e => this._onFieldChange(key, e.target.value)}
+        @input=${e => this._onFieldChange(field.key, e.target.value)}
         rows="3"
         fullwidth
         class="text-field"
+        placeholder=${field.placeholder || ''}
       ></ha-textarea>
     `;
   }
@@ -290,6 +367,28 @@ class DynamicForm extends LitElement {
     this.dispatchEvent(new CustomEvent('config-changed', {
       detail: { config: { [key]: value } }
     }));
+  }
+
+  _openColorPicker(key, currentValue) {
+    // 使用官方的颜色选择对话框
+    const colorPicker = document.createElement('ha-dialog');
+    colorPicker.heading = '选择颜色';
+    colorPicker.open = true;
+    
+    colorPicker.innerHTML = `
+      <ha-color-picker 
+        .value=${currentValue}
+        @value-changed=${(e) => {
+          this._onFieldChange(key, e.detail.value);
+          colorPicker.open = false;
+          document.body.removeChild(colorPicker);
+        }}
+      ></ha-color-picker>
+      <mwc-button slot="primaryAction" dialogAction="cancel">取消</mwc-button>
+      <mwc-button slot="secondaryAction" dialogAction="confirm">确认</mwc-button>
+    `;
+    
+    document.body.appendChild(colorPicker);
   }
 
   _preventClose(e) {
