@@ -117,8 +117,8 @@ export class BlockSystem {
         ...initialConfig
       };
     }
-  
-    // 获取块预览内容
+
+    // 增强：获取块状态预览
     static getBlockPreview(blockConfig, hass) {
       const blockType = this.detectBlockType(blockConfig);
       
@@ -126,16 +126,48 @@ export class BlockSystem {
         if (hass?.states[blockConfig.entity]) {
           const entity = hass.states[blockConfig.entity];
           const unit = entity.attributes?.unit_of_measurement || '';
-          return `${entity.state}${unit ? ' ' + unit : ''}`;
+          
+          // 对特定实体类型提供更友好的状态显示
+          switch (entity.entity_id?.split('.')[0]) {
+            case 'light':
+            case 'switch':
+              return entity.state === 'on' ? '开启' : '关闭';
+            case 'climate':
+              return this._formatClimateState(entity);
+            case 'cover':
+              return entity.state === 'open' ? '打开' : entity.state === 'closed' ? '关闭' : entity.state;
+            default:
+              return `${entity.state}${unit ? ' ' + unit : ''}`;
+          }
         }
         return blockConfig.entity;
       }
       
       if (blockType === 'text' && blockConfig.content) {
         const content = blockConfig.content || '';
-        return content.substring(0, 20) + (content.length > 20 ? '...' : '');
+        // 显示更简洁的文本预览
+        if (content.length <= 20) return content;
+        return content.substring(0, 18) + '...';
       }
       
       return '点击配置';
+    }
+
+    // 辅助方法：格式化空调状态
+    static _formatClimateState(entity) {
+      const state = entity.state;
+      const temp = entity.attributes?.temperature;
+      const mode = entity.attributes?.hvac_mode;
+      
+      if (state === 'off') return '关闭';
+      
+      const modeText = {
+        'heat': '制热',
+        'cool': '制冷',
+        'auto': '自动',
+        'fan_only': '仅风扇'
+      }[mode] || mode;
+      
+      return temp ? `${modeText} ${temp}°C` : modeText;
     }
   }

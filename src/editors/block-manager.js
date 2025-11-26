@@ -18,117 +18,126 @@ class BlockManager extends LitElement {
         gap: var(--cf-spacing-md);
       }
 
-      .blocks-list {
+      .blocks-grid {
         display: flex;
         flex-direction: column;
         gap: var(--cf-spacing-sm);
       }
 
-      .block-item {
+      .block-row {
+        display: grid;
+        grid-template-columns: 40px 48px 1fr 40px 40px;
+        gap: var(--cf-spacing-sm);
+        align-items: center;
         background: var(--cf-surface);
         border: 1px solid var(--cf-border);
         border-radius: var(--cf-radius-md);
-        padding: var(--cf-spacing-md);
-        cursor: pointer;
+        padding: var(--cf-spacing-sm);
         transition: all var(--cf-transition-fast);
-        position: relative;
-        overflow: hidden;
+        min-height: 60px;
       }
 
-      .block-item:hover {
+      .block-row:hover {
         border-color: var(--cf-primary-color);
+        background: rgba(var(--cf-rgb-primary), 0.02);
         transform: translateY(-1px);
       }
 
-      .block-item::before {
-        content: '';
-        position: absolute;
-        left: 0;
-        top: 0;
-        bottom: 0;
-        width: 4px;
+      /* 列1 - 区域标识 */
+      .area-badge {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 2px;
+        font-size: 0.7em;
+        font-weight: 600;
       }
 
-      .block-item.header-area::before {
+      .area-dot {
+        width: 12px;
+        height: 12px;
+        border-radius: 50%;
+      }
+
+      .area-dot.header {
         background: #2196F3; /* 蓝色 - 标题区域 */
       }
 
-      .block-item.content-area::before {
+      .area-dot.content {
         background: #4CAF50; /* 绿色 - 内容区域 */
       }
 
-      .block-item.footer-area::before {
+      .area-dot.footer {
         background: #FF9800; /* 橙色 - 页脚区域 */
       }
 
-      .block-header {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        margin-bottom: var(--cf-spacing-sm);
+      .area-text {
+        font-size: 0.65em;
+        color: var(--cf-text-secondary);
+        line-height: 1;
       }
 
-      .block-badge {
-        font-size: 0.7em;
-        font-weight: 600;
-        padding: 2px 8px;
-        border-radius: var(--cf-radius-sm);
-        color: white;
-      }
-
-      .block-badge.header {
-        background: #2196F3;
-      }
-
-      .block-badge.content {
-        background: #4CAF50;
-      }
-
-      .block-badge.footer {
-        background: #FF9800;
-      }
-
-      .block-title {
-        display: flex;
-        align-items: center;
-        gap: var(--cf-spacing-sm);
-        font-size: 0.95em;
-        font-weight: 600;
-        color: var(--cf-text-primary);
-      }
-
+      /* 列2 - 图标 */
       .block-icon {
-        width: 24px;
-        height: 24px;
-        border-radius: var(--cf-radius-sm);
+        width: 40px;
+        height: 40px;
+        border-radius: var(--cf-radius-md);
         background: rgba(var(--cf-rgb-primary), 0.1);
         display: flex;
         align-items: center;
         justify-content: center;
+        font-size: 1.2em;
+        transition: all var(--cf-transition-fast);
+      }
+
+      .block-row:hover .block-icon {
+        background: rgba(var(--cf-rgb-primary), 0.2);
+        transform: scale(1.05);
+      }
+
+      /* 列3 - 名称与状态 */
+      .block-info {
+        display: flex;
+        flex-direction: column;
+        gap: 2px;
+        min-width: 0;
+      }
+
+      .block-name {
         font-size: 0.9em;
+        font-weight: 600;
+        color: var(--cf-text-primary);
+        line-height: 1.2;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
       }
 
-      .block-preview {
-        font-size: 0.85em;
+      .block-state {
+        font-size: 0.8em;
         color: var(--cf-text-secondary);
-        line-height: 1.3;
-        margin-bottom: var(--cf-spacing-xs);
+        line-height: 1.2;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
       }
 
+      /* 列4 & 5 - 操作按钮 */
       .block-actions {
         display: flex;
         gap: var(--cf-spacing-xs);
-        opacity: 0;
+        opacity: 0.6;
         transition: opacity var(--cf-transition-fast);
       }
 
-      .block-item:hover .block-actions {
+      .block-row:hover .block-actions {
         opacity: 1;
       }
 
       .block-action {
-        width: 24px;
-        height: 24px;
+        width: 32px;
+        height: 32px;
         border-radius: var(--cf-radius-sm);
         display: flex;
         align-items: center;
@@ -136,7 +145,6 @@ class BlockManager extends LitElement {
         background: var(--cf-background);
         border: 1px solid var(--cf-border);
         cursor: pointer;
-        font-size: 0.8em;
         transition: all var(--cf-transition-fast);
       }
 
@@ -144,8 +152,18 @@ class BlockManager extends LitElement {
         background: var(--cf-primary-color);
         color: white;
         border-color: var(--cf-primary-color);
+        transform: scale(1.1);
       }
 
+      .block-action.edit:hover {
+        background: var(--cf-primary-color);
+      }
+
+      .block-action.delete:hover {
+        background: var(--cf-error-color);
+      }
+
+      /* 添加块按钮 */
       .add-block-btn {
         width: 100%;
         padding: var(--cf-spacing-md);
@@ -165,17 +183,73 @@ class BlockManager extends LitElement {
       .add-block-btn:hover {
         border-color: var(--cf-primary-color);
         color: var(--cf-primary-color);
+        background: rgba(var(--cf-rgb-primary), 0.02);
       }
 
+      /* 空状态 */
       .empty-state {
         text-align: center;
-        padding: var(--cf-spacing-lg);
+        padding: var(--cf-spacing-xl);
         color: var(--cf-text-secondary);
-        font-size: 0.9em;
+        border: 2px dashed var(--cf-border);
+        border-radius: var(--cf-radius-md);
+        background: rgba(var(--cf-rgb-primary), 0.02);
       }
 
-      .area-stats {
-        display: none; /* 隐藏区域统计 */
+      .empty-icon {
+        font-size: 3em;
+        opacity: 0.5;
+        margin-bottom: var(--cf-spacing-md);
+      }
+
+      /* 表头 */
+      .grid-header {
+        display: grid;
+        grid-template-columns: 40px 48px 1fr 40px 40px;
+        gap: var(--cf-spacing-sm);
+        padding: 0 var(--cf-spacing-sm) var(--cf-spacing-xs);
+        font-size: 0.8em;
+        font-weight: 600;
+        color: var(--cf-text-secondary);
+        border-bottom: 1px solid var(--cf-border);
+        margin-bottom: var(--cf-spacing-xs);
+      }
+
+      .header-cell {
+        text-align: center;
+      }
+
+      .header-cell:nth-child(3) {
+        text-align: left;
+      }
+
+      /* 响应式适配 */
+      @media (max-width: 600px) {
+        .block-row {
+          grid-template-columns: 36px 40px 1fr 36px 36px;
+          gap: var(--cf-spacing-xs);
+          padding: var(--cf-spacing-xs);
+          min-height: 54px;
+        }
+
+        .block-icon {
+          width: 36px;
+          height: 36px;
+          font-size: 1.1em;
+        }
+
+        .block-name {
+          font-size: 0.85em;
+        }
+
+        .block-state {
+          font-size: 0.75em;
+        }
+
+        .block-action {
+          width: 28px;
+          height: 28px;
+        }
       }
     `
   ];
@@ -185,7 +259,8 @@ class BlockManager extends LitElement {
     
     return html`
       <div class="block-manager">
-        ${this._renderBlocksList(blocks)}
+        ${blocks.length > 0 ? this._renderGridHeader() : ''}
+        ${this._renderBlocksGrid(blocks)}
         ${this._renderAddBlockButton()}
       </div>
     `;
@@ -200,57 +275,79 @@ class BlockManager extends LitElement {
     }));
   }
 
-  _renderBlocksList(blocks) {
-    if (blocks.length === 0) {
-      return html`
-        <div class="empty-state">
-          <ha-icon icon="mdi:cube-outline" style="font-size: 2em; opacity: 0.5; margin-bottom: var(--cf-spacing-sm);"></ha-icon>
-          <div>暂无块</div>
-          <div class="cf-text-xs cf-mt-xs">点击下方按钮添加块</div>
-        </div>
-      `;
-    }
-
-    // 按区域分组显示
-    const headerBlocks = blocks.filter(block => block.area === 'header');
-    const contentBlocks = blocks.filter(block => !block.area || block.area === 'content');
-    const footerBlocks = blocks.filter(block => block.area === 'footer');
-
+  _renderGridHeader() {
     return html`
-      <div class="blocks-list">
-        ${headerBlocks.map(block => this._renderBlockItem(block))}
-        ${contentBlocks.map(block => this._renderBlockItem(block))}
-        ${footerBlocks.map(block => this._renderBlockItem(block))}
+      <div class="grid-header">
+        <div class="header-cell">区域</div>
+        <div class="header-cell">图标</div>
+        <div class="header-cell">名称与状态</div>
+        <div class="header-cell">编辑</div>
+        <div class="header-cell">删除</div>
       </div>
     `;
   }
 
-  _renderBlockItem(block) {
-    const displayName = BlockSystem.getBlockDisplayName(block);
-    const icon = BlockSystem.getBlockIcon(block);
-    const preview = BlockSystem.getBlockPreview(block, this.hass);
-    const areaClass = this._getAreaClass(block.area);
-    const areaLabel = this._getAreaLabel(block.area);
+  _renderBlocksGrid(blocks) {
+    if (blocks.length === 0) {
+      return html`
+        <div class="empty-state">
+          <ha-icon class="empty-icon" icon="mdi:cube-outline"></ha-icon>
+          <div class="cf-text-md cf-mb-sm">还没有任何块</div>
+          <div class="cf-text-sm cf-text-secondary">点击下方按钮添加第一个块</div>
+        </div>
+      `;
+    }
+
+    // 按区域排序：标题 → 内容 → 页脚
+    const sortedBlocks = [...blocks].sort((a, b) => {
+      const areaOrder = { 'header': 0, 'content': 1, 'footer': 2 };
+      const orderA = areaOrder[a.area] ?? 1;
+      const orderB = areaOrder[b.area] ?? 1;
+      return orderA - orderB;
+    });
 
     return html`
-      <div class="block-item ${areaClass}" @click=${() => this._editBlock(block.id)}>
-        <div class="block-header">
-          <div class="block-title">
-            <div class="block-icon">
-              <ha-icon .icon=${icon}></ha-icon>
-            </div>
-            <span>${block.title || displayName}</span>
-          </div>
-          <div class="block-badge ${block.area || 'content'}">${areaLabel}</div>
+      <div class="blocks-grid">
+        ${sortedBlocks.map(block => this._renderBlockRow(block))}
+      </div>
+    `;
+  }
+
+  _renderBlockRow(block) {
+    const displayName = BlockSystem.getBlockDisplayName(block);
+    const icon = BlockSystem.getBlockIcon(block);
+    const state = BlockSystem.getBlockPreview(block, this.hass);
+    const areaInfo = this._getAreaInfo(block.area);
+
+    return html`
+      <div class="block-row" @click=${() => this._editBlock(block.id)}>
+        <!-- 列1: 区域标识 -->
+        <div class="area-badge">
+          <div class="area-dot ${block.area || 'content'}"></div>
+          <div class="area-text">${areaInfo.shortText}</div>
         </div>
-        
-        <div class="block-preview">${preview}</div>
-        
+
+        <!-- 列2: 图标 -->
+        <div class="block-icon">
+          <ha-icon .icon=${icon}></ha-icon>
+        </div>
+
+        <!-- 列3: 名称与状态 -->
+        <div class="block-info">
+          <div class="block-name">${block.title || displayName}</div>
+          <div class="block-state">${state}</div>
+        </div>
+
+        <!-- 列4: 编辑按钮 -->
         <div class="block-actions">
-          <div class="block-action" @click=${e => this._moveBlock(e, block.id)} title="移动区域">
-            <ha-icon icon="mdi:arrow-all"></ha-icon>
+          <div class="block-action edit" @click=${e => this._editBlock(e, block.id)} title="编辑块">
+            <ha-icon icon="mdi:pencil"></ha-icon>
           </div>
-          <div class="block-action" @click=${e => this._deleteBlock(e, block.id)} title="删除">
+        </div>
+
+        <!-- 列5: 删除按钮 -->
+        <div class="block-actions">
+          <div class="block-action delete" @click=${e => this._deleteBlock(e, block.id)} title="删除块">
             <ha-icon icon="mdi:delete"></ha-icon>
           </div>
         </div>
@@ -267,25 +364,17 @@ class BlockManager extends LitElement {
     `;
   }
 
-  _getAreaClass(area) {
+  _getAreaInfo(area) {
     const areaMap = {
-      'header': 'header-area',
-      'content': 'content-area', 
-      'footer': 'footer-area'
+      'header': { shortText: '标', fullText: '标题', color: '#2196F3' },
+      'content': { shortText: '内', fullText: '内容', color: '#4CAF50' },
+      'footer': { shortText: '页', fullText: '页脚', color: '#FF9800' }
     };
-    return areaMap[area] || 'content-area';
+    return areaMap[area] || areaMap.content;
   }
 
-  _getAreaLabel(area) {
-    const labelMap = {
-      'header': '标题',
-      'content': '内容',
-      'footer': '页脚'
-    };
-    return labelMap[area] || '内容';
-  }
-
-  _editBlock(blockId) {
+  _editBlock(e, blockId) {
+    if (e) e.stopPropagation();
     this.dispatchEvent(new CustomEvent('edit-block', {
       detail: { blockId }
     }));
@@ -295,34 +384,12 @@ class BlockManager extends LitElement {
     this.dispatchEvent(new CustomEvent('add-block'));
   }
 
-  _moveBlock(e, blockId) {
-    e.stopPropagation();
-    
-    // 显示区域选择菜单
-    const areas = [
-      { id: 'header', label: '标题区域', color: '#2196F3' },
-      { id: 'content', label: '内容区域', color: '#4CAF50' },
-      { id: 'footer', label: '页脚区域', color: '#FF9800' }
-    ];
-    
-    // 这里可以实现一个简单的区域选择对话框
-    const currentArea = this.config.blocks[blockId]?.area || 'content';
-    const newArea = prompt(`移动块到哪个区域？\n\n标题区域 | 内容区域 | 页脚区域`, currentArea);
-    
-    if (newArea && ['header', 'content', 'footer'].includes(newArea)) {
-      this.config.blocks[blockId].area = newArea;
-      this._notifyConfigUpdate();
-    }
-  }
-
   _deleteBlock(e, blockId) {
     e.stopPropagation();
     
     if (!confirm('确定要删除这个块吗？')) return;
     
-    // 删除块配置
     delete this.config.blocks[blockId];
-    
     this._notifyConfigUpdate();
   }
 
