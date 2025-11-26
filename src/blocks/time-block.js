@@ -16,10 +16,22 @@ class TimeBlock extends BaseBlock {
   }
 
   getStyles(config) {
-    const baseStyles = this.getBaseStyles(config);
-    
     return `
-      ${baseStyles}
+      .time-block .block-container {
+        background: var(--card-background-color);
+        color: var(--primary-text-color);
+        border-color: var(--divider-color);
+        height: 100%;
+        display: flex;
+        flex-direction: column;
+      }
+      
+      .time-block .block-content {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+      }
       
       .time-block .time-content {
         padding: var(--cf-spacing-md);
