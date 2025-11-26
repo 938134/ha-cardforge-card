@@ -1,7 +1,7 @@
 // src/core/card-registry.js
 class CardRegistry {
   constructor() {
-    this.cards = new Map();
+    this._cards = new Map();
     this._initialized = false;
   }
 
@@ -17,68 +17,71 @@ class CardRegistry {
   }
 
   async _discoverCards() {
-    const cardFiles = {
-      'poetry-card': () => import('../cards/poetry-card.js'),
-      'welcome-card': () => import('../cards/welcome-card.js'),
-      'oil-price-card': () => import('../cards/oil-price-card.js'),
-      'clock-card': () => import('../cards/clock-card.js'),
-    };
+    const cardModules = [
+      () => import('../cards/poetry-card.js'),
+      () => import('../cards/welcome-card.js'),
+      () => import('../cards/oil-price-card.js'),
+      () => import('../cards/clock-card.js'),
+    ];
 
-    for (const [cardId, importFn] of Object.entries(cardFiles)) {
+    for (const importFn of cardModules) {
       try {
         const module = await importFn();
-        this._registerCardModule(cardId, module);
+        this._registerCardModule(module);
       } catch (error) {
-        console.warn(`⚠️ 加载卡片 ${cardId} 失败:`, error);
+        console.error(`❌ 加载卡片失败:`, error);
       }
     }
   }
 
-  _registerCardModule(cardId, module) {
-    if (module.default && typeof module.default.getDefaultConfig === 'function') {
-      const card = module.default;
+  _registerCardModule(module) {
+    if (!module.manifest) {
+      console.warn('卡片缺少 manifest，跳过注册');
+      return;
+    }
+
+    const cardId = module.manifest.id;
+    if (!cardId) {
+      console.warn('卡片缺少 manifest.id，跳过');
+      return;
+    }
+
+    if (module.default) {
+      const CardClass = module.default;
       
-      this.cards.set(cardId, {
-        id: cardId,
-        manifest: {
-          id: card.manifest?.id || cardId,
-          name: card.manifest?.name || this._formatCardName(cardId),
-          description: card.manifest?.description || `${this._formatCardName(cardId)}卡片`,
-          icon: card.manifest?.icon || '📄',
-          category: card.manifest?.category || 'general',
-          config_schema: card.manifest?.config_schema || {}
-        },
-        getDefaultConfig: card.getDefaultConfig ? card.getDefaultConfig.bind(card) : (() => ({})),
-        getManifest: card.getManifest ? card.getManifest.bind(card) : (() => ({})),
-        render: card.prototype?.render ? card.prototype.render.bind(card) : (() => ({ template: '', styles: '' }))
-      });
+      // 检查卡片类是否完整
+      if (typeof CardClass.prototype.getDefaultConfig === 'function' && 
+          typeof CardClass.prototype.getManifest === 'function') {
+        
+        this._cards.set(cardId, {
+          id: cardId,
+          class: CardClass,
+          manifest: module.manifest
+        });
+        
+        console.log(`✅ 成功注册卡片: ${cardId}`);
+      } else {
+        console.warn(`卡片 ${cardId} 接口不完整，跳过`);
+      }
     } else {
-      console.warn(`卡片 ${cardId} 格式不正确，跳过`);
+      console.warn(`卡片 ${cardId} 缺少默认导出，跳过`);
     }
   }
 
-  _formatCardName(cardId) {
-    return cardId
-      .split('-')
-      .map(word => word.charAt(0).toUpperCase() + word.slice(1))
-      .join(' ')
-      .replace(' Card', '');
-  }
-
-  // === 卡片管理 API ===
+  // === 核心API ===
   getCard(cardId) {
-    return this.cards.get(cardId) || this.cards.values().next().value;
+    return this._cards.get(cardId);
   }
 
   getAllCards() {
-    return Array.from(this.cards.values()).map(item => ({
+    return Array.from(this._cards.values()).map(item => ({
       ...item.manifest,
       id: item.id
     }));
   }
 
   getCardClass(cardId) {
-    const card = this.cards.get(cardId);
+    const card = this._cards.get(cardId);
     return card ? card.class : null;
   }
 
@@ -88,16 +91,8 @@ class CardRegistry {
   }
 
   getCardManifest(cardId) {
-    const card = this.cards.get(cardId);
+    const card = this._cards.get(cardId);
     return card ? card.manifest : null;
-  }
-
-  getCardDefaultConfig(cardId) {
-    const card = this.cards.get(cardId);
-    if (card && typeof card.getDefaultConfig === 'function') {
-      return card.getDefaultConfig();
-    }
-    return {};
   }
 }
 
