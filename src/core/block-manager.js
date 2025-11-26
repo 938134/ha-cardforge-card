@@ -3,17 +3,19 @@ class BlockManager {
   constructor() {
     this.blocks = new Map();
     this._initialized = false;
+    this._initializationPromise = null;
   }
 
   async initialize() {
     if (this._initialized) return;
 
-    try {
-      await this._discoverBlocks();
-      this._initialized = true;
-    } catch (error) {
-      console.error('❌ 块管理器初始化失败:', error);
+    // 防止重复初始化
+    if (!this._initializationPromise) {
+      this._initializationPromise = this._discoverBlocks();
     }
+
+    await this._initializationPromise;
+    this._initialized = true;
   }
 
   async _discoverBlocks() {
@@ -24,14 +26,17 @@ class BlockManager {
       'layout': () => import('../blocks/layout-block.js')
     };
 
-    for (const [blockType, importFn] of Object.entries(blockFiles)) {
+    const promises = Object.entries(blockFiles).map(async ([blockType, importFn]) => {
       try {
         const module = await importFn();
         this._registerBlockModule(blockType, module);
+        console.log(`✅ 成功加载块: ${blockType}`);
       } catch (error) {
         console.warn(`⚠️ 加载块 ${blockType} 失败:`, error);
       }
-    }
+    });
+
+    await Promise.allSettled(promises);
   }
 
   _registerBlockModule(blockType, module) {
@@ -43,6 +48,7 @@ class BlockManager {
         class: BlockClass,
         manifest: BlockClass.manifest
       });
+      console.log(`📦 注册块: ${blockType}`, BlockClass.manifest);
     }
   }
 
@@ -51,10 +57,12 @@ class BlockManager {
   }
 
   getAllBlocks() {
-    return Array.from(this.blocks.values()).map(item => ({
+    const blocks = Array.from(this.blocks.values()).map(item => ({
       ...item.manifest,
       type: item.type
     }));
+    console.log('📋 可用块列表:', blocks);
+    return blocks;
   }
 
   getBlockClass(blockType) {
@@ -71,9 +79,18 @@ class BlockManager {
     const block = this.blocks.get(blockType);
     return block ? block.manifest : null;
   }
+
+  // 检查初始化状态
+  isInitialized() {
+    return this._initialized;
+  }
 }
 
 const blockManager = new BlockManager();
-blockManager.initialize();
+
+// 立即开始初始化，但不等待
+blockManager.initialize().catch(error => {
+  console.error('❌ 块管理器初始化失败:', error);
+});
 
 export { blockManager, BlockManager };
