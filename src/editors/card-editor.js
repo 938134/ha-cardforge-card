@@ -1,4 +1,4 @@
-// src/editors/card-editor.js
+// src/editors/card-editor.js (部分更新)
 import { LitElement, html, css } from 'https://unpkg.com/lit@2.8.0/index.js?module';
 import { cardRegistry } from '../core/card-registry.js';
 import { themeManager } from '../themes/index.js';
@@ -17,9 +17,9 @@ class CardEditor extends LitElement {
     _themes: { state: true },
     _selectedCard: { state: true },
     _initialized: { state: true },
-    _editingBlockId: { state: true },
     _availableEntities: { state: true },
     _cardSchema: { state: true }
+    // 移除 _editingBlockId 属性，因为现在在 block-manager 中处理
   };
 
   static styles = [
@@ -81,7 +81,6 @@ class CardEditor extends LitElement {
     this._themes = [];
     this._selectedCard = null;
     this._initialized = false;
-    this._editingBlockId = null;
     this._availableEntities = [];
     this._cardSchema = null;
   }
@@ -141,7 +140,7 @@ class CardEditor extends LitElement {
           ${this.config.card_type ? this._renderThemeSection() : ''}
           ${this.config.card_type && this._cardSchema ? this._renderCardSettings() : ''}
           ${this.config.card_type ? this._renderBlockManager() : ''}
-          ${this._editingBlockId ? this._renderBlockEditor() : ''}
+          <!-- 移除独立的块编辑区域 -->
         </div>
       </div>
     `;
@@ -221,31 +220,7 @@ class CardEditor extends LitElement {
           .config=${this.config}
           .hass=${this.hass}
           @config-changed=${this._onConfigChanged}
-          @edit-block=${this._onEditBlock}
-          @add-block=${this._onAddBlock}
         ></block-manager>
-      </div>
-    `;
-  }
-
-  _renderBlockEditor() {
-    const blockConfig = this.config.blocks[this._editingBlockId];
-    if (!blockConfig) return '';
-
-    return html`
-      <div class="editor-section">
-        <div class="section-header">
-          <ha-icon icon="mdi:pencil"></ha-icon>
-          <span class="section-title">编辑块</span>
-        </div>
-        
-        <block-editor
-          .blockConfig=${blockConfig}
-          .hass=${this.hass}
-          .availableEntities=${this._availableEntities}
-          @block-saved=${e => this._onBlockSaved(this._editingBlockId, e.detail.blockConfig)}
-          @edit-cancelled=${this._onEditCancelled}
-        ></block-editor>
       </div>
     `;
   }
@@ -288,44 +263,6 @@ class CardEditor extends LitElement {
       ...e.detail.config
     };
     this._notifyConfigUpdate();
-  }
-
-  _onEditBlock(e) {
-    this._editingBlockId = e.detail.blockId;
-  }
-
-  _onAddBlock() {
-    const area = prompt('请选择要添加到的区域：\n\n输入: header(标题) / content(内容) / footer(页脚)', 'content');
-    
-    if (!area || !['header', 'content', 'footer'].includes(area)) {
-      return;
-    }
-    
-    const blockId = `block_${Date.now()}`;
-    const blockConfig = {
-      type: 'text',
-      title: '',
-      content: '',
-      area: area
-    };
-    
-    if (!this.config.blocks) {
-      this.config.blocks = {};
-    }
-    
-    this.config.blocks[blockId] = blockConfig;
-    this._editingBlockId = blockId;
-    this._notifyConfigUpdate();
-  }
-
-  _onBlockSaved(blockId, updatedConfig) {
-    this.config.blocks[blockId] = updatedConfig;
-    this._editingBlockId = null;
-    this._notifyConfigUpdate();
-  }
-
-  _onEditCancelled() {
-    this._editingBlockId = null;
   }
 
   _notifyConfigUpdate() {
