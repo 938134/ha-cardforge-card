@@ -27,7 +27,7 @@ class BlockManager extends LitElement {
 
       .block-row {
         display: grid;
-        grid-template-columns: 80px 48px 1fr 40px 40px;
+        grid-template-columns: 50px 48px 1fr 40px 40px;
         gap: var(--cf-spacing-sm);
         align-items: center;
         background: var(--cf-surface);
@@ -45,19 +45,19 @@ class BlockManager extends LitElement {
         transform: translateY(-1px);
       }
 
-      /* 列1 - 区域标识 */
+      /* 列1 - 区域标识（简化版） */
       .area-badge {
         display: flex;
         align-items: center;
         justify-content: center;
-        padding: 6px 8px;
+        padding: 6px 4px;
         border-radius: var(--cf-radius-sm);
         font-size: 0.75em;
         font-weight: 600;
         color: white;
         text-align: center;
         line-height: 1.2;
-        min-width: 60px;
+        min-width: 40px;
       }
 
       .area-badge.header {
@@ -211,7 +211,7 @@ class BlockManager extends LitElement {
       /* 响应式适配 */
       @media (max-width: 600px) {
         .block-row {
-          grid-template-columns: 70px 40px 1fr 36px 36px;
+          grid-template-columns: 40px 36px 1fr 32px 32px;
           gap: var(--cf-spacing-xs);
           padding: var(--cf-spacing-xs);
           min-height: 54px;
@@ -219,14 +219,14 @@ class BlockManager extends LitElement {
 
         .area-badge {
           font-size: 0.7em;
-          padding: 4px 6px;
-          min-width: 50px;
+          padding: 4px 2px;
+          min-width: 32px;
         }
 
         .block-icon {
-          width: 36px;
-          height: 36px;
-          font-size: 1.1em;
+          width: 32px;
+          height: 32px;
+          font-size: 1em;
         }
 
         .block-name {
@@ -304,7 +304,7 @@ class BlockManager extends LitElement {
 
     return html`
       <div class="block-row" @click=${() => this._editBlock(block.id)}>
-        <!-- 列1: 区域标识 -->
+        <!-- 列1: 区域标识（简化版） -->
         <div class="area-badge ${block.area || 'content'}">
           ${areaText}
         </div>
@@ -361,9 +361,9 @@ class BlockManager extends LitElement {
 
   _getAreaText(area) {
     const areaMap = {
-      'header': '标题区域',
-      'content': '内容区域', 
-      'footer': '页脚区域'
+      'header': '标题',
+      'content': '内容', 
+      'footer': '页脚'
     };
     return areaMap[area] || areaMap.content;
   }
