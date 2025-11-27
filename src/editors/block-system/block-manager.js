@@ -184,18 +184,64 @@ class BlockManager extends LitElement {
     this.config.blocks[blockId] = config;
     console.log('✅ 配置已更新');
     
-    // 2. 清除编辑状态
+    // 2. 清除编辑状态（关键：确保 editingConfig 被清除）
     this._editingBlocks.delete(blockId);
     this._clearAutoFillTimeout(blockId);
-    console.log('✅ 编辑状态已清除');
+    console.log('✅ 编辑状态已清除，当前编辑块:', Array.from(this._editingBlocks.keys()));
     
     // 3. 通知配置更新
     this._notifyConfigUpdate();
     console.log('✅ 配置更新已通知');
     
-    // 4. 强制重新渲染
+    // 4. 强制重新渲染（确保 UI 状态同步）
     this.requestUpdate();
     console.log('✅ UI已重新渲染');
+  }
+  
+  // 在 _renderBlocksList 方法中确保状态正确传递
+  _renderBlocksList(blocks) {
+    if (blocks.length === 0) {
+      return html`
+        <div class="empty-state">
+          <ha-icon class="empty-icon" icon="mdi:cube-outline"></ha-icon>
+          <div class="cf-text-md cf-mb-sm">还没有任何块</div>
+          <div class="cf-text-sm cf-text-secondary">点击下方按钮添加第一个块</div>
+        </div>
+      `;
+    }
+  
+    const sortedBlocks = [...blocks].sort((a, b) => {
+      const areaOrder = { 'header': 0, 'content': 1, 'footer': 2 };
+      const orderA = areaOrder[a.area] ?? 1;
+      const orderB = areaOrder[b.area] ?? 1;
+      return orderA - orderB;
+    });
+  
+    return html`
+      <div class="blocks-list">
+        ${sortedBlocks.map(block => {
+          const isEditing = this._editingBlocks.has(block.id);
+          const editingConfig = this._editingBlocks.get(block.id);
+          
+          console.log(`📦 准备渲染块 ${block.id}: isEditing=${isEditing}, hasEditingConfig=${!!editingConfig}`);
+          
+          return html`
+            <block-row
+              .block=${block}
+              .hass=${this.hass}
+              .isEditing=${isEditing}
+              .editingConfig=${editingConfig}
+              .availableEntities=${this._availableEntities}
+              @edit-block=${this._onEditBlock}
+              @save-block=${this._onSaveBlock}
+              @cancel-edit=${this._onCancelEdit}
+              @delete-block=${this._onDeleteBlock}
+              @update-editing-config=${this._onUpdateEditingConfig}
+            ></block-row>
+          `;
+        })}
+      </div>
+    `;
   }
 
   _onCancelEdit(e) {
