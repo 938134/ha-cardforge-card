@@ -10,7 +10,9 @@ class BlockRow extends LitElement {
   static properties = {
     block: { type: Object },
     hass: { type: Object },
-    isEditing: { type: Boolean }
+    isEditing: { type: Boolean },
+    editingConfig: { type: Object },
+    availableEntities: { type: Array }
   };
 
   static styles = [
@@ -109,7 +111,7 @@ class BlockRow extends LitElement {
   ];
 
   render() {
-    const { block, hass, isEditing } = this;
+    const { block, hass, isEditing, editingConfig, availableEntities } = this;
     
     if (!block) {
       return html``;
@@ -117,7 +119,6 @@ class BlockRow extends LitElement {
 
     const icon = BlockSystem.getBlockIcon(block);
     const state = BlockSystem.getBlockPreview(block, hass);
-    // 修复：优先显示配置的title，没有则显示块ID
     const displayName = block.title || block.id;
 
     return html`
@@ -146,10 +147,12 @@ class BlockRow extends LitElement {
         ${isEditing ? html`
           <div class="inline-editor-container">
             <inline-editor
-              .block=${block}
-              .hass=${hass}
-              @save=${this._onSave}
-              @cancel=${this._onCancel}
+              .blockId=${block.id}
+              .editingConfig=${editingConfig}
+              .availableEntities=${availableEntities}
+              @save-block=${this._onSave}
+              @cancel-edit=${this._onCancel}
+              @update-editing-config=${this._onUpdateEditingConfig}
             ></inline-editor>
           </div>
         ` : ''}
@@ -178,18 +181,21 @@ class BlockRow extends LitElement {
   }
 
   _onSave(e) {
-    // 修复：确保事件正确传递
     this.dispatchEvent(new CustomEvent('save-block', {
-      detail: {
-        blockId: this.block.id,
-        config: e.detail.config
-      }
+      detail: e.detail
     }));
   }
 
-  _onCancel() {
-    // 修复：确保事件正确传递
-    this.dispatchEvent(new CustomEvent('cancel-edit'));
+  _onCancel(e) {
+    this.dispatchEvent(new CustomEvent('cancel-edit', {
+      detail: e.detail
+    }));
+  }
+
+  _onUpdateEditingConfig(e) {
+    this.dispatchEvent(new CustomEvent('update-editing-config', {
+      detail: e.detail
+    }));
   }
 }
 
@@ -197,4 +203,4 @@ if (!customElements.get('block-row')) {
   customElements.define('block-row', BlockRow);
 }
 
-export { BlockRow }; 
+export { BlockRow };

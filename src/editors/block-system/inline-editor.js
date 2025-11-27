@@ -1,14 +1,12 @@
 // src/editors/block-system/inline-editor.js
 import { LitElement, html, css } from 'https://unpkg.com/lit@2.8.0/index.js?module';
 import { designSystem } from '../../core/design-system.js';
-import { BlockSystem } from '../../core/block-system.js';
 
 class InlineEditor extends LitElement {
   static properties = {
-    block: { type: Object },
-    hass: { type: Object },
-    _editingConfig: { state: true },
-    _availableEntities: { state: true }
+    blockId: { type: String },
+    editingConfig: { type: Object },
+    availableEntities: { type: Array }
   };
 
   static styles = [
@@ -90,25 +88,8 @@ class InlineEditor extends LitElement {
     `
   ];
 
-  constructor() {
-    super();
-    this._editingConfig = null;
-    this._availableEntities = [];
-    this._autoFillTimeout = null;
-  }
-
-  willUpdate(changedProperties) {
-    if (changedProperties.has('block')) {
-      this._editingConfig = this.block ? { ...this.block } : null;
-    }
-    
-    if (changedProperties.has('hass')) {
-      this._updateAvailableEntities();
-    }
-  }
-
   render() {
-    if (!this._editingConfig) {
+    if (!this.editingConfig) {
       return html``;
     }
 
@@ -119,9 +100,9 @@ class InlineEditor extends LitElement {
           <div class="form-field">
             <div class="field-label">实体</div>
             <ha-combo-box
-              .items=${this._availableEntities}
-              .value=${this._editingConfig.entity || ''}
-              @value-changed=${this._onEntityChanged}
+              .items=${this.availableEntities || []}
+              .value=${this.editingConfig.entity || ''}
+              @value-changed=${e => this._onEntityChanged(e.detail.value)}
               allow-custom-value
               label="选择或输入实体ID"
               fullwidth
@@ -132,8 +113,8 @@ class InlineEditor extends LitElement {
           <div class="form-field">
             <div class="field-label">显示名称</div>
             <ha-textfield
-              .value=${this._editingConfig.title || ''}
-              @input=${e => this._updateConfig('title', e.target.value)}
+              .value=${this.editingConfig.title || ''}
+              @input=${e => this._onFieldChange('title', e.target.value)}
               placeholder="输入显示名称"
               fullwidth
             ></ha-textfield>
@@ -143,8 +124,8 @@ class InlineEditor extends LitElement {
           <div class="form-field">
             <div class="field-label">图标</div>
             <ha-icon-picker
-              .value=${this._editingConfig.icon || ''}
-              @value-changed=${e => this._updateConfig('icon', e.detail.value)}
+              .value=${this.editingConfig.icon || ''}
+              @value-changed=${e => this._onFieldChange('icon', e.detail.value)}
               label="选择图标"
               fullwidth
             ></ha-icon-picker>
@@ -159,105 +140,32 @@ class InlineEditor extends LitElement {
     `;
   }
 
-  _onEntityChanged(e) {
-    const entityId = e.detail.value;
-    this._updateConfig('entity', entityId);
-    
-    // 延迟自动填充，避免频繁更新导致的闪烁
-    if (this._autoFillTimeout) {
-      clearTimeout(this._autoFillTimeout);
-    }
-    
-    this._autoFillTimeout = setTimeout(() => {
-      this._autoFillFromEntity(entityId);
-    }, 300);
+  _onEntityChanged(entityId) {
+    this._onFieldChange('entity', entityId);
   }
 
-  _autoFillFromEntity(entityId) {
-    if (!entityId || !this.hass?.states[entityId]) return;
-    
-    const entity = this.hass.states[entityId];
-    const updates = {};
-    
-    // 自动填充名称（如果当前名称为空或是默认值）
-    if (!this._editingConfig.title || this._editingConfig.title === this._editingConfig.id) {
-      if (entity.attributes?.friendly_name) {
-        updates.title = entity.attributes.friendly_name;
+  _onFieldChange(key, value) {
+    this.dispatchEvent(new CustomEvent('update-editing-config', {
+      detail: {
+        blockId: this.blockId,
+        updates: { [key]: value }
       }
-    }
-    
-    // 自动填充图标（如果当前图标为空）
-    if (!this._editingConfig.icon) {
-      updates.icon = BlockSystem.getEntityIcon(entityId, this.hass);
-    }
-    
-    // 批量更新配置
-    if (Object.keys(updates).length > 0) {
-      this._editingConfig = {
-        ...this._editingConfig,
-        ...updates
-      };
-      this.requestUpdate();
-    }
-  }
-
-  _updateConfig(key, value) {
-    if (!this._editingConfig) return;
-    
-    this._editingConfig = {
-      ...this._editingConfig,
-      [key]: value
-    };
-  }
-
-  _updateAvailableEntities() {
-    if (!this.hass?.states) {
-      this._availableEntities = [];
-      return;
-    }
-
-    this._availableEntities = Object.entries(this.hass.states)
-      .map(([entityId, state]) => ({
-        value: entityId,
-        label: `${state.attributes?.friendly_name || entityId} (${entityId})`
-      }))
-      .sort((a, b) => a.label.localeCompare(b.label));
+    }));
   }
 
   _onSave() {
-    if (!this._editingConfig) return;
-    
-    const validation = BlockSystem.validateBlock(this._editingConfig);
-    if (!validation.valid) {
-      alert(`配置错误：${validation.errors.join(', ')}`);
-      return;
-    }
-    
-    // 清除定时器
-    if (this._autoFillTimeout) {
-      clearTimeout(this._autoFillTimeout);
-    }
-    
-    this.dispatchEvent(new CustomEvent('save', {
-      detail: { config: { ...this._editingConfig } }
+    this.dispatchEvent(new CustomEvent('save-block', {
+      detail: {
+        blockId: this.blockId,
+        config: this.editingConfig
+      }
     }));
   }
 
   _onCancel() {
-    // 清除定时器
-    if (this._autoFillTimeout) {
-      clearTimeout(this._autoFillTimeout);
-    }
-    
-    this.dispatchEvent(new CustomEvent('cancel'));
-  }
-
-  disconnectedCallback() {
-    super.disconnectedCallback();
-    // 组件卸载时清除定时器
-    if (this._autoFillTimeout) {
-      clearTimeout(this._autoFillTimeout);
-    }
+    this.dispatchEvent(new CustomEvent('cancel-edit', {
+      detail: { blockId: this.blockId }
+    }));
   }
 }
 

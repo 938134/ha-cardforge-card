@@ -123,19 +123,13 @@ export class BaseCard {
   }
 
   _getBlockContent(blockConfig, hass, entities) {
-    // 优先从实体获取内容
+    // 优先从块配置的实体获取内容
     if (blockConfig.entity && hass?.states[blockConfig.entity]) {
       const entity = hass.states[blockConfig.entity];
       return entity.state || blockConfig.entity;
     }
     
-    // 从实体映射获取内容（仅当没有直接配置实体时）
-    if (!blockConfig.entity && entities && blockConfig.id && entities[blockConfig.id] && hass?.states[entities[blockConfig.id]]) {
-      const entity = hass.states[entities[blockConfig.id]];
-      return entity.state || entities[blockConfig.id];
-    }
-    
-    // 回退到静态内容
+    // 回退到静态内容（不使用实体映射，避免意外覆盖）
     return blockConfig.content || '';
   }
 

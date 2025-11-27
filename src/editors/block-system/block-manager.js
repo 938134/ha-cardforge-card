@@ -1,13 +1,15 @@
 // src/editors/block-system/block-manager.js
 import { LitElement, html, css } from 'https://unpkg.com/lit@2.8.0/index.js?module';
 import { designSystem } from '../../core/design-system.js';
+import { BlockSystem } from '../../core/block-system.js';
 import { BlockRow } from './block-row.js';
 
 class BlockManager extends LitElement {
   static properties = {
     config: { type: Object },
     hass: { type: Object },
-    _editingBlockId: { state: true }
+    _editingBlocks: { state: true }, // 集中管理所有编辑状态
+    _availableEntities: { state: true }
   };
 
   static styles = [
@@ -66,7 +68,15 @@ class BlockManager extends LitElement {
 
   constructor() {
     super();
-    this._editingBlockId = null;
+    this._editingBlocks = new Map(); // 使用Map管理编辑状态
+    this._availableEntities = [];
+    this._autoFillTimeouts = new Map(); // 管理每个块的自动填充定时器
+  }
+
+  willUpdate(changedProperties) {
+    if (changedProperties.has('hass')) {
+      this._updateAvailableEntities();
+    }
   }
 
   render() {
@@ -109,17 +119,25 @@ class BlockManager extends LitElement {
 
     return html`
       <div class="blocks-list">
-        ${sortedBlocks.map(block => html`
-          <block-row
-            .block=${block}
-            .hass=${this.hass}
-            .isEditing=${this._editingBlockId === block.id}
-            @edit-block=${e => this._onEditBlock(e.detail.blockId)}
-            @save-block=${e => this._onSaveBlock(e.detail.blockId, e.detail.config)}
-            @cancel-edit=${this._onCancelEdit}
-            @delete-block=${e => this._onDeleteBlock(e.detail.blockId)}
-          ></block-row>
-        `)}
+        ${sortedBlocks.map(block => {
+          const isEditing = this._editingBlocks.has(block.id);
+          const editingConfig = this._editingBlocks.get(block.id);
+          
+          return html`
+            <block-row
+              .block=${block}
+              .hass=${this.hass}
+              .isEditing=${isEditing}
+              .editingConfig=${editingConfig}
+              .availableEntities=${this._availableEntities}
+              @edit-block=${this._onEditBlock}
+              @save-block=${this._onSaveBlock}
+              @cancel-edit=${this._onCancelEdit}
+              @delete-block=${this._onDeleteBlock}
+              @update-editing-config=${this._onUpdateEditingConfig}
+            ></block-row>
+          `;
+        })}
       </div>
     `;
   }
@@ -133,26 +151,121 @@ class BlockManager extends LitElement {
     `;
   }
 
-  _onEditBlock(blockId) {
-    this._editingBlockId = blockId;
+  _onEditBlock(e) {
+    const blockId = e.detail.blockId;
+    const block = this.config.blocks[blockId];
+    
+    if (!block) return;
+    
+    // 初始化编辑配置
+    this._editingBlocks.set(blockId, { ...block });
+    this.requestUpdate();
   }
 
-  _onSaveBlock(blockId, config) {
+  _onSaveBlock(e) {
+    const { blockId, config } = e.detail;
+    
+    // 验证配置
+    const validation = BlockSystem.validateBlock(config);
+    if (!validation.valid) {
+      alert(`配置错误：${validation.errors.join(', ')}`);
+      return;
+    }
+    
+    // 更新配置
     this.config.blocks[blockId] = config;
-    this._editingBlockId = null;
+    
+    // 清除编辑状态
+    this._editingBlocks.delete(blockId);
+    this._clearAutoFillTimeout(blockId);
+    
     this._notifyConfigUpdate();
   }
 
-  _onCancelEdit() {
-    this._editingBlockId = null;
+  _onCancelEdit(e) {
+    const blockId = e.detail.blockId;
+    
+    // 清除编辑状态
+    this._editingBlocks.delete(blockId);
+    this._clearAutoFillTimeout(blockId);
+    
+    this.requestUpdate();
   }
 
-  _onDeleteBlock(blockId) {
+  _onDeleteBlock(e) {
+    const blockId = e.detail.blockId;
+    
     if (!confirm('确定要删除这个块吗？')) return;
     
+    // 清除相关状态
     delete this.config.blocks[blockId];
-    this._editingBlockId = null;
+    this._editingBlocks.delete(blockId);
+    this._clearAutoFillTimeout(blockId);
+    
     this._notifyConfigUpdate();
+  }
+
+  _onUpdateEditingConfig(e) {
+    const { blockId, updates } = e.detail;
+    
+    if (!this._editingBlocks.has(blockId)) return;
+    
+    const currentConfig = this._editingBlocks.get(blockId);
+    const newConfig = { ...currentConfig, ...updates };
+    
+    this._editingBlocks.set(blockId, newConfig);
+    
+    // 处理实体自动填充
+    if (updates.entity && updates.entity !== currentConfig.entity) {
+      this._scheduleAutoFill(blockId, updates.entity);
+    }
+  }
+
+  _scheduleAutoFill(blockId, entityId) {
+    // 清除之前的定时器
+    this._clearAutoFillTimeout(blockId);
+    
+    const timeoutId = setTimeout(() => {
+      this._autoFillFromEntity(blockId, entityId);
+    }, 300);
+    
+    this._autoFillTimeouts.set(blockId, timeoutId);
+  }
+
+  _autoFillFromEntity(blockId, entityId) {
+    if (!entityId || !this.hass?.states[entityId] || !this._editingBlocks.has(blockId)) {
+      return;
+    }
+    
+    const entity = this.hass.states[entityId];
+    const currentConfig = this._editingBlocks.get(blockId);
+    const updates = {};
+    
+    // 自动填充名称（如果当前名称为空或是默认值）
+    if (!currentConfig.title || currentConfig.title === currentConfig.id) {
+      if (entity.attributes?.friendly_name) {
+        updates.title = entity.attributes.friendly_name;
+      }
+    }
+    
+    // 自动填充图标（如果当前图标为空）
+    if (!currentConfig.icon) {
+      updates.icon = BlockSystem.getEntityIcon(entityId, this.hass);
+    }
+    
+    // 应用更新
+    if (Object.keys(updates).length > 0) {
+      const newConfig = { ...currentConfig, ...updates };
+      this._editingBlocks.set(blockId, newConfig);
+      this.requestUpdate();
+    }
+  }
+
+  _clearAutoFillTimeout(blockId) {
+    if (this._autoFillTimeouts.has(blockId)) {
+      clearTimeout(this._autoFillTimeouts.get(blockId));
+      this._autoFillTimeouts.delete(blockId);
+    }
   }
 
   _addBlock() {
@@ -175,14 +288,40 @@ class BlockManager extends LitElement {
     }
     
     this.config.blocks[blockId] = blockConfig;
-    this._editingBlockId = blockId;
+    
+    // 自动进入编辑模式
+    this._editingBlocks.set(blockId, { ...blockConfig });
+    
     this._notifyConfigUpdate();
+  }
+
+  _updateAvailableEntities() {
+    if (!this.hass?.states) {
+      this._availableEntities = [];
+      return;
+    }
+
+    this._availableEntities = Object.entries(this.hass.states)
+      .map(([entityId, state]) => ({
+        value: entityId,
+        label: `${state.attributes?.friendly_name || entityId} (${entityId})`
+      }))
+      .sort((a, b) => a.label.localeCompare(b.label));
   }
 
   _notifyConfigUpdate() {
     this.dispatchEvent(new CustomEvent('config-changed', {
       detail: { config: { blocks: this.config.blocks } }
     }));
+  }
+
+  disconnectedCallback() {
+    super.disconnectedCallback();
+    // 清理所有定时器
+    this._autoFillTimeouts.forEach(timeoutId => {
+      clearTimeout(timeoutId);
+    });
+    this._autoFillTimeouts.clear();
   }
 }
 
