@@ -2,6 +2,7 @@
 import { LitElement, html, css } from 'https://unpkg.com/lit@2.8.0/index.js?module';
 import { designSystem } from '../core/design-system.js';
 import { BlockSystem } from '../core/block-system.js';
+import './block-editor-overlay.js';
 
 class BlockManager extends LitElement {
   static properties = {
@@ -202,92 +203,6 @@ class BlockManager extends LitElement {
         margin-bottom: var(--cf-spacing-md);
       }
 
-      /* 侧滑编辑面板 */
-      .editor-overlay {
-        position: fixed;
-        top: 0;
-        right: 0;
-        bottom: 0;
-        width: 320px;
-        background: var(--cf-background);
-        border-left: 1px solid var(--cf-border);
-        box-shadow: -2px 0 8px rgba(0, 0, 0, 0.15);
-        z-index: 1000;
-        transform: translateX(100%);
-        transition: transform 0.3s ease;
-        display: flex;
-        flex-direction: column;
-      }
-
-      .editor-overlay.open {
-        transform: translateX(0);
-      }
-
-      .editor-header {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        padding: var(--cf-spacing-lg);
-        border-bottom: 1px solid var(--cf-border);
-      }
-
-      .editor-title {
-        font-size: 1.1em;
-        font-weight: 600;
-        color: var(--cf-text-primary);
-      }
-
-      .close-btn {
-        background: none;
-        border: none;
-        font-size: 1.2em;
-        cursor: pointer;
-        color: var(--cf-text-secondary);
-        padding: 4px;
-      }
-
-      .close-btn:hover {
-        color: var(--cf-text-primary);
-      }
-
-      .editor-content {
-        flex: 1;
-        padding: var(--cf-spacing-lg);
-        display: flex;
-        flex-direction: column;
-        gap: var(--cf-spacing-lg);
-      }
-
-      .editor-actions {
-        display: flex;
-        gap: var(--cf-spacing-sm);
-        padding: var(--cf-spacing-lg);
-        border-top: 1px solid var(--cf-border);
-      }
-
-      .action-btn {
-        flex: 1;
-        padding: var(--cf-spacing-sm);
-        border: 1px solid var(--cf-border);
-        border-radius: var(--cf-radius-sm);
-        background: var(--cf-surface);
-        color: var(--cf-text-primary);
-        cursor: pointer;
-        font-size: 0.85em;
-        font-weight: 500;
-        transition: all var(--cf-transition-fast);
-      }
-
-      .action-btn.primary {
-        background: var(--cf-primary-color);
-        color: white;
-        border-color: var(--cf-primary-color);
-      }
-
-      .action-btn:hover {
-        opacity: 0.8;
-      }
-
       /* 响应式适配 */
       @media (max-width: 600px) {
         .block-row {
@@ -315,10 +230,6 @@ class BlockManager extends LitElement {
           width: 28px;
           height: 28px;
         }
-
-        .editor-overlay {
-          width: 100%;
-        }
       }
     `
   ];
@@ -335,7 +246,14 @@ class BlockManager extends LitElement {
       <div class="block-manager">
         ${this._renderBlocksGrid(blocks)}
         ${this._renderAddBlockButton()}
-        ${this._renderEditorOverlay()}
+        
+        <block-editor-overlay
+          .open=${!!this._editingBlockId}
+          .blockConfig=${this._editingBlockId ? this.config.blocks[this._editingBlockId] : {}}
+          .hass=${this.hass}
+          @block-saved=${this._onBlockSaved}
+          @edit-cancelled=${this._onEditCancelled}
+        ></block-editor-overlay>
       </div>
     `;
   }
@@ -421,59 +339,6 @@ class BlockManager extends LitElement {
     `;
   }
 
-  _renderEditorOverlay() {
-    if (!this._editingBlockId) return '';
-
-    const blockConfig = this.config.blocks[this._editingBlockId];
-    if (!blockConfig) return '';
-
-    return html`
-      <div class="editor-overlay open">
-        <div class="editor-header">
-          <div class="editor-title">编辑块</div>
-          <button class="close-btn" @click=${this._closeEditor}>✕</button>
-        </div>
-        
-        <div class="editor-content">
-          <div class="form-field">
-            <div class="field-label">实体</div>
-            <ha-entity-picker
-              .hass=${this.hass}
-              .value=${blockConfig.entity || ''}
-              @value-changed=${e => this._updateEditingBlock('entity', e.detail.value)}
-              allow-custom-entity
-            ></ha-entity-picker>
-          </div>
-
-          <div class="form-field">
-            <div class="field-label">名称</div>
-            <ha-textfield
-              .value=${blockConfig.title || ''}
-              @input=${e => this._updateEditingBlock('title', e.target.value)}
-              placeholder="输入显示名称"
-              fullwidth
-            ></ha-textfield>
-          </div>
-
-          <div class="form-field">
-            <div class="field-label">图标</div>
-            <ha-icon-picker
-              .value=${blockConfig.icon || ''}
-              @value-changed=${e => this._updateEditingBlock('icon', e.detail.value)}
-              label="选择图标"
-              fullwidth
-            ></ha-icon-picker>
-          </div>
-        </div>
-
-        <div class="editor-actions">
-          <button class="action-btn" @click=${this._closeEditor}>取消</button>
-          <button class="action-btn primary" @click=${this._saveBlock}>保存</button>
-        </div>
-      </div>
-    `;
-  }
-
   _getAreaInfo(area) {
     const areaMap = {
       'header': { letter: 'H', fullText: '标题', color: '#2196F3' },
@@ -522,22 +387,15 @@ class BlockManager extends LitElement {
     this._notifyConfigUpdate();
   }
 
-  _updateEditingBlock(key, value) {
-    if (!this._editingBlockId) return;
-    
-    this.config.blocks[this._editingBlockId] = {
-      ...this.config.blocks[this._editingBlockId],
-      [key]: value
-    };
-    this.requestUpdate();
+  _onBlockSaved(e) {
+    if (this._editingBlockId) {
+      this.config.blocks[this._editingBlockId] = e.detail.blockConfig;
+      this._editingBlockId = null;
+      this._notifyConfigUpdate();
+    }
   }
 
-  _saveBlock() {
-    this._editingBlockId = null;
-    this._notifyConfigUpdate();
-  }
-
-  _closeEditor() {
+  _onEditCancelled() {
     this._editingBlockId = null;
   }
 

@@ -7,6 +7,7 @@ import './card-selector.js';
 import './theme-selector.js';
 import './block-manager.js';
 import './block-editor.js';
+import './block-editor-overlay.js'; 
 import './dynamic-form.js';
 
 class CardEditor extends LitElement {
