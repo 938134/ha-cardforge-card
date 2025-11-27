@@ -162,17 +162,6 @@ class BlockEditor extends LitElement {
             </div>
           ` : ''}
 
-          <!-- 样式设置 -->
-          <div class="config-field">
-            <label class="config-label">自定义样式</label>
-            <ha-textfield
-              .value=${this._editingConfig.style || ''}
-              @input=${e => this._updateConfig('style', e.target.value)}
-              placeholder="例如：color: red; font-size: 1.2em;"
-              fullwidth
-            ></ha-textfield>
-          </div>
-
           <div class="form-actions">
             <button class="action-btn" @click=${this._onCancel}>
               取消
