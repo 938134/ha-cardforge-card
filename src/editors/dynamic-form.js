@@ -24,10 +24,10 @@ class DynamicForm extends LitElement {
         margin-bottom: var(--cf-spacing-lg);
       }
 
-      /* 选择器字段网格 - 2列 */
+      /* 选择器字段网格 - 4列 */
       .select-grid {
         display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        grid-template-columns: repeat(4, 1fr);
         gap: var(--cf-spacing-md);
         margin-bottom: var(--cf-spacing-lg);
       }
@@ -93,17 +93,37 @@ class DynamicForm extends LitElement {
         grid-column: 1 / -1;
       }
 
-      /* 移动端适配 */
+      /* 响应式适配 */
+      @media (max-width: 1024px) {
+        .select-grid {
+          grid-template-columns: repeat(2, 1fr) !important;
+        }
+      }
+
       @media (max-width: 768px) {
         .boolean-grid,
         .select-grid {
-          grid-template-columns: 1fr;
+          grid-template-columns: 1fr !important;
           gap: var(--cf-spacing-sm);
         }
 
         .switch-field {
           min-height: 48px;
           padding: var(--cf-spacing-sm);
+        }
+      }
+
+      @media (max-width: 600px) {
+        .select-grid {
+          grid-template-columns: 1fr !important;
+        }
+      }
+
+      /* 深色模式适配 */
+      @media (prefers-color-scheme: dark) {
+        .switch-field {
+          background: var(--cf-dark-surface);
+          border-color: var(--cf-dark-border);
         }
       }
     `
@@ -125,6 +145,7 @@ class DynamicForm extends LitElement {
 
     this._formValues = { ...this.config };
     
+    // 设置默认值
     Object.entries(this.schema).forEach(([key, field]) => {
       if (this._formValues[key] === undefined && field.default !== undefined) {
         this._formValues[key] = field.default;
@@ -144,9 +165,9 @@ class DynamicForm extends LitElement {
 
     return html`
       <div class="dynamic-form">
-        ${booleanFields.length > 0 ? this._renderBooleanGrid(booleanFields) : ''}
         ${selectFields.length > 0 ? this._renderSelectGrid(selectFields) : ''}
         ${colorFields.length > 0 ? this._renderColorFields(colorFields) : ''}
+        ${booleanFields.length > 0 ? this._renderBooleanGrid(booleanFields) : ''}
         ${otherFields.length > 0 ? this._renderInputGrid(otherFields) : ''}
       </div>
     `;
