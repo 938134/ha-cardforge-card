@@ -16,24 +16,15 @@ class DynamicForm extends LitElement {
         width: 100%;
       }
 
-      /* 布尔值字段网格 - 2列 */
-      .boolean-grid {
+      /* 双栏网格布局 */
+      .settings-grid {
         display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-        gap: var(--cf-spacing-sm);
-        margin-bottom: var(--cf-spacing-lg);
+        grid-template-columns: 1fr 1fr;
+        gap: var(--cf-spacing-lg);
+        align-items: start;
       }
 
-      /* 选择器字段网格 - 2列 */
-      .select-grid {
-        display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-        gap: var(--cf-spacing-md);
-        margin-bottom: var(--cf-spacing-lg);
-      }
-
-      /* 输入字段 - 全宽度 */
-      .input-grid {
+      .settings-column {
         display: flex;
         flex-direction: column;
         gap: var(--cf-spacing-md);
@@ -46,8 +37,8 @@ class DynamicForm extends LitElement {
       }
 
       .field-label {
-        font-size: 0.9em;
         font-weight: 500;
+        font-size: 0.9em;
         color: var(--cf-text-primary);
         margin-bottom: var(--cf-spacing-xs);
       }
@@ -76,29 +67,34 @@ class DynamicForm extends LitElement {
         flex: 1;
       }
 
-      /* 选择器和输入字段 */
-      .select-field,
-      .text-field,
+      /* 选择器字段 */
+      .select-field {
+        width: 100%;
+      }
+
+      /* 颜色选择器 */
       .color-field {
         width: 100%;
       }
 
-      /* 颜色选择器容器 - 简化版本 */
-      .color-field-container {
+      /* 输入字段 */
+      .text-field {
         width: 100%;
       }
 
-      /* 全宽度字段 */
-      .full-width {
+      /* 空状态 */
+      .empty-state {
         grid-column: 1 / -1;
+        text-align: center;
+        padding: var(--cf-spacing-xl);
+        color: var(--cf-text-secondary);
       }
 
       /* 移动端适配 */
       @media (max-width: 768px) {
-        .boolean-grid,
-        .select-grid {
+        .settings-grid {
           grid-template-columns: 1fr;
-          gap: var(--cf-spacing-sm);
+          gap: var(--cf-spacing-md);
         }
 
         .switch-field {
@@ -153,10 +149,19 @@ class DynamicForm extends LitElement {
 
     return html`
       <div class="dynamic-form">
-        ${booleanFields.length > 0 ? this._renderBooleanGrid(booleanFields) : ''}
-        ${selectFields.length > 0 ? this._renderSelectGrid(selectFields) : ''}
-        ${colorFields.length > 0 ? this._renderColorFields(colorFields) : ''}
-        ${otherFields.length > 0 ? this._renderInputGrid(otherFields) : ''}
+        <div class="settings-grid">
+          <!-- 左侧列：布尔开关 -->
+          <div class="settings-column">
+            ${booleanFields.map(field => this._renderBooleanField(field))}
+          </div>
+
+          <!-- 右侧列：选择器和颜色选择器 -->
+          <div class="settings-column">
+            ${selectFields.map(field => this._renderSelectField(field))}
+            ${colorFields.map(field => this._renderColorField(field))}
+            ${otherFields.map(field => this._renderInputField(field))}
+          </div>
+        </div>
       </div>
     `;
   }
@@ -174,40 +179,6 @@ class DynamicForm extends LitElement {
     return Object.entries(this.schema)
       .filter(([key, field]) => !excludedTypes.includes(field.type))
       .map(([key, field]) => ({ key, ...field }));
-  }
-
-  _renderBooleanGrid(fields) {
-    return html`
-      <div class="boolean-grid">
-        ${fields.map(field => this._renderBooleanField(field))}
-      </div>
-    `;
-  }
-
-  _renderSelectGrid(fields) {
-    return html`
-      <div class="select-grid">
-        ${fields.map(field => this._renderSelectField(field))}
-      </div>
-    `;
-  }
-
-  _renderColorFields(fields) {
-    return html`
-      <div class="select-grid">
-        ${fields.map(field => this._renderColorField(field))}
-      </div>
-    `;
-  }
-
-  _renderInputGrid(fields) {
-    if (fields.length === 0) return '';
-
-    return html`
-      <div class="input-grid">
-        ${fields.map(field => this._renderInputField(field))}
-      </div>
-    `;
   }
 
   _renderBooleanField(field) {
@@ -257,24 +228,20 @@ class DynamicForm extends LitElement {
     return html`
       <div class="form-field">
         <div class="field-label">${field.label}</div>
-        <div class="color-field-container">
-          <ha-color-picker
-            .value=${value || '#000000'}
-            @value-changed=${e => this._onFieldChange(field.key, e.detail.value)}
-            .label=${field.label}
-            fullwidth
-          ></ha-color-picker>
-        </div>
+        <ha-color-picker
+          .value=${value || '#000000'}
+          @value-changed=${e => this._onFieldChange(field.key, e.detail.value)}
+          class="color-field"
+        ></ha-color-picker>
       </div>
     `;
   }
 
   _renderInputField(field) {
     const value = this._formValues[field.key] !== undefined ? this._formValues[field.key] : field.default;
-    const isFullWidth = field.type === 'text' || field.type === 'textarea';
 
     return html`
-      <div class="form-field ${isFullWidth ? 'full-width' : ''}">
+      <div class="form-field">
         <div class="field-label">${field.label}</div>
         ${field.type === 'textarea' ? 
           this._renderTextareaField(field, value) :
@@ -314,7 +281,7 @@ class DynamicForm extends LitElement {
 
   _renderEmptyState() {
     return html`
-      <div class="cf-flex cf-flex-center cf-flex-column cf-p-lg">
+      <div class="empty-state">
         <ha-icon icon="mdi:check-circle" style="color: var(--cf-success-color); font-size: 2em;"></ha-icon>
         <div class="cf-text-md cf-mt-md cf-text-secondary">此卡片无需额外配置</div>
       </div>
