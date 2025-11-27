@@ -107,8 +107,6 @@ class BlockEditor extends LitElement {
   }
 
   render() {
-    const isEntityBlock = !!this._editingConfig.entity;
-
     return html`
       <div class="block-editor">
         <div class="editor-form">
@@ -147,20 +145,6 @@ class BlockEditor extends LitElement {
               fullwidth
             ></ha-icon-picker>
           </div>
-
-          <!-- 内容输入（仅文本块显示） -->
-          ${!isEntityBlock ? html`
-            <div class="config-field">
-              <label class="config-label">内容</label>
-              <ha-textarea
-                .value=${this._editingConfig.content || ''}
-                @input=${e => this._updateConfig('content', e.target.value)}
-                placeholder="输入内容..."
-                rows="3"
-                fullwidth
-              ></ha-textarea>
-            </div>
-          ` : ''}
 
           <div class="form-actions">
             <button class="action-btn" @click=${this._onCancel}>
