@@ -94,10 +94,10 @@ class InlineEditor extends LitElement {
     super();
     this._editingConfig = null;
     this._availableEntities = [];
+    this._autoFillTimeout = null;
   }
 
   willUpdate(changedProperties) {
-    // 关键修复：每次block变化时创建新的编辑配置对象
     if (changedProperties.has('block')) {
       this._editingConfig = this.block ? { ...this.block } : null;
     }
@@ -121,7 +121,7 @@ class InlineEditor extends LitElement {
             <ha-combo-box
               .items=${this._availableEntities}
               .value=${this._editingConfig.entity || ''}
-              @value-changed=${e => this._updateConfig('entity', e.detail.value)}
+              @value-changed=${this._onEntityChanged}
               allow-custom-value
               label="选择或输入实体ID"
               fullwidth
@@ -159,29 +159,55 @@ class InlineEditor extends LitElement {
     `;
   }
 
+  _onEntityChanged(e) {
+    const entityId = e.detail.value;
+    this._updateConfig('entity', entityId);
+    
+    // 延迟自动填充，避免频繁更新导致的闪烁
+    if (this._autoFillTimeout) {
+      clearTimeout(this._autoFillTimeout);
+    }
+    
+    this._autoFillTimeout = setTimeout(() => {
+      this._autoFillFromEntity(entityId);
+    }, 300);
+  }
+
+  _autoFillFromEntity(entityId) {
+    if (!entityId || !this.hass?.states[entityId]) return;
+    
+    const entity = this.hass.states[entityId];
+    const updates = {};
+    
+    // 自动填充名称（如果当前名称为空或是默认值）
+    if (!this._editingConfig.title || this._editingConfig.title === this._editingConfig.id) {
+      if (entity.attributes?.friendly_name) {
+        updates.title = entity.attributes.friendly_name;
+      }
+    }
+    
+    // 自动填充图标（如果当前图标为空）
+    if (!this._editingConfig.icon) {
+      updates.icon = BlockSystem.getEntityIcon(entityId, this.hass);
+    }
+    
+    // 批量更新配置
+    if (Object.keys(updates).length > 0) {
+      this._editingConfig = {
+        ...this._editingConfig,
+        ...updates
+      };
+      this.requestUpdate();
+    }
+  }
+
   _updateConfig(key, value) {
     if (!this._editingConfig) return;
     
-    // 关键修复：创建新的配置对象，避免引用共享
     this._editingConfig = {
       ...this._editingConfig,
       [key]: value
     };
-    
-    // 自动填充逻辑
-    if (key === 'entity' && value && this.hass?.states[value]) {
-      const entity = this.hass.states[value];
-      
-      if (!this._editingConfig.title && entity.attributes?.friendly_name) {
-        this._editingConfig.title = entity.attributes.friendly_name;
-      }
-      
-      if (!this._editingConfig.icon) {
-        this._editingConfig.icon = BlockSystem.getEntityIcon(value, this.hass);
-      }
-      
-      this.requestUpdate();
-    }
   }
 
   _updateAvailableEntities() {
@@ -207,13 +233,31 @@ class InlineEditor extends LitElement {
       return;
     }
     
+    // 清除定时器
+    if (this._autoFillTimeout) {
+      clearTimeout(this._autoFillTimeout);
+    }
+    
     this.dispatchEvent(new CustomEvent('save', {
-      detail: { config: { ...this._editingConfig } } // 传递副本
+      detail: { config: { ...this._editingConfig } }
     }));
   }
 
   _onCancel() {
+    // 清除定时器
+    if (this._autoFillTimeout) {
+      clearTimeout(this._autoFillTimeout);
+    }
+    
     this.dispatchEvent(new CustomEvent('cancel'));
+  }
+
+  disconnectedCallback() {
+    super.disconnectedCallback();
+    // 组件卸载时清除定时器
+    if (this._autoFillTimeout) {
+      clearTimeout(this._autoFillTimeout);
+    }
   }
 }
 

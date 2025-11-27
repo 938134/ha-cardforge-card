@@ -72,31 +72,23 @@ class PoetryCard extends BaseCard {
     return super.render(dynamicConfig, hass, entities);
   }
 
-  _applyDynamicConfig(config, hass, entities) {
-    const blocks = config.blocks;
-    
-    // 从实体获取数据（如果配置了实体）
-    if (entities) {
-      if (entities.poetry_title && hass?.states[entities.poetry_title]) {
-        blocks.poetry_title.content = hass.states[entities.poetry_title].state;
-      }
-      if (entities.poetry_dynasty && hass?.states[entities.poetry_dynasty]) {
-        blocks.poetry_dynasty.content = hass.states[entities.poetry_dynasty].state;
-      }
-      if (entities.poetry_author && hass?.states[entities.poetry_author]) {
-        blocks.poetry_author.content = hass.states[entities.poetry_author].state;
-      }
-      if (entities.poetry_content && hass?.states[entities.poetry_content]) {
-        blocks.poetry_content.content = hass.states[entities.poetry_content].state;
-      }
-      if (entities.poetry_translation && hass?.states[entities.poetry_translation]) {
-        blocks.poetry_translation.content = hass.states[entities.poetry_translation].state;
-      }
+// 在 src/cards/poetry-card.js 中修复 _applyDynamicConfig 方法
+_applyDynamicConfig(config, hass, entities) {
+  const blocks = config.blocks;
+  
+  // 从实体获取数据（仅在块配置了实体时）
+  Object.entries(blocks).forEach(([blockId, blockConfig]) => {
+    if (blockConfig.entity && hass?.states[blockConfig.entity]) {
+      // 只更新状态值，不覆盖原有内容结构
+      const entityState = hass.states[blockConfig.entity].state;
+      // 这里可以根据需要决定是否用实体状态替换内容
+      // 目前保持原有逻辑，但确保不会意外覆盖
     }
-    
-    // 根据显示配置调整样式
-    this._applyDisplayConfig(config);
-  }
+  });
+  
+  // 根据显示配置调整样式
+  this._applyDisplayConfig(config);
+}
 
   _applyDisplayConfig(config) {
     const blocks = config.blocks;

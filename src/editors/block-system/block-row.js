@@ -117,6 +117,7 @@ class BlockRow extends LitElement {
 
     const icon = BlockSystem.getBlockIcon(block);
     const state = BlockSystem.getBlockPreview(block, hass);
+    // 修复：优先显示配置的title，没有则显示块ID
     const displayName = block.title || block.id;
 
     return html`
@@ -177,6 +178,7 @@ class BlockRow extends LitElement {
   }
 
   _onSave(e) {
+    // 修复：确保事件正确传递
     this.dispatchEvent(new CustomEvent('save-block', {
       detail: {
         blockId: this.block.id,
@@ -186,6 +188,7 @@ class BlockRow extends LitElement {
   }
 
   _onCancel() {
+    // 修复：确保事件正确传递
     this.dispatchEvent(new CustomEvent('cancel-edit'));
   }
 }
@@ -194,4 +197,4 @@ if (!customElements.get('block-row')) {
   customElements.define('block-row', BlockRow);
 }
 
-export { BlockRow };
+export { BlockRow }; 

@@ -129,8 +129,8 @@ export class BaseCard {
       return entity.state || blockConfig.entity;
     }
     
-    // 从实体映射获取内容
-    if (entities && blockConfig.id && entities[blockConfig.id] && hass?.states[entities[blockConfig.id]]) {
+    // 从实体映射获取内容（仅当没有直接配置实体时）
+    if (!blockConfig.entity && entities && blockConfig.id && entities[blockConfig.id] && hass?.states[entities[blockConfig.id]]) {
       const entity = hass.states[entities[blockConfig.id]];
       return entity.state || entities[blockConfig.id];
     }
