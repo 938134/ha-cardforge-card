@@ -83,39 +83,14 @@ class DynamicForm extends LitElement {
         width: 100%;
       }
 
-      /* 颜色选择器容器 */
-      .color-picker-container {
-        display: flex;
-        align-items: center;
-        gap: var(--cf-spacing-sm);
-      }
-
-      .color-preview {
-        width: 24px;
-        height: 24px;
-        border-radius: var(--cf-radius-sm);
-        border: 1px solid var(--cf-border);
-        cursor: pointer;
-        transition: transform var(--cf-transition-fast);
-      }
-
-      .color-preview:hover {
-        transform: scale(1.1);
+      /* 颜色选择器容器 - 简化版本 */
+      .color-field-container {
+        width: 100%;
       }
 
       /* 全宽度字段 */
       .full-width {
         grid-column: 1 / -1;
-      }
-
-      /* 组标题 */
-      .group-title {
-        font-size: 1em;
-        font-weight: 600;
-        color: var(--cf-text-primary);
-        margin: var(--cf-spacing-lg) 0 var(--cf-spacing-md) 0;
-        padding-bottom: var(--cf-spacing-xs);
-        border-bottom: 1px solid var(--cf-border);
       }
 
       /* 移动端适配 */
@@ -203,7 +178,6 @@ class DynamicForm extends LitElement {
 
   _renderBooleanGrid(fields) {
     return html`
-      <div class="group-title">显示控制</div>
       <div class="boolean-grid">
         ${fields.map(field => this._renderBooleanField(field))}
       </div>
@@ -212,7 +186,6 @@ class DynamicForm extends LitElement {
 
   _renderSelectGrid(fields) {
     return html`
-      <div class="group-title">样式设置</div>
       <div class="select-grid">
         ${fields.map(field => this._renderSelectField(field))}
       </div>
@@ -231,7 +204,6 @@ class DynamicForm extends LitElement {
     if (fields.length === 0) return '';
 
     return html`
-      <div class="group-title">高级设置</div>
       <div class="input-grid">
         ${fields.map(field => this._renderInputField(field))}
       </div>
@@ -285,25 +257,13 @@ class DynamicForm extends LitElement {
     return html`
       <div class="form-field">
         <div class="field-label">${field.label}</div>
-        <div class="color-picker-container">
-          <ha-textfield
-            .value=${value || ''}
-            @input=${e => this._onFieldChange(field.key, e.target.value)}
-            fullwidth
-            class="color-field"
-            placeholder="#000000"
-          ></ha-textfield>
-          <ha-icon-picker
-            .value=${value || ''}
+        <div class="color-field-container">
+          <ha-color-picker
+            .value=${value || '#000000'}
             @value-changed=${e => this._onFieldChange(field.key, e.detail.value)}
-            .label=${`选择${field.label}`}
-          ></ha-icon-picker>
-          <div 
-            class="color-preview" 
-            style="background: ${value || '#000000'};"
-            title="颜色预览"
-            @click=${() => this._openColorPicker(field.key, value || '#000000')}
-          ></div>
+            .label=${field.label}
+            fullwidth
+          ></ha-color-picker>
         </div>
       </div>
     `;
@@ -367,28 +327,6 @@ class DynamicForm extends LitElement {
     this.dispatchEvent(new CustomEvent('config-changed', {
       detail: { config: { [key]: value } }
     }));
-  }
-
-  _openColorPicker(key, currentValue) {
-    // 使用官方的颜色选择对话框
-    const colorPicker = document.createElement('ha-dialog');
-    colorPicker.heading = '选择颜色';
-    colorPicker.open = true;
-    
-    colorPicker.innerHTML = `
-      <ha-color-picker 
-        .value=${currentValue}
-        @value-changed=${(e) => {
-          this._onFieldChange(key, e.detail.value);
-          colorPicker.open = false;
-          document.body.removeChild(colorPicker);
-        }}
-      ></ha-color-picker>
-      <mwc-button slot="primaryAction" dialogAction="cancel">取消</mwc-button>
-      <mwc-button slot="secondaryAction" dialogAction="confirm">确认</mwc-button>
-    `;
-    
-    document.body.appendChild(colorPicker);
   }
 
   _preventClose(e) {
