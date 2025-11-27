@@ -22,7 +22,7 @@ class BlockEditor extends LitElement {
       .editor-form {
         display: flex;
         flex-direction: column;
-        gap: var(--cf-spacing-lg);
+        gap: var(--cf-spacing-md);
       }
 
       .config-field {
@@ -52,9 +52,7 @@ class BlockEditor extends LitElement {
         display: flex;
         gap: var(--cf-spacing-sm);
         justify-content: flex-end;
-        margin-top: var(--cf-spacing-lg);
-        padding-top: var(--cf-spacing-md);
-        border-top: 1px solid var(--cf-border);
+        margin-top: var(--cf-spacing-md);
       }
 
       .action-btn {
@@ -67,7 +65,7 @@ class BlockEditor extends LitElement {
         font-size: 0.85em;
         font-weight: 500;
         transition: all var(--cf-transition-fast);
-        min-width: 100px;
+        min-width: 80px;
       }
 
       .action-btn.primary {
@@ -161,17 +159,6 @@ class BlockEditor extends LitElement {
               ></ha-textarea>
             </div>
           ` : ''}
-
-          <!-- 样式设置 -->
-          <div class="config-field">
-            <label class="config-label">自定义样式</label>
-            <ha-textfield
-              .value=${this._editingConfig.style || ''}
-              @input=${e => this._updateConfig('style', e.target.value)}
-              placeholder="例如：color: red; font-size: 1.2em;"
-              fullwidth
-            ></ha-textfield>
-          </div>
 
           <div class="form-actions">
             <button class="action-btn" @click=${this._onCancel}>

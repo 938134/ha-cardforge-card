@@ -6,7 +6,6 @@ import { designSystem } from '../core/design-system.js';
 import './card-selector.js';
 import './theme-selector.js';
 import './block-manager.js';
-import './block-editor.js';
 import './dynamic-form.js';
 
 class CardEditor extends LitElement {
@@ -17,7 +16,6 @@ class CardEditor extends LitElement {
     _themes: { state: true },
     _selectedCard: { state: true },
     _initialized: { state: true },
-    _editingBlockId: { state: true },
     _availableEntities: { state: true },
     _cardSchema: { state: true }
   };
@@ -65,6 +63,20 @@ class CardEditor extends LitElement {
         font-weight: 600;
         color: var(--cf-text-primary);
       }
+
+      .loading-container {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        padding: var(--cf-spacing-xl);
+        gap: var(--cf-spacing-md);
+      }
+
+      .loading-text {
+        font-size: 0.9em;
+        color: var(--cf-text-secondary);
+      }
     `
   ];
 
@@ -81,7 +93,6 @@ class CardEditor extends LitElement {
     this._themes = [];
     this._selectedCard = null;
     this._initialized = false;
-    this._editingBlockId = null;
     this._availableEntities = [];
     this._cardSchema = null;
   }
@@ -141,7 +152,6 @@ class CardEditor extends LitElement {
           ${this.config.card_type ? this._renderThemeSection() : ''}
           ${this.config.card_type && this._cardSchema ? this._renderCardSettings() : ''}
           ${this.config.card_type ? this._renderBlockManager() : ''}
-          ${this._editingBlockId ? this._renderBlockEditor() : ''}
         </div>
       </div>
     `;
@@ -150,9 +160,9 @@ class CardEditor extends LitElement {
   _renderLoading() {
     return html`
       <div class="editor-section">
-        <div class="cf-flex cf-flex-center cf-p-lg">
+        <div class="loading-container">
           <ha-circular-progress indeterminate></ha-circular-progress>
-          <div class="cf-text-md cf-m-sm">初始化编辑器...</div>
+          <div class="loading-text">初始化编辑器...</div>
         </div>
       </div>
     `;
@@ -221,31 +231,7 @@ class CardEditor extends LitElement {
           .config=${this.config}
           .hass=${this.hass}
           @config-changed=${this._onConfigChanged}
-          @edit-block=${this._onEditBlock}
-          @add-block=${this._onAddBlock}
         ></block-manager>
-      </div>
-    `;
-  }
-
-  _renderBlockEditor() {
-    const blockConfig = this.config.blocks[this._editingBlockId];
-    if (!blockConfig) return '';
-
-    return html`
-      <div class="editor-section">
-        <div class="section-header">
-          <ha-icon icon="mdi:pencil"></ha-icon>
-          <span class="section-title">编辑块</span>
-        </div>
-        
-        <block-editor
-          .blockConfig=${blockConfig}
-          .hass=${this.hass}
-          .availableEntities=${this._availableEntities}
-          @block-saved=${e => this._onBlockSaved(this._editingBlockId, e.detail.blockConfig)}
-          @edit-cancelled=${this._onEditCancelled}
-        ></block-editor>
       </div>
     `;
   }
@@ -288,44 +274,6 @@ class CardEditor extends LitElement {
       ...e.detail.config
     };
     this._notifyConfigUpdate();
-  }
-
-  _onEditBlock(e) {
-    this._editingBlockId = e.detail.blockId;
-  }
-
-  _onAddBlock() {
-    const area = prompt('请选择要添加到的区域：\n\n输入: header(标题) / content(内容) / footer(页脚)', 'content');
-    
-    if (!area || !['header', 'content', 'footer'].includes(area)) {
-      return;
-    }
-    
-    const blockId = `block_${Date.now()}`;
-    const blockConfig = {
-      type: 'text',
-      title: '',
-      content: '',
-      area: area
-    };
-    
-    if (!this.config.blocks) {
-      this.config.blocks = {};
-    }
-    
-    this.config.blocks[blockId] = blockConfig;
-    this._editingBlockId = blockId;
-    this._notifyConfigUpdate();
-  }
-
-  _onBlockSaved(blockId, updatedConfig) {
-    this.config.blocks[blockId] = updatedConfig;
-    this._editingBlockId = null;
-    this._notifyConfigUpdate();
-  }
-
-  _onEditCancelled() {
-    this._editingBlockId = null;
   }
 
   _notifyConfigUpdate() {

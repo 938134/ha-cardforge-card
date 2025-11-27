@@ -6,7 +6,8 @@ import { BlockSystem } from '../core/block-system.js';
 class BlockManager extends LitElement {
   static properties = {
     config: { type: Object },
-    hass: { type: Object }
+    hass: { type: Object },
+    _editingBlockId: { state: true }
   };
 
   static styles = [
@@ -26,7 +27,7 @@ class BlockManager extends LitElement {
 
       .block-row {
         display: grid;
-        grid-template-columns: 40px 48px 1fr 40px 40px;
+        grid-template-columns: 60px 48px 1fr 40px 40px;
         gap: var(--cf-spacing-sm);
         align-items: center;
         background: var(--cf-surface);
@@ -35,6 +36,7 @@ class BlockManager extends LitElement {
         padding: var(--cf-spacing-sm);
         transition: all var(--cf-transition-fast);
         min-height: 60px;
+        cursor: pointer;
       }
 
       .block-row:hover {
@@ -46,11 +48,9 @@ class BlockManager extends LitElement {
       /* 列1 - 区域标识 */
       .area-badge {
         display: flex;
-        flex-direction: column;
         align-items: center;
-        justify-content: center;
-        gap: 2px;
-        font-size: 0.7em;
+        gap: var(--cf-spacing-xs);
+        font-size: 0.8em;
         font-weight: 600;
       }
 
@@ -58,6 +58,7 @@ class BlockManager extends LitElement {
         width: 12px;
         height: 12px;
         border-radius: 50%;
+        flex-shrink: 0;
       }
 
       .area-dot.header {
@@ -73,9 +74,9 @@ class BlockManager extends LitElement {
       }
 
       .area-text {
-        font-size: 0.65em;
-        color: var(--cf-text-secondary);
+        color: var(--cf-text-primary);
         line-height: 1;
+        white-space: nowrap;
       }
 
       /* 列2 - 图标 */
@@ -163,6 +164,53 @@ class BlockManager extends LitElement {
         background: var(--cf-error-color);
       }
 
+      /* 内联编辑面板 */
+      .inline-editor {
+        grid-column: 1 / -1;
+        background: rgba(var(--cf-rgb-primary), 0.03);
+        border: 1px solid var(--cf-primary-color);
+        border-radius: var(--cf-radius-md);
+        padding: var(--cf-spacing-md);
+        margin-top: var(--cf-spacing-sm);
+        animation: fadeIn 0.2s ease;
+      }
+
+      @keyframes fadeIn {
+        from { opacity: 0; transform: translateY(-8px); }
+        to { opacity: 1; transform: translateY(0); }
+      }
+
+      .editor-actions {
+        display: flex;
+        gap: var(--cf-spacing-sm);
+        justify-content: flex-end;
+        margin-top: var(--cf-spacing-md);
+      }
+
+      .editor-btn {
+        padding: var(--cf-spacing-sm) var(--cf-spacing-lg);
+        border: 1px solid var(--cf-border);
+        border-radius: var(--cf-radius-sm);
+        background: var(--cf-surface);
+        color: var(--cf-text-primary);
+        cursor: pointer;
+        font-size: 0.85em;
+        font-weight: 500;
+        transition: all var(--cf-transition-fast);
+        min-width: 80px;
+      }
+
+      .editor-btn.primary {
+        background: var(--cf-primary-color);
+        color: white;
+        border-color: var(--cf-primary-color);
+      }
+
+      .editor-btn:hover {
+        opacity: 0.8;
+        transform: translateY(-1px);
+      }
+
       /* 添加块按钮 */
       .add-block-btn {
         width: 100%;
@@ -205,10 +253,14 @@ class BlockManager extends LitElement {
       /* 响应式适配 */
       @media (max-width: 600px) {
         .block-row {
-          grid-template-columns: 36px 40px 1fr 36px 36px;
+          grid-template-columns: 50px 36px 1fr 32px 32px;
           gap: var(--cf-spacing-xs);
           padding: var(--cf-spacing-xs);
           min-height: 54px;
+        }
+
+        .area-badge {
+          font-size: 0.7em;
         }
 
         .block-icon {
@@ -229,9 +281,19 @@ class BlockManager extends LitElement {
           width: 28px;
           height: 28px;
         }
+
+        .editor-btn {
+          min-width: 70px;
+          padding: var(--cf-spacing-xs) var(--cf-spacing-md);
+        }
       }
     `
   ];
+
+  constructor() {
+    super();
+    this._editingBlockId = null;
+  }
 
   render() {
     const blocks = this._getAllBlocks();
@@ -284,13 +346,14 @@ class BlockManager extends LitElement {
     const icon = BlockSystem.getBlockIcon(block);
     const state = BlockSystem.getBlockPreview(block, this.hass);
     const areaInfo = this._getAreaInfo(block.area);
+    const isEditing = this._editingBlockId === block.id;
 
     return html`
       <div class="block-row" @click=${() => this._editBlock(block.id)}>
         <!-- 列1: 区域标识 -->
         <div class="area-badge">
           <div class="area-dot ${block.area || 'content'}"></div>
-          <div class="area-text">${areaInfo.shortText}</div>
+          <span class="area-text">${areaInfo.text}</span>
         </div>
 
         <!-- 列2: 图标 -->
@@ -317,6 +380,23 @@ class BlockManager extends LitElement {
             <ha-icon icon="mdi:delete"></ha-icon>
           </div>
         </div>
+
+        <!-- 内联编辑面板 -->
+        ${isEditing ? this._renderInlineEditor(block) : ''}
+      </div>
+    `;
+  }
+
+  _renderInlineEditor(block) {
+    return html`
+      <div class="inline-editor">
+        <block-editor
+          .blockConfig=${block}
+          .hass=${this.hass}
+          .availableEntities=${this._getAvailableEntities()}
+          @block-saved=${e => this._onBlockSaved(block.id, e.detail.blockConfig)}
+          @edit-cancelled=${this._onEditCancelled}
+        ></block-editor>
       </div>
     `;
   }
@@ -332,22 +412,66 @@ class BlockManager extends LitElement {
 
   _getAreaInfo(area) {
     const areaMap = {
-      'header': { shortText: '标', fullText: '标题', color: '#2196F3' },
-      'content': { shortText: '内', fullText: '内容', color: '#4CAF50' },
-      'footer': { shortText: '页', fullText: '页脚', color: '#FF9800' }
+      'header': { text: '标题', color: '#2196F3' },
+      'content': { text: '内容', color: '#4CAF50' },
+      'footer': { text: '页脚', color: '#FF9800' }
     };
     return areaMap[area] || areaMap.content;
   }
 
+  _getAvailableEntities() {
+    if (!this.hass?.states) return [];
+    
+    return Object.entries(this.hass.states)
+      .map(([entityId, state]) => ({
+        value: entityId,
+        label: `${state.attributes?.friendly_name || entityId} (${entityId})`
+      }))
+      .sort((a, b) => a.label.localeCompare(b.label));
+  }
+
   _editBlock(e, blockId) {
     if (e) e.stopPropagation();
-    this.dispatchEvent(new CustomEvent('edit-block', {
-      detail: { blockId }
-    }));
+    
+    if (this._editingBlockId === blockId) {
+      this._editingBlockId = null;
+    } else {
+      this._editingBlockId = blockId;
+    }
   }
 
   _addBlock() {
-    this.dispatchEvent(new CustomEvent('add-block'));
+    const area = prompt('请选择要添加到的区域：\n\n输入: header(标题) / content(内容) / footer(页脚)', 'content');
+    
+    if (!area || !['header', 'content', 'footer'].includes(area)) {
+      return;
+    }
+    
+    const blockId = `block_${Date.now()}`;
+    const blockConfig = {
+      type: 'text',
+      title: '',
+      content: '',
+      area: area
+    };
+    
+    if (!this.config.blocks) {
+      this.config.blocks = {};
+    }
+    
+    this.config.blocks[blockId] = blockConfig;
+    this._editingBlockId = blockId;
+    this._notifyConfigUpdate();
+  }
+
+  _onBlockSaved(blockId, updatedConfig) {
+    this.config.blocks[blockId] = updatedConfig;
+    this._editingBlockId = null;
+    this._notifyConfigUpdate();
+  }
+
+  _onEditCancelled() {
+    this._editingBlockId = null;
   }
 
   _deleteBlock(e, blockId) {
@@ -356,6 +480,7 @@ class BlockManager extends LitElement {
     if (!confirm('确定要删除这个块吗？')) return;
     
     delete this.config.blocks[blockId];
+    this._editingBlockId = null;
     this._notifyConfigUpdate();
   }
 
