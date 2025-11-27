@@ -2,13 +2,15 @@
 import { LitElement, html, css } from 'https://unpkg.com/lit@2.8.0/index.js?module';
 import { designSystem } from '../../core/design-system.js';
 import { BlockSystem } from '../../core/block-system.js';
-import { BlockRow } from './block-row.js';
+import './block-row.js';
 
 class BlockManager extends LitElement {
   static properties = {
     config: { type: Object },
     hass: { type: Object },
-    _editingBlocks: { state: true },
+    // 单一状态源
+    _editingBlockId: { state: true },
+    _editingConfig: { state: true },
     _availableEntities: { state: true }
   };
 
@@ -68,9 +70,11 @@ class BlockManager extends LitElement {
 
   constructor() {
     super();
-    this._editingBlocks = new Map();
+    // 单一状态源
+    this._editingBlockId = null;
+    this._editingConfig = null;
     this._availableEntities = [];
-    this._autoFillTimeouts = new Map();
+    this._autoFillTimeout = null;
   }
 
   willUpdate(changedProperties) {
@@ -119,26 +123,27 @@ class BlockManager extends LitElement {
 
     return html`
       <div class="blocks-list">
-        ${sortedBlocks.map(block => {
-          const isEditing = this._editingBlocks.has(block.id);
-          const editingConfig = this._editingBlocks.get(block.id);
-          
-          return html`
-            <block-row
-              .block=${block}
-              .hass=${this.hass}
-              .isEditing=${isEditing}
-              .editingConfig=${editingConfig}
-              .availableEntities=${this._availableEntities}
-              @edit-block=${this._onEditBlock}
-              @save-block=${this._onSaveBlock}
-              @cancel-edit=${this._onCancelEdit}
-              @delete-block=${this._onDeleteBlock}
-              @update-editing-config=${this._onUpdateEditingConfig}
-            ></block-row>
-          `;
-        })}
+        ${sortedBlocks.map(block => this._renderBlockRow(block))}
       </div>
+    `;
+  }
+
+  _renderBlockRow(block) {
+    const isEditing = this._editingBlockId === block.id;
+    
+    return html`
+      <block-row
+        .block=${block}
+        .hass=${this.hass}
+        .isEditing=${isEditing}
+        .editingConfig=${isEditing ? this._editingConfig : null}
+        .availableEntities=${this._availableEntities}
+        @edit-block=${() => this._startEditing(block.id)}
+        @save-block=${(e) => this._saveBlock(e.detail)}
+        @cancel-edit=${() => this._cancelEditing()}
+        @delete-block=${(e) => this._deleteBlock(e.detail.blockId)}
+        @update-editing-config=${(e) => this._updateEditingConfig(e.detail)}
+      ></block-row>
     `;
   }
 
@@ -151,27 +156,25 @@ class BlockManager extends LitElement {
     `;
   }
 
-  _onEditBlock(e) {
-    const blockId = e.detail.blockId;
+  // === 核心操作方法 ===
+  _startEditing(blockId) {
     const block = this.config.blocks[blockId];
-    
     if (!block) return;
-    
+
     console.log('🚀 开始编辑块:', blockId);
     
-    // 先清除所有其他编辑状态，确保只有一个块在编辑
-    this._editingBlocks.clear();
-    this._clearAllAutoFillTimeouts();
+    // 清除之前的自动填充定时器
+    this._clearAutoFillTimeout();
     
-    // 初始化编辑配置
-    this._editingBlocks.set(blockId, { ...block });
+    // 设置编辑状态
+    this._editingBlockId = blockId;
+    this._editingConfig = { ...block };
+    
     this.requestUpdate();
   }
 
-  _onSaveBlock(e) {
-    const { blockId, config } = e.detail;
-    
-    console.log('💾 保存块:', blockId, config);
+  _saveBlock({ blockId, config }) {
+    console.log('💾 保存块:', blockId);
     
     // 验证配置
     const validation = BlockSystem.validateBlock(config);
@@ -180,167 +183,101 @@ class BlockManager extends LitElement {
       return;
     }
     
-    // 1. 先更新配置
+    // 更新配置
     this.config.blocks[blockId] = config;
-    console.log('✅ 配置已更新');
-    
-    // 2. 清除编辑状态（关键：确保 editingConfig 被清除）
-    this._editingBlocks.delete(blockId);
-    this._clearAutoFillTimeout(blockId);
-    console.log('✅ 编辑状态已清除，当前编辑块:', Array.from(this._editingBlocks.keys()));
-    
-    // 3. 通知配置更新
-    this._notifyConfigUpdate();
-    console.log('✅ 配置更新已通知');
-    
-    // 4. 强制重新渲染（确保 UI 状态同步）
-    this.requestUpdate();
-    console.log('✅ UI已重新渲染');
-  }
-  
-  // 在 _renderBlocksList 方法中确保状态正确传递
-  _renderBlocksList(blocks) {
-    if (blocks.length === 0) {
-      return html`
-        <div class="empty-state">
-          <ha-icon class="empty-icon" icon="mdi:cube-outline"></ha-icon>
-          <div class="cf-text-md cf-mb-sm">还没有任何块</div>
-          <div class="cf-text-sm cf-text-secondary">点击下方按钮添加第一个块</div>
-        </div>
-      `;
-    }
-  
-    const sortedBlocks = [...blocks].sort((a, b) => {
-      const areaOrder = { 'header': 0, 'content': 1, 'footer': 2 };
-      const orderA = areaOrder[a.area] ?? 1;
-      const orderB = areaOrder[b.area] ?? 1;
-      return orderA - orderB;
-    });
-  
-    return html`
-      <div class="blocks-list">
-        ${sortedBlocks.map(block => {
-          const isEditing = this._editingBlocks.has(block.id);
-          const editingConfig = this._editingBlocks.get(block.id);
-          
-          console.log(`📦 准备渲染块 ${block.id}: isEditing=${isEditing}, hasEditingConfig=${!!editingConfig}`);
-          
-          return html`
-            <block-row
-              .block=${block}
-              .hass=${this.hass}
-              .isEditing=${isEditing}
-              .editingConfig=${editingConfig}
-              .availableEntities=${this._availableEntities}
-              @edit-block=${this._onEditBlock}
-              @save-block=${this._onSaveBlock}
-              @cancel-edit=${this._onCancelEdit}
-              @delete-block=${this._onDeleteBlock}
-              @update-editing-config=${this._onUpdateEditingConfig}
-            ></block-row>
-          `;
-        })}
-      </div>
-    `;
-  }
-
-  _onCancelEdit(e) {
-    const blockId = e.detail?.blockId;
-    
-    if (!blockId) return;
-    
-    console.log('❌ 取消编辑块:', blockId);
     
     // 清除编辑状态
-    this._editingBlocks.delete(blockId);
-    this._clearAutoFillTimeout(blockId);
+    this._editingBlockId = null;
+    this._editingConfig = null;
+    this._clearAutoFillTimeout();
+    
+    console.log('✅ 块保存完成');
+    
+    // 通知配置更新并重新渲染
+    this._notifyConfigUpdate();
+  }
+
+  _cancelEditing() {
+    console.log('❌ 取消编辑');
+    
+    this._editingBlockId = null;
+    this._editingConfig = null;
+    this._clearAutoFillTimeout();
     
     this.requestUpdate();
   }
 
-  _onDeleteBlock(e) {
-    const blockId = e.detail.blockId;
-    
+  _deleteBlock(blockId) {
     if (!confirm('确定要删除这个块吗？')) return;
     
     console.log('🗑️ 删除块:', blockId);
     
-    // 清除相关状态
-    delete this.config.blocks[blockId];
-    this._editingBlocks.delete(blockId);
-    this._clearAutoFillTimeout(blockId);
+    // 如果正在编辑这个块，先取消编辑
+    if (this._editingBlockId === blockId) {
+      this._cancelEditing();
+    }
     
+    delete this.config.blocks[blockId];
     this._notifyConfigUpdate();
   }
 
-  _onUpdateEditingConfig(e) {
-    const { blockId, updates } = e.detail;
+  _updateEditingConfig({ updates }) {
+    if (!this._editingConfig) return;
     
-    if (!this._editingBlocks.has(blockId)) return;
+    console.log('🔄 更新编辑配置:', updates);
     
-    const currentConfig = this._editingBlocks.get(blockId);
-    const newConfig = { ...currentConfig, ...updates };
-    
-    this._editingBlocks.set(blockId, newConfig);
+    // 更新编辑配置
+    this._editingConfig = { ...this._editingConfig, ...updates };
     
     // 处理实体自动填充
-    if (updates.entity && updates.entity !== currentConfig.entity) {
-      this._scheduleAutoFill(blockId, updates.entity);
+    if (updates.entity) {
+      this._scheduleAutoFill(updates.entity);
     }
+    
+    this.requestUpdate();
   }
 
-  _scheduleAutoFill(blockId, entityId) {
+  _scheduleAutoFill(entityId) {
     // 清除之前的定时器
-    this._clearAutoFillTimeout(blockId);
+    this._clearAutoFillTimeout();
     
-    const timeoutId = setTimeout(() => {
-      this._autoFillFromEntity(blockId, entityId);
+    this._autoFillTimeout = setTimeout(() => {
+      this._autoFillFromEntity(entityId);
     }, 300);
-    
-    this._autoFillTimeouts.set(blockId, timeoutId);
   }
 
-  _autoFillFromEntity(blockId, entityId) {
-    if (!entityId || !this.hass?.states[entityId] || !this._editingBlocks.has(blockId)) {
+  _autoFillFromEntity(entityId) {
+    if (!entityId || !this.hass?.states[entityId] || !this._editingConfig) {
       return;
     }
     
     const entity = this.hass.states[entityId];
-    const currentConfig = this._editingBlocks.get(blockId);
     const updates = {};
     
     // 自动填充名称（如果当前名称为空或是默认值）
-    if (!currentConfig.title || currentConfig.title === currentConfig.id) {
+    if (!this._editingConfig.title || this._editingConfig.title === this._editingBlockId) {
       if (entity.attributes?.friendly_name) {
         updates.title = entity.attributes.friendly_name;
       }
     }
     
     // 自动填充图标（如果当前图标为空）
-    if (!currentConfig.icon) {
+    if (!this._editingConfig.icon) {
       updates.icon = BlockSystem.getEntityIcon(entityId, this.hass);
     }
     
     // 应用更新
     if (Object.keys(updates).length > 0) {
-      const newConfig = { ...currentConfig, ...updates };
-      this._editingBlocks.set(blockId, newConfig);
+      this._editingConfig = { ...this._editingConfig, ...updates };
       this.requestUpdate();
     }
   }
 
-  _clearAutoFillTimeout(blockId) {
-    if (this._autoFillTimeouts.has(blockId)) {
-      clearTimeout(this._autoFillTimeouts.get(blockId));
-      this._autoFillTimeouts.delete(blockId);
+  _clearAutoFillTimeout() {
+    if (this._autoFillTimeout) {
+      clearTimeout(this._autoFillTimeout);
+      this._autoFillTimeout = null;
     }
-  }
-
-  _clearAllAutoFillTimeouts() {
-    this._autoFillTimeouts.forEach((timeoutId, blockId) => {
-      clearTimeout(timeoutId);
-    });
-    this._autoFillTimeouts.clear();
   }
 
   _addBlock() {
@@ -365,7 +302,7 @@ class BlockManager extends LitElement {
     this.config.blocks[blockId] = blockConfig;
     
     // 自动进入编辑模式
-    this._editingBlocks.set(blockId, { ...blockConfig });
+    this._startEditing(blockId);
     
     this._notifyConfigUpdate();
   }
@@ -392,8 +329,7 @@ class BlockManager extends LitElement {
 
   disconnectedCallback() {
     super.disconnectedCallback();
-    // 清理所有定时器
-    this._clearAllAutoFillTimeouts();
+    this._clearAutoFillTimeout();
   }
 }
 

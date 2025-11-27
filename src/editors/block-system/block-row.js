@@ -2,9 +2,9 @@
 import { LitElement, html, css } from 'https://unpkg.com/lit@2.8.0/index.js?module';
 import { designSystem } from '../../core/design-system.js';
 import { BlockSystem } from '../../core/block-system.js';
-import { AreaBadge } from './area-badge.js';
-import { BlockActions } from './block-actions.js';
-import { InlineEditor } from './inline-editor.js';
+import './area-badge.js';
+import './block-actions.js';
+import './inline-editor.js';
 
 class BlockRow extends LitElement {
   static properties = {
@@ -113,43 +113,32 @@ class BlockRow extends LitElement {
   render() {
     const { block, hass, isEditing, editingConfig, availableEntities } = this;
     
-    if (!block) {
-      return html``;
-    }
+    if (!block) return html``;
 
     const icon = BlockSystem.getBlockIcon(block);
     const state = BlockSystem.getBlockPreview(block, hass);
     const displayName = block.title || block.id;
 
-    console.log('🔄 渲染块行:', block.id, '编辑状态:', isEditing, '编辑配置:', !!editingConfig);
-
-    // 关键修复：只有当 isEditing 为 true 且 editingConfig 存在时才渲染编辑器
-    const shouldRenderEditor = isEditing && editingConfig;
-
     return html`
       <div class="block-row" @click=${this._onRowClick}>
-        <!-- 列1: 区域标识 -->
         <area-badge .area=${block.area}></area-badge>
 
-        <!-- 列2: 图标 -->
         <div class="block-icon">
           <ha-icon .icon=${icon}></ha-icon>
         </div>
 
-        <!-- 列3: 块信息 -->
         <div class="block-info">
           <div class="block-name">${displayName}</div>
           <div class="block-state">${state}</div>
         </div>
 
-        <!-- 列4: 操作按钮 -->
         <block-actions
           .blockId=${block.id}
           @edit=${this._onEdit}
           @delete=${this._onDelete}
         ></block-actions>
 
-        ${shouldRenderEditor ? html`
+        ${isEditing && editingConfig ? html`
           <div class="inline-editor-container">
             <inline-editor
               .blockId=${block.id}
@@ -166,16 +155,12 @@ class BlockRow extends LitElement {
   }
 
   _onRowClick() {
-    this.dispatchEvent(new CustomEvent('edit-block', {
-      detail: { blockId: this.block.id }
-    }));
+    this.dispatchEvent(new CustomEvent('edit-block'));
   }
 
   _onEdit(e) {
     e.stopPropagation();
-    this.dispatchEvent(new CustomEvent('edit-block', {
-      detail: { blockId: this.block.id }
-    }));
+    this.dispatchEvent(new CustomEvent('edit-block'));
   }
 
   _onDelete(e) {
@@ -186,17 +171,13 @@ class BlockRow extends LitElement {
   }
 
   _onSave(e) {
-    console.log('💾 块行收到保存事件:', e.detail);
     this.dispatchEvent(new CustomEvent('save-block', {
       detail: e.detail
     }));
   }
 
-  _onCancel(e) {
-    console.log('❌ 块行收到取消事件:', e.detail);
-    this.dispatchEvent(new CustomEvent('cancel-edit', {
-      detail: e.detail
-    }));
+  _onCancel() {
+    this.dispatchEvent(new CustomEvent('cancel-edit'));
   }
 
   _onUpdateEditingConfig(e) {

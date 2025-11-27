@@ -1,11 +1,11 @@
-// src/editors/card-editor.js
+// src/editors/card-editor.js (部分更新)
 import { LitElement, html, css } from 'https://unpkg.com/lit@2.8.0/index.js?module';
 import { cardRegistry } from '../core/card-registry.js';
 import { themeManager } from '../themes/index.js';
 import { designSystem } from '../core/design-system.js';
 import './card-selector.js';
 import './theme-selector.js';
-import { BlockManager } from './block-system/index.js';
+import { BlockManager } from './block-system/index.js'; // 使用新的 BlockManager
 import './dynamic-form.js';
 
 class CardEditor extends LitElement {

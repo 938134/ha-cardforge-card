@@ -82,4 +82,4 @@ if (!customElements.get('block-actions')) {
   customElements.define('block-actions', BlockActions);
 }
 
-export { BlockActions }; 
+export { BlockActions };

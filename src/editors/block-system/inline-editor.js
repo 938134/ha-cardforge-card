@@ -89,31 +89,23 @@ class InlineEditor extends LitElement {
   ];
 
   render() {
-    // 关键修复：如果 editingConfig 为 null 或 undefined，不渲染编辑器
-    if (!this.editingConfig) {
-      console.log('🛑 InlineEditor: editingConfig 为空，不渲染');
-      return html``;
-    }
-
-    console.log('🎨 InlineEditor: 渲染编辑器，数据:', this.editingConfig);
+    if (!this.editingConfig) return html``;
 
     return html`
       <div class="inline-editor">
         <div class="editor-form">
-          <!-- 第一行: 实体选择 -->
           <div class="form-field">
             <div class="field-label">实体</div>
             <ha-combo-box
               .items=${this.availableEntities || []}
               .value=${this.editingConfig.entity || ''}
-              @value-changed=${e => this._onEntityChanged(e.detail.value)}
+              @value-changed=${e => this._onFieldChange('entity', e.detail.value)}
               allow-custom-value
               label="选择或输入实体ID"
               fullwidth
             ></ha-combo-box>
           </div>
 
-          <!-- 第二行: 名称输入 -->
           <div class="form-field">
             <div class="field-label">显示名称</div>
             <ha-textfield
@@ -124,7 +116,6 @@ class InlineEditor extends LitElement {
             ></ha-textfield>
           </div>
 
-          <!-- 第三行: 图标选择 -->
           <div class="form-field">
             <div class="field-label">图标</div>
             <ha-icon-picker
@@ -144,21 +135,13 @@ class InlineEditor extends LitElement {
     `;
   }
 
-  _onEntityChanged(entityId) {
-    this._onFieldChange('entity', entityId);
-  }
-
   _onFieldChange(key, value) {
     this.dispatchEvent(new CustomEvent('update-editing-config', {
-      detail: {
-        blockId: this.blockId,
-        updates: { [key]: value }
-      }
+      detail: { updates: { [key]: value } }
     }));
   }
 
   _onSave() {
-    console.log('💾 InlineEditor: 触发保存');
     this.dispatchEvent(new CustomEvent('save-block', {
       detail: {
         blockId: this.blockId,
@@ -168,10 +151,7 @@ class InlineEditor extends LitElement {
   }
 
   _onCancel() {
-    console.log('❌ InlineEditor: 触发取消');
-    this.dispatchEvent(new CustomEvent('cancel-edit', {
-      detail: { blockId: this.blockId }
-    }));
+    this.dispatchEvent(new CustomEvent('cancel-edit'));
   }
 }
 
