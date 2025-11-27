@@ -5,7 +5,8 @@ import { designSystem } from '../core/design-system.js';
 export class CardSelector extends LitElement {
   static properties = {
     cards: { type: Array },
-    selectedCard: { type: String }
+    selectedCard: { type: String },
+    _filteredCards: { state: true }
   };
 
   static styles = [
@@ -97,20 +98,22 @@ export class CardSelector extends LitElement {
     `
   ];
 
-  render() {
-    if (!this.cards || this.cards.length === 0) {
-      return html`
-        <div class="empty-state">
-          <ha-icon icon="mdi:package-variant" style="font-size: 2em; opacity: 0.5; margin-bottom: var(--cf-spacing-sm);"></ha-icon>
-          <div class="cf-text-sm cf-mb-xs">没有可用的卡片</div>
-        </div>
-      `;
-    }
+  constructor() {
+    super();
+    this._filteredCards = [];
+  }
 
+  willUpdate(changedProperties) {
+    if (changedProperties.has('cards')) {
+      this._filteredCards = this.cards || [];
+    }
+  }
+
+  render() {
     return html`
       <div class="card-selector">
         <div class="card-grid">
-          ${this.cards.map(card => html`
+          ${this._filteredCards.map(card => html`
             <div 
               class="card-item ${this.selectedCard === card.id ? 'selected' : ''}"
               @click=${() => this._selectCard(card)}

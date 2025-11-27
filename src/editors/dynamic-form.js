@@ -6,8 +6,7 @@ class DynamicForm extends LitElement {
   static properties = {
     config: { type: Object },
     schema: { type: Object },
-    _formValues: { state: true },
-    _fieldGroups: { state: true }
+    _formValues: { state: true }
   };
 
   static styles = [
@@ -17,52 +16,53 @@ class DynamicForm extends LitElement {
         width: 100%;
       }
 
-      /* 智能网格布局 - 自适应列数 */
-      .smart-grid {
+      /* 布尔值字段网格 - 2列 */
+      .boolean-grid {
         display: grid;
-        grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: var(--cf-spacing-sm);
+        margin-bottom: var(--cf-spacing-lg);
+      }
+
+      /* 选择器字段网格 - 2列 */
+      .select-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
         gap: var(--cf-spacing-md);
         margin-bottom: var(--cf-spacing-lg);
       }
 
-      /* 紧凑模式 - 更多列 */
-      .smart-grid.compact {
-        grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
-        gap: var(--cf-spacing-sm);
-      }
-
-      /* 超紧凑模式 - 最小列宽 */
-      .smart-grid.ultra-compact {
-        grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
-        gap: var(--cf-spacing-xs);
+      /* 输入字段 - 全宽度 */
+      .input-grid {
+        display: flex;
+        flex-direction: column;
+        gap: var(--cf-spacing-md);
       }
 
       .form-field {
         display: flex;
         flex-direction: column;
         gap: var(--cf-spacing-sm);
-        min-height: 70px;
       }
 
       .field-label {
-        font-size: 0.85em;
+        font-size: 0.9em;
         font-weight: 500;
         color: var(--cf-text-primary);
-        line-height: 1.2;
+        margin-bottom: var(--cf-spacing-xs);
       }
 
       /* 布尔值字段样式 */
       .switch-field {
         display: flex;
-        flex-direction: column;
-        align-items: flex-start;
-        padding: var(--cf-spacing-sm);
+        align-items: center;
+        justify-content: space-between;
+        padding: var(--cf-spacing-sm) var(--cf-spacing-md);
         border: 1px solid var(--cf-border);
         border-radius: var(--cf-radius-md);
         background: var(--cf-surface);
         transition: all var(--cf-transition-fast);
-        min-height: 70px;
-        justify-content: space-between;
+        min-height: 52px;
       }
 
       .switch-field:hover {
@@ -71,13 +71,9 @@ class DynamicForm extends LitElement {
       }
 
       .switch-label {
-        font-size: 0.85em;
+        font-size: 0.9em;
         color: var(--cf-text-primary);
-        line-height: 1.2;
-      }
-
-      .switch-control {
-        align-self: flex-end;
+        flex: 1;
       }
 
       /* 选择器和输入字段 */
@@ -87,69 +83,50 @@ class DynamicForm extends LitElement {
         width: 100%;
       }
 
-      /* 颜色选择器紧凑样式 */
-      .color-field {
-        width: 100%;
+      /* 颜色选择器容器 */
+      .color-picker-container {
+        display: flex;
+        align-items: center;
+        gap: var(--cf-spacing-sm);
       }
 
-      /* 文本区域全宽度 */
-      .textarea-field {
-        grid-column: 1 / -1;
+      .color-preview {
+        width: 24px;
+        height: 24px;
+        border-radius: var(--cf-radius-sm);
+        border: 1px solid var(--cf-border);
+        cursor: pointer;
+        transition: transform var(--cf-transition-fast);
       }
 
-      /* 空状态 */
-      .empty-state {
-        text-align: center;
-        padding: var(--cf-spacing-xl);
-        color: var(--cf-text-secondary);
-        border: 2px dashed var(--cf-border);
-        border-radius: var(--cf-radius-md);
-        background: rgba(var(--cf-rgb-primary), 0.02);
+      .color-preview:hover {
+        transform: scale(1.1);
       }
 
-      /* 响应式适配 */
-      @media (max-width: 1200px) {
-        .smart-grid {
-          grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
-        }
-        
-        .smart-grid.compact {
-          grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
-        }
+      /* 行内布局 - 文字颜色和对齐同行 */
+      .inline-fields {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: var(--cf-spacing-md);
+        margin-bottom: var(--cf-spacing-lg);
       }
 
+      /* 移动端适配 */
       @media (max-width: 768px) {
-        .smart-grid {
-          grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+        .boolean-grid,
+        .select-grid {
+          grid-template-columns: 1fr;
           gap: var(--cf-spacing-sm);
         }
-        
-        .smart-grid.compact {
-          grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
-        }
-        
-        .smart-grid.ultra-compact {
-          grid-template-columns: 1fr;
-        }
-        
-        .form-field {
-          min-height: 65px;
-        }
-        
-        .switch-field {
-          min-height: 65px;
-          padding: var(--cf-spacing-xs);
-        }
-      }
 
-      @media (max-width: 480px) {
-        .smart-grid {
+        .inline-fields {
           grid-template-columns: 1fr;
+          gap: var(--cf-spacing-md);
         }
-        
-        .smart-grid.compact,
-        .smart-grid.ultra-compact {
-          grid-template-columns: 1fr;
+
+        .switch-field {
+          min-height: 48px;
+          padding: var(--cf-spacing-sm);
         }
       }
 
@@ -166,13 +143,11 @@ class DynamicForm extends LitElement {
   constructor() {
     super();
     this._formValues = {};
-    this._fieldGroups = [];
   }
 
   willUpdate(changedProperties) {
     if (changedProperties.has('config') || changedProperties.has('schema')) {
       this._initializeFormValues();
-      this._organizeFields();
     }
   }
 
@@ -189,114 +164,104 @@ class DynamicForm extends LitElement {
     });
   }
 
-  _organizeFields() {
-    if (!this.schema) {
-      this._fieldGroups = [];
-      return;
-    }
-
-    const fields = Object.entries(this.schema).map(([key, field]) => ({
-      key,
-      ...field
-    }));
-
-    // 根据字段类型和数量智能分组
-    const booleanFields = fields.filter(field => field.type === 'boolean');
-    const selectFields = fields.filter(field => field.type === 'select');
-    const colorFields = fields.filter(field => field.type === 'color');
-    const otherFields = fields.filter(field => 
-      !['boolean', 'select', 'color'].includes(field.type)
-    );
-
-    this._fieldGroups = [];
-
-    // 第一组：选择器和颜色字段（高优先级）
-    if (selectFields.length > 0 || colorFields.length > 0) {
-      this._fieldGroups.push({
-        name: 'style-settings',
-        fields: [...selectFields, ...colorFields],
-        compact: selectFields.length + colorFields.length > 4
-      });
-    }
-
-    // 第二组：布尔字段
-    if (booleanFields.length > 0) {
-      this._fieldGroups.push({
-        name: 'display-controls',
-        fields: booleanFields,
-        compact: booleanFields.length > 3
-      });
-    }
-
-    // 第三组：其他字段
-    if (otherFields.length > 0) {
-      this._fieldGroups.push({
-        name: 'advanced-settings',
-        fields: otherFields,
-        compact: false
-      });
-    }
-  }
-
   render() {
     if (!this.schema || Object.keys(this.schema).length === 0) {
       return this._renderEmptyState();
     }
 
+    const booleanFields = this._getFieldsByType('boolean');
+    const selectFields = this._getFieldsByType('select');
+    const colorFields = this._getFieldsByType('color');
+    const otherFields = this._getOtherFields();
+
     return html`
       <div class="dynamic-form">
-        ${this._fieldGroups.map(group => this._renderFieldGroup(group))}
+        ${booleanFields.length > 0 ? this._renderBooleanGrid(booleanFields) : ''}
+        ${selectFields.length > 0 ? this._renderSelectGrid(selectFields) : ''}
+        ${colorFields.length > 0 ? this._renderInlineFields(colorFields, selectFields) : ''}
+        ${otherFields.length > 0 ? this._renderInputGrid(otherFields) : ''}
       </div>
     `;
   }
 
-  _renderFieldGroup(group) {
-    if (!group.fields || group.fields.length === 0) return '';
+  _getFieldsByType(type) {
+    if (!this.schema) return [];
+    return Object.entries(this.schema)
+      .filter(([key, field]) => field.type === type)
+      .map(([key, field]) => ({ key, ...field }));
+  }
 
-    const gridClass = group.compact ? 'smart-grid compact' : 'smart-grid';
+  _getOtherFields() {
+    if (!this.schema) return [];
+    const excludedTypes = ['boolean', 'select', 'color'];
+    return Object.entries(this.schema)
+      .filter(([key, field]) => !excludedTypes.includes(field.type))
+      .map(([key, field]) => ({ key, ...field }));
+  }
+
+  _renderBooleanGrid(fields) {
+    return html`
+      <div class="boolean-grid">
+        ${fields.map(field => this._renderBooleanField(field))}
+      </div>
+    `;
+  }
+
+  _renderSelectGrid(fields) {
+    // 过滤出非颜色和非对齐的字段
+    const filteredFields = fields.filter(field => 
+      !['text_color', 'text_align'].includes(field.key)
+    );
+    
+    if (filteredFields.length === 0) return '';
 
     return html`
-      <div class="${gridClass}">
-        ${group.fields.map(field => this._renderField(field))}
+      <div class="select-grid">
+        ${filteredFields.map(field => this._renderSelectField(field))}
       </div>
     `;
   }
 
-  _renderField(field) {
-    const value = this._formValues[field.key] !== undefined ? 
-      this._formValues[field.key] : field.default;
+  _renderInlineFields(colorFields, selectFields) {
+    const colorField = colorFields.find(f => f.key === 'text_color');
+    const alignField = selectFields.find(f => f.key === 'text_align');
+    
+    if (!colorField && !alignField) return '';
 
-    switch (field.type) {
-      case 'boolean':
-        return this._renderBooleanField(field, value);
-      case 'select':
-        return this._renderSelectField(field, value);
-      case 'color':
-        return this._renderColorField(field, value);
-      case 'textarea':
-        return this._renderTextareaField(field, value);
-      default:
-        return this._renderInputField(field, value);
-    }
-  }
-
-  _renderBooleanField(field, value) {
     return html`
-      <div class="form-field">
-        <div class="switch-field">
-          <div class="switch-label">${field.label}</div>
-          <div class="switch-control">
-            <ha-switch
-              .checked=${!!value}
-              @change=${e => this._onFieldChange(field.key, e.target.checked)}
-            ></ha-switch>
-          </div>
-        </div>
+      <div class="inline-fields">
+        ${alignField ? this._renderSelectField(alignField) : ''}
+        ${colorField ? this._renderColorField(colorField) : ''}
       </div>
     `;
   }
 
-  _renderSelectField(field, value) {
+  _renderInputGrid(fields) {
+    if (fields.length === 0) return '';
+
+    return html`
+      <div class="input-grid">
+        ${fields.map(field => this._renderInputField(field))}
+      </div>
+    `;
+  }
+
+  _renderBooleanField(field) {
+    const value = this._formValues[field.key] !== undefined ? this._formValues[field.key] : field.default;
+
+    return html`
+      <div class="switch-field">
+        <span class="switch-label">${field.label}</span>
+        <ha-switch
+          .checked=${!!value}
+          @change=${e => this._onFieldChange(field.key, e.target.checked)}
+        ></ha-switch>
+      </div>
+    `;
+  }
+
+  _renderSelectField(field) {
+    const value = this._formValues[field.key] !== undefined ? this._formValues[field.key] : field.default;
     const options = field.options || [];
 
     return html`
@@ -322,20 +287,34 @@ class DynamicForm extends LitElement {
     `;
   }
 
-  _renderColorField(field, value) {
+  _renderColorField(field) {
+    const value = this._formValues[field.key] !== undefined ? this._formValues[field.key] : field.default;
+
     return html`
       <div class="form-field">
         <div class="field-label">${field.label}</div>
-        <ha-color-picker
-          .value=${value || '#000000'}
-          @value-changed=${e => this._onFieldChange(field.key, e.detail.value)}
-          class="color-field"
-        ></ha-color-picker>
+        <div class="color-picker-container">
+          <ha-textfield
+            .value=${value || ''}
+            @input=${e => this._onFieldChange(field.key, e.target.value)}
+            fullwidth
+            class="color-field"
+            placeholder="#000000"
+          ></ha-textfield>
+          <div 
+            class="color-preview" 
+            style="background: ${value || '#000000'};"
+            title="选择颜色"
+            @click=${() => this._openColorPicker(field.key, value || '#000000')}
+          ></div>
+        </div>
       </div>
     `;
   }
 
-  _renderInputField(field, value) {
+  _renderInputField(field) {
+    const value = this._formValues[field.key] !== undefined ? this._formValues[field.key] : field.default;
+
     return html`
       <div class="form-field">
         <div class="field-label">${field.label}</div>
@@ -353,27 +332,11 @@ class DynamicForm extends LitElement {
     `;
   }
 
-  _renderTextareaField(field, value) {
-    return html`
-      <div class="form-field textarea-field">
-        <div class="field-label">${field.label}</div>
-        <ha-textarea
-          .value=${value || ''}
-          @input=${e => this._onFieldChange(field.key, e.target.value)}
-          rows="3"
-          fullwidth
-          class="text-field"
-          placeholder=${field.placeholder || ''}
-        ></ha-textarea>
-      </div>
-    `;
-  }
-
   _renderEmptyState() {
     return html`
-      <div class="empty-state">
-        <ha-icon icon="mdi:check-circle" style="color: var(--cf-success-color); font-size: 2em; margin-bottom: var(--cf-spacing-sm);"></ha-icon>
-        <div class="cf-text-md cf-text-secondary">此卡片无需额外配置</div>
+      <div class="cf-flex cf-flex-center cf-flex-column cf-p-lg">
+        <ha-icon icon="mdi:check-circle" style="color: var(--cf-success-color); font-size: 2em;"></ha-icon>
+        <div class="cf-text-md cf-mt-md cf-text-secondary">此卡片无需额外配置</div>
       </div>
     `;
   }
@@ -384,6 +347,27 @@ class DynamicForm extends LitElement {
     this.dispatchEvent(new CustomEvent('config-changed', {
       detail: { config: { [key]: value } }
     }));
+  }
+
+  _openColorPicker(key, currentValue) {
+    const colorPicker = document.createElement('ha-dialog');
+    colorPicker.heading = '选择颜色';
+    colorPicker.open = true;
+    
+    colorPicker.innerHTML = `
+      <ha-color-picker 
+        .value=${currentValue}
+        @value-changed=${(e) => {
+          this._onFieldChange(key, e.detail.value);
+          colorPicker.open = false;
+          document.body.removeChild(colorPicker);
+        }}
+      ></ha-color-picker>
+      <mwc-button slot="primaryAction" dialogAction="cancel">取消</mwc-button>
+      <mwc-button slot="secondaryAction" dialogAction="confirm">确认</mwc-button>
+    `;
+    
+    document.body.appendChild(colorPicker);
   }
 
   _preventClose(e) {
