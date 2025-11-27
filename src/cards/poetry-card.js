@@ -9,28 +9,28 @@ class PoetryCard extends BaseCard {
       blocks: {
         poetry_title: {
           type: 'text',
-          title: '',
+          title: '标题',
           content: '静夜思',
           area: 'header',
           style: 'font-size: 1.4em; font-weight: 600; text-align: center; color: var(--cf-primary-color);'
         },
         poetry_dynasty: {
           type: 'text',
-          title: '',
+          title: '朝代',
           content: '唐',
           area: 'header',
           style: 'font-size: 0.9em; color: var(--cf-text-secondary); padding: 4px 12px; background: rgba(var(--cf-rgb-primary), 0.1); border-radius: var(--cf-radius-sm); border: 1px solid var(--cf-border);'
         },
         poetry_author: {
           type: 'text', 
-          title: '',
+          title: '作者',
           content: '李白',
           area: 'header',
           style: 'font-size: 1em; color: var(--cf-accent-color); font-weight: 500;'
         },
         poetry_content: {
           type: 'text',
-          title: '',
+          title: '全文',
           content: '床前明月光，疑是地上霜。\n举头望明月，低头思故乡。',
           area: 'content',
           style: 'font-family: "楷体", "STKaiti", serif; font-size: 1.2em; line-height: 1.6; text-align: center; white-space: pre-line;'

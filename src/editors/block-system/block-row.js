@@ -79,6 +79,10 @@ class BlockRow extends LitElement {
         white-space: nowrap;
       }
 
+      .inline-editor-container {
+        grid-column: 1 / -1;
+      }
+
       @media (max-width: 768px) {
         .block-row {
           grid-template-columns: 50px 50px 1fr 70px;
@@ -106,6 +110,11 @@ class BlockRow extends LitElement {
 
   render() {
     const { block, hass, isEditing } = this;
+    
+    if (!block) {
+      return html``;
+    }
+
     const icon = BlockSystem.getBlockIcon(block);
     const state = BlockSystem.getBlockPreview(block, hass);
     const displayName = block.title || block.id;
@@ -134,7 +143,7 @@ class BlockRow extends LitElement {
         ></block-actions>
 
         ${isEditing ? html`
-          <div class="inline-editor-container" style="grid-column: 1 / -1;">
+          <div class="inline-editor-container">
             <inline-editor
               .block=${block}
               .hass=${hass}

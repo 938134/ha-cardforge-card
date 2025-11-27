@@ -92,13 +92,14 @@ class InlineEditor extends LitElement {
 
   constructor() {
     super();
-    this._editingConfig = {};
+    this._editingConfig = null;
     this._availableEntities = [];
   }
 
   willUpdate(changedProperties) {
+    // 关键修复：每次block变化时创建新的编辑配置对象
     if (changedProperties.has('block')) {
-      this._editingConfig = { ...this.block };
+      this._editingConfig = this.block ? { ...this.block } : null;
     }
     
     if (changedProperties.has('hass')) {
@@ -107,6 +108,10 @@ class InlineEditor extends LitElement {
   }
 
   render() {
+    if (!this._editingConfig) {
+      return html``;
+    }
+
     return html`
       <div class="inline-editor">
         <div class="editor-form">
@@ -155,6 +160,9 @@ class InlineEditor extends LitElement {
   }
 
   _updateConfig(key, value) {
+    if (!this._editingConfig) return;
+    
+    // 关键修复：创建新的配置对象，避免引用共享
     this._editingConfig = {
       ...this._editingConfig,
       [key]: value
@@ -191,6 +199,8 @@ class InlineEditor extends LitElement {
   }
 
   _onSave() {
+    if (!this._editingConfig) return;
+    
     const validation = BlockSystem.validateBlock(this._editingConfig);
     if (!validation.valid) {
       alert(`配置错误：${validation.errors.join(', ')}`);
@@ -198,7 +208,7 @@ class InlineEditor extends LitElement {
     }
     
     this.dispatchEvent(new CustomEvent('save', {
-      detail: { config: this._editingConfig }
+      detail: { config: { ...this._editingConfig } } // 传递副本
     }));
   }
 
