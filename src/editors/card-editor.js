@@ -6,7 +6,6 @@ import { designSystem } from '../core/design-system.js';
 import './card-selector.js';
 import './theme-selector.js';
 import './block-manager.js';
-import './block-editor.js';
 import './dynamic-form.js';
 
 class CardEditor extends LitElement {
@@ -141,7 +140,6 @@ class CardEditor extends LitElement {
           ${this.config.card_type ? this._renderThemeSection() : ''}
           ${this.config.card_type && this._cardSchema ? this._renderCardSettings() : ''}
           ${this.config.card_type ? this._renderBlockManager() : ''}
-          ${this._editingBlockId ? this._renderBlockEditor() : ''}
         </div>
       </div>
     `;

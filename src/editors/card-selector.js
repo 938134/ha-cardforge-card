@@ -5,9 +5,7 @@ import { designSystem } from '../core/design-system.js';
 export class CardSelector extends LitElement {
   static properties = {
     cards: { type: Array },
-    selectedCard: { type: String },
-    _filteredCards: { state: true },
-    _searchQuery: { state: true }
+    selectedCard: { type: String }
   };
 
   static styles = [
@@ -15,10 +13,6 @@ export class CardSelector extends LitElement {
     css`
       .card-selector {
         width: 100%;
-      }
-
-      .search-box {
-        margin-bottom: var(--cf-spacing-md);
       }
 
       .card-grid {
@@ -103,84 +97,32 @@ export class CardSelector extends LitElement {
     `
   ];
 
-  constructor() {
-    super();
-    this._filteredCards = [];
-    this._searchQuery = '';
-  }
-
-  willUpdate(changedProperties) {
-    if (changedProperties.has('cards') || changedProperties.has('_searchQuery')) {
-      this._filterCards();
-    }
-  }
-
   render() {
-    return html`
-      <div class="card-selector">
-        <div class="search-box">
-          <ha-textfield
-            .label=${"搜索卡片..."}
-            .value=${this._searchQuery}
-            @input=${this._onSearchInput}
-            icon="mdi:magnify"
-            fullwidth
-          ></ha-textfield>
-        </div>
-        
-        ${this._renderCardList()}
-      </div>
-    `;
-  }
-
-  _renderCardList() {
-    if (this._filteredCards.length === 0) {
+    if (!this.cards || this.cards.length === 0) {
       return html`
         <div class="empty-state">
           <ha-icon icon="mdi:package-variant" style="font-size: 2em; opacity: 0.5; margin-bottom: var(--cf-spacing-sm);"></ha-icon>
-          <div class="cf-text-sm cf-mb-xs">未找到匹配的卡片</div>
-          <div class="cf-text-xs cf-text-secondary">尝试使用不同的搜索关键词</div>
+          <div class="cf-text-sm cf-mb-xs">没有可用的卡片</div>
         </div>
       `;
     }
 
     return html`
-      <div class="card-grid">
-        ${this._filteredCards.map(card => html`
-          <div 
-            class="card-item ${this.selectedCard === card.id ? 'selected' : ''}"
-            @click=${() => this._selectCard(card)}
-            title="${card.description}"
-          >
-            <div class="card-icon">${card.icon}</div>
-            <div class="card-name">${card.name}</div>
-          </div>
-        `)}
+      <div class="card-selector">
+        <div class="card-grid">
+          ${this.cards.map(card => html`
+            <div 
+              class="card-item ${this.selectedCard === card.id ? 'selected' : ''}"
+              @click=${() => this._selectCard(card)}
+              title="${card.description}"
+            >
+              <div class="card-icon">${card.icon}</div>
+              <div class="card-name">${card.name}</div>
+            </div>
+          `)}
+        </div>
       </div>
     `;
-  }
-
-  _filterCards() {
-    if (!this.cards) {
-      this._filteredCards = [];
-      return;
-    }
-
-    if (!this._searchQuery) {
-      this._filteredCards = this.cards;
-      return;
-    }
-
-    const query = this._searchQuery.toLowerCase();
-    this._filteredCards = this.cards.filter(card =>
-      card.name.toLowerCase().includes(query) ||
-      card.description.toLowerCase().includes(query) ||
-      card.category.toLowerCase().includes(query)
-    );
-  }
-
-  _onSearchInput(event) {
-    this._searchQuery = event.target.value;
   }
 
   _selectCard(card) {
