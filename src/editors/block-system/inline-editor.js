@@ -89,9 +89,13 @@ class InlineEditor extends LitElement {
   ];
 
   render() {
+    // 关键修复：如果 editingConfig 为 null 或 undefined，不渲染编辑器
     if (!this.editingConfig) {
+      console.log('🛑 InlineEditor: editingConfig 为空，不渲染');
       return html``;
     }
+
+    console.log('🎨 InlineEditor: 渲染编辑器，数据:', this.editingConfig);
 
     return html`
       <div class="inline-editor">
@@ -154,6 +158,7 @@ class InlineEditor extends LitElement {
   }
 
   _onSave() {
+    console.log('💾 InlineEditor: 触发保存');
     this.dispatchEvent(new CustomEvent('save-block', {
       detail: {
         blockId: this.blockId,
@@ -163,6 +168,7 @@ class InlineEditor extends LitElement {
   }
 
   _onCancel() {
+    console.log('❌ InlineEditor: 触发取消');
     this.dispatchEvent(new CustomEvent('cancel-edit', {
       detail: { blockId: this.blockId }
     }));

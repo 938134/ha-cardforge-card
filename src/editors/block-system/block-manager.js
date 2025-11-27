@@ -9,8 +9,7 @@ class BlockManager extends LitElement {
     config: { type: Object },
     hass: { type: Object },
     _editingBlocks: { state: true },
-    _availableEntities: { state: true },
-    _blocksVersion: { state: true } // 添加版本号强制刷新
+    _availableEntities: { state: true }
   };
 
   static styles = [
@@ -72,7 +71,6 @@ class BlockManager extends LitElement {
     this._editingBlocks = new Map();
     this._availableEntities = [];
     this._autoFillTimeouts = new Map();
-    this._blocksVersion = 0; // 初始化版本号
   }
 
   willUpdate(changedProperties) {
@@ -132,7 +130,6 @@ class BlockManager extends LitElement {
               .isEditing=${isEditing}
               .editingConfig=${editingConfig}
               .availableEntities=${this._availableEntities}
-              .blocksVersion=${this._blocksVersion} // 传递版本号
               @edit-block=${this._onEditBlock}
               @save-block=${this._onSaveBlock}
               @cancel-edit=${this._onCancelEdit}
@@ -160,7 +157,11 @@ class BlockManager extends LitElement {
     
     if (!block) return;
     
-    console.log('开始编辑块:', blockId);
+    console.log('🚀 开始编辑块:', blockId);
+    
+    // 先清除所有其他编辑状态，确保只有一个块在编辑
+    this._editingBlocks.clear();
+    this._clearAllAutoFillTimeouts();
     
     // 初始化编辑配置
     this._editingBlocks.set(blockId, { ...block });
@@ -170,7 +171,7 @@ class BlockManager extends LitElement {
   _onSaveBlock(e) {
     const { blockId, config } = e.detail;
     
-    console.log('保存块:', blockId, config);
+    console.log('💾 保存块:', blockId, config);
     
     // 验证配置
     const validation = BlockSystem.validateBlock(config);
@@ -181,21 +182,20 @@ class BlockManager extends LitElement {
     
     // 1. 先更新配置
     this.config.blocks[blockId] = config;
+    console.log('✅ 配置已更新');
     
     // 2. 清除编辑状态
     this._editingBlocks.delete(blockId);
     this._clearAutoFillTimeout(blockId);
+    console.log('✅ 编辑状态已清除');
     
-    // 3. 增加版本号强制刷新UI
-    this._blocksVersion++;
-    
-    console.log('块保存完成，版本号:', this._blocksVersion);
-    
-    // 4. 通知配置更新
+    // 3. 通知配置更新
     this._notifyConfigUpdate();
+    console.log('✅ 配置更新已通知');
     
-    // 5. 强制重新渲染
+    // 4. 强制重新渲染
     this.requestUpdate();
+    console.log('✅ UI已重新渲染');
   }
 
   _onCancelEdit(e) {
@@ -203,14 +203,11 @@ class BlockManager extends LitElement {
     
     if (!blockId) return;
     
-    console.log('取消编辑块:', blockId);
+    console.log('❌ 取消编辑块:', blockId);
     
     // 清除编辑状态
     this._editingBlocks.delete(blockId);
     this._clearAutoFillTimeout(blockId);
-    
-    // 增加版本号强制刷新UI
-    this._blocksVersion++;
     
     this.requestUpdate();
   }
@@ -220,15 +217,12 @@ class BlockManager extends LitElement {
     
     if (!confirm('确定要删除这个块吗？')) return;
     
-    console.log('删除块:', blockId);
+    console.log('🗑️ 删除块:', blockId);
     
     // 清除相关状态
     delete this.config.blocks[blockId];
     this._editingBlocks.delete(blockId);
     this._clearAutoFillTimeout(blockId);
-    
-    // 增加版本号强制刷新UI
-    this._blocksVersion++;
     
     this._notifyConfigUpdate();
   }
@@ -296,6 +290,13 @@ class BlockManager extends LitElement {
     }
   }
 
+  _clearAllAutoFillTimeouts() {
+    this._autoFillTimeouts.forEach((timeoutId, blockId) => {
+      clearTimeout(timeoutId);
+    });
+    this._autoFillTimeouts.clear();
+  }
+
   _addBlock() {
     const area = prompt('请选择要添加到的区域：\n\n输入: header(标题) / content(内容) / footer(页脚)', 'content');
     
@@ -319,9 +320,6 @@ class BlockManager extends LitElement {
     
     // 自动进入编辑模式
     this._editingBlocks.set(blockId, { ...blockConfig });
-    
-    // 增加版本号强制刷新UI
-    this._blocksVersion++;
     
     this._notifyConfigUpdate();
   }
@@ -349,10 +347,7 @@ class BlockManager extends LitElement {
   disconnectedCallback() {
     super.disconnectedCallback();
     // 清理所有定时器
-    this._autoFillTimeouts.forEach(timeoutId => {
-      clearTimeout(timeoutId);
-    });
-    this._autoFillTimeouts.clear();
+    this._clearAllAutoFillTimeouts();
   }
 }
 
