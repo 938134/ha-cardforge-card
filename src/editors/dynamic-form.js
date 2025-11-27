@@ -6,7 +6,9 @@ class DynamicForm extends LitElement {
   static properties = {
     config: { type: Object },
     schema: { type: Object },
-    _formValues: { state: true }
+    _formValues: { state: true },
+    _leftColumnFields: { state: true },
+    _rightColumnFields: { state: true }
   };
 
   static styles = [
@@ -72,9 +74,15 @@ class DynamicForm extends LitElement {
         width: 100%;
       }
 
-      /* 颜色选择器 */
-      .color-field {
+      /* 颜色选择器 - 确保正确显示 */
+      .color-picker-container {
         width: 100%;
+      }
+
+      ha-color-picker {
+        width: 100%;
+        --ha-color-picker-width: 100%;
+        --ha-color-picker-height: 40px;
       }
 
       /* 输入字段 */
@@ -116,11 +124,14 @@ class DynamicForm extends LitElement {
   constructor() {
     super();
     this._formValues = {};
+    this._leftColumnFields = [];
+    this._rightColumnFields = [];
   }
 
   willUpdate(changedProperties) {
     if (changedProperties.has('config') || changedProperties.has('schema')) {
       this._initializeFormValues();
+      this._distributeFields();
     }
   }
 
@@ -137,48 +148,79 @@ class DynamicForm extends LitElement {
     });
   }
 
+  _distributeFields() {
+    if (!this.schema) {
+      this._leftColumnFields = [];
+      this._rightColumnFields = [];
+      return;
+    }
+
+    const fields = Object.entries(this.schema).map(([key, field]) => ({
+      key,
+      ...field
+    }));
+
+    // 智能分配字段到两列
+    this._leftColumnFields = [];
+    this._rightColumnFields = [];
+
+    // 先分配布尔字段，平衡两列
+    const booleanFields = fields.filter(field => field.type === 'boolean');
+    const otherFields = fields.filter(field => field.type !== 'boolean');
+
+    // 平均分配布尔字段
+    const booleanMid = Math.ceil(booleanFields.length / 2);
+    this._leftColumnFields.push(...booleanFields.slice(0, booleanMid));
+    this._rightColumnFields.push(...booleanFields.slice(booleanMid));
+
+    // 分配其他字段，保持两列平衡
+    const totalFields = booleanFields.length + otherFields.length;
+    const targetPerColumn = Math.ceil(totalFields / 2);
+    
+    const currentLeftCount = this._leftColumnFields.length;
+    const currentRightCount = this._rightColumnFields.length;
+
+    // 为左列添加其他字段直到达到目标数量
+    const leftNeeded = Math.max(0, targetPerColumn - currentLeftCount);
+    this._leftColumnFields.push(...otherFields.slice(0, leftNeeded));
+
+    // 剩余字段分配到右列
+    this._rightColumnFields.push(...otherFields.slice(leftNeeded));
+  }
+
   render() {
     if (!this.schema || Object.keys(this.schema).length === 0) {
       return this._renderEmptyState();
     }
 
-    const booleanFields = this._getFieldsByType('boolean');
-    const selectFields = this._getFieldsByType('select');
-    const colorFields = this._getFieldsByType('color');
-    const otherFields = this._getOtherFields();
-
     return html`
       <div class="dynamic-form">
         <div class="settings-grid">
-          <!-- 左侧列：布尔开关 -->
+          <!-- 左列 -->
           <div class="settings-column">
-            ${booleanFields.map(field => this._renderBooleanField(field))}
+            ${this._leftColumnFields.map(field => this._renderField(field))}
           </div>
 
-          <!-- 右侧列：选择器和颜色选择器 -->
+          <!-- 右列 -->
           <div class="settings-column">
-            ${selectFields.map(field => this._renderSelectField(field))}
-            ${colorFields.map(field => this._renderColorField(field))}
-            ${otherFields.map(field => this._renderInputField(field))}
+            ${this._rightColumnFields.map(field => this._renderField(field))}
           </div>
         </div>
       </div>
     `;
   }
 
-  _getFieldsByType(type) {
-    if (!this.schema) return [];
-    return Object.entries(this.schema)
-      .filter(([key, field]) => field.type === type)
-      .map(([key, field]) => ({ key, ...field }));
-  }
-
-  _getOtherFields() {
-    if (!this.schema) return [];
-    const excludedTypes = ['boolean', 'select', 'color'];
-    return Object.entries(this.schema)
-      .filter(([key, field]) => !excludedTypes.includes(field.type))
-      .map(([key, field]) => ({ key, ...field }));
+  _renderField(field) {
+    switch (field.type) {
+      case 'boolean':
+        return this._renderBooleanField(field);
+      case 'select':
+        return this._renderSelectField(field);
+      case 'color':
+        return this._renderColorField(field);
+      default:
+        return this._renderInputField(field);
+    }
   }
 
   _renderBooleanField(field) {
@@ -228,11 +270,13 @@ class DynamicForm extends LitElement {
     return html`
       <div class="form-field">
         <div class="field-label">${field.label}</div>
-        <ha-color-picker
-          .value=${value || '#000000'}
-          @value-changed=${e => this._onFieldChange(field.key, e.detail.value)}
-          class="color-field"
-        ></ha-color-picker>
+        <div class="color-picker-container">
+          <ha-color-picker
+            .value=${value || '#000000'}
+            @value-changed=${e => this._onFieldChange(field.key, e.detail.value)}
+            .label=${field.label}
+          ></ha-color-picker>
+        </div>
       </div>
     `;
   }
