@@ -12,7 +12,8 @@ class BlockRow extends LitElement {
     hass: { type: Object },
     isEditing: { type: Boolean },
     editingConfig: { type: Object },
-    availableEntities: { type: Array }
+    availableEntities: { type: Array },
+    blocksVersion: { type: Number } // 接收版本号
   };
 
   static styles = [
@@ -121,6 +122,8 @@ class BlockRow extends LitElement {
     const state = BlockSystem.getBlockPreview(block, hass);
     const displayName = block.title || block.id;
 
+    console.log('渲染块行:', block.id, '编辑状态:', isEditing);
+
     return html`
       <div class="block-row" @click=${this._onRowClick}>
         <!-- 列1: 区域标识 -->
@@ -181,12 +184,14 @@ class BlockRow extends LitElement {
   }
 
   _onSave(e) {
+    console.log('块行收到保存事件:', e.detail);
     this.dispatchEvent(new CustomEvent('save-block', {
       detail: e.detail
     }));
   }
 
   _onCancel(e) {
+    console.log('块行收到取消事件:', e.detail);
     this.dispatchEvent(new CustomEvent('cancel-edit', {
       detail: e.detail
     }));
