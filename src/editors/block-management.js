@@ -10,8 +10,6 @@ class BlockManagement extends LitElement {
   };
 
   static styles = [designSystem, css`
-    /* 样式保持与原文件完全一致，省略节省篇幅 */
-    /* 如需样式代码请单独索要，这里只贴逻辑 */
     .block-management{width:100%}
     .block-list{display:flex;flex-direction:column;gap:var(--cf-spacing-sm)}
     .block-item{display:grid;grid-template-columns:40px 50px 1fr 80px;gap:var(--cf-spacing-md);align-items:center;background:var(--cf-surface);border:2px solid transparent;border-radius:var(--cf-radius-md);padding:var(--cf-spacing-md);min-height:70px;cursor:pointer}
@@ -41,9 +39,11 @@ class BlockManagement extends LitElement {
   constructor() {
     super();
     this._editingBlockId = null;
+    this.__entityItems = [];          // 缓存实体列表
+    this.__lastStates = null;         // 缓存引用，用于比对
   }
 
-  /* ---------- 渲染入口 ---------- */
+  /* ---------- 渲染 ---------- */
   render() {
     const blocks = this._getAllBlocks();
     return blocks.length
@@ -64,7 +64,6 @@ class BlockManagement extends LitElement {
           </div>`;
   }
 
-  /* ---------- 块行 ---------- */
   _renderBlock(block) {
     const isEditing = this._editingBlockId === block.id;
     return html`
@@ -93,7 +92,6 @@ class BlockManagement extends LitElement {
       </div>`;
   }
 
-  /* ---------- 编辑表单 ---------- */
   _editForm(block) {
     return html`
       <div class="edit-form">
@@ -111,7 +109,7 @@ class BlockManagement extends LitElement {
 
           <div class="form-label">实体</div>
           <ha-combo-box
-            .items=${this._entities}
+            .items=${this._entities}               // 缓存数组，引用稳定
             .value=${block.entity || ''}
             @value-changed=${e => this._handleEntityPick(block.id, e.detail.value)}
             allow-custom-value
@@ -149,10 +147,16 @@ class BlockManagement extends LitElement {
   }
 
   get _entities() {
-    if (!this.hass?.states) return [];
-    return Object.entries(this.hass.states)
-      .map(([id, st]) => ({ value: id, label: `${st.attributes?.friendly_name || id} (${id})` }))
-      .sort((a, b) => a.label.localeCompare(b.label));
+    if (this.__lastStates !== this.hass?.states) {
+      this.__lastStates = this.hass.states;
+      this.__entityItems = Object.keys(this.__lastStates)
+        .map(id => ({
+          value: id,
+          label: `${this.__lastStates[id].attributes?.friendly_name || id} (${id})`
+        }))
+        .sort((a, b) => a.label.localeCompare(b.label));
+    }
+    return this.__entityItems;
   }
 
   _blockName(b) {
@@ -175,10 +179,7 @@ class BlockManagement extends LitElement {
   _defaultIcon(b) {
     if (!b.entity) return 'mdi:text-box';
     const domain = b.entity.split('.')[0];
-    const map = {
-      light: 'mdi:lightbulb', switch: 'mdi:power', sensor: 'mdi:gauge',
-      binary_sensor: 'mdi:checkbox-marked-circle-outline', climate: 'mdi:thermostat'
-    };
+    const map = { light: 'mdi:lightbulb', switch: 'mdi:power', sensor: 'mdi:gauge', binary_sensor: 'mdi:checkbox-marked-circle-outline', climate: 'mdi:thermostat' };
     return map[domain] || 'mdi:cube';
   }
 
@@ -192,7 +193,7 @@ class BlockManagement extends LitElement {
   }
 
   _finishEdit() {
-    this._editingBlockId = null; // 立即关闭编辑态即可，数据已实时同步
+    this._editingBlockId = null;
   }
 
   _patchBlock(blockId, delta) {
