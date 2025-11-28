@@ -4,7 +4,7 @@ import { designSystem } from '../core/design-system.js';
 
 class BlockProperties extends LitElement {
   static properties = {
-    blockConfig: { type: Object },
+    blockConfig: { type: Object }, // 关键：这是配置对象的直接引用
     hass: { type: Object },
     availableEntities: { type: Array },
     _entityInfo: { state: true }
@@ -227,44 +227,43 @@ class BlockProperties extends LitElement {
     `;
   }
 
-  // 关键修改：实时更新，不等待保存
+  // 关键修改：直接修改配置对象，不创建副本
   _updateField(key, value) {
-    const updatedConfig = {
-      ...this.blockConfig,
-      [key]: value
-    };
+    if (!this.blockConfig) return;
+
+    // 直接修改配置对象的属性
+    this.blockConfig[key] = value;
 
     // 自动填充实体相关信息
     if (key === 'entity' && value && this.hass) {
       const entity = this.hass.states[value];
       if (entity) {
         // 自动填充名称
-        if (!updatedConfig.title && entity.attributes?.friendly_name) {
-          updatedConfig.title = entity.attributes.friendly_name;
+        if (!this.blockConfig.title && entity.attributes?.friendly_name) {
+          this.blockConfig.title = entity.attributes.friendly_name;
         }
         
         // 自动填充图标
-        if (!updatedConfig.icon) {
-          updatedConfig.icon = this._getEntityIcon(value, this.hass);
+        if (!this.blockConfig.icon) {
+          this.blockConfig.icon = this._getEntityIcon(value, this.hass);
         }
       }
     }
 
-    // 立即触发更新事件
-    this.dispatchEvent(new CustomEvent('block-updated', {
-      detail: { blockConfig: updatedConfig }
-    }));
-
-    this._updateEntityInfo(updatedConfig);
+    // 更新实体信息显示
+    this._updateEntityInfo();
+    
+    // 关键：立即重新渲染，确保UI同步
+    this.requestUpdate();
   }
 
-  _updateEntityInfo(blockConfig = this.blockConfig) {
-    if (!blockConfig?.entity || !this.hass) {
+  _updateEntityInfo() {
+    if (!this.blockConfig?.entity || !this.hass) {
       this._entityInfo = null;
       return;
     }
     
-    const entity = this.hass.states[blockConfig.entity];
+    const entity = this.hass.states[this.blockConfig.entity];
     if (!entity) {
       this._entityInfo = { state: '实体未找到' };
       return;
@@ -273,7 +272,7 @@ class BlockProperties extends LitElement {
     this._entityInfo = {
       state: entity.state,
       unit: entity.attributes?.unit_of_measurement || '',
-      friendlyName: entity.attributes?.friendly_name || blockConfig.entity
+      friendlyName: entity.attributes?.friendly_name || this.blockConfig.entity
     };
   }
 
@@ -302,6 +301,7 @@ class BlockProperties extends LitElement {
   }
 
   _onSave() {
+    // 关键：保存时数据已经实时更新，只需要关闭面板
     this.dispatchEvent(new CustomEvent('save'));
   }
 

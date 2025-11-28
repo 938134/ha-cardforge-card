@@ -6,7 +6,7 @@ class BlockList extends LitElement {
   static properties = {
     config: { type: Object },
     hass: { type: Object },
-    editingBlockId: { type: String }, // 简化：只传递编辑块ID
+    editingBlockId: { type: String },
     _touchStartX: { state: true },
     _swipeThreshold: { state: true }
   };
@@ -279,10 +279,9 @@ class BlockList extends LitElement {
     this._swipeThreshold = 50;
   }
 
-  // 关键修改：监听配置变化，自动重新渲染
+  // 关键：监听配置变化自动更新
   updated(changedProperties) {
     if (changedProperties.has('config') || changedProperties.has('hass')) {
-      // 配置变化时自动重新渲染
       this.requestUpdate();
     }
   }

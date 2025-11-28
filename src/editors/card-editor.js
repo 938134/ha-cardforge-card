@@ -19,7 +19,7 @@ class CardEditor extends LitElement {
     _initialized: { state: true },
     _availableEntities: { state: true },
     _cardSchema: { state: true },
-    // 简化编辑状态
+    // 简化：只记录当前编辑的块ID
     _editingBlockId: { state: true }
   };
 
@@ -183,7 +183,7 @@ class CardEditor extends LitElement {
     this._availableEntities = [];
     this._cardSchema = null;
     
-    // 简化编辑状态：只记录当前编辑的块ID
+    // 简化：只记录当前编辑的块ID
     this._editingBlockId = null;
   }
 
@@ -339,6 +339,7 @@ class CardEditor extends LitElement {
   _renderFloatingEditor() {
     if (!this._editingBlockId) return '';
 
+    // 关键修改：直接传递配置对象的引用
     const blockConfig = this.config.blocks[this._editingBlockId];
     if (!blockConfig) return '';
 
@@ -353,11 +354,11 @@ class CardEditor extends LitElement {
         </div>
         
         <div class="editor-content">
+          <!-- 关键修改：直接传递配置引用，不复制 -->
           <block-properties
             .blockConfig=${blockConfig}
             .hass=${this.hass}
             .availableEntities=${this._availableEntities}
-            @block-updated=${this._onBlockUpdated}
             @save=${this._saveEdit}
             @cancel=${this._cancelEdit}
           ></block-properties>
@@ -416,19 +417,11 @@ class CardEditor extends LitElement {
     this.requestUpdate();
   }
 
-  // 关键修改：直接更新配置，立即生效
-  _onBlockUpdated(e) {
-    if (!this._editingBlockId) return;
-    
-    // 直接更新配置中的块数据
-    this.config.blocks[this._editingBlockId] = e.detail.blockConfig;
-    
-    // 立即通知配置变化，让block-list重新渲染
-    this._notifyConfigUpdate();
-  }
-
   _saveEdit() {
+    // 关键修改：保存时只需要关闭编辑面板，数据已经实时更新
     this._cancelEdit();
+    // 通知配置更新，确保其他组件同步
+    this._notifyConfigUpdate();
   }
 
   _cancelEdit() {
