@@ -1,18 +1,15 @@
 // src/editors/block-list.js
 import { LitElement, html, css } from 'https://unpkg.com/lit@2.8.0/index.js?module';
 import { designSystem } from '../core/design-system.js';
-import { BlockSystem } from '../core/block-system.js';
 
 class BlockList extends LitElement {
-static properties = {
-  config: { type: Object },
-  hass: { type: Object },
-  editorState: { type: Object },
-  configVersion: { type: Number }, // 新增：配置版本号
-  _touchStartX: { state: true },
-  _swipeThreshold: { state: true },
-  _entityStates: { state: true }
-};
+  static properties = {
+    config: { type: Object },
+    hass: { type: Object },
+    editorState: { type: Object },
+    _touchStartX: { state: true },
+    _swipeThreshold: { state: true }
+  };
 
   static styles = [
     designSystem,
@@ -280,34 +277,14 @@ static properties = {
     super();
     this._touchStartX = 0;
     this._swipeThreshold = 50;
-    this._entityStates = new Map(); // 初始化实体状态缓存
   }
 
-  // 新增：监听 hass 状态变化
-updated(changedProperties) {
-  if (changedProperties.has('hass') || 
-      changedProperties.has('config') || 
-      changedProperties.has('configVersion')) { // 监听版本号变化
-    this._updateEntityStates();
-  }
-}
-  // 新增：更新实体状态缓存
-  _updateEntityStates() {
-    if (!this.hass || !this.config.blocks) return;
-
-    const entityStates = new Map();
-    Object.values(this.config.blocks).forEach(block => {
-      if (block.entity && this.hass.states[block.entity]) {
-        const entity = this.hass.states[block.entity];
-        entityStates.set(block.entity, {
-          state: entity.state,
-          unit: entity.attributes?.unit_of_measurement || '',
-          friendlyName: entity.attributes?.friendly_name || block.entity
-        });
-      }
-    });
-    
-    this._entityStates = entityStates;
+  // 监听 hass 状态变化
+  updated(changedProperties) {
+    if (changedProperties.has('hass') || changedProperties.has('config')) {
+      // 强制重新渲染以更新状态显示
+      this.requestUpdate();
+    }
   }
 
   _getAllBlocks() {
@@ -357,27 +334,9 @@ updated(changedProperties) {
   }
 
   _renderBlockItem(block) {
-    const displayName = block.title || BlockSystem.getBlockDisplayName(block);
-    const icon = block.icon || BlockSystem.getBlockIcon(block);
-    
-    // 使用缓存的实体状态或实时获取
-    let state = '';
-    if (block.entity) {
-      const entityInfo = this._entityStates.get(block.entity);
-      if (entityInfo) {
-        state = this._formatEntityState(block.entity, entityInfo.state, entityInfo.unit);
-      } else if (this.hass?.states[block.entity]) {
-        // 如果缓存中没有，实时获取
-        const entity = this.hass.states[block.entity];
-        const unit = entity.attributes?.unit_of_measurement || '';
-        state = this._formatEntityState(block.entity, entity.state, unit);
-      } else {
-        state = '实体未找到';
-      }
-    } else {
-      state = block.title || '点击配置';
-    }
-    
+    const displayName = block.title || this._getBlockDisplayName(block);
+    const icon = block.icon || 'mdi:cube';
+    const state = this._getBlockPreview(block, this.hass);
     const areaInfo = this._getAreaInfo(block.area);
     const isEditing = this.editorState?.editingBlockId === block.id;
 
@@ -423,8 +382,30 @@ updated(changedProperties) {
     `;
   }
 
-  // 新增：格式化实体状态显示
-  _formatEntityState(entityId, state, unit) {
+  // 简化的块显示名称
+  _getBlockDisplayName(blockConfig) {
+    if (blockConfig.entity) {
+      return '实体块';
+    }
+    return '内容块';
+  }
+
+  // 简化的块状态预览
+  _getBlockPreview(blockConfig, hass) {
+    if (blockConfig.entity) {
+      if (hass?.states[blockConfig.entity]) {
+        const entity = hass.states[blockConfig.entity];
+        const unit = entity.attributes?.unit_of_measurement || '';
+        return this._formatEntityState(blockConfig.entity, entity.state, unit, entity);
+      }
+      return '实体未找到';
+    }
+    
+    return blockConfig.title || '点击配置';
+  }
+
+  // 格式化实体状态显示
+  _formatEntityState(entityId, state, unit, entity) {
     const entityType = entityId.split('.')[0];
     
     switch (entityType) {
@@ -432,7 +413,7 @@ updated(changedProperties) {
       case 'switch':
         return state === 'on' ? '开启' : '关闭';
       case 'climate':
-        return this._formatClimateState(state, this.hass.states[entityId]);
+        return this._formatClimateState(state, entity);
       case 'cover':
         return state === 'open' ? '打开' : state === 'closed' ? '关闭' : state;
       default:
@@ -440,7 +421,7 @@ updated(changedProperties) {
     }
   }
 
-  // 新增：格式化空调状态
+  // 格式化空调状态
   _formatClimateState(state, entity) {
     if (state === 'off') return '关闭';
     
@@ -455,6 +436,31 @@ updated(changedProperties) {
     }[mode] || mode;
     
     return temp ? `${modeText} ${temp}°C` : modeText;
+  }
+
+  // 根据实体ID获取图标
+  _getEntityIcon(entityId, hass) {
+    if (!entityId || !hass) return 'mdi:help-circle';
+    
+    const entity = hass.states[entityId];
+    if (entity?.attributes?.icon) {
+      return entity.attributes.icon;
+    }
+    
+    // 根据实体ID前缀自动匹配图标
+    const entityType = entityId.split('.')[0];
+    const iconMap = {
+      'sensor': 'mdi:gauge',
+      'binary_sensor': 'mdi:checkbox-marked-circle-outline',
+      'switch': 'mdi:power',
+      'light': 'mdi:lightbulb',
+      'climate': 'mdi:thermostat',
+      'cover': 'mdi:blinds',
+      'media_player': 'mdi:speaker',
+      'weather': 'mdi:weather-cloudy'
+    };
+    
+    return iconMap[entityType] || 'mdi:cube';
   }
 
   _renderAddBlockButton() {
@@ -583,14 +589,11 @@ updated(changedProperties) {
     this._touchStartX = 0;
   }
 
-_notifyConfigUpdate() {
-  this.dispatchEvent(new CustomEvent('config-changed', {
-    detail: { config: { blocks: this.config.blocks } }
-  }));
-  
-  // 配置更新后重新计算实体状态
-  this._updateEntityStates();
-}
+  _notifyConfigUpdate() {
+    this.dispatchEvent(new CustomEvent('config-changed', {
+      detail: { config: { blocks: this.config.blocks } }
+    }));
+  }
 }
 
 if (!customElements.get('block-list')) {
