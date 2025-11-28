@@ -7,6 +7,7 @@ class BlockList extends LitElement {
     config: { type: Object },
     hass: { type: Object },
     editingBlockId: { type: String },
+    forceUpdate: { type: Number }, // 新增：强制更新监听
     _touchStartX: { state: true },
     _swipeThreshold: { state: true }
   };
@@ -279,9 +280,12 @@ class BlockList extends LitElement {
     this._swipeThreshold = 50;
   }
 
-  // 关键：监听配置变化自动更新
+  // 关键：监听所有可能触发更新的属性
   updated(changedProperties) {
-    if (changedProperties.has('config') || changedProperties.has('hass')) {
+    if (changedProperties.has('config') || 
+        changedProperties.has('hass') || 
+        changedProperties.has('forceUpdate')) {
+      // 任何相关属性变化都强制重新渲染
       this.requestUpdate();
     }
   }

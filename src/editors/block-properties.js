@@ -4,7 +4,7 @@ import { designSystem } from '../core/design-system.js';
 
 class BlockProperties extends LitElement {
   static properties = {
-    blockConfig: { type: Object }, // 关键：这是配置对象的直接引用
+    blockConfig: { type: Object },
     hass: { type: Object },
     availableEntities: { type: Array },
     _entityInfo: { state: true }
@@ -227,11 +227,10 @@ class BlockProperties extends LitElement {
     `;
   }
 
-  // 关键修改：直接修改配置对象，不创建副本
   _updateField(key, value) {
     if (!this.blockConfig) return;
 
-    // 直接修改配置对象的属性
+    // 直接修改配置对象
     this.blockConfig[key] = value;
 
     // 自动填充实体相关信息
@@ -250,10 +249,7 @@ class BlockProperties extends LitElement {
       }
     }
 
-    // 更新实体信息显示
     this._updateEntityInfo();
-    
-    // 关键：立即重新渲染，确保UI同步
     this.requestUpdate();
   }
 
@@ -276,7 +272,6 @@ class BlockProperties extends LitElement {
     };
   }
 
-  // 根据实体ID获取图标
   _getEntityIcon(entityId, hass) {
     if (!entityId || !hass) return 'mdi:help-circle';
     
@@ -301,7 +296,7 @@ class BlockProperties extends LitElement {
   }
 
   _onSave() {
-    // 关键：保存时数据已经实时更新，只需要关闭面板
+    // 关键：保存时确保数据已经更新
     this.dispatchEvent(new CustomEvent('save'));
   }
 

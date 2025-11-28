@@ -19,8 +19,8 @@ class CardEditor extends LitElement {
     _initialized: { state: true },
     _availableEntities: { state: true },
     _cardSchema: { state: true },
-    // 简化：只记录当前编辑的块ID
-    _editingBlockId: { state: true }
+    _editingBlockId: { state: true },
+    _forceUpdate: { state: true } // 新增：强制更新标记
   };
 
   static styles = [
@@ -182,9 +182,8 @@ class CardEditor extends LitElement {
     this._initialized = false;
     this._availableEntities = [];
     this._cardSchema = null;
-    
-    // 简化：只记录当前编辑的块ID
     this._editingBlockId = null;
+    this._forceUpdate = 0; // 强制更新计数器
   }
 
   async firstUpdated() {
@@ -329,6 +328,7 @@ class CardEditor extends LitElement {
           .config=${this.config}
           .hass=${this.hass}
           .editingBlockId=${this._editingBlockId}
+          .forceUpdate=${this._forceUpdate} <!-- 传递强制更新标记 -->
           @config-changed=${this._onConfigChanged}
           @edit-block=${this._onEditBlock}
         ></block-list>
@@ -339,7 +339,6 @@ class CardEditor extends LitElement {
   _renderFloatingEditor() {
     if (!this._editingBlockId) return '';
 
-    // 关键修改：直接传递配置对象的引用
     const blockConfig = this.config.blocks[this._editingBlockId];
     if (!blockConfig) return '';
 
@@ -354,7 +353,6 @@ class CardEditor extends LitElement {
         </div>
         
         <div class="editor-content">
-          <!-- 关键修改：直接传递配置引用，不复制 -->
           <block-properties
             .blockConfig=${blockConfig}
             .hass=${this.hass}
@@ -396,6 +394,7 @@ class CardEditor extends LitElement {
     }
     
     this._cancelEdit();
+    this._forceUpdateBlocks(); // 强制更新
     this._notifyConfigUpdate();
   }
 
@@ -409,6 +408,7 @@ class CardEditor extends LitElement {
       ...this.config,
       ...e.detail.config
     };
+    this._forceUpdateBlocks(); // 强制更新
     this._notifyConfigUpdate();
   }
 
@@ -418,14 +418,20 @@ class CardEditor extends LitElement {
   }
 
   _saveEdit() {
-    // 关键修改：保存时只需要关闭编辑面板，数据已经实时更新
+    // 关键：保存时强制更新块列表
+    this._forceUpdateBlocks();
     this._cancelEdit();
-    // 通知配置更新，确保其他组件同步
     this._notifyConfigUpdate();
   }
 
   _cancelEdit() {
     this._editingBlockId = null;
+    this.requestUpdate();
+  }
+
+  // 新增：强制更新块列表
+  _forceUpdateBlocks() {
+    this._forceUpdate += 1;
     this.requestUpdate();
   }
 
