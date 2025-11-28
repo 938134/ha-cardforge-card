@@ -5,7 +5,7 @@ import { themeManager } from '../themes/index.js';
 import { designSystem } from '../core/design-system.js';
 import './card-selector.js';
 import './theme-selector.js';
-import './block-list.js';
+import './block-management.js'; 
 import './form-builder.js';
 
 class CardEditor extends LitElement {
@@ -238,24 +238,14 @@ class CardEditor extends LitElement {
       <div class="editor-section">
         <div class="section-header">
           <ha-icon icon="mdi:cube"></ha-icon>
-          <span class="section-title">
-            块管理
-            ${this._editingBlockId ? html`
-              <span class="editing-indicator">
-                <ha-icon icon="mdi:pencil"></ha-icon>
-                正在编辑块
-              </span>
-            ` : ''}
-          </span>
+          <span class="section-title">块管理</span>
         </div>
         
-        <block-list
+        <block-management
           .config=${this.config}
           .hass=${this.hass}
-          .editingBlockId=${this._editingBlockId}
           @config-changed=${this._onConfigChanged}
-          @edit-block=${this._onEditBlock}
-        ></block-list>
+        ></block-management>
       </div>
     `;
   }
