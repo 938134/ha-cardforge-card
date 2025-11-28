@@ -19,8 +19,8 @@ class CardEditor extends LitElement {
     _initialized: { state: true },
     _availableEntities: { state: true },
     _cardSchema: { state: true },
-    // 编辑状态管理
-    _editingState: { state: true }
+    // 简化编辑状态
+    _editingBlockId: { state: true }
   };
 
   static styles = [
@@ -183,13 +183,8 @@ class CardEditor extends LitElement {
     this._availableEntities = [];
     this._cardSchema = null;
     
-    // 编辑状态管理
-    this._editingState = {
-      isEditing: false,
-      editingBlockId: null,
-      editingData: null,
-      originalData: null
-    };
+    // 简化编辑状态：只记录当前编辑的块ID
+    this._editingBlockId = null;
   }
 
   async firstUpdated() {
@@ -224,7 +219,6 @@ class CardEditor extends LitElement {
     this._selectedCard = cardRegistry.getCard(this.config.card_type);
     this._cardSchema = this._selectedCard?.manifest?.config_schema || null;
     
-    // 如果没有区域配置，使用卡片的默认配置
     if (!this.config.areas || Object.keys(this.config.areas).length === 0) {
       const cardInstance = cardRegistry.createCardInstance(this.config.card_type);
       if (cardInstance) {
@@ -323,7 +317,7 @@ class CardEditor extends LitElement {
           <ha-icon icon="mdi:cube"></ha-icon>
           <span class="section-title">
             块管理
-            ${this._editingState.isEditing ? html`
+            ${this._editingBlockId ? html`
               <span style="color: var(--cf-primary-color); margin-left: var(--cf-spacing-sm);">
                 • 正在编辑: ${this._getEditingBlockName()}
               </span>
@@ -334,7 +328,7 @@ class CardEditor extends LitElement {
         <block-list
           .config=${this.config}
           .hass=${this.hass}
-          .editingState=${this._editingState}
+          .editingBlockId=${this._editingBlockId}
           @config-changed=${this._onConfigChanged}
           @edit-block=${this._onEditBlock}
         ></block-list>
@@ -343,7 +337,10 @@ class CardEditor extends LitElement {
   }
 
   _renderFloatingEditor() {
-    if (!this._editingState.isEditing) return '';
+    if (!this._editingBlockId) return '';
+
+    const blockConfig = this.config.blocks[this._editingBlockId];
+    if (!blockConfig) return '';
 
     return html`
       <div class="editor-overlay" @click=${this._cancelEdit}></div>
@@ -357,10 +354,10 @@ class CardEditor extends LitElement {
         
         <div class="editor-content">
           <block-properties
-            .blockConfig=${this._editingState.editingData}
+            .blockConfig=${blockConfig}
             .hass=${this.hass}
             .availableEntities=${this._availableEntities}
-            @block-config-changed=${this._onEditingConfigChanged}
+            @block-updated=${this._onBlockUpdated}
             @save=${this._saveEdit}
             @cancel=${this._cancelEdit}
           ></block-properties>
@@ -370,8 +367,8 @@ class CardEditor extends LitElement {
   }
 
   _getEditingBlockName() {
-    if (!this._editingState.editingBlockId) return '';
-    const block = this.config.blocks[this._editingState.editingBlockId];
+    if (!this._editingBlockId) return '';
+    const block = this.config.blocks[this._editingBlockId];
     return block?.title || block?.entity || '未命名块';
   }
 
@@ -379,7 +376,6 @@ class CardEditor extends LitElement {
     const cardType = e.detail.cardId;
     this.config.card_type = cardType;
     
-    // 加载卡片的默认配置和schema
     this._selectedCard = cardRegistry.getCard(cardType);
     this._cardSchema = this._selectedCard?.manifest?.config_schema || null;
     
@@ -389,7 +385,6 @@ class CardEditor extends LitElement {
       this.config.areas = defaultConfig.areas;
       this.config.blocks = defaultConfig.blocks;
       
-      // 应用卡片配置的默认值
       if (this._cardSchema) {
         Object.entries(this._cardSchema).forEach(([key, field]) => {
           if (this.config[key] === undefined && field.default !== undefined) {
@@ -399,7 +394,6 @@ class CardEditor extends LitElement {
       }
     }
     
-    // 清除编辑状态
     this._cancelEdit();
     this._notifyConfigUpdate();
   }
@@ -418,64 +412,28 @@ class CardEditor extends LitElement {
   }
 
   _onEditBlock(e) {
-    const { blockId, blockConfig } = e.detail;
-    
-    this._editingState = {
-      isEditing: true,
-      editingBlockId: blockId,
-      editingData: { ...blockConfig },
-      originalData: { ...blockConfig }
-    };
-    
+    this._editingBlockId = e.detail.blockId;
     this.requestUpdate();
   }
 
-  _onEditingConfigChanged(e) {
-    if (this._editingState.isEditing) {
-      this._editingState.editingData = e.detail.blockConfig;
-      this.requestUpdate();
-    }
-  }
-
-  _saveEdit() {
-    if (!this._editingState.isEditing || !this._editingState.editingBlockId) return;
-
-    // 验证配置
-    if (!this._validateBlock(this._editingState.editingData)) {
-      return;
-    }
-
-    // 更新主配置
-    this.config.blocks[this._editingState.editingBlockId] = this._editingState.editingData;
+  // 关键修改：直接更新配置，立即生效
+  _onBlockUpdated(e) {
+    if (!this._editingBlockId) return;
     
-    // 清除编辑状态
-    this._cancelEdit();
+    // 直接更新配置中的块数据
+    this.config.blocks[this._editingBlockId] = e.detail.blockConfig;
+    
+    // 立即通知配置变化，让block-list重新渲染
     this._notifyConfigUpdate();
   }
 
-  _cancelEdit() {
-    this._editingState = {
-      isEditing: false,
-      editingBlockId: null,
-      editingData: null,
-      originalData: null
-    };
-    this.requestUpdate();
+  _saveEdit() {
+    this._cancelEdit();
   }
 
-  _validateBlock(blockConfig) {
-    const errors = [];
-    
-    if (!blockConfig.title && !blockConfig.entity) {
-      errors.push('块需要名称或实体');
-    }
-    
-    if (errors.length > 0) {
-      alert(`配置错误：${errors.join(', ')}`);
-      return false;
-    }
-    
-    return true;
+  _cancelEdit() {
+    this._editingBlockId = null;
+    this.requestUpdate();
   }
 
   _notifyConfigUpdate() {

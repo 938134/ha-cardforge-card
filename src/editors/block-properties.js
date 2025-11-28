@@ -7,8 +7,7 @@ class BlockProperties extends LitElement {
     blockConfig: { type: Object },
     hass: { type: Object },
     availableEntities: { type: Array },
-    _entityInfo: { state: true },
-    _editingConfig: { state: true }
+    _entityInfo: { state: true }
   };
 
   static styles = [
@@ -105,12 +104,10 @@ class BlockProperties extends LitElement {
   constructor() {
     super();
     this._entityInfo = null;
-    this._editingConfig = {};
   }
 
   willUpdate(changedProperties) {
     if (changedProperties.has('blockConfig')) {
-      this._editingConfig = this.blockConfig ? { ...this.blockConfig } : {};
       this._updateEntityInfo();
     }
   }
@@ -152,7 +149,7 @@ class BlockProperties extends LitElement {
         <div class="form-label">区域</div>
         <div class="form-field">
           <ha-select
-            .value=${this._editingConfig.area || 'content'}
+            .value=${this.blockConfig.area || 'content'}
             @closed=${this._preventClose}
             naturalMenuWidth
             fixedMenuPosition
@@ -176,7 +173,7 @@ class BlockProperties extends LitElement {
           ${this.availableEntities ? html`
             <ha-combo-box
               .items=${this.availableEntities}
-              .value=${this._editingConfig.entity || ''}
+              .value=${this.blockConfig.entity || ''}
               @value-changed=${e => this._updateField('entity', e.detail.value)}
               allow-custom-value
               label="选择实体"
@@ -184,7 +181,7 @@ class BlockProperties extends LitElement {
             ></ha-combo-box>
           ` : html`
             <ha-textfield
-              .value=${this._editingConfig.entity || ''}
+              .value=${this.blockConfig.entity || ''}
               @input=${e => this._updateField('entity', e.target.value)}
               placeholder="输入实体ID"
               fullwidth
@@ -196,7 +193,7 @@ class BlockProperties extends LitElement {
         <div class="form-label">图标</div>
         <div class="form-field">
           <ha-icon-picker
-            .value=${this._editingConfig.icon || ''}
+            .value=${this.blockConfig.icon || ''}
             @value-changed=${e => this._updateField('icon', e.detail.value)}
             label="选择图标"
             fullwidth
@@ -207,7 +204,7 @@ class BlockProperties extends LitElement {
         <div class="form-label">名称</div>
         <div class="form-field">
           <ha-textfield
-            .value=${this._editingConfig.title || ''}
+            .value=${this.blockConfig.title || ''}
             @input=${e => this._updateField('title', e.target.value)}
             placeholder="输入显示名称"
             fullwidth
@@ -230,9 +227,10 @@ class BlockProperties extends LitElement {
     `;
   }
 
+  // 关键修改：实时更新，不等待保存
   _updateField(key, value) {
-    this._editingConfig = {
-      ...this._editingConfig,
+    const updatedConfig = {
+      ...this.blockConfig,
       [key]: value
     };
 
@@ -241,33 +239,32 @@ class BlockProperties extends LitElement {
       const entity = this.hass.states[value];
       if (entity) {
         // 自动填充名称
-        if (!this._editingConfig.title && entity.attributes?.friendly_name) {
-          this._editingConfig.title = entity.attributes.friendly_name;
+        if (!updatedConfig.title && entity.attributes?.friendly_name) {
+          updatedConfig.title = entity.attributes.friendly_name;
         }
         
         // 自动填充图标
-        if (!this._editingConfig.icon) {
-          this._editingConfig.icon = this._getEntityIcon(value, this.hass);
+        if (!updatedConfig.icon) {
+          updatedConfig.icon = this._getEntityIcon(value, this.hass);
         }
       }
-      this._updateEntityInfo();
     }
-    
-    // 实时通知配置变化
-    this.dispatchEvent(new CustomEvent('block-config-changed', {
-      detail: { blockConfig: this._editingConfig }
+
+    // 立即触发更新事件
+    this.dispatchEvent(new CustomEvent('block-updated', {
+      detail: { blockConfig: updatedConfig }
     }));
-    
-    this.requestUpdate();
+
+    this._updateEntityInfo(updatedConfig);
   }
 
-  _updateEntityInfo() {
-    if (!this._editingConfig.entity || !this.hass) {
+  _updateEntityInfo(blockConfig = this.blockConfig) {
+    if (!blockConfig?.entity || !this.hass) {
       this._entityInfo = null;
       return;
     }
     
-    const entity = this.hass.states[this._editingConfig.entity];
+    const entity = this.hass.states[blockConfig.entity];
     if (!entity) {
       this._entityInfo = { state: '实体未找到' };
       return;
@@ -276,7 +273,7 @@ class BlockProperties extends LitElement {
     this._entityInfo = {
       state: entity.state,
       unit: entity.attributes?.unit_of_measurement || '',
-      friendlyName: entity.attributes?.friendly_name || this._editingConfig.entity
+      friendlyName: entity.attributes?.friendly_name || blockConfig.entity
     };
   }
 
@@ -289,7 +286,6 @@ class BlockProperties extends LitElement {
       return entity.attributes.icon;
     }
     
-    // 根据实体ID前缀自动匹配图标
     const entityType = entityId.split('.')[0];
     const iconMap = {
       'sensor': 'mdi:gauge',
@@ -305,29 +301,7 @@ class BlockProperties extends LitElement {
     return iconMap[entityType] || 'mdi:cube';
   }
 
-  // 简化的块验证
-  _validateBlock(blockConfig) {
-    const errors = [];
-    
-    // 基本验证
-    if (!blockConfig.title && !blockConfig.entity) {
-      errors.push('块需要名称或实体');
-    }
-    
-    return {
-      valid: errors.length === 0,
-      errors
-    };
-  }
-
   _onSave() {
-    // 验证配置
-    const validation = this._validateBlock(this._editingConfig);
-    if (!validation.valid) {
-      alert(`配置错误：${validation.errors.join(', ')}`);
-      return;
-    }
-    
     this.dispatchEvent(new CustomEvent('save'));
   }
 

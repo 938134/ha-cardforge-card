@@ -6,8 +6,7 @@ class BlockList extends LitElement {
   static properties = {
     config: { type: Object },
     hass: { type: Object },
-    editingState: { type: Object },
-    blocksVersion: { type: Number }, // 新增：监听版本号
+    editingBlockId: { type: String }, // 简化：只传递编辑块ID
     _touchStartX: { state: true },
     _swipeThreshold: { state: true }
   };
@@ -53,12 +52,6 @@ class BlockList extends LitElement {
         border-color: var(--cf-primary-color);
         background: rgba(var(--cf-rgb-primary), 0.05);
         box-shadow: 0 0 0 2px var(--cf-primary-color);
-        animation: pulse 2s infinite;
-      }
-
-      @keyframes pulse {
-        0%, 100% { box-shadow: 0 0 0 2px var(--cf-primary-color); }
-        50% { box-shadow: 0 0 0 4px var(--cf-primary-color); }
       }
 
       /* 滑动删除效果 */
@@ -286,12 +279,10 @@ class BlockList extends LitElement {
     this._swipeThreshold = 50;
   }
 
-  // 监听版本号变化，强制重新渲染
+  // 关键修改：监听配置变化，自动重新渲染
   updated(changedProperties) {
-    if (changedProperties.has('blocksVersion') || 
-        changedProperties.has('hass') || 
-        changedProperties.has('config')) {
-      // 版本号变化时强制重新渲染
+    if (changedProperties.has('config') || changedProperties.has('hass')) {
+      // 配置变化时自动重新渲染
       this.requestUpdate();
     }
   }
@@ -327,7 +318,6 @@ class BlockList extends LitElement {
       `;
     }
 
-    // 按区域排序：标题 → 内容 → 页脚
     const sortedBlocks = [...blocks].sort((a, b) => {
       const areaOrder = { 'header': 0, 'content': 1, 'footer': 2 };
       const orderA = areaOrder[a.area] ?? 1;
@@ -347,7 +337,7 @@ class BlockList extends LitElement {
     const icon = block.icon || 'mdi:cube';
     const state = this._getBlockPreview(block, this.hass);
     const areaInfo = this._getAreaInfo(block.area);
-    const isEditing = this.editingState?.editingBlockId === block.id;
+    const isEditing = this.editingBlockId === block.id;
 
     return html`
       <div class="block-item ${isEditing ? 'editing' : ''}"
@@ -391,7 +381,6 @@ class BlockList extends LitElement {
     `;
   }
 
-  // 简化的块显示名称
   _getBlockDisplayName(blockConfig) {
     if (blockConfig.entity) {
       return '实体块';
@@ -399,7 +388,6 @@ class BlockList extends LitElement {
     return '内容块';
   }
 
-  // 简化的块状态预览
   _getBlockPreview(blockConfig, hass) {
     if (blockConfig.entity) {
       if (hass?.states[blockConfig.entity]) {
@@ -413,7 +401,6 @@ class BlockList extends LitElement {
     return blockConfig.title || '点击配置';
   }
 
-  // 格式化实体状态显示
   _formatEntityState(entityId, state, unit, entity) {
     const entityType = entityId.split('.')[0];
     
@@ -430,7 +417,6 @@ class BlockList extends LitElement {
     }
   }
 
-  // 格式化空调状态
   _formatClimateState(state, entity) {
     if (state === 'off') return '关闭';
     
@@ -468,8 +454,7 @@ class BlockList extends LitElement {
   _editBlock(block) {
     this.dispatchEvent(new CustomEvent('edit-block', {
       detail: {
-        blockId: block.id,
-        blockConfig: block
+        blockId: block.id
       }
     }));
   }
@@ -484,7 +469,6 @@ class BlockList extends LitElement {
     
     const blockId = `block_${Date.now()}`;
     
-    // 使用简化的块配置
     const blockConfig = {
       area: areaName,
       title: '',
@@ -498,7 +482,6 @@ class BlockList extends LitElement {
     
     this.config.blocks[blockId] = blockConfig;
     
-    // 直接进入编辑模式
     this._editBlock({ id: blockId, ...blockConfig });
     this._notifyConfigUpdate();
   }
@@ -526,7 +509,6 @@ class BlockList extends LitElement {
     const diffX = this._touchStartX - touchX;
     
     if (diffX > 0) {
-      // 向左滑动
       e.currentTarget.style.transform = `translateX(-${Math.min(diffX, 80)}px)`;
       
       if (diffX > this._swipeThreshold) {
@@ -544,10 +526,8 @@ class BlockList extends LitElement {
     const diffX = this._touchStartX - touchX;
     
     if (diffX > this._swipeThreshold) {
-      // 滑动距离足够，保持删除状态
       e.currentTarget.style.transform = 'translateX(-80px)';
     } else {
-      // 滑动距离不足，恢复原位
       e.currentTarget.style.transform = 'translateX(0)';
       e.currentTarget.classList.remove('swipe-active');
     }
