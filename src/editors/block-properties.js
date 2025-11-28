@@ -18,45 +18,6 @@ class BlockProperties extends LitElement {
         width: 100%;
       }
 
-      .properties-header {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        margin-bottom: var(--cf-spacing-lg);
-        padding: var(--cf-spacing-md);
-        background: rgba(var(--cf-rgb-primary), 0.05);
-        border-radius: var(--cf-radius-md);
-        border-left: 4px solid var(--cf-primary-color);
-      }
-
-      .header-title {
-        display: flex;
-        align-items: center;
-        gap: var(--cf-spacing-md);
-      }
-
-      .block-type-badge {
-        padding: 4px 8px;
-        background: var(--cf-primary-color);
-        color: white;
-        border-radius: var(--cf-radius-sm);
-        font-size: 0.8em;
-        font-weight: 500;
-      }
-
-      .close-btn {
-        background: none;
-        border: none;
-        font-size: 1.2em;
-        cursor: pointer;
-        color: var(--cf-text-secondary);
-        padding: 4px;
-      }
-
-      .close-btn:hover {
-        color: var(--cf-text-primary);
-      }
-
       .entity-info {
         font-size: 0.8em;
         color: var(--cf-text-secondary);
@@ -161,13 +122,6 @@ class BlockProperties extends LitElement {
 
     return html`
       <div class="block-properties">
-        <div class="properties-header">
-          <div class="header-title">
-            <div class="block-type-badge">编辑块属性</div>
-          </div>
-          <button class="close-btn" @click=${this._onCancel}>✕</button>
-        </div>
-
         ${this._renderEntityInfo()}
         ${this._renderForm()}
         ${this._renderActions()}
@@ -299,6 +253,11 @@ class BlockProperties extends LitElement {
       this._updateEntityInfo();
     }
     
+    // 实时通知配置变化
+    this.dispatchEvent(new CustomEvent('block-config-changed', {
+      detail: { blockConfig: this._editingConfig }
+    }));
+    
     this.requestUpdate();
   }
 
@@ -369,30 +328,11 @@ class BlockProperties extends LitElement {
       return;
     }
     
-    this.dispatchEvent(new CustomEvent('block-config-changed', {
-      detail: { blockConfig: this._editingConfig }
-    }));
-    
-    // 保存后清除编辑状态
-    this.dispatchEvent(new CustomEvent('editor-state-changed', {
-      detail: {
-        state: {
-          editingBlockId: null,
-          tempConfig: null
-        }
-      }
-    }));
+    this.dispatchEvent(new CustomEvent('save'));
   }
 
   _onCancel() {
-    this.dispatchEvent(new CustomEvent('editor-state-changed', {
-      detail: {
-        state: {
-          editingBlockId: null,
-          tempConfig: null
-        }
-      }
-    }));
+    this.dispatchEvent(new CustomEvent('cancel'));
   }
 
   _preventClose(e) {
