@@ -1,15 +1,12 @@
 // src/editors/block-properties.js
 import { LitElement, html, css } from 'https://unpkg.com/lit@2.8.0/index.js?module';
 import { designSystem } from '../core/design-system.js';
-import { BlockSystem } from '../core/block-system.js';
-import './form-builder.js';
 
 class BlockProperties extends LitElement {
   static properties = {
     blockConfig: { type: Object },
     hass: { type: Object },
     availableEntities: { type: Array },
-    _fieldSchema: { state: true },
     _entityInfo: { state: true },
     _editingConfig: { state: true }
   };
@@ -146,14 +143,13 @@ class BlockProperties extends LitElement {
 
   constructor() {
     super();
-    this._fieldSchema = {};
     this._entityInfo = null;
     this._editingConfig = {};
   }
 
   willUpdate(changedProperties) {
     if (changedProperties.has('blockConfig')) {
-      this._editingConfig = { ...this.blockConfig };
+      this._editingConfig = this.blockConfig ? { ...this.blockConfig } : {};
       this._updateEntityInfo();
     }
   }
@@ -297,7 +293,7 @@ class BlockProperties extends LitElement {
         
         // 自动填充图标
         if (!this._editingConfig.icon) {
-          this._editingConfig.icon = BlockSystem.getEntityIcon(value, this.hass);
+          this._editingConfig.icon = this._getEntityIcon(value, this.hass);
         }
       }
       this._updateEntityInfo();
@@ -325,31 +321,68 @@ class BlockProperties extends LitElement {
     };
   }
 
-_onSave() {
-  // 验证配置
-  const validation = BlockSystem.validateBlock(this._editingConfig);
-  if (!validation.valid) {
-    alert(`配置错误：${validation.errors.join(', ')}`);
-    return;
-  }
-  
-  // 深拷贝配置，避免引用问题
-  const savedConfig = JSON.parse(JSON.stringify(this._editingConfig));
-  
-  this.dispatchEvent(new CustomEvent('block-config-changed', {
-    detail: { blockConfig: savedConfig }
-  }));
-  
-  // 保存后清除编辑状态
-  this.dispatchEvent(new CustomEvent('editor-state-changed', {
-    detail: {
-      state: {
-        editingBlockId: null,
-        tempConfig: null
-      }
+  // 根据实体ID获取图标
+  _getEntityIcon(entityId, hass) {
+    if (!entityId || !hass) return 'mdi:help-circle';
+    
+    const entity = hass.states[entityId];
+    if (entity?.attributes?.icon) {
+      return entity.attributes.icon;
     }
-  }));
-}
+    
+    // 根据实体ID前缀自动匹配图标
+    const entityType = entityId.split('.')[0];
+    const iconMap = {
+      'sensor': 'mdi:gauge',
+      'binary_sensor': 'mdi:checkbox-marked-circle-outline',
+      'switch': 'mdi:power',
+      'light': 'mdi:lightbulb',
+      'climate': 'mdi:thermostat',
+      'cover': 'mdi:blinds',
+      'media_player': 'mdi:speaker',
+      'weather': 'mdi:weather-cloudy'
+    };
+    
+    return iconMap[entityType] || 'mdi:cube';
+  }
+
+  // 简化的块验证
+  _validateBlock(blockConfig) {
+    const errors = [];
+    
+    // 基本验证
+    if (!blockConfig.title && !blockConfig.entity) {
+      errors.push('块需要名称或实体');
+    }
+    
+    return {
+      valid: errors.length === 0,
+      errors
+    };
+  }
+
+  _onSave() {
+    // 验证配置
+    const validation = this._validateBlock(this._editingConfig);
+    if (!validation.valid) {
+      alert(`配置错误：${validation.errors.join(', ')}`);
+      return;
+    }
+    
+    this.dispatchEvent(new CustomEvent('block-config-changed', {
+      detail: { blockConfig: this._editingConfig }
+    }));
+    
+    // 保存后清除编辑状态
+    this.dispatchEvent(new CustomEvent('editor-state-changed', {
+      detail: {
+        state: {
+          editingBlockId: null,
+          tempConfig: null
+        }
+      }
+    }));
+  }
 
   _onCancel() {
     this.dispatchEvent(new CustomEvent('editor-state-changed', {
