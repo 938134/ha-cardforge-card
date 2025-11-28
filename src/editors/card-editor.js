@@ -309,24 +309,28 @@ class CardEditor extends LitElement {
     this.requestUpdate();
   }
 
-  _onBlockConfigChanged(e) {
-    if (this._blockEditorState.editingBlockId) {
-      const blockId = this._blockEditorState.editingBlockId;
-      const updatedBlockConfig = JSON.parse(JSON.stringify(e.detail.blockConfig));
-      
-      // 更新临时配置用于实时预览
-      this._blockEditorState.tempConfig = updatedBlockConfig;
-      
-      // 安全更新块配置 - 确保不覆盖其他块
-      this.config.blocks = {
-        ...this.config.blocks,
-        [blockId]: updatedBlockConfig
-      };
-      
-      this._configVersion++; // 增加版本号
-      this._notifyConfigUpdate();
-    }
+_onBlockConfigChanged(e) {
+  if (this._blockEditorState.editingBlockId) {
+    // 创建新的配置对象，避免引用问题
+    const updatedBlocks = {
+      ...this.config.blocks,
+      [this._blockEditorState.editingBlockId]: e.detail.blockConfig
+    };
+    
+    this.config = {
+      ...this.config,
+      blocks: updatedBlocks
+    };
+    
+    // 更新临时配置
+    this._blockEditorState.tempConfig = e.detail.blockConfig;
+    
+    this._notifyConfigUpdate();
+    
+    // 强制更新所有组件
+    this.requestUpdate();
   }
+}
 
   _clearEditingState() {
     this._blockEditorState = {
