@@ -296,16 +296,19 @@ _renderBlockManagement() {
     this.requestUpdate();
   }
 
-  _onBlockConfigChanged(e) {
-    if (this._blockEditorState.editingBlockId) {
-      // 更新临时配置用于实时预览
-      this._blockEditorState.tempConfig = e.detail.blockConfig;
-      
-      // 同时更新实际配置
-      this.config.blocks[this._blockEditorState.editingBlockId] = e.detail.blockConfig;
-      this._notifyConfigUpdate();
-    }
+_onBlockConfigChanged(e) {
+  if (this._blockEditorState.editingBlockId) {
+    // 更新临时配置用于实时预览
+    this._blockEditorState.tempConfig = e.detail.blockConfig;
+    
+    // 同时更新实际配置
+    this.config.blocks[this._blockEditorState.editingBlockId] = e.detail.blockConfig;
+    this._notifyConfigUpdate();
+    
+    // 强制更新块列表显示
+    this.requestUpdate();
   }
+}
 
   _clearEditingState() {
     this._blockEditorState = {
