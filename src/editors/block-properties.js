@@ -67,54 +67,30 @@ class BlockProperties extends LitElement {
   _updateFieldSchema() {
     if (!this.blockConfig) return;
 
-    const blockType = BlockSystem.detectBlockType(this.blockConfig);
-    
-    // 通用字段
-    const commonFields = {
-      title: {
-        type: 'text',
-        label: '显示名称',
-        default: ''
-      },
-      icon: {
-        type: 'icon',
-        label: '图标',
-        default: ''
-      },
+    // 简化的字段配置 - 所有块类型使用相同的字段
+    this._fieldSchema = {
       area: {
         type: 'select',
         label: '区域',
         options: ['header', 'content', 'footer'],
         default: 'content'
       },
-      style: {
+      entity: {
+        type: 'entity',
+        label: '实体',
+        default: ''
+      },
+      title: {
         type: 'text',
-        label: '自定义样式',
+        label: '名称',
+        default: ''
+      },
+      icon: {
+        type: 'icon',
+        label: '图标',
         default: ''
       }
-    };
-
-    // 类型特定字段
-    const typeSpecificFields = {
-      text: {
-        content: {
-          type: 'textarea',
-          label: '内容',
-          default: ''
-        }
-      },
-      entity: {
-        entity: {
-          type: 'entity',
-          label: '实体',
-          default: ''
-        }
-      }
-    };
-
-    this._fieldSchema = {
-      ...commonFields,
-      ...(typeSpecificFields[blockType] || {})
+      // 移除了 content 和 style 字段
     };
   }
 
