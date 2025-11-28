@@ -5,10 +5,9 @@ import { themeManager } from '../themes/index.js';
 import { designSystem } from '../core/design-system.js';
 import './card-selector.js';
 import './theme-selector.js';
-import './block-manager.js';
-import './block-editor.js';
-import './block-editor-overlay.js'; 
-import './dynamic-form.js';
+import './block-list.js';
+import './block-properties.js';
+import './form-builder.js';
 
 class CardEditor extends LitElement {
   static properties = {
@@ -18,9 +17,10 @@ class CardEditor extends LitElement {
     _themes: { state: true },
     _selectedCard: { state: true },
     _initialized: { state: true },
-    _editingBlockId: { state: true },
     _availableEntities: { state: true },
-    _cardSchema: { state: true }
+    _cardSchema: { state: true },
+    // 统一编辑状态
+    _blockEditorState: { state: true }
   };
 
   static styles = [
@@ -82,9 +82,15 @@ class CardEditor extends LitElement {
     this._themes = [];
     this._selectedCard = null;
     this._initialized = false;
-    this._editingBlockId = null;
     this._availableEntities = [];
     this._cardSchema = null;
+    
+    // 统一块编辑状态管理
+    this._blockEditorState = {
+      editingBlockId: null,
+      editingArea: 'content',
+      tempConfig: null
+    };
   }
 
   async firstUpdated() {
@@ -141,8 +147,7 @@ class CardEditor extends LitElement {
           ${this._renderCardSelectionSection()}
           ${this.config.card_type ? this._renderThemeSection() : ''}
           ${this.config.card_type && this._cardSchema ? this._renderCardSettings() : ''}
-          ${this.config.card_type ? this._renderBlockManager() : ''}
-          ${this._editingBlockId ? this._renderBlockEditor() : ''}
+          ${this.config.card_type ? this._renderBlockManagement() : ''}
         </div>
       </div>
     `;
@@ -201,16 +206,16 @@ class CardEditor extends LitElement {
           <span class="section-title">卡片设置</span>
         </div>
         
-        <dynamic-form
+        <form-builder
           .config=${this.config}
           .schema=${this._cardSchema}
           @config-changed=${this._onConfigChanged}
-        ></dynamic-form>
+        ></form-builder>
       </div>
     `;
   }
 
-  _renderBlockManager() {
+  _renderBlockManagement() {
     return html`
       <div class="editor-section">
         <div class="section-header">
@@ -218,35 +223,29 @@ class CardEditor extends LitElement {
           <span class="section-title">块管理</span>
         </div>
         
-        <block-manager
+        <block-list
           .config=${this.config}
           .hass=${this.hass}
+          .editorState=${this._blockEditorState}
           @config-changed=${this._onConfigChanged}
-          @edit-block=${this._onEditBlock}
-          @add-block=${this._onAddBlock}
-        ></block-manager>
-      </div>
-    `;
-  }
-
-  _renderBlockEditor() {
-    const blockConfig = this.config.blocks[this._editingBlockId];
-    if (!blockConfig) return '';
-
-    return html`
-      <div class="editor-section">
-        <div class="section-header">
-          <ha-icon icon="mdi:pencil"></ha-icon>
-          <span class="section-title">编辑块</span>
-        </div>
+          @editor-state-changed=${this._onEditorStateChanged}
+        ></block-list>
         
-        <block-editor
-          .blockConfig=${blockConfig}
-          .hass=${this.hass}
-          .availableEntities=${this._availableEntities}
-          @block-saved=${e => this._onBlockSaved(this._editingBlockId, e.detail.blockConfig)}
-          @edit-cancelled=${this._onEditCancelled}
-        ></block-editor>
+        ${this._blockEditorState.editingBlockId ? html`
+          <div class="editor-section" style="border-top: 2px solid var(--cf-primary-color);">
+            <div class="section-header">
+              <ha-icon icon="mdi:pencil"></ha-icon>
+              <span class="section-title">编辑块属性</span>
+            </div>
+            
+            <block-properties
+              .blockConfig=${this._blockEditorState.tempConfig || this.config.blocks[this._blockEditorState.editingBlockId]}
+              .hass=${this.hass}
+              .availableEntities=${this._availableEntities}
+              @block-config-changed=${this._onBlockConfigChanged}
+            ></block-properties>
+          </div>
+        ` : ''}
       </div>
     `;
   }
@@ -275,6 +274,8 @@ class CardEditor extends LitElement {
       }
     }
     
+    // 清除编辑状态
+    this._clearEditingState();
     this._notifyConfigUpdate();
   }
 
@@ -291,42 +292,31 @@ class CardEditor extends LitElement {
     this._notifyConfigUpdate();
   }
 
-  _onEditBlock(e) {
-    this._editingBlockId = e.detail.blockId;
-  }
-
-  _onAddBlock() {
-    const area = prompt('请选择要添加到的区域：\n\n输入: header(标题) / content(内容) / footer(页脚)', 'content');
-    
-    if (!area || !['header', 'content', 'footer'].includes(area)) {
-      return;
-    }
-    
-    const blockId = `block_${Date.now()}`;
-    const blockConfig = {
-      type: 'text',
-      title: '',
-      content: '',
-      area: area
+  _onEditorStateChanged(e) {
+    this._blockEditorState = {
+      ...this._blockEditorState,
+      ...e.detail.state
     };
-    
-    if (!this.config.blocks) {
-      this.config.blocks = {};
+    this.requestUpdate();
+  }
+
+  _onBlockConfigChanged(e) {
+    if (this._blockEditorState.editingBlockId) {
+      // 更新临时配置用于实时预览
+      this._blockEditorState.tempConfig = e.detail.blockConfig;
+      
+      // 同时更新实际配置
+      this.config.blocks[this._blockEditorState.editingBlockId] = e.detail.blockConfig;
+      this._notifyConfigUpdate();
     }
-    
-    this.config.blocks[blockId] = blockConfig;
-    this._editingBlockId = blockId;
-    this._notifyConfigUpdate();
   }
 
-  _onBlockSaved(blockId, updatedConfig) {
-    this.config.blocks[blockId] = updatedConfig;
-    this._editingBlockId = null;
-    this._notifyConfigUpdate();
-  }
-
-  _onEditCancelled() {
-    this._editingBlockId = null;
+  _clearEditingState() {
+    this._blockEditorState = {
+      editingBlockId: null,
+      editingArea: 'content',
+      tempConfig: null
+    };
   }
 
   _notifyConfigUpdate() {
