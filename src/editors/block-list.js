@@ -9,7 +9,8 @@ class BlockList extends LitElement {
     hass: { type: Object },
     editorState: { type: Object },
     _touchStartX: { state: true },
-    _swipeThreshold: { state: true }
+    _swipeThreshold: { state: true },
+    _entityStates: { state: true } // 新增：实体状态缓存
   };
 
   static styles = [
@@ -37,7 +38,7 @@ class BlockList extends LitElement {
         border-radius: var(--cf-radius-md);
         padding: var(--cf-spacing-sm);
         transition: all var(--cf-transition-fast);
-        min-height: 70px; /* 增加高度容纳两行文本 */
+        min-height: 70px;
         cursor: pointer;
         position: relative;
         overflow: hidden;
@@ -277,7 +278,34 @@ class BlockList extends LitElement {
   constructor() {
     super();
     this._touchStartX = 0;
-    this._swipeThreshold = 50; // 滑动阈值
+    this._swipeThreshold = 50;
+    this._entityStates = new Map(); // 初始化实体状态缓存
+  }
+
+  // 新增：监听 hass 状态变化
+  updated(changedProperties) {
+    if (changedProperties.has('hass') || changedProperties.has('config')) {
+      this._updateEntityStates();
+    }
+  }
+
+  // 新增：更新实体状态缓存
+  _updateEntityStates() {
+    if (!this.hass || !this.config.blocks) return;
+
+    const entityStates = new Map();
+    Object.values(this.config.blocks).forEach(block => {
+      if (block.entity && this.hass.states[block.entity]) {
+        const entity = this.hass.states[block.entity];
+        entityStates.set(block.entity, {
+          state: entity.state,
+          unit: entity.attributes?.unit_of_measurement || '',
+          friendlyName: entity.attributes?.friendly_name || block.entity
+        });
+      }
+    });
+    
+    this._entityStates = entityStates;
   }
 
   _getAllBlocks() {
@@ -329,7 +357,25 @@ class BlockList extends LitElement {
   _renderBlockItem(block) {
     const displayName = block.title || BlockSystem.getBlockDisplayName(block);
     const icon = block.icon || BlockSystem.getBlockIcon(block);
-    const state = BlockSystem.getBlockPreview(block, this.hass);
+    
+    // 使用缓存的实体状态或实时获取
+    let state = '';
+    if (block.entity) {
+      const entityInfo = this._entityStates.get(block.entity);
+      if (entityInfo) {
+        state = this._formatEntityState(block.entity, entityInfo.state, entityInfo.unit);
+      } else if (this.hass?.states[block.entity]) {
+        // 如果缓存中没有，实时获取
+        const entity = this.hass.states[block.entity];
+        const unit = entity.attributes?.unit_of_measurement || '';
+        state = this._formatEntityState(block.entity, entity.state, unit);
+      } else {
+        state = '实体未找到';
+      }
+    } else {
+      state = block.title || '点击配置';
+    }
+    
     const areaInfo = this._getAreaInfo(block.area);
     const isEditing = this.editorState?.editingBlockId === block.id;
 
@@ -373,6 +419,40 @@ class BlockList extends LitElement {
         </div>
       </div>
     `;
+  }
+
+  // 新增：格式化实体状态显示
+  _formatEntityState(entityId, state, unit) {
+    const entityType = entityId.split('.')[0];
+    
+    switch (entityType) {
+      case 'light':
+      case 'switch':
+        return state === 'on' ? '开启' : '关闭';
+      case 'climate':
+        return this._formatClimateState(state, this.hass.states[entityId]);
+      case 'cover':
+        return state === 'open' ? '打开' : state === 'closed' ? '关闭' : state;
+      default:
+        return `${state}${unit ? ' ' + unit : ''}`;
+    }
+  }
+
+  // 新增：格式化空调状态
+  _formatClimateState(state, entity) {
+    if (state === 'off') return '关闭';
+    
+    const temp = entity?.attributes?.temperature;
+    const mode = entity?.attributes?.hvac_mode;
+    
+    const modeText = {
+      'heat': '制热',
+      'cool': '制冷',
+      'auto': '自动',
+      'fan_only': '仅风扇'
+    }[mode] || mode;
+    
+    return temp ? `${modeText} ${temp}°C` : modeText;
   }
 
   _renderAddBlockButton() {
@@ -505,6 +585,9 @@ class BlockList extends LitElement {
     this.dispatchEvent(new CustomEvent('config-changed', {
       detail: { config: { blocks: this.config.blocks } }
     }));
+    
+    // 配置更新后重新计算实体状态
+    this._updateEntityStates();
   }
 }
 
