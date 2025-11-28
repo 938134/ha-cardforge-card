@@ -215,40 +215,36 @@ class CardEditor extends LitElement {
     `;
   }
 
-  _renderBlockManagement() {
-    return html`
-      <div class="editor-section">
-        <div class="section-header">
-          <ha-icon icon="mdi:cube"></ha-icon>
-          <span class="section-title">块管理</span>
-        </div>
-        
-        <block-list
-          .config=${this.config}
-          .hass=${this.hass}
-          .editorState=${this._blockEditorState}
-          @config-changed=${this._onConfigChanged}
-          @editor-state-changed=${this._onEditorStateChanged}
-        ></block-list>
-        
-        ${this._blockEditorState.editingBlockId ? html`
-          <div class="editor-section" style="border-top: 2px solid var(--cf-primary-color);">
-            <div class="section-header">
-              <ha-icon icon="mdi:pencil"></ha-icon>
-              <span class="section-title">编辑块属性</span>
-            </div>
-            
-            <block-properties
-              .blockConfig=${this._blockEditorState.tempConfig || this.config.blocks[this._blockEditorState.editingBlockId]}
-              .hass=${this.hass}
-              .availableEntities=${this._availableEntities}
-              @block-config-changed=${this._onBlockConfigChanged}
-            ></block-properties>
-          </div>
-        ` : ''}
+_renderBlockManagement() {
+  return html`
+    <div class="editor-section">
+      <div class="section-header">
+        <ha-icon icon="mdi:cube"></ha-icon>
+        <span class="section-title">块管理</span>
       </div>
-    `;
-  }
+      
+      <block-list
+        .config=${this.config}
+        .hass=${this.hass}
+        .editorState=${this._blockEditorState}
+        @config-changed=${this._onConfigChanged}
+        @editor-state-changed=${this._onEditorStateChanged}
+      ></block-list>
+      
+      ${this._blockEditorState.editingBlockId ? html`
+        <div class="editor-section" style="border-top: 2px solid var(--cf-primary-color); margin-top: var(--cf-spacing-lg);">
+          <block-properties
+            .blockConfig=${this._blockEditorState.tempConfig || this.config.blocks[this._blockEditorState.editingBlockId]}
+            .hass=${this.hass}
+            .availableEntities=${this._availableEntities}
+            @block-config-changed=${this._onBlockConfigChanged}
+            @editor-state-changed=${this._onEditorStateChanged}
+          ></block-properties>
+        </div>
+      ` : ''}
+    </div>
+  `;
+}
 
   _onCardChanged(e) {
     const cardType = e.detail.cardId;
