@@ -325,28 +325,31 @@ class BlockProperties extends LitElement {
     };
   }
 
-  _onSave() {
-    // 验证配置
-    const validation = BlockSystem.validateBlock(this._editingConfig);
-    if (!validation.valid) {
-      alert(`配置错误：${validation.errors.join(', ')}`);
-      return;
-    }
-    
-    this.dispatchEvent(new CustomEvent('block-config-changed', {
-      detail: { blockConfig: this._editingConfig }
-    }));
-    
-    // 保存后清除编辑状态
-    this.dispatchEvent(new CustomEvent('editor-state-changed', {
-      detail: {
-        state: {
-          editingBlockId: null,
-          tempConfig: null
-        }
-      }
-    }));
+_onSave() {
+  // 验证配置
+  const validation = BlockSystem.validateBlock(this._editingConfig);
+  if (!validation.valid) {
+    alert(`配置错误：${validation.errors.join(', ')}`);
+    return;
   }
+  
+  // 深拷贝配置，避免引用问题
+  const savedConfig = JSON.parse(JSON.stringify(this._editingConfig));
+  
+  this.dispatchEvent(new CustomEvent('block-config-changed', {
+    detail: { blockConfig: savedConfig }
+  }));
+  
+  // 保存后清除编辑状态
+  this.dispatchEvent(new CustomEvent('editor-state-changed', {
+    detail: {
+      state: {
+        editingBlockId: null,
+        tempConfig: null
+      }
+    }
+  }));
+}
 
   _onCancel() {
     this.dispatchEvent(new CustomEvent('editor-state-changed', {
