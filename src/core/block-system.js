@@ -88,17 +88,13 @@ export class BlockSystem {
     return iconMap[entityType] || 'mdi:cube';
   }
 
-  // 验证块配置
+  // 验证块配置 - 放宽验证，实体可选
   static validateBlock(blockConfig) {
     const errors = [];
-    const blockType = this.detectBlockType(blockConfig);
     
-    if (blockType === 'entity' && !blockConfig.entity) {
-      errors.push('实体块必须选择实体');
-    }
-    
-    if (blockType === 'text' && !blockConfig.content) {
-      errors.push('文本块内容不能为空');
+    // 基本验证
+    if (!blockConfig.title && !blockConfig.entity) {
+      errors.push('块需要名称或实体');
     }
     
     return {
@@ -107,22 +103,20 @@ export class BlockSystem {
     };
   }
 
-  // 创建新块
+  // 创建新块 - 简化配置
   static createBlock(initialConfig = {}) {
-    const blockType = this.detectBlockType(initialConfig);
-    const defaultConfig = this.BLOCK_TYPES[blockType]?.defaultConfig || {};
-    
     return {
-      ...defaultConfig,
+      area: 'content',
+      title: '',
+      entity: '',
+      icon: '',
       ...initialConfig
     };
   }
 
-  // 增强：获取块状态预览
+  // 获取块状态预览
   static getBlockPreview(blockConfig, hass) {
-    const blockType = this.detectBlockType(blockConfig);
-    
-    if (blockType === 'entity' && blockConfig.entity) {
+    if (blockConfig.entity) {
       if (hass?.states[blockConfig.entity]) {
         const entity = hass.states[blockConfig.entity];
         const unit = entity.attributes?.unit_of_measurement || '';
@@ -143,11 +137,8 @@ export class BlockSystem {
       return blockConfig.entity;
     }
     
-    if (blockType === 'text' && blockConfig.content) {
-      const content = blockConfig.content || '';
-      // 显示更简洁的文本预览
-      if (content.length <= 20) return content;
-      return content.substring(0, 18) + '...';
+    if (blockConfig.title) {
+      return blockConfig.title;
     }
     
     return '点击配置';
