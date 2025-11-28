@@ -37,7 +37,7 @@ class BlockList extends LitElement {
         border-radius: var(--cf-radius-md);
         padding: var(--cf-spacing-sm);
         transition: all var(--cf-transition-fast);
-        min-height: 60px;
+        min-height: 70px; /* 增加高度容纳两行文本 */
         cursor: pointer;
         position: relative;
         overflow: hidden;
@@ -141,11 +141,11 @@ class BlockList extends LitElement {
         transform: scale(1.05);
       }
 
-      /* 块信息 */
+      /* 块信息 - 两行布局 */
       .block-info {
         display: flex;
         flex-direction: column;
-        gap: 4px;
+        gap: 2px;
         min-width: 0;
       }
 
@@ -249,7 +249,7 @@ class BlockList extends LitElement {
           grid-template-columns: 36px 40px 1fr 56px;
           gap: var(--cf-spacing-xs);
           padding: var(--cf-spacing-xs);
-          min-height: 54px;
+          min-height: 64px;
         }
 
         .block-icon {
@@ -359,7 +359,7 @@ class BlockList extends LitElement {
           <ha-icon .icon=${icon}></ha-icon>
         </div>
 
-        <!-- 名称与状态 -->
+        <!-- 名称与状态 - 两行布局 -->
         <div class="block-info">
           <div class="block-name">${displayName}</div>
           <div class="block-state">${state}</div>
@@ -406,34 +406,34 @@ class BlockList extends LitElement {
     }));
   }
 
-_addBlock() {
-  const area = prompt('请选择要添加到的区域：\n\n输入: H(标题) / C(内容) / F(页脚)', 'C');
-  
-  if (!area) return;
-  
-  const areaMap = { 'H': 'header', 'C': 'content', 'F': 'footer' };
-  const areaName = areaMap[area.toUpperCase()] || 'content';
-  
-  const blockId = `block_${Date.now()}`;
-  
-  // 使用简化的块配置
-  const blockConfig = {
-    area: areaName,
-    title: '',
-    entity: '',
-    icon: ''
-  };
-  
-  if (!this.config.blocks) {
-    this.config.blocks = {};
+  _addBlock() {
+    const area = prompt('请选择要添加到的区域：\n\n输入: H(标题) / C(内容) / F(页脚)', 'C');
+    
+    if (!area) return;
+    
+    const areaMap = { 'H': 'header', 'C': 'content', 'F': 'footer' };
+    const areaName = areaMap[area.toUpperCase()] || 'content';
+    
+    const blockId = `block_${Date.now()}`;
+    
+    // 使用简化的块配置
+    const blockConfig = {
+      area: areaName,
+      title: '',
+      entity: '',
+      icon: ''
+    };
+    
+    if (!this.config.blocks) {
+      this.config.blocks = {};
+    }
+    
+    this.config.blocks[blockId] = blockConfig;
+    
+    // 直接进入编辑模式
+    this._editBlock(blockId, areaName);
+    this._notifyConfigUpdate();
   }
-  
-  this.config.blocks[blockId] = blockConfig;
-  
-  // 直接进入编辑模式
-  this._editBlock(blockId, areaName);
-  this._notifyConfigUpdate();
-}
 
   _deleteBlock(e, blockId) {
     e.stopPropagation();
