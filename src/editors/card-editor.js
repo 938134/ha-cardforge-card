@@ -19,9 +19,8 @@ class CardEditor extends LitElement {
     _initialized: { state: true },
     _availableEntities: { state: true },
     _cardSchema: { state: true },
-    // 统一编辑状态
-    _blockEditorState: { state: true },
-    _configVersion: { state: true } // 新增：配置版本号，用于强制更新
+    // 编辑状态管理
+    _editingState: { state: true }
   };
 
   static styles = [
@@ -33,6 +32,8 @@ class CardEditor extends LitElement {
         border: 1px solid var(--cf-border);
         box-shadow: var(--cf-shadow-sm);
         overflow: hidden;
+        position: relative;
+        min-height: 500px;
       }
 
       .editor-layout {
@@ -67,6 +68,102 @@ class CardEditor extends LitElement {
         font-weight: 600;
         color: var(--cf-text-primary);
       }
+
+      /* 悬浮编辑卡片 */
+      .floating-editor {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        width: 90%;
+        max-width: 500px;
+        background: var(--cf-surface);
+        border-radius: var(--cf-radius-lg);
+        box-shadow: var(--cf-shadow-lg);
+        border: 1px solid var(--cf-border);
+        z-index: 100;
+        animation: fadeInScale 0.3s ease;
+      }
+
+      @keyframes fadeInScale {
+        from {
+          opacity: 0;
+          transform: translate(-50%, -50%) scale(0.9);
+        }
+        to {
+          opacity: 1;
+          transform: translate(-50%, -50%) scale(1);
+        }
+      }
+
+      .editor-overlay {
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: rgba(0, 0, 0, 0.5);
+        z-index: 99;
+        animation: fadeIn 0.2s ease;
+      }
+
+      @keyframes fadeIn {
+        from { opacity: 0; }
+        to { opacity: 1; }
+      }
+
+      .editor-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: var(--cf-spacing-lg);
+        border-bottom: 1px solid var(--cf-border);
+        background: rgba(var(--cf-rgb-primary), 0.05);
+      }
+
+      .editor-title {
+        font-size: 1.1em;
+        font-weight: 600;
+        color: var(--cf-text-primary);
+      }
+
+      .editing-block-name {
+        font-weight: 500;
+        color: var(--cf-primary-color);
+      }
+
+      .close-btn {
+        background: none;
+        border: none;
+        font-size: 1.2em;
+        cursor: pointer;
+        color: var(--cf-text-secondary);
+        padding: 4px;
+        border-radius: var(--cf-radius-sm);
+      }
+
+      .close-btn:hover {
+        background: rgba(var(--cf-rgb-primary), 0.1);
+        color: var(--cf-text-primary);
+      }
+
+      .editor-content {
+        padding: var(--cf-spacing-lg);
+        max-height: 60vh;
+        overflow-y: auto;
+      }
+
+      /* 移动端适配 */
+      @media (max-width: 768px) {
+        .floating-editor {
+          width: 95%;
+          max-width: none;
+        }
+        
+        .editor-content {
+          max-height: 50vh;
+        }
+      }
     `
   ];
 
@@ -86,14 +183,13 @@ class CardEditor extends LitElement {
     this._availableEntities = [];
     this._cardSchema = null;
     
-    // 统一块编辑状态管理
-    this._blockEditorState = {
+    // 编辑状态管理
+    this._editingState = {
+      isEditing: false,
       editingBlockId: null,
-      editingArea: 'content',
-      tempConfig: null
+      editingData: null,
+      originalData: null
     };
-    
-    this._configVersion = 0; // 配置版本号
   }
 
   async firstUpdated() {
@@ -110,21 +206,18 @@ class CardEditor extends LitElement {
   }
 
   setConfig(config) {
-    // 深拷贝配置，避免引用问题
-    this.config = JSON.parse(JSON.stringify({
+    this.config = {
       type: 'custom:ha-cardforge-card',
       card_type: '',
       theme: 'auto',
       areas: {},
       blocks: {},
       ...config
-    }));
+    };
     
     if (this.config.card_type && this._initialized) {
       this._loadCardInstance();
     }
-    
-    this._configVersion++; // 配置更新时增加版本号
   }
 
   _loadCardInstance() {
@@ -136,9 +229,8 @@ class CardEditor extends LitElement {
       const cardInstance = cardRegistry.createCardInstance(this.config.card_type);
       if (cardInstance) {
         const defaultConfig = cardInstance.getDefaultConfig();
-        // 深拷贝默认配置
-        this.config.areas = JSON.parse(JSON.stringify(defaultConfig.areas || {}));
-        this.config.blocks = JSON.parse(JSON.stringify(defaultConfig.blocks || {}));
+        this.config.areas = defaultConfig.areas;
+        this.config.blocks = defaultConfig.blocks;
       }
     }
   }
@@ -156,6 +248,8 @@ class CardEditor extends LitElement {
           ${this.config.card_type && this._cardSchema ? this._renderCardSettings() : ''}
           ${this.config.card_type ? this._renderBlockManagement() : ''}
         </div>
+        
+        ${this._renderFloatingEditor()}
       </div>
     `;
   }
@@ -227,31 +321,58 @@ class CardEditor extends LitElement {
       <div class="editor-section">
         <div class="section-header">
           <ha-icon icon="mdi:cube"></ha-icon>
-          <span class="section-title">块管理</span>
+          <span class="section-title">
+            块管理
+            ${this._editingState.isEditing ? html`
+              <span style="color: var(--cf-primary-color); margin-left: var(--cf-spacing-sm);">
+                • 正在编辑: ${this._getEditingBlockName()}
+              </span>
+            ` : ''}
+          </span>
         </div>
         
         <block-list
           .config=${this.config}
           .hass=${this.hass}
-          .editorState=${this._blockEditorState}
-          .configVersion=${this._configVersion} <!-- 传递版本号 -->
+          .editingState=${this._editingState}
           @config-changed=${this._onConfigChanged}
-          @editor-state-changed=${this._onEditorStateChanged}
+          @edit-block=${this._onEditBlock}
         ></block-list>
-        
-        ${this._blockEditorState.editingBlockId ? html`
-          <div class="editor-section" style="border-top: 2px solid var(--cf-primary-color); margin-top: var(--cf-spacing-lg);">
-            <block-properties
-              .blockConfig=${this._blockEditorState.tempConfig || this.config.blocks[this._blockEditorState.editingBlockId]}
-              .hass=${this.hass}
-              .availableEntities=${this._availableEntities}
-              @block-config-changed=${this._onBlockConfigChanged}
-              @editor-state-changed=${this._onEditorStateChanged}
-            ></block-properties>
-          </div>
-        ` : ''}
       </div>
     `;
+  }
+
+  _renderFloatingEditor() {
+    if (!this._editingState.isEditing) return '';
+
+    return html`
+      <div class="editor-overlay" @click=${this._cancelEdit}></div>
+      <div class="floating-editor">
+        <div class="editor-header">
+          <div class="editor-title">
+            编辑块属性: <span class="editing-block-name">${this._getEditingBlockName()}</span>
+          </div>
+          <button class="close-btn" @click=${this._cancelEdit}>✕</button>
+        </div>
+        
+        <div class="editor-content">
+          <block-properties
+            .blockConfig=${this._editingState.editingData}
+            .hass=${this.hass}
+            .availableEntities=${this._availableEntities}
+            @block-config-changed=${this._onEditingConfigChanged}
+            @save=${this._saveEdit}
+            @cancel=${this._cancelEdit}
+          ></block-properties>
+        </div>
+      </div>
+    `;
+  }
+
+  _getEditingBlockName() {
+    if (!this._editingState.editingBlockId) return '';
+    const block = this.config.blocks[this._editingState.editingBlockId];
+    return block?.title || block?.entity || '未命名块';
   }
 
   _onCardChanged(e) {
@@ -265,9 +386,8 @@ class CardEditor extends LitElement {
     const cardInstance = cardRegistry.createCardInstance(cardType);
     if (cardInstance) {
       const defaultConfig = cardInstance.getDefaultConfig();
-      // 深拷贝默认配置
-      this.config.areas = JSON.parse(JSON.stringify(defaultConfig.areas || {}));
-      this.config.blocks = JSON.parse(JSON.stringify(defaultConfig.blocks || {}));
+      this.config.areas = defaultConfig.areas;
+      this.config.blocks = defaultConfig.blocks;
       
       // 应用卡片配置的默认值
       if (this._cardSchema) {
@@ -280,7 +400,7 @@ class CardEditor extends LitElement {
     }
     
     // 清除编辑状态
-    this._clearEditingState();
+    this._cancelEdit();
     this._notifyConfigUpdate();
   }
 
@@ -290,54 +410,72 @@ class CardEditor extends LitElement {
   }
 
   _onConfigChanged(e) {
-    // 深拷贝合并配置
-    const newConfig = {
-      ...this.config,
-      ...JSON.parse(JSON.stringify(e.detail.config))
-    };
-    
-    this.config = newConfig;
-    this._configVersion++; // 增加版本号
-    this._notifyConfigUpdate();
-  }
-
-  _onEditorStateChanged(e) {
-    this._blockEditorState = {
-      ...this._blockEditorState,
-      ...e.detail.state
-    };
-    this.requestUpdate();
-  }
-
-_onBlockConfigChanged(e) {
-  if (this._blockEditorState.editingBlockId) {
-    // 创建新的配置对象，避免引用问题
-    const updatedBlocks = {
-      ...this.config.blocks,
-      [this._blockEditorState.editingBlockId]: e.detail.blockConfig
-    };
-    
     this.config = {
       ...this.config,
-      blocks: updatedBlocks
+      ...e.detail.config
+    };
+    this._notifyConfigUpdate();
+  }
+
+  _onEditBlock(e) {
+    const { blockId, blockConfig } = e.detail;
+    
+    this._editingState = {
+      isEditing: true,
+      editingBlockId: blockId,
+      editingData: { ...blockConfig },
+      originalData: { ...blockConfig }
     };
     
-    // 更新临时配置
-    this._blockEditorState.tempConfig = e.detail.blockConfig;
-    
-    this._notifyConfigUpdate();
-    
-    // 强制更新所有组件
     this.requestUpdate();
   }
-}
 
-  _clearEditingState() {
-    this._blockEditorState = {
+  _onEditingConfigChanged(e) {
+    if (this._editingState.isEditing) {
+      this._editingState.editingData = e.detail.blockConfig;
+      this.requestUpdate();
+    }
+  }
+
+  _saveEdit() {
+    if (!this._editingState.isEditing || !this._editingState.editingBlockId) return;
+
+    // 验证配置
+    if (!this._validateBlock(this._editingState.editingData)) {
+      return;
+    }
+
+    // 更新主配置
+    this.config.blocks[this._editingState.editingBlockId] = this._editingState.editingData;
+    
+    // 清除编辑状态
+    this._cancelEdit();
+    this._notifyConfigUpdate();
+  }
+
+  _cancelEdit() {
+    this._editingState = {
+      isEditing: false,
       editingBlockId: null,
-      editingArea: 'content',
-      tempConfig: null
+      editingData: null,
+      originalData: null
     };
+    this.requestUpdate();
+  }
+
+  _validateBlock(blockConfig) {
+    const errors = [];
+    
+    if (!blockConfig.title && !blockConfig.entity) {
+      errors.push('块需要名称或实体');
+    }
+    
+    if (errors.length > 0) {
+      alert(`配置错误：${errors.join(', ')}`);
+      return false;
+    }
+    
+    return true;
   }
 
   _notifyConfigUpdate() {
