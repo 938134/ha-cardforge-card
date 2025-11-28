@@ -17,10 +17,11 @@ class FormBuilder extends LitElement {
         width: 100%;
       }
 
+      /* 紧凑网格布局 - 2列 */
       .form-grid {
-        display: flex;
-        flex-direction: column;
-        gap: var(--cf-spacing-lg);
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: var(--cf-spacing-md);
       }
 
       .form-field {
@@ -36,23 +37,6 @@ class FormBuilder extends LitElement {
         margin-bottom: var(--cf-spacing-xs);
       }
 
-      /* 实体选择器样式 */
-      .entity-field {
-        width: 100%;
-      }
-
-      /* 图标选择器样式 */
-      .icon-field {
-        width: 100%;
-      }
-
-      /* 文本区域样式 */
-      .textarea-field {
-        width: 100%;
-        min-height: 80px;
-        resize: vertical;
-      }
-
       /* 空状态 */
       .empty-state {
         text-align: center;
@@ -64,6 +48,14 @@ class FormBuilder extends LitElement {
         font-size: 2em;
         opacity: 0.5;
         margin-bottom: var(--cf-spacing-md);
+      }
+
+      /* 移动端适配 */
+      @media (max-width: 768px) {
+        .form-grid {
+          grid-template-columns: 1fr;
+          gap: var(--cf-spacing-sm);
+        }
       }
     `
   ];
@@ -92,14 +84,10 @@ class FormBuilder extends LitElement {
         return this._renderEntityField(key, field, value);
       case 'icon':
         return this._renderIconField(key, field, value);
-      case 'textarea':
-        return this._renderTextareaField(key, field, value);
       case 'select':
         return this._renderSelectField(key, field, value);
       case 'boolean':
         return this._renderBooleanField(key, field, value);
-      case 'color':
-        return this._renderColorField(key, field, value);
       default:
         return this._renderTextField(key, field, value);
     }
@@ -115,9 +103,8 @@ class FormBuilder extends LitElement {
             .value=${value || ''}
             @value-changed=${e => this._onFieldChange(key, e.detail.value)}
             allow-custom-value
-            label="选择或输入实体ID"
+            label="选择实体"
             fullwidth
-            class="entity-field"
           ></ha-combo-box>
         ` : html`
           <ha-textfield
@@ -140,24 +127,7 @@ class FormBuilder extends LitElement {
           @value-changed=${e => this._onFieldChange(key, e.detail.value)}
           label="选择图标"
           fullwidth
-          class="icon-field"
         ></ha-icon-picker>
-      </div>
-    `;
-  }
-
-  _renderTextareaField(key, field, value) {
-    return html`
-      <div class="form-field">
-        <div class="field-label">${field.label}</div>
-        <ha-textarea
-          .value=${value || ''}
-          @input=${e => this._onFieldChange(key, e.target.value)}
-          placeholder=${field.placeholder || ''}
-          rows="3"
-          fullwidth
-          class="textarea-field"
-        ></ha-textarea>
       </div>
     `;
   }
@@ -196,20 +166,6 @@ class FormBuilder extends LitElement {
           @change=${e => this._onFieldChange(key, e.target.checked)}
         ></ha-switch>
         <div class="field-label" style="margin-bottom: 0;">${field.label}</div>
-      </div>
-    `;
-  }
-
-  _renderColorField(key, field, value) {
-    return html`
-      <div class="form-field">
-        <div class="field-label">${field.label}</div>
-        <ha-textfield
-          .value=${value || ''}
-          @input=${e => this._onFieldChange(key, e.target.value)}
-          placeholder="#000000"
-          fullwidth
-        ></ha-textfield>
       </div>
     `;
   }
