@@ -6,7 +6,7 @@ class BlockList extends LitElement {
   static properties = {
     config: { type: Object },
     hass: { type: Object },
-    editorState: { type: Object },
+    editingState: { type: Object },
     _touchStartX: { state: true },
     _swipeThreshold: { state: true }
   };
@@ -32,7 +32,7 @@ class BlockList extends LitElement {
         gap: var(--cf-spacing-sm);
         align-items: center;
         background: var(--cf-surface);
-        border: 1px solid var(--cf-border);
+        border: 2px solid transparent;
         border-radius: var(--cf-radius-md);
         padding: var(--cf-spacing-sm);
         transition: all var(--cf-transition-fast);
@@ -52,6 +52,12 @@ class BlockList extends LitElement {
         border-color: var(--cf-primary-color);
         background: rgba(var(--cf-rgb-primary), 0.05);
         box-shadow: 0 0 0 2px var(--cf-primary-color);
+        animation: pulse 2s infinite;
+      }
+
+      @keyframes pulse {
+        0%, 100% { box-shadow: 0 0 0 2px var(--cf-primary-color); }
+        50% { box-shadow: 0 0 0 4px var(--cf-primary-color); }
       }
 
       /* 滑动删除效果 */
@@ -282,7 +288,6 @@ class BlockList extends LitElement {
   // 监听 hass 状态变化
   updated(changedProperties) {
     if (changedProperties.has('hass') || changedProperties.has('config')) {
-      // 强制重新渲染以更新状态显示
       this.requestUpdate();
     }
   }
@@ -338,12 +343,12 @@ class BlockList extends LitElement {
     const icon = block.icon || 'mdi:cube';
     const state = this._getBlockPreview(block, this.hass);
     const areaInfo = this._getAreaInfo(block.area);
-    const isEditing = this.editorState?.editingBlockId === block.id;
+    const isEditing = this.editingState?.editingBlockId === block.id;
 
     return html`
       <div class="block-item ${isEditing ? 'editing' : ''}"
            data-block-id="${block.id}"
-           @click=${() => this._editBlock(block.id, block.area)}
+           @click=${() => this._editBlock(block)}
            @touchstart=${(e) => this._onTouchStart(e, block.id)}
            @touchmove=${this._onTouchMove}
            @touchend=${this._onTouchEnd}
@@ -438,31 +443,6 @@ class BlockList extends LitElement {
     return temp ? `${modeText} ${temp}°C` : modeText;
   }
 
-  // 根据实体ID获取图标
-  _getEntityIcon(entityId, hass) {
-    if (!entityId || !hass) return 'mdi:help-circle';
-    
-    const entity = hass.states[entityId];
-    if (entity?.attributes?.icon) {
-      return entity.attributes.icon;
-    }
-    
-    // 根据实体ID前缀自动匹配图标
-    const entityType = entityId.split('.')[0];
-    const iconMap = {
-      'sensor': 'mdi:gauge',
-      'binary_sensor': 'mdi:checkbox-marked-circle-outline',
-      'switch': 'mdi:power',
-      'light': 'mdi:lightbulb',
-      'climate': 'mdi:thermostat',
-      'cover': 'mdi:blinds',
-      'media_player': 'mdi:speaker',
-      'weather': 'mdi:weather-cloudy'
-    };
-    
-    return iconMap[entityType] || 'mdi:cube';
-  }
-
   _renderAddBlockButton() {
     return html`
       <button class="add-block-btn" @click=${this._addBlock}>
@@ -481,15 +461,11 @@ class BlockList extends LitElement {
     return areaMap[area] || areaMap.content;
   }
 
-  _editBlock(blockId, area = 'content') {
-    // 设置编辑状态
-    this.dispatchEvent(new CustomEvent('editor-state-changed', {
+  _editBlock(block) {
+    this.dispatchEvent(new CustomEvent('edit-block', {
       detail: {
-        state: {
-          editingBlockId: blockId,
-          editingArea: area,
-          tempConfig: this.config.blocks[blockId] ? {...this.config.blocks[blockId]} : null
-        }
+        blockId: block.id,
+        blockConfig: block
       }
     }));
   }
@@ -519,7 +495,7 @@ class BlockList extends LitElement {
     this.config.blocks[blockId] = blockConfig;
     
     // 直接进入编辑模式
-    this._editBlock(blockId, areaName);
+    this._editBlock({ id: blockId, ...blockConfig });
     this._notifyConfigUpdate();
   }
 
@@ -529,19 +505,6 @@ class BlockList extends LitElement {
     if (!confirm('确定要删除这个块吗？')) return;
     
     delete this.config.blocks[blockId];
-    
-    // 如果删除的是当前编辑的块，清除编辑状态
-    if (this.editorState?.editingBlockId === blockId) {
-      this.dispatchEvent(new CustomEvent('editor-state-changed', {
-        detail: {
-          state: {
-            editingBlockId: null,
-            tempConfig: null
-          }
-        }
-      }));
-    }
-    
     this._notifyConfigUpdate();
   }
 
