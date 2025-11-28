@@ -9,7 +9,8 @@ class BlockManagement extends LitElement {
     config: { type: Object },
     hass: { type: Object },
     _editingBlockId: { state: true },
-    _availableEntities: { state: true }
+    _availableEntities: { state: true },
+    _forceUpdate: { state: true } // 新增：强制更新标记
   };
 
   static styles = [
@@ -77,6 +78,7 @@ class BlockManagement extends LitElement {
     super();
     this._editingBlockId = null;
     this._availableEntities = [];
+    this._forceUpdate = 0; // 强制更新计数器
   }
 
   willUpdate(changedProperties) {
@@ -102,6 +104,7 @@ class BlockManagement extends LitElement {
           .config=${this.config}
           .hass=${this.hass}
           .editingBlockId=${this._editingBlockId}
+          .forceUpdate=${this._forceUpdate} <!-- 传递强制更新标记 -->
           @edit-block=${this._onEditBlock}
           @delete-block=${this._onDeleteBlock}
         ></block-list>
@@ -127,6 +130,7 @@ class BlockManagement extends LitElement {
 
   _onEditBlock(e) {
     this._editingBlockId = e.detail.blockId;
+    this.requestUpdate();
   }
 
   _onDeleteBlock(e) {
@@ -141,27 +145,31 @@ class BlockManagement extends LitElement {
       this._editingBlockId = null;
     }
     
+    this._forceUpdateBlocks(); // 强制更新
     this._notifyConfigUpdate();
   }
 
   _onBlockConfigChange(e) {
     const { blockId, changes } = e.detail;
     
-    // 实时更新块配置
+    // 关键修复：直接修改原配置对象
     if (this.config.blocks[blockId]) {
       Object.assign(this.config.blocks[blockId], changes);
-      this.requestUpdate();
+      // 实时强制更新块列表显示
+      this._forceUpdateBlocks();
     }
   }
 
   _onSaveEdit() {
     // 保存时确保配置已经通过实时更新同步
     this._editingBlockId = null;
+    this._forceUpdateBlocks(); // 保存时强制更新
     this._notifyConfigUpdate();
   }
 
   _onCancelEdit() {
     this._editingBlockId = null;
+    this.requestUpdate();
   }
 
   _addBlock() {
@@ -181,7 +189,14 @@ class BlockManagement extends LitElement {
     this.config.blocks[blockId] = blockConfig;
     this._editingBlockId = blockId;
     
+    this._forceUpdateBlocks(); // 添加块时强制更新
     this._notifyConfigUpdate();
+  }
+
+  // 新增：强制更新块列表
+  _forceUpdateBlocks() {
+    this._forceUpdate = (this._forceUpdate || 0) + 1;
+    this.requestUpdate();
   }
 
   _updateAvailableEntities() {

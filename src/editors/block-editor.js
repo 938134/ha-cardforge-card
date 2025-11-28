@@ -257,13 +257,20 @@ class BlockEditor extends LitElement {
     if (this._currentConfig) {
       this._currentConfig[key] = value;
       
-      // 实时通知配置变更
-      this.dispatchEvent(new CustomEvent('config-change', {
-        detail: {
-          blockId: this.blockConfig?.id,
-          changes: { [key]: value }
-        }
-      }));
+      // 关键修复：确保传递正确的 blockId
+      const blockId = Object.keys(this.blockConfig || {}).find(key => 
+        key !== 'id' && this.blockConfig[key] !== undefined
+      ) ? this.blockConfig.id : null;
+      
+      if (blockId) {
+        // 实时通知配置变更
+        this.dispatchEvent(new CustomEvent('config-change', {
+          detail: {
+            blockId: blockId,
+            changes: { [key]: value }
+          }
+        }));
+      }
       
       this.requestUpdate();
     }

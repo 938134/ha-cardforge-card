@@ -6,7 +6,8 @@ class BlockList extends LitElement {
   static properties = {
     config: { type: Object },
     hass: { type: Object },
-    editingBlockId: { type: String }
+    editingBlockId: { type: String },
+    forceUpdate: { type: Number } // 新增：强制更新标记
   };
 
   static styles = [
@@ -182,6 +183,15 @@ class BlockList extends LitElement {
       }
     `
   ];
+
+  updated(changedProperties) {
+    // 关键修复：监听强制更新标记
+    if (changedProperties.has('forceUpdate') || 
+        changedProperties.has('config') || 
+        changedProperties.has('editingBlockId')) {
+      this.requestUpdate();
+    }
+  }
 
   render() {
     const blocks = this._getAllBlocks();
