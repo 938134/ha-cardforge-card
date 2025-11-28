@@ -299,8 +299,8 @@ class CardEditor extends LitElement {
   }
 
   updated(changedProperties) {
-    if (changedProperties.has('hass') && this.hass) {
-      this._updateAvailableEntities();
+    if (changedProperties.has('hass')) {
+      this.requestUpdate();   
     }
   }
 
