@@ -4,14 +4,15 @@ import { designSystem } from '../core/design-system.js';
 import { BlockSystem } from '../core/block-system.js';
 
 class BlockList extends LitElement {
-  static properties = {
-    config: { type: Object },
-    hass: { type: Object },
-    editorState: { type: Object },
-    _touchStartX: { state: true },
-    _swipeThreshold: { state: true },
-    _entityStates: { state: true } // 新增：实体状态缓存
-  };
+static properties = {
+  config: { type: Object },
+  hass: { type: Object },
+  editorState: { type: Object },
+  configVersion: { type: Number }, // 新增：配置版本号
+  _touchStartX: { state: true },
+  _swipeThreshold: { state: true },
+  _entityStates: { state: true }
+};
 
   static styles = [
     designSystem,
@@ -283,12 +284,13 @@ class BlockList extends LitElement {
   }
 
   // 新增：监听 hass 状态变化
-  updated(changedProperties) {
-    if (changedProperties.has('hass') || changedProperties.has('config')) {
-      this._updateEntityStates();
-    }
+updated(changedProperties) {
+  if (changedProperties.has('hass') || 
+      changedProperties.has('config') || 
+      changedProperties.has('configVersion')) { // 监听版本号变化
+    this._updateEntityStates();
   }
-
+}
   // 新增：更新实体状态缓存
   _updateEntityStates() {
     if (!this.hass || !this.config.blocks) return;
@@ -581,14 +583,14 @@ class BlockList extends LitElement {
     this._touchStartX = 0;
   }
 
-  _notifyConfigUpdate() {
-    this.dispatchEvent(new CustomEvent('config-changed', {
-      detail: { config: { blocks: this.config.blocks } }
-    }));
-    
-    // 配置更新后重新计算实体状态
-    this._updateEntityStates();
-  }
+_notifyConfigUpdate() {
+  this.dispatchEvent(new CustomEvent('config-changed', {
+    detail: { config: { blocks: this.config.blocks } }
+  }));
+  
+  // 配置更新后重新计算实体状态
+  this._updateEntityStates();
+}
 }
 
 if (!customElements.get('block-list')) {
