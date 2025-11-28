@@ -20,7 +20,7 @@ class CardEditor extends LitElement {
     _availableEntities: { state: true },
     _cardSchema: { state: true },
     _editingBlockId: { state: true },
-    _forceUpdate: { state: true } // 新增：强制更新标记
+    _forceUpdate: { state: true }
   };
 
   static styles = [
@@ -158,11 +158,35 @@ class CardEditor extends LitElement {
         .floating-editor {
           width: 95%;
           max-width: none;
+          top: 50% !important;
+          left: 50% !important;
+          transform: translate(-50%, -50%) !important;
         }
         
         .editor-content {
           max-height: 50vh;
         }
+
+        .editor-section {
+          padding: var(--cf-spacing-md);
+        }
+      }
+
+      /* 块编辑指示器 */
+      .editing-indicator {
+        display: inline-flex;
+        align-items: center;
+        gap: var(--cf-spacing-sm);
+        margin-left: var(--cf-spacing-md);
+        padding: var(--cf-spacing-xs) var(--cf-spacing-sm);
+        background: rgba(var(--cf-rgb-primary), 0.1);
+        border-radius: var(--cf-radius-sm);
+        font-size: 0.85em;
+        color: var(--cf-primary-color);
+      }
+
+      .editing-indicator ha-icon {
+        font-size: 0.9em;
       }
     `
   ];
@@ -183,7 +207,7 @@ class CardEditor extends LitElement {
     this._availableEntities = [];
     this._cardSchema = null;
     this._editingBlockId = null;
-    this._forceUpdate = 0; // 强制更新计数器
+    this._forceUpdate = 0;
   }
 
   async firstUpdated() {
@@ -303,6 +327,8 @@ class CardEditor extends LitElement {
         <form-builder
           .config=${this.config}
           .schema=${this._cardSchema}
+          .hass=${this.hass}
+          .availableEntities=${this._availableEntities}
           @config-changed=${this._onConfigChanged}
         ></form-builder>
       </div>
@@ -317,8 +343,9 @@ class CardEditor extends LitElement {
           <span class="section-title">
             块管理
             ${this._editingBlockId ? html`
-              <span style="color: var(--cf-primary-color); margin-left: var(--cf-spacing-sm);">
-                • 正在编辑: ${this._getEditingBlockName()}
+              <span class="editing-indicator">
+                <ha-icon icon="mdi:pencil"></ha-icon>
+                正在编辑: ${this._getEditingBlockName()}
               </span>
             ` : ''}
           </span>
@@ -328,7 +355,7 @@ class CardEditor extends LitElement {
           .config=${this.config}
           .hass=${this.hass}
           .editingBlockId=${this._editingBlockId}
-          .forceUpdate=${this._forceUpdate} <!-- 传递强制更新标记 -->
+          .forceUpdate=${this._forceUpdate}
           @config-changed=${this._onConfigChanged}
           @edit-block=${this._onEditBlock}
         ></block-list>
@@ -344,7 +371,7 @@ class CardEditor extends LitElement {
 
     return html`
       <div class="editor-overlay" @click=${this._cancelEdit}></div>
-      <div class="floating-editor">
+      <div class="floating-editor" id="block-editor">
         <div class="editor-header">
           <div class="editor-title">
             编辑块属性: <span class="editing-block-name">${this._getEditingBlockName()}</span>
@@ -394,7 +421,7 @@ class CardEditor extends LitElement {
     }
     
     this._cancelEdit();
-    this._forceUpdateBlocks(); // 强制更新
+    this._forceUpdateBlocks();
     this._notifyConfigUpdate();
   }
 
@@ -408,17 +435,20 @@ class CardEditor extends LitElement {
       ...this.config,
       ...e.detail.config
     };
-    this._forceUpdateBlocks(); // 强制更新
+    this._forceUpdateBlocks();
     this._notifyConfigUpdate();
   }
 
   _onEditBlock(e) {
     this._editingBlockId = e.detail.blockId;
     this.requestUpdate();
+    
+    // 更新编辑窗口位置
+    setTimeout(() => this._updateEditorPosition(), 50);
   }
 
   _saveEdit() {
-    // 关键：保存时强制更新块列表
+    // 关键：保存时强制更新块列表显示
     this._forceUpdateBlocks();
     this._cancelEdit();
     this._notifyConfigUpdate();
@@ -429,9 +459,8 @@ class CardEditor extends LitElement {
     this.requestUpdate();
   }
 
-  // 新增：强制更新块列表
   _forceUpdateBlocks() {
-    this._forceUpdate += 1;
+    this._forceUpdate = (this._forceUpdate || 0) + 1;
     this.requestUpdate();
   }
 
@@ -446,6 +475,44 @@ class CardEditor extends LitElement {
     if (changedProperties.has('hass') && this.hass) {
       this._updateAvailableEntities();
     }
+    
+    // 更新悬浮编辑窗口位置
+    if (changedProperties.has('_editingBlockId') && this._editingBlockId) {
+      this._updateEditorPosition();
+    }
+  }
+
+  _updateEditorPosition() {
+    setTimeout(() => {
+      const blockElement = this.shadowRoot.querySelector(`[data-block-id="${this._editingBlockId}"]`);
+      const editor = this.shadowRoot.querySelector('#block-editor');
+      
+      if (blockElement && editor) {
+        const blockRect = blockElement.getBoundingClientRect();
+        const editorRect = editor.getBoundingClientRect();
+        const containerRect = this.getBoundingClientRect();
+        
+        // 计算最佳位置 - 尝试放在块右侧
+        let top = blockRect.top - containerRect.top;
+        let left = blockRect.right - containerRect.left + 20;
+        
+        // 如果右侧空间不够，放在左侧
+        if (left + editorRect.width > containerRect.width - 20) {
+          left = blockRect.left - containerRect.left - editorRect.width - 20;
+        }
+        
+        // 确保在容器内
+        const maxTop = containerRect.height - editorRect.height - 20;
+        const maxLeft = containerRect.width - editorRect.width - 20;
+        
+        top = Math.max(20, Math.min(top, maxTop));
+        left = Math.max(20, Math.min(left, maxLeft));
+        
+        // 应用位置
+        editor.style.top = `${top}px`;
+        editor.style.left = `${left}px`;
+      }
+    }, 100);
   }
 
   _updateAvailableEntities() {

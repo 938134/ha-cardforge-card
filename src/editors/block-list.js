@@ -7,9 +7,7 @@ class BlockList extends LitElement {
     config: { type: Object },
     hass: { type: Object },
     editingBlockId: { type: String },
-    forceUpdate: { type: Number }, // 新增：强制更新监听
-    _touchStartX: { state: true },
-    _swipeThreshold: { state: true }
+    forceUpdate: { type: Number }
   };
 
   static styles = [
@@ -27,20 +25,20 @@ class BlockList extends LitElement {
         gap: var(--cf-spacing-sm);
       }
 
+      /* 四列网格布局 */
       .block-item {
         display: grid;
-        grid-template-columns: 40px 48px 1fr 60px;
-        gap: var(--cf-spacing-sm);
+        grid-template-columns: 50px 50px 1fr 80px;
+        gap: var(--cf-spacing-md);
         align-items: center;
         background: var(--cf-surface);
         border: 2px solid transparent;
         border-radius: var(--cf-radius-md);
-        padding: var(--cf-spacing-sm);
+        padding: var(--cf-spacing-md);
         transition: all var(--cf-transition-fast);
         min-height: 70px;
         cursor: pointer;
         position: relative;
-        overflow: hidden;
       }
 
       .block-item:hover {
@@ -55,58 +53,23 @@ class BlockList extends LitElement {
         box-shadow: 0 0 0 2px var(--cf-primary-color);
       }
 
-      /* 滑动删除效果 */
-      .block-item.swiping {
-        transition: transform 0.2s ease;
-      }
-
-      .slide-actions {
-        position: absolute;
-        right: -80px;
-        top: 0;
-        bottom: 0;
-        display: flex;
-        align-items: center;
-        gap: var(--cf-spacing-xs);
-        padding: 0 var(--cf-spacing-sm);
-        background: var(--cf-error-color);
-        border-radius: var(--cf-radius-md);
-        transition: right 0.2s ease;
-      }
-
-      .block-item.swipe-active .slide-actions {
-        right: 0;
-      }
-
-      .delete-btn {
-        background: rgba(255, 255, 255, 0.9);
-        border: none;
-        border-radius: var(--cf-radius-sm);
-        padding: var(--cf-spacing-xs) var(--cf-spacing-sm);
-        color: var(--cf-error-color);
-        font-size: 0.8em;
-        font-weight: 500;
-        cursor: pointer;
-        white-space: nowrap;
-      }
-
-      /* 区域标识 */
+      /* 区域标识 - 第一列 */
       .area-badge {
         display: flex;
         flex-direction: column;
         align-items: center;
         justify-content: center;
-        gap: 2px;
+        gap: 4px;
       }
 
       .area-letter {
-        width: 24px;
-        height: 24px;
+        width: 32px;
+        height: 32px;
         border-radius: 50%;
         display: flex;
         align-items: center;
         justify-content: center;
-        font-size: 0.7em;
+        font-size: 0.8em;
         font-weight: 700;
         color: white;
       }
@@ -123,7 +86,13 @@ class BlockList extends LitElement {
         background: #FF9800;
       }
 
-      /* 图标 */
+      .area-text {
+        font-size: 0.7em;
+        color: var(--cf-text-secondary);
+        font-weight: 500;
+      }
+
+      /* 图标 - 第二列 */
       .block-icon {
         width: 40px;
         height: 40px;
@@ -132,7 +101,7 @@ class BlockList extends LitElement {
         display: flex;
         align-items: center;
         justify-content: center;
-        font-size: 1.2em;
+        font-size: 1.3em;
         transition: all var(--cf-transition-fast);
       }
 
@@ -141,16 +110,17 @@ class BlockList extends LitElement {
         transform: scale(1.05);
       }
 
-      /* 块信息 - 两行布局 */
+      /* 名称状态 - 第三列 */
       .block-info {
         display: flex;
         flex-direction: column;
-        gap: 2px;
+        gap: 4px;
         min-width: 0;
+        flex: 1;
       }
 
       .block-name {
-        font-size: 0.9em;
+        font-size: 0.95em;
         font-weight: 600;
         color: var(--cf-text-primary);
         line-height: 1.2;
@@ -168,21 +138,16 @@ class BlockList extends LitElement {
         white-space: nowrap;
       }
 
-      /* 操作按钮 */
+      /* 操作按钮 - 第四列 */
       .block-actions {
         display: flex;
         gap: var(--cf-spacing-xs);
-        opacity: 0.6;
-        transition: opacity var(--cf-transition-fast);
-      }
-
-      .block-item:hover .block-actions {
-        opacity: 1;
+        justify-content: flex-end;
       }
 
       .block-action {
-        width: 32px;
-        height: 32px;
+        width: 36px;
+        height: 36px;
         border-radius: var(--cf-radius-sm);
         display: flex;
         align-items: center;
@@ -191,6 +156,7 @@ class BlockList extends LitElement {
         border: 1px solid var(--cf-border);
         cursor: pointer;
         transition: all var(--cf-transition-fast);
+        color: var(--cf-text-secondary);
       }
 
       .block-action:hover {
@@ -202,12 +168,13 @@ class BlockList extends LitElement {
 
       .block-action.delete:hover {
         background: var(--cf-error-color);
+        border-color: var(--cf-error-color);
       }
 
       /* 添加块按钮 */
       .add-block-btn {
         width: 100%;
-        padding: var(--cf-spacing-md);
+        padding: var(--cf-spacing-lg);
         border: 2px dashed var(--cf-border);
         border-radius: var(--cf-radius-md);
         background: transparent;
@@ -218,7 +185,8 @@ class BlockList extends LitElement {
         align-items: center;
         justify-content: center;
         gap: var(--cf-spacing-sm);
-        font-size: 0.9em;
+        font-size: 0.95em;
+        font-weight: 500;
       }
 
       .add-block-btn:hover {
@@ -244,22 +212,28 @@ class BlockList extends LitElement {
       }
 
       /* 响应式适配 */
-      @media (max-width: 600px) {
+      @media (max-width: 768px) {
         .block-item {
-          grid-template-columns: 36px 40px 1fr 56px;
-          gap: var(--cf-spacing-xs);
-          padding: var(--cf-spacing-xs);
-          min-height: 64px;
+          grid-template-columns: 40px 40px 1fr 70px;
+          gap: var(--cf-spacing-sm);
+          padding: var(--cf-spacing-sm);
+          min-height: 60px;
+        }
+
+        .area-letter {
+          width: 28px;
+          height: 28px;
+          font-size: 0.7em;
         }
 
         .block-icon {
           width: 36px;
           height: 36px;
-          font-size: 1.1em;
+          font-size: 1.2em;
         }
 
         .block-name {
-          font-size: 0.85em;
+          font-size: 0.9em;
         }
 
         .block-state {
@@ -267,37 +241,28 @@ class BlockList extends LitElement {
         }
 
         .block-action {
-          width: 28px;
-          height: 28px;
+          width: 32px;
+          height: 32px;
+        }
+
+        .area-text {
+          display: none;
+        }
+      }
+
+      @media (max-width: 480px) {
+        .block-item {
+          grid-template-columns: 35px 35px 1fr 60px;
+          gap: var(--cf-spacing-xs);
+        }
+
+        .block-icon {
+          width: 32px;
+          height: 32px;
         }
       }
     `
   ];
-
-  constructor() {
-    super();
-    this._touchStartX = 0;
-    this._swipeThreshold = 50;
-  }
-
-  // 关键：监听所有可能触发更新的属性
-  updated(changedProperties) {
-    if (changedProperties.has('config') || 
-        changedProperties.has('hass') || 
-        changedProperties.has('forceUpdate')) {
-      // 任何相关属性变化都强制重新渲染
-      this.requestUpdate();
-    }
-  }
-
-  _getAllBlocks() {
-    if (!this.config.blocks) return [];
-    
-    return Object.entries(this.config.blocks).map(([blockId, blockConfig]) => ({
-      id: blockId,
-      ...blockConfig
-    }));
-  }
 
   render() {
     const blocks = this._getAllBlocks();
@@ -310,17 +275,27 @@ class BlockList extends LitElement {
     `;
   }
 
+  _getAllBlocks() {
+    if (!this.config.blocks) return [];
+    
+    return Object.entries(this.config.blocks).map(([blockId, blockConfig]) => ({
+      id: blockId,
+      ...blockConfig
+    }));
+  }
+
   _renderBlocksContainer(blocks) {
     if (blocks.length === 0) {
       return html`
         <div class="empty-state">
           <ha-icon class="empty-icon" icon="mdi:cube-outline"></ha-icon>
-          <div class="cf-text-md cf-mb-sm">还没有任何块</div>
+          <div class="cf-text-md cf-mb-sm">还没有添加任何块</div>
           <div class="cf-text-sm cf-text-secondary">点击下方按钮添加第一个块</div>
         </div>
       `;
     }
 
+    // 按区域排序：header → content → footer
     const sortedBlocks = [...blocks].sort((a, b) => {
       const areaOrder = { 'header': 0, 'content': 1, 'footer': 2 };
       const orderA = areaOrder[a.area] ?? 1;
@@ -337,45 +312,38 @@ class BlockList extends LitElement {
 
   _renderBlockItem(block) {
     const displayName = block.title || this._getBlockDisplayName(block);
-    const icon = block.icon || 'mdi:cube';
-    const state = this._getBlockPreview(block, this.hass);
+    const state = this._getBlockState(block, this.hass);
+    const icon = block.icon || this._getDefaultIcon(block);
     const areaInfo = this._getAreaInfo(block.area);
     const isEditing = this.editingBlockId === block.id;
 
     return html`
       <div class="block-item ${isEditing ? 'editing' : ''}"
            data-block-id="${block.id}"
-           @click=${() => this._editBlock(block)}
-           @touchstart=${(e) => this._onTouchStart(e, block.id)}
-           @touchmove=${this._onTouchMove}
-           @touchend=${this._onTouchEnd}
-           @touchcancel=${this._onTouchEnd}>
+           @click=${() => this._editBlock(block)}>
         
-        <!-- 滑动删除操作 -->
-        <div class="slide-actions">
-          <button class="delete-btn" @click=${(e) => this._deleteBlock(e, block.id)}>
-            删除
-          </button>
-        </div>
-
-        <!-- 区域标识 -->
+        <!-- 第一列：区域标识 -->
         <div class="area-badge">
           <div class="area-letter ${block.area || 'content'}">${areaInfo.letter}</div>
+          <div class="area-text">${areaInfo.text}</div>
         </div>
 
-        <!-- 图标 -->
+        <!-- 第二列：图标 -->
         <div class="block-icon">
           <ha-icon .icon=${icon}></ha-icon>
         </div>
 
-        <!-- 名称与状态 - 两行布局 -->
+        <!-- 第三列：名称和状态 -->
         <div class="block-info">
-          <div class="block-name">${displayName}</div>
-          <div class="block-state">${state}</div>
+          <div class="block-name" title=${displayName}>${displayName}</div>
+          <div class="block-state" title=${state}>${state}</div>
         </div>
 
-        <!-- 操作按钮 -->
+        <!-- 第四列：操作按钮 -->
         <div class="block-actions">
+          <div class="block-action" @click=${e => this._editBlockClick(e, block)} title="编辑块">
+            <ha-icon icon="mdi:pencil"></ha-icon>
+          </div>
           <div class="block-action delete" @click=${e => this._deleteBlock(e, block.id)} title="删除块">
             <ha-icon icon="mdi:delete"></ha-icon>
           </div>
@@ -385,80 +353,89 @@ class BlockList extends LitElement {
   }
 
   _getBlockDisplayName(blockConfig) {
+    if (blockConfig.title && blockConfig.title.trim()) {
+      return blockConfig.title;
+    }
     if (blockConfig.entity) {
       return '实体块';
     }
     return '内容块';
   }
 
-  _getBlockPreview(blockConfig, hass) {
+  _getBlockState(blockConfig, hass) {
+    // 优先显示实体状态
+    if (blockConfig.entity && hass?.states[blockConfig.entity]) {
+      const entity = hass.states[blockConfig.entity];
+      const unit = entity.attributes?.unit_of_measurement || '';
+      return this._formatEntityState(entity.state, unit);
+    }
+    
+    // 显示静态内容（截断处理）
+    if (blockConfig.content) {
+      const content = String(blockConfig.content);
+      return content.length > 30 ? content.substring(0, 30) + '...' : content;
+    }
+    
+    return '点击配置';
+  }
+
+  _formatEntityState(state, unit) {
+    const stateMap = {
+      'on': '开启',
+      'off': '关闭',
+      'open': '打开',
+      'closed': '关闭',
+      'home': '在家',
+      'not_home': '外出'
+    };
+    
+    const displayState = stateMap[state] || state;
+    return unit ? `${displayState} ${unit}` : displayState;
+  }
+
+  _getDefaultIcon(blockConfig) {
     if (blockConfig.entity) {
-      if (hass?.states[blockConfig.entity]) {
-        const entity = hass.states[blockConfig.entity];
-        const unit = entity.attributes?.unit_of_measurement || '';
-        return this._formatEntityState(blockConfig.entity, entity.state, unit, entity);
-      }
-      return '实体未找到';
+      const entityType = blockConfig.entity.split('.')[0];
+      const iconMap = {
+        'light': 'mdi:lightbulb',
+        'switch': 'mdi:power',
+        'sensor': 'mdi:gauge',
+        'binary_sensor': 'mdi:checkbox-marked-circle-outline',
+        'climate': 'mdi:thermostat',
+        'cover': 'mdi:blinds',
+        'media_player': 'mdi:speaker'
+      };
+      return iconMap[entityType] || 'mdi:cube';
     }
-    
-    return blockConfig.title || '点击配置';
+    return 'mdi:text-box';
   }
 
-  _formatEntityState(entityId, state, unit, entity) {
-    const entityType = entityId.split('.')[0];
-    
-    switch (entityType) {
-      case 'light':
-      case 'switch':
-        return state === 'on' ? '开启' : '关闭';
-      case 'climate':
-        return this._formatClimateState(state, entity);
-      case 'cover':
-        return state === 'open' ? '打开' : state === 'closed' ? '关闭' : state;
-      default:
-        return `${state}${unit ? ' ' + unit : ''}`;
-    }
-  }
-
-  _formatClimateState(state, entity) {
-    if (state === 'off') return '关闭';
-    
-    const temp = entity?.attributes?.temperature;
-    const mode = entity?.attributes?.hvac_mode;
-    
-    const modeText = {
-      'heat': '制热',
-      'cool': '制冷',
-      'auto': '自动',
-      'fan_only': '仅风扇'
-    }[mode] || mode;
-    
-    return temp ? `${modeText} ${temp}°C` : modeText;
+  _getAreaInfo(area) {
+    const areaMap = {
+      'header': { letter: 'H', text: '标题', color: '#2196F3' },
+      'content': { letter: 'C', text: '内容', color: '#4CAF50' },
+      'footer': { letter: 'F', text: '页脚', color: '#FF9800' }
+    };
+    return areaMap[area] || areaMap.content;
   }
 
   _renderAddBlockButton() {
     return html`
       <button class="add-block-btn" @click=${this._addBlock}>
         <ha-icon icon="mdi:plus"></ha-icon>
-        添加块
+        添加新块
       </button>
     `;
   }
 
-  _getAreaInfo(area) {
-    const areaMap = {
-      'header': { letter: 'H', fullText: '标题', color: '#2196F3' },
-      'content': { letter: 'C', fullText: '内容', color: '#4CAF50' },
-      'footer': { letter: 'F', fullText: '页脚', color: '#FF9800' }
-    };
-    return areaMap[area] || areaMap.content;
+  _editBlockClick(e, block) {
+    e.stopPropagation();
+    this._editBlock(block);
   }
 
   _editBlock(block) {
     this.dispatchEvent(new CustomEvent('edit-block', {
-      detail: {
-        blockId: block.id
-      }
+      detail: { blockId: block.id }
     }));
   }
 
@@ -474,9 +451,10 @@ class BlockList extends LitElement {
     
     const blockConfig = {
       area: areaName,
-      title: '',
+      title: '新块',
       entity: '',
-      icon: ''
+      icon: this._getDefaultIcon({}),
+      content: '请配置内容...'
     };
     
     if (!this.config.blocks) {
@@ -498,51 +476,17 @@ class BlockList extends LitElement {
     this._notifyConfigUpdate();
   }
 
-  // 滑动删除相关方法
-  _onTouchStart(e, blockId) {
-    this._touchStartX = e.touches[0].clientX;
-    this._currentBlockId = blockId;
-    e.currentTarget.classList.add('swiping');
-  }
-
-  _onTouchMove(e) {
-    if (!this._touchStartX) return;
-    
-    const touchX = e.touches[0].clientX;
-    const diffX = this._touchStartX - touchX;
-    
-    if (diffX > 0) {
-      e.currentTarget.style.transform = `translateX(-${Math.min(diffX, 80)}px)`;
-      
-      if (diffX > this._swipeThreshold) {
-        e.currentTarget.classList.add('swipe-active');
-      } else {
-        e.currentTarget.classList.remove('swipe-active');
-      }
-    }
-  }
-
-  _onTouchEnd(e) {
-    if (!this._touchStartX) return;
-    
-    const touchX = e.changedTouches[0].clientX;
-    const diffX = this._touchStartX - touchX;
-    
-    if (diffX > this._swipeThreshold) {
-      e.currentTarget.style.transform = 'translateX(-80px)';
-    } else {
-      e.currentTarget.style.transform = 'translateX(0)';
-      e.currentTarget.classList.remove('swipe-active');
-    }
-    
-    e.currentTarget.classList.remove('swiping');
-    this._touchStartX = 0;
-  }
-
   _notifyConfigUpdate() {
     this.dispatchEvent(new CustomEvent('config-changed', {
       detail: { config: { blocks: this.config.blocks } }
     }));
+  }
+
+  updated(changedProperties) {
+    // 强制更新时重新渲染
+    if (changedProperties.has('forceUpdate')) {
+      this.requestUpdate();
+    }
   }
 }
 

@@ -53,6 +53,16 @@ class BlockProperties extends LitElement {
         gap: var(--cf-spacing-sm);
       }
 
+      /* 修复下拉菜单容器 */
+      .select-container {
+        position: relative;
+        width: 100%;
+      }
+
+      .select-container ha-select {
+        width: 100%;
+      }
+
       /* 操作按钮 */
       .form-actions {
         display: flex;
@@ -145,26 +155,22 @@ class BlockProperties extends LitElement {
   _renderForm() {
     return html`
       <div class="form-grid">
-        <!-- 区域选择 -->
+        <!-- 区域选择 - 修复下拉菜单 -->
         <div class="form-label">区域</div>
         <div class="form-field">
-          <ha-select
-            .value=${this.blockConfig.area || 'content'}
-            @closed=${this._preventClose}
-            naturalMenuWidth
-            fixedMenuPosition
-            fullwidth
-          >
-            <ha-list-item value="header" @click=${() => this._updateField('area', 'header')}>
-              标题
-            </ha-list-item>
-            <ha-list-item value="content" @click=${() => this._updateField('area', 'content')}>
-              内容
-            </ha-list-item>
-            <ha-list-item value="footer" @click=${() => this._updateField('area', 'footer')}>
-              页脚
-            </ha-list-item>
-          </ha-select>
+          <div class="select-container">
+            <ha-select
+              .value=${this.blockConfig.area || 'content'}
+              @closed=${this._preventClose}
+              naturalMenuWidth
+              fixedMenuPosition
+              @selected=${this._onAreaChange}
+            >
+              <ha-list-item value="header">标题区域</ha-list-item>
+              <ha-list-item value="content">内容区域</ha-list-item>
+              <ha-list-item value="footer">页脚区域</ha-list-item>
+            </ha-select>
+          </div>
         </div>
 
         <!-- 实体选择 -->
@@ -177,7 +183,6 @@ class BlockProperties extends LitElement {
               @value-changed=${e => this._updateField('entity', e.detail.value)}
               allow-custom-value
               label="选择实体"
-              fullwidth
             ></ha-combo-box>
           ` : html`
             <ha-textfield
@@ -196,7 +201,6 @@ class BlockProperties extends LitElement {
             .value=${this.blockConfig.icon || ''}
             @value-changed=${e => this._updateField('icon', e.detail.value)}
             label="选择图标"
-            fullwidth
           ></ha-icon-picker>
         </div>
 
@@ -207,6 +211,17 @@ class BlockProperties extends LitElement {
             .value=${this.blockConfig.title || ''}
             @input=${e => this._updateField('title', e.target.value)}
             placeholder="输入显示名称"
+            fullwidth
+          ></ha-textfield>
+        </div>
+
+        <!-- 内容输入 -->
+        <div class="form-label">内容</div>
+        <div class="form-field">
+          <ha-textfield
+            .value=${this.blockConfig.content || ''}
+            @input=${e => this._updateField('content', e.target.value)}
+            placeholder="输入显示内容"
             fullwidth
           ></ha-textfield>
         </div>
@@ -225,6 +240,13 @@ class BlockProperties extends LitElement {
         </button>
       </div>
     `;
+  }
+
+  _onAreaChange(e) {
+    const value = e.target.value;
+    if (value) {
+      this._updateField('area', value);
+    }
   }
 
   _updateField(key, value) {
@@ -296,7 +318,6 @@ class BlockProperties extends LitElement {
   }
 
   _onSave() {
-    // 关键：保存时确保数据已经更新
     this.dispatchEvent(new CustomEvent('save'));
   }
 
