@@ -221,7 +221,7 @@ class BlockManagement extends LitElement {
 
   render() {
     const blocks = this._getAllBlocks();
-    
+
     if (blocks.length === 0) {
       return html`
         <div class="empty-state">
@@ -255,10 +255,9 @@ class BlockManagement extends LitElement {
 
   _renderBlock(block) {
     const isEditing = this._editingBlockId === block.id;
-    
+
     return html`
       <div class="block-item ${isEditing ? 'editing' : ''}">
-        <!-- 块显示 -->
         <div class="area-badge">
           <div class="area-letter ${block.area || 'content'}">
             ${block.area === 'header' ? 'H' : block.area === 'footer' ? 'F' : 'C'}
@@ -283,7 +282,6 @@ class BlockManagement extends LitElement {
           </div>
         </div>
 
-        <!-- 编辑表单 -->
         ${isEditing ? this._renderEditForm(block) : ''}
       </div>
     `;
@@ -297,19 +295,19 @@ class BlockManagement extends LitElement {
           <div class="form-field">
             <div class="radio-group">
               <label class="radio-option">
-                <input type="radio" name="area" value="header" 
+                <input type="radio" name="area" value="header"
                   ?checked=${block.area === 'header'}
                   @change=${e => this._updateBlock(block.id, 'area', e.target.value)}>
                 标题
               </label>
               <label class="radio-option">
-                <input type="radio" name="area" value="content" 
+                <input type="radio" name="area" value="content"
                   ?checked=${!block.area || block.area === 'content'}
                   @change=${e => this._updateBlock(block.id, 'area', e.target.value)}>
                 内容
               </label>
               <label class="radio-option">
-                <input type="radio" name="area" value="footer" 
+                <input type="radio" name="area" value="footer"
                   ?checked=${block.area === 'footer'}
                   @change=${e => this._updateBlock(block.id, 'area', e.target.value)}>
                 页脚
@@ -405,28 +403,34 @@ class BlockManagement extends LitElement {
 
   _handleEntityChange(blockId, entityId) {
     this._updateBlock(blockId, 'entity', entityId);
-    
+
     if (entityId && this.hass?.states[entityId]) {
       const entity = this.hass.states[entityId];
-      // 自动设置图标
       if (entity.attributes?.icon) {
         this._updateBlock(blockId, 'icon', entity.attributes.icon);
       }
-      // 自动设置内容
       const unit = entity.attributes?.unit_of_measurement || '';
       this._updateBlock(blockId, 'content', `${entity.state}${unit ? ' ' + unit : ''}`);
     }
   }
 
   _updateBlock(blockId, key, value) {
-    // 直接修改当前配置（最简单直接的方式）
-    if (this.config.blocks[blockId]) {
-      this.config.blocks[blockId][key] = value;
-      // 立即通知配置变化
-      this.dispatchEvent(new CustomEvent('config-changed', {
-        detail: { config: this.config }
-      }));
-    }
+    const newBlocks = {
+      ...this.config.blocks,
+      [blockId]: {
+        ...this.config.blocks[blockId],
+        [key]: value
+      }
+    };
+
+    const newConfig = {
+      ...this.config,
+      blocks: newBlocks
+    };
+
+    this.dispatchEvent(new CustomEvent('config-changed', {
+      detail: { config: newConfig }
+    }));
   }
 
   _finishEdit() {
@@ -446,11 +450,16 @@ class BlockManagement extends LitElement {
       content: '请配置内容...'
     };
 
-    if (!this.config.blocks) this.config.blocks = {};
-    this.config.blocks[blockId] = newBlock;
+    const newConfig = {
+      ...this.config,
+      blocks: {
+        ...this.config.blocks,
+        [blockId]: newBlock
+      }
+    };
 
     this.dispatchEvent(new CustomEvent('config-changed', {
-      detail: { config: this.config }
+      detail: { config: newConfig }
     }));
 
     this._editingBlockId = blockId;
@@ -460,14 +469,20 @@ class BlockManagement extends LitElement {
     e.stopPropagation();
     if (!confirm('确定要删除这个块吗？')) return;
 
-    delete this.config.blocks[blockId];
+    const { [blockId]: _, ...remainingBlocks } = this.config.blocks;
+
+    const newConfig = {
+      ...this.config,
+      blocks: remainingBlocks
+    };
+
+    this.dispatchEvent(new CustomEvent('config-changed', {
+      detail: { config: newConfig }
+    }));
+
     if (this._editingBlockId === blockId) {
       this._editingBlockId = null;
     }
-
-    this.dispatchEvent(new CustomEvent('config-changed', {
-      detail: { config: this.config }
-    }));
   }
 }
 
