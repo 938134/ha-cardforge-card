@@ -10,7 +10,8 @@ class BlockProperties extends LitElement {
     hass: { type: Object },
     availableEntities: { type: Array },
     _fieldSchema: { state: true },
-    _entityInfo: { state: true }
+    _entityInfo: { state: true },
+    _editingConfig: { state: true }
   };
 
   static styles = [
@@ -23,11 +24,18 @@ class BlockProperties extends LitElement {
       .properties-header {
         display: flex;
         align-items: center;
-        gap: var(--cf-spacing-md);
+        justify-content: space-between;
         margin-bottom: var(--cf-spacing-lg);
         padding: var(--cf-spacing-md);
         background: rgba(var(--cf-rgb-primary), 0.05);
         border-radius: var(--cf-radius-md);
+        border-left: 4px solid var(--cf-primary-color);
+      }
+
+      .header-title {
+        display: flex;
+        align-items: center;
+        gap: var(--cf-spacing-md);
       }
 
       .block-type-badge {
@@ -39,14 +47,99 @@ class BlockProperties extends LitElement {
         font-weight: 500;
       }
 
+      .close-btn {
+        background: none;
+        border: none;
+        font-size: 1.2em;
+        cursor: pointer;
+        color: var(--cf-text-secondary);
+        padding: 4px;
+      }
+
+      .close-btn:hover {
+        color: var(--cf-text-primary);
+      }
+
       .entity-info {
         font-size: 0.8em;
         color: var(--cf-text-secondary);
-        margin-top: 4px;
+        margin-bottom: var(--cf-spacing-lg);
         line-height: 1.3;
         padding: var(--cf-spacing-sm);
         background: rgba(var(--cf-rgb-primary), 0.05);
         border-radius: var(--cf-radius-sm);
+      }
+
+      /* 紧凑网格布局 */
+      .form-grid {
+        display: grid;
+        grid-template-columns: 25% 75%;
+        gap: var(--cf-spacing-md);
+        margin-bottom: var(--cf-spacing-lg);
+      }
+
+      .form-row {
+        display: contents;
+      }
+
+      .form-label {
+        display: flex;
+        align-items: center;
+        font-weight: 500;
+        font-size: 0.9em;
+        color: var(--cf-text-primary);
+      }
+
+      .form-field {
+        display: flex;
+        flex-direction: column;
+        gap: var(--cf-spacing-sm);
+      }
+
+      /* 操作按钮 */
+      .form-actions {
+        display: flex;
+        gap: var(--cf-spacing-sm);
+        justify-content: flex-end;
+        margin-top: var(--cf-spacing-lg);
+        padding-top: var(--cf-spacing-md);
+        border-top: 1px solid var(--cf-border);
+      }
+
+      .action-btn {
+        padding: var(--cf-spacing-sm) var(--cf-spacing-lg);
+        border: 1px solid var(--cf-border);
+        border-radius: var(--cf-radius-sm);
+        background: var(--cf-surface);
+        color: var(--cf-text-primary);
+        cursor: pointer;
+        font-size: 0.85em;
+        font-weight: 500;
+        transition: all var(--cf-transition-fast);
+        min-width: 80px;
+      }
+
+      .action-btn.primary {
+        background: var(--cf-primary-color);
+        color: white;
+        border-color: var(--cf-primary-color);
+      }
+
+      .action-btn:hover {
+        opacity: 0.8;
+        transform: translateY(-1px);
+      }
+
+      /* 移动端适配 */
+      @media (max-width: 768px) {
+        .form-grid {
+          grid-template-columns: 1fr;
+          gap: var(--cf-spacing-sm);
+        }
+
+        .form-label {
+          margin-top: var(--cf-spacing-md);
+        }
       }
     `
   ];
@@ -55,62 +148,14 @@ class BlockProperties extends LitElement {
     super();
     this._fieldSchema = {};
     this._entityInfo = null;
+    this._editingConfig = {};
   }
 
   willUpdate(changedProperties) {
     if (changedProperties.has('blockConfig')) {
-      this._updateFieldSchema();
+      this._editingConfig = { ...this.blockConfig };
       this._updateEntityInfo();
     }
-  }
-
-  _updateFieldSchema() {
-    if (!this.blockConfig) return;
-
-    // 简化的字段配置 - 所有块类型使用相同的字段
-    this._fieldSchema = {
-      area: {
-        type: 'select',
-        label: '区域',
-        options: ['header', 'content', 'footer'],
-        default: 'content'
-      },
-      entity: {
-        type: 'entity',
-        label: '实体',
-        default: ''
-      },
-      title: {
-        type: 'text',
-        label: '名称',
-        default: ''
-      },
-      icon: {
-        type: 'icon',
-        label: '图标',
-        default: ''
-      }
-      // 移除了 content 和 style 字段
-    };
-  }
-
-  _updateEntityInfo() {
-    if (!this.blockConfig?.entity || !this.hass) {
-      this._entityInfo = null;
-      return;
-    }
-    
-    const entity = this.hass.states[this.blockConfig.entity];
-    if (!entity) {
-      this._entityInfo = { state: '实体未找到' };
-      return;
-    }
-    
-    this._entityInfo = {
-      state: entity.state,
-      unit: entity.attributes?.unit_of_measurement || '',
-      friendlyName: entity.attributes?.friendly_name || this.blockConfig.entity
-    };
   }
 
   render() {
@@ -118,25 +163,18 @@ class BlockProperties extends LitElement {
       return html`<div class="cf-text-secondary">请选择一个块进行编辑</div>`;
     }
 
-    const blockType = BlockSystem.detectBlockType(this.blockConfig);
-    const blockTypeName = BlockSystem.getBlockDisplayName(this.blockConfig);
-
     return html`
       <div class="block-properties">
         <div class="properties-header">
-          <div class="block-type-badge">${blockTypeName}</div>
-          <div class="cf-text-sm cf-text-secondary">编辑块属性</div>
+          <div class="header-title">
+            <div class="block-type-badge">编辑块属性</div>
+          </div>
+          <button class="close-btn" @click=${this._onCancel}>✕</button>
         </div>
 
         ${this._renderEntityInfo()}
-
-        <form-builder
-          .config=${this.blockConfig}
-          .schema=${this._fieldSchema}
-          .hass=${this.hass}
-          .availableEntities=${this.availableEntities}
-          @config-changed=${this._onConfigChanged}
-        ></form-builder>
+        ${this._renderForm()}
+        ${this._renderActions()}
       </div>
     `;
   }
@@ -157,23 +195,172 @@ class BlockProperties extends LitElement {
     `;
   }
 
-  _onConfigChanged(e) {
-    const updatedConfig = {
-      ...this.blockConfig,
-      ...e.detail.config
+  _renderForm() {
+    return html`
+      <div class="form-grid">
+        <!-- 区域选择 -->
+        <div class="form-label">区域</div>
+        <div class="form-field">
+          <ha-select
+            .value=${this._editingConfig.area || 'content'}
+            @closed=${this._preventClose}
+            naturalMenuWidth
+            fixedMenuPosition
+            fullwidth
+          >
+            <ha-list-item value="header" @click=${() => this._updateField('area', 'header')}>
+              标题
+            </ha-list-item>
+            <ha-list-item value="content" @click=${() => this._updateField('area', 'content')}>
+              内容
+            </ha-list-item>
+            <ha-list-item value="footer" @click=${() => this._updateField('area', 'footer')}>
+              页脚
+            </ha-list-item>
+          </ha-select>
+        </div>
+
+        <!-- 实体选择 -->
+        <div class="form-label">实体</div>
+        <div class="form-field">
+          ${this.availableEntities ? html`
+            <ha-combo-box
+              .items=${this.availableEntities}
+              .value=${this._editingConfig.entity || ''}
+              @value-changed=${e => this._updateField('entity', e.detail.value)}
+              allow-custom-value
+              label="选择实体"
+              fullwidth
+            ></ha-combo-box>
+          ` : html`
+            <ha-textfield
+              .value=${this._editingConfig.entity || ''}
+              @input=${e => this._updateField('entity', e.target.value)}
+              placeholder="输入实体ID"
+              fullwidth
+            ></ha-textfield>
+          `}
+        </div>
+
+        <!-- 图标选择 -->
+        <div class="form-label">图标</div>
+        <div class="form-field">
+          <ha-icon-picker
+            .value=${this._editingConfig.icon || ''}
+            @value-changed=${e => this._updateField('icon', e.detail.value)}
+            label="选择图标"
+            fullwidth
+          ></ha-icon-picker>
+        </div>
+
+        <!-- 名称输入 -->
+        <div class="form-label">名称</div>
+        <div class="form-field">
+          <ha-textfield
+            .value=${this._editingConfig.title || ''}
+            @input=${e => this._updateField('title', e.target.value)}
+            placeholder="输入显示名称"
+            fullwidth
+          ></ha-textfield>
+        </div>
+      </div>
+    `;
+  }
+
+  _renderActions() {
+    return html`
+      <div class="form-actions">
+        <button class="action-btn" @click=${this._onCancel}>
+          取消
+        </button>
+        <button class="action-btn primary" @click=${this._onSave}>
+          保存
+        </button>
+      </div>
+    `;
+  }
+
+  _updateField(key, value) {
+    this._editingConfig = {
+      ...this._editingConfig,
+      [key]: value
     };
 
     // 自动填充实体相关信息
-    if (e.detail.config.entity && this.hass) {
-      const autoFilledConfig = BlockSystem.autoFillFromEntity(updatedConfig, this.hass);
-      this.dispatchEvent(new CustomEvent('block-config-changed', {
-        detail: { blockConfig: autoFilledConfig }
-      }));
-    } else {
-      this.dispatchEvent(new CustomEvent('block-config-changed', {
-        detail: { blockConfig: updatedConfig }
-      }));
+    if (key === 'entity' && value && this.hass) {
+      const entity = this.hass.states[value];
+      if (entity) {
+        // 自动填充名称
+        if (!this._editingConfig.title && entity.attributes?.friendly_name) {
+          this._editingConfig.title = entity.attributes.friendly_name;
+        }
+        
+        // 自动填充图标
+        if (!this._editingConfig.icon) {
+          this._editingConfig.icon = BlockSystem.getEntityIcon(value, this.hass);
+        }
+      }
+      this._updateEntityInfo();
     }
+    
+    this.requestUpdate();
+  }
+
+  _updateEntityInfo() {
+    if (!this._editingConfig.entity || !this.hass) {
+      this._entityInfo = null;
+      return;
+    }
+    
+    const entity = this.hass.states[this._editingConfig.entity];
+    if (!entity) {
+      this._entityInfo = { state: '实体未找到' };
+      return;
+    }
+    
+    this._entityInfo = {
+      state: entity.state,
+      unit: entity.attributes?.unit_of_measurement || '',
+      friendlyName: entity.attributes?.friendly_name || this._editingConfig.entity
+    };
+  }
+
+  _onSave() {
+    // 验证配置
+    const validation = BlockSystem.validateBlock(this._editingConfig);
+    if (!validation.valid) {
+      alert(`配置错误：${validation.errors.join(', ')}`);
+      return;
+    }
+    
+    this.dispatchEvent(new CustomEvent('block-config-changed', {
+      detail: { blockConfig: this._editingConfig }
+    }));
+    
+    // 保存后清除编辑状态
+    this.dispatchEvent(new CustomEvent('editor-state-changed', {
+      detail: {
+        state: {
+          editingBlockId: null,
+          tempConfig: null
+        }
+      }
+    }));
+  }
+
+  _onCancel() {
+    this.dispatchEvent(new CustomEvent('editor-state-changed', {
+      detail: {
+        state: {
+          editingBlockId: null,
+          tempConfig: null
+        }
+      }
+    }));
+  }
+
+  _preventClose(e) {
+    e.stopPropagation();
   }
 }
 
