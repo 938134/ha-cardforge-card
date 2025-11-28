@@ -7,7 +7,7 @@ class BlockList extends LitElement {
     config: { type: Object },
     hass: { type: Object },
     editingBlockId: { type: String },
-    forceUpdate: { type: Number }
+    _editingBlockConfig: { state: true }
   };
 
   static styles = [
@@ -25,10 +25,10 @@ class BlockList extends LitElement {
         gap: var(--cf-spacing-sm);
       }
 
-      /* 四列网格布局 */
+      /* 四列网格布局 - 正常状态 */
       .block-item {
         display: grid;
-        grid-template-columns: 50px 50px 1fr 80px;
+        grid-template-columns: 40px 50px 1fr 80px;
         gap: var(--cf-spacing-md);
         align-items: center;
         background: var(--cf-surface);
@@ -38,28 +38,23 @@ class BlockList extends LitElement {
         transition: all var(--cf-transition-fast);
         min-height: 70px;
         cursor: pointer;
-        position: relative;
       }
 
       .block-item:hover {
         border-color: var(--cf-primary-color);
         background: rgba(var(--cf-rgb-primary), 0.02);
-        transform: translateY(-1px);
       }
 
       .block-item.editing {
         border-color: var(--cf-primary-color);
         background: rgba(var(--cf-rgb-primary), 0.05);
-        box-shadow: 0 0 0 2px var(--cf-primary-color);
       }
 
       /* 区域标识 - 第一列 */
       .area-badge {
         display: flex;
-        flex-direction: column;
         align-items: center;
         justify-content: center;
-        gap: 4px;
       }
 
       .area-letter {
@@ -69,7 +64,7 @@ class BlockList extends LitElement {
         display: flex;
         align-items: center;
         justify-content: center;
-        font-size: 0.8em;
+        font-size: 0.9em;
         font-weight: 700;
         color: white;
       }
@@ -86,12 +81,6 @@ class BlockList extends LitElement {
         background: #FF9800;
       }
 
-      .area-text {
-        font-size: 0.7em;
-        color: var(--cf-text-secondary);
-        font-weight: 500;
-      }
-
       /* 图标 - 第二列 */
       .block-icon {
         width: 40px;
@@ -102,12 +91,6 @@ class BlockList extends LitElement {
         align-items: center;
         justify-content: center;
         font-size: 1.3em;
-        transition: all var(--cf-transition-fast);
-      }
-
-      .block-item:hover .block-icon {
-        background: rgba(var(--cf-rgb-primary), 0.2);
-        transform: scale(1.05);
       }
 
       /* 名称状态 - 第三列 */
@@ -163,12 +146,107 @@ class BlockList extends LitElement {
         background: var(--cf-primary-color);
         color: white;
         border-color: var(--cf-primary-color);
-        transform: scale(1.1);
       }
 
       .block-action.delete:hover {
         background: var(--cf-error-color);
         border-color: var(--cf-error-color);
+      }
+
+      /* 编辑表单样式 - 展开状态 */
+      .edit-form {
+        grid-column: 1 / -1;
+        background: var(--cf-surface);
+        border: 2px solid var(--cf-primary-color);
+        border-radius: var(--cf-radius-md);
+        padding: var(--cf-spacing-lg);
+        margin-top: var(--cf-spacing-md);
+        animation: expandIn 0.3s ease;
+      }
+
+      @keyframes expandIn {
+        from {
+          opacity: 0;
+          transform: translateY(-10px);
+        }
+        to {
+          opacity: 1;
+          transform: translateY(0);
+        }
+      }
+
+      .form-grid {
+        display: grid;
+        grid-template-columns: 80px 1fr;
+        gap: var(--cf-spacing-md);
+        align-items: center;
+      }
+
+      .form-label {
+        font-weight: 500;
+        font-size: 0.9em;
+        color: var(--cf-text-primary);
+      }
+
+      .form-field {
+        display: flex;
+        gap: var(--cf-spacing-sm);
+        align-items: center;
+      }
+
+      .form-field ha-select,
+      .form-field ha-combo-box,
+      .form-field ha-textfield {
+        flex: 1;
+      }
+
+      .radio-group {
+        display: flex;
+        gap: var(--cf-spacing-md);
+      }
+
+      .radio-option {
+        display: flex;
+        align-items: center;
+        gap: var(--cf-spacing-xs);
+        cursor: pointer;
+      }
+
+      .radio-option input[type="radio"] {
+        margin: 0;
+      }
+
+      .form-actions {
+        display: flex;
+        gap: var(--cf-spacing-sm);
+        justify-content: flex-end;
+        margin-top: var(--cf-spacing-lg);
+        padding-top: var(--cf-spacing-md);
+        border-top: 1px solid var(--cf-border);
+      }
+
+      .action-btn {
+        padding: var(--cf-spacing-sm) var(--cf-spacing-lg);
+        border: 1px solid var(--cf-border);
+        border-radius: var(--cf-radius-sm);
+        background: var(--cf-surface);
+        color: var(--cf-text-primary);
+        cursor: pointer;
+        font-size: 0.85em;
+        font-weight: 500;
+        transition: all var(--cf-transition-fast);
+        min-width: 80px;
+      }
+
+      .action-btn.primary {
+        background: var(--cf-primary-color);
+        color: white;
+        border-color: var(--cf-primary-color);
+      }
+
+      .action-btn:hover {
+        opacity: 0.8;
+        transform: translateY(-1px);
       }
 
       /* 添加块按钮 */
@@ -214,55 +292,37 @@ class BlockList extends LitElement {
       /* 响应式适配 */
       @media (max-width: 768px) {
         .block-item {
-          grid-template-columns: 40px 40px 1fr 70px;
+          grid-template-columns: 35px 40px 1fr 70px;
           gap: var(--cf-spacing-sm);
           padding: var(--cf-spacing-sm);
-          min-height: 60px;
         }
 
         .area-letter {
           width: 28px;
           height: 28px;
-          font-size: 0.7em;
         }
 
         .block-icon {
           width: 36px;
           height: 36px;
-          font-size: 1.2em;
         }
 
-        .block-name {
-          font-size: 0.9em;
+        .form-grid {
+          grid-template-columns: 1fr;
+          gap: var(--cf-spacing-sm);
         }
 
-        .block-state {
-          font-size: 0.75em;
-        }
-
-        .block-action {
-          width: 32px;
-          height: 32px;
-        }
-
-        .area-text {
-          display: none;
-        }
-      }
-
-      @media (max-width: 480px) {
-        .block-item {
-          grid-template-columns: 35px 35px 1fr 60px;
-          gap: var(--cf-spacing-xs);
-        }
-
-        .block-icon {
-          width: 32px;
-          height: 32px;
+        .form-label {
+          margin-top: var(--cf-spacing-sm);
         }
       }
     `
   ];
+
+  constructor() {
+    super();
+    this._editingBlockConfig = null;
+  }
 
   render() {
     const blocks = this._getAllBlocks();
@@ -311,42 +371,135 @@ class BlockList extends LitElement {
   }
 
   _renderBlockItem(block) {
+    const isEditing = this.editingBlockId === block.id;
+    
+    return html`
+      <div class="block-item ${isEditing ? 'editing' : ''}">
+        ${this._renderNormalBlock(block)}
+        ${isEditing ? this._renderEditForm(block) : ''}
+      </div>
+    `;
+  }
+
+  _renderNormalBlock(block) {
     const displayName = block.title || this._getBlockDisplayName(block);
     const state = this._getBlockState(block, this.hass);
     const icon = block.icon || this._getDefaultIcon(block);
     const areaInfo = this._getAreaInfo(block.area);
-    const isEditing = this.editingBlockId === block.id;
 
     return html`
-      <div class="block-item ${isEditing ? 'editing' : ''}"
-           data-block-id="${block.id}"
-           @click=${() => this._editBlock(block)}>
-        
-        <!-- 第一列：区域标识 -->
-        <div class="area-badge">
-          <div class="area-letter ${block.area || 'content'}">${areaInfo.letter}</div>
-          <div class="area-text">${areaInfo.text}</div>
-        </div>
+      <!-- 第一列：区域标识 -->
+      <div class="area-badge">
+        <div class="area-letter ${block.area || 'content'}">${areaInfo.letter}</div>
+      </div>
 
-        <!-- 第二列：图标 -->
-        <div class="block-icon">
-          <ha-icon .icon=${icon}></ha-icon>
-        </div>
+      <!-- 第二列：图标 -->
+      <div class="block-icon">
+        <ha-icon .icon=${icon}></ha-icon>
+      </div>
 
-        <!-- 第三列：名称和状态 -->
-        <div class="block-info">
-          <div class="block-name" title=${displayName}>${displayName}</div>
-          <div class="block-state" title=${state}>${state}</div>
-        </div>
+      <!-- 第三列：名称和状态 -->
+      <div class="block-info">
+        <div class="block-name" title=${displayName}>${displayName}</div>
+        <div class="block-state" title=${state}>${state}</div>
+      </div>
 
-        <!-- 第四列：操作按钮 -->
-        <div class="block-actions">
-          <div class="block-action" @click=${e => this._editBlockClick(e, block)} title="编辑块">
-            <ha-icon icon="mdi:pencil"></ha-icon>
+      <!-- 第四列：操作按钮 -->
+      <div class="block-actions">
+        <div class="block-action" @click=${e => this._editBlock(e, block)} title="编辑块">
+          <ha-icon icon="mdi:pencil"></ha-icon>
+        </div>
+        <div class="block-action delete" @click=${e => this._deleteBlock(e, block.id)} title="删除块">
+          <ha-icon icon="mdi:delete"></ha-icon>
+        </div>
+      </div>
+    `;
+  }
+
+  _renderEditForm(block) {
+    // 初始化编辑配置
+    if (!this._editingBlockConfig) {
+      this._editingBlockConfig = { ...block };
+    }
+
+    return html`
+      <div class="edit-form">
+        <div class="form-grid">
+          <!-- 区域选择 -->
+          <div class="form-label">区域</div>
+          <div class="form-field">
+            <div class="radio-group">
+              <label class="radio-option">
+                <input type="radio" name="area" value="header" 
+                  ?checked=${this._editingBlockConfig.area === 'header'}
+                  @change=${e => this._updateEditingField('area', e.target.value)}>
+                标题
+              </label>
+              <label class="radio-option">
+                <input type="radio" name="area" value="content" 
+                  ?checked=${!this._editingBlockConfig.area || this._editingBlockConfig.area === 'content'}
+                  @change=${e => this._updateEditingField('area', e.target.value)}>
+                内容
+              </label>
+              <label class="radio-option">
+                <input type="radio" name="area" value="footer" 
+                  ?checked=${this._editingBlockConfig.area === 'footer'}
+                  @change=${e => this._updateEditingField('area', e.target.value)}>
+                页脚
+              </label>
+            </div>
           </div>
-          <div class="block-action delete" @click=${e => this._deleteBlock(e, block.id)} title="删除块">
-            <ha-icon icon="mdi:delete"></ha-icon>
+
+          <!-- 实体选择 -->
+          <div class="form-label">实体</div>
+          <div class="form-field">
+            ${this._getAvailableEntities() ? html`
+              <ha-combo-box
+                .items=${this._getAvailableEntities()}
+                .value=${this._editingBlockConfig.entity || ''}
+                @value-changed=${e => this._onEntityChange(e.detail.value)}
+                allow-custom-value
+                label="选择实体"
+              ></ha-combo-box>
+            ` : html`
+              <ha-textfield
+                .value=${this._editingBlockConfig.entity || ''}
+                @input=${e => this._updateEditingField('entity', e.target.value)}
+                placeholder="输入实体ID"
+                fullwidth
+              ></ha-textfield>
+            `}
           </div>
+
+          <!-- 图标选择 -->
+          <div class="form-label">图标</div>
+          <div class="form-field">
+            <ha-icon-picker
+              .value=${this._editingBlockConfig.icon || ''}
+              @value-changed=${e => this._updateEditingField('icon', e.detail.value)}
+              label="选择图标"
+            ></ha-icon-picker>
+          </div>
+
+          <!-- 内容输入 -->
+          <div class="form-label">内容</div>
+          <div class="form-field">
+            <ha-textfield
+              .value=${this._editingBlockConfig.content || ''}
+              @input=${e => this._updateEditingField('content', e.target.value)}
+              placeholder="输入显示内容"
+              fullwidth
+            ></ha-textfield>
+          </div>
+        </div>
+
+        <div class="form-actions">
+          <button class="action-btn" @click=${this._cancelEdit}>
+            取消
+          </button>
+          <button class="action-btn primary" @click=${this._saveEdit}>
+            保存
+          </button>
         </div>
       </div>
     `;
@@ -412,11 +565,22 @@ class BlockList extends LitElement {
 
   _getAreaInfo(area) {
     const areaMap = {
-      'header': { letter: 'H', text: '标题', color: '#2196F3' },
-      'content': { letter: 'C', text: '内容', color: '#4CAF50' },
-      'footer': { letter: 'F', text: '页脚', color: '#FF9800' }
+      'header': { letter: 'H', color: '#2196F3' },
+      'content': { letter: 'C', color: '#4CAF50' },
+      'footer': { letter: 'F', color: '#FF9800' }
     };
     return areaMap[area] || areaMap.content;
+  }
+
+  _getAvailableEntities() {
+    if (!this.hass?.states) return null;
+    
+    return Object.entries(this.hass.states)
+      .map(([entityId, state]) => ({
+        value: entityId,
+        label: `${state.attributes?.friendly_name || entityId} (${entityId})`
+      }))
+      .sort((a, b) => a.label.localeCompare(b.label));
   }
 
   _renderAddBlockButton() {
@@ -428,32 +592,68 @@ class BlockList extends LitElement {
     `;
   }
 
-  _editBlockClick(e, block) {
+  _editBlock(e, block) {
     e.stopPropagation();
-    this._editBlock(block);
-  }
-
-  _editBlock(block) {
+    this._editingBlockConfig = { ...block };
     this.dispatchEvent(new CustomEvent('edit-block', {
       detail: { blockId: block.id }
     }));
   }
 
+  _onEntityChange(entityId) {
+    this._updateEditingField('entity', entityId);
+    
+    // 自动填充实体信息
+    if (entityId && this.hass?.states[entityId]) {
+      const entity = this.hass.states[entityId];
+      
+      // 自动填充图标
+      if (entity.attributes?.icon && !this._editingBlockConfig.icon) {
+        this._updateEditingField('icon', entity.attributes.icon);
+      }
+      
+      // 自动填充内容（状态值）
+      this._updateEditingField('content', entity.state);
+    }
+  }
+
+  _updateEditingField(key, value) {
+    if (this._editingBlockConfig) {
+      this._editingBlockConfig[key] = value;
+      this.requestUpdate();
+    }
+  }
+
+  _saveEdit() {
+    if (this._editingBlockConfig) {
+      // 直接更新原配置
+      this.config.blocks[this.editingBlockId] = { ...this._editingBlockConfig };
+      this._editingBlockConfig = null;
+      
+      // 通知配置变更
+      this._notifyConfigUpdate();
+      
+      // 退出编辑状态
+      this.dispatchEvent(new CustomEvent('edit-block', {
+        detail: { blockId: null }
+      }));
+    }
+  }
+
+  _cancelEdit() {
+    this._editingBlockConfig = null;
+    this.dispatchEvent(new CustomEvent('edit-block', {
+      detail: { blockId: null }
+    }));
+  }
+
   _addBlock() {
-    const area = prompt('请选择要添加到的区域：\n\n输入: H(标题) / C(内容) / F(页脚)', 'C');
-    
-    if (!area) return;
-    
-    const areaMap = { 'H': 'header', 'C': 'content', 'F': 'footer' };
-    const areaName = areaMap[area.toUpperCase()] || 'content';
-    
     const blockId = `block_${Date.now()}`;
     
     const blockConfig = {
-      area: areaName,
-      title: '新块',
+      area: 'content',
       entity: '',
-      icon: this._getDefaultIcon({}),
+      icon: 'mdi:text-box',
       content: '请配置内容...'
     };
     
@@ -463,7 +663,12 @@ class BlockList extends LitElement {
     
     this.config.blocks[blockId] = blockConfig;
     
-    this._editBlock({ id: blockId, ...blockConfig });
+    // 直接进入编辑状态
+    this._editingBlockConfig = { ...blockConfig, id: blockId };
+    this.dispatchEvent(new CustomEvent('edit-block', {
+      detail: { blockId }
+    }));
+    
     this._notifyConfigUpdate();
   }
 
@@ -480,13 +685,6 @@ class BlockList extends LitElement {
     this.dispatchEvent(new CustomEvent('config-changed', {
       detail: { config: { blocks: this.config.blocks } }
     }));
-  }
-
-  updated(changedProperties) {
-    // 强制更新时重新渲染
-    if (changedProperties.has('forceUpdate')) {
-      this.requestUpdate();
-    }
   }
 }
 
