@@ -282,11 +282,8 @@ class CardEditor extends LitElement {
   }
 
   _onConfigChanged(e) {
-    this.config = {
-      ...this.config,
-      ...e.detail.config
-    };
-    this._notifyConfigUpdate();
+    // 必须返回新对象，Lit 才能检测到变化
+    this.config = { ...e.detail.config };
   }
 
   _onEditBlock(e) {

@@ -39,8 +39,6 @@ class BlockManagement extends LitElement {
   constructor() {
     super();
     this._editingBlockId = null;
-    this.__entityItems = [];          // 缓存实体列表
-    this.__lastStates = null;         // 缓存引用，用于比对
   }
 
   /* ---------- 渲染 ---------- */
@@ -109,7 +107,7 @@ class BlockManagement extends LitElement {
 
           <div class="form-label">实体</div>
           <ha-combo-box
-            .items=${this._entities}               // 缓存数组，引用稳定
+            .items=${this._entities}
             .value=${block.entity || ''}
             @value-changed=${e => this._handleEntityPick(block.id, e.detail.value)}
             allow-custom-value
@@ -147,16 +145,13 @@ class BlockManagement extends LitElement {
   }
 
   get _entities() {
-    if (this.__lastStates !== this.hass?.states) {
-      this.__lastStates = this.hass.states;
-      this.__entityItems = Object.keys(this.__lastStates)
-        .map(id => ({
-          value: id,
-          label: `${this.__lastStates[id].attributes?.friendly_name || id} (${id})`
-        }))
-        .sort((a, b) => a.label.localeCompare(b.label));
-    }
-    return this.__entityItems;
+    if (!this.hass?.states) return [];
+    return Object.entries(this.hass.states)
+      .map(([id, st]) => ({
+        value: id,
+        label: `${st.attributes?.friendly_name || id} (${id})`
+      }))
+      .sort((a, b) => a.label.localeCompare(b.label));
   }
 
   _blockName(b) {
