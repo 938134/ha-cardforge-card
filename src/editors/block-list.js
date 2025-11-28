@@ -406,32 +406,34 @@ class BlockList extends LitElement {
     }));
   }
 
-  _addBlock() {
-    const area = prompt('请选择要添加到的区域：\n\n输入: H(标题) / C(内容) / F(页脚)', 'C');
-    
-    if (!area) return;
-    
-    const areaMap = { 'H': 'header', 'C': 'content', 'F': 'footer' };
-    const areaName = areaMap[area.toUpperCase()] || 'content';
-    
-    const blockId = `block_${Date.now()}`;
-    const blockConfig = {
-      type: 'text',
-      title: '',
-      content: '',
-      area: areaName
-    };
-    
-    if (!this.config.blocks) {
-      this.config.blocks = {};
-    }
-    
-    this.config.blocks[blockId] = blockConfig;
-    
-    // 直接进入编辑模式
-    this._editBlock(blockId, areaName);
-    this._notifyConfigUpdate();
+_addBlock() {
+  const area = prompt('请选择要添加到的区域：\n\n输入: H(标题) / C(内容) / F(页脚)', 'C');
+  
+  if (!area) return;
+  
+  const areaMap = { 'H': 'header', 'C': 'content', 'F': 'footer' };
+  const areaName = areaMap[area.toUpperCase()] || 'content';
+  
+  const blockId = `block_${Date.now()}`;
+  
+  // 使用简化的块配置
+  const blockConfig = {
+    area: areaName,
+    title: '',
+    entity: '',
+    icon: ''
+  };
+  
+  if (!this.config.blocks) {
+    this.config.blocks = {};
   }
+  
+  this.config.blocks[blockId] = blockConfig;
+  
+  // 直接进入编辑模式
+  this._editBlock(blockId, areaName);
+  this._notifyConfigUpdate();
+}
 
   _deleteBlock(e, blockId) {
     e.stopPropagation();
