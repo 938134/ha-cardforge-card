@@ -20,7 +20,8 @@ class CardEditor extends LitElement {
     _availableEntities: { state: true },
     _cardSchema: { state: true },
     // 统一编辑状态
-    _blockEditorState: { state: true }
+    _blockEditorState: { state: true },
+    _configVersion: { state: true } // 新增：配置版本号，用于强制更新
   };
 
   static styles = [
@@ -91,6 +92,8 @@ class CardEditor extends LitElement {
       editingArea: 'content',
       tempConfig: null
     };
+    
+    this._configVersion = 0; // 配置版本号
   }
 
   async firstUpdated() {
@@ -107,18 +110,21 @@ class CardEditor extends LitElement {
   }
 
   setConfig(config) {
-    this.config = {
+    // 深拷贝配置，避免引用问题
+    this.config = JSON.parse(JSON.stringify({
       type: 'custom:ha-cardforge-card',
       card_type: '',
       theme: 'auto',
       areas: {},
       blocks: {},
       ...config
-    };
+    }));
     
     if (this.config.card_type && this._initialized) {
       this._loadCardInstance();
     }
+    
+    this._configVersion++; // 配置更新时增加版本号
   }
 
   _loadCardInstance() {
@@ -130,8 +136,9 @@ class CardEditor extends LitElement {
       const cardInstance = cardRegistry.createCardInstance(this.config.card_type);
       if (cardInstance) {
         const defaultConfig = cardInstance.getDefaultConfig();
-        this.config.areas = defaultConfig.areas;
-        this.config.blocks = defaultConfig.blocks;
+        // 深拷贝默认配置
+        this.config.areas = JSON.parse(JSON.stringify(defaultConfig.areas || {}));
+        this.config.blocks = JSON.parse(JSON.stringify(defaultConfig.blocks || {}));
       }
     }
   }
@@ -215,36 +222,37 @@ class CardEditor extends LitElement {
     `;
   }
 
-_renderBlockManagement() {
-  return html`
-    <div class="editor-section">
-      <div class="section-header">
-        <ha-icon icon="mdi:cube"></ha-icon>
-        <span class="section-title">块管理</span>
-      </div>
-      
-      <block-list
-        .config=${this.config}
-        .hass=${this.hass}
-        .editorState=${this._blockEditorState}
-        @config-changed=${this._onConfigChanged}
-        @editor-state-changed=${this._onEditorStateChanged}
-      ></block-list>
-      
-      ${this._blockEditorState.editingBlockId ? html`
-        <div class="editor-section" style="border-top: 2px solid var(--cf-primary-color); margin-top: var(--cf-spacing-lg);">
-          <block-properties
-            .blockConfig=${this._blockEditorState.tempConfig || this.config.blocks[this._blockEditorState.editingBlockId]}
-            .hass=${this.hass}
-            .availableEntities=${this._availableEntities}
-            @block-config-changed=${this._onBlockConfigChanged}
-            @editor-state-changed=${this._onEditorStateChanged}
-          ></block-properties>
+  _renderBlockManagement() {
+    return html`
+      <div class="editor-section">
+        <div class="section-header">
+          <ha-icon icon="mdi:cube"></ha-icon>
+          <span class="section-title">块管理</span>
         </div>
-      ` : ''}
-    </div>
-  `;
-}
+        
+        <block-list
+          .config=${this.config}
+          .hass=${this.hass}
+          .editorState=${this._blockEditorState}
+          .configVersion=${this._configVersion} <!-- 传递版本号 -->
+          @config-changed=${this._onConfigChanged}
+          @editor-state-changed=${this._onEditorStateChanged}
+        ></block-list>
+        
+        ${this._blockEditorState.editingBlockId ? html`
+          <div class="editor-section" style="border-top: 2px solid var(--cf-primary-color); margin-top: var(--cf-spacing-lg);">
+            <block-properties
+              .blockConfig=${this._blockEditorState.tempConfig || this.config.blocks[this._blockEditorState.editingBlockId]}
+              .hass=${this.hass}
+              .availableEntities=${this._availableEntities}
+              @block-config-changed=${this._onBlockConfigChanged}
+              @editor-state-changed=${this._onEditorStateChanged}
+            ></block-properties>
+          </div>
+        ` : ''}
+      </div>
+    `;
+  }
 
   _onCardChanged(e) {
     const cardType = e.detail.cardId;
@@ -257,8 +265,9 @@ _renderBlockManagement() {
     const cardInstance = cardRegistry.createCardInstance(cardType);
     if (cardInstance) {
       const defaultConfig = cardInstance.getDefaultConfig();
-      this.config.areas = defaultConfig.areas;
-      this.config.blocks = defaultConfig.blocks;
+      // 深拷贝默认配置
+      this.config.areas = JSON.parse(JSON.stringify(defaultConfig.areas || {}));
+      this.config.blocks = JSON.parse(JSON.stringify(defaultConfig.blocks || {}));
       
       // 应用卡片配置的默认值
       if (this._cardSchema) {
@@ -281,10 +290,14 @@ _renderBlockManagement() {
   }
 
   _onConfigChanged(e) {
-    this.config = {
+    // 深拷贝合并配置
+    const newConfig = {
       ...this.config,
-      ...e.detail.config
+      ...JSON.parse(JSON.stringify(e.detail.config))
     };
+    
+    this.config = newConfig;
+    this._configVersion++; // 增加版本号
     this._notifyConfigUpdate();
   }
 
@@ -296,19 +309,24 @@ _renderBlockManagement() {
     this.requestUpdate();
   }
 
-_onBlockConfigChanged(e) {
-  if (this._blockEditorState.editingBlockId) {
-    // 更新临时配置用于实时预览
-    this._blockEditorState.tempConfig = e.detail.blockConfig;
-    
-    // 同时更新实际配置
-    this.config.blocks[this._blockEditorState.editingBlockId] = e.detail.blockConfig;
-    this._notifyConfigUpdate();
-    
-    // 强制更新块列表显示
-    this.requestUpdate();
+  _onBlockConfigChanged(e) {
+    if (this._blockEditorState.editingBlockId) {
+      const blockId = this._blockEditorState.editingBlockId;
+      const updatedBlockConfig = JSON.parse(JSON.stringify(e.detail.blockConfig));
+      
+      // 更新临时配置用于实时预览
+      this._blockEditorState.tempConfig = updatedBlockConfig;
+      
+      // 安全更新块配置 - 确保不覆盖其他块
+      this.config.blocks = {
+        ...this.config.blocks,
+        [blockId]: updatedBlockConfig
+      };
+      
+      this._configVersion++; // 增加版本号
+      this._notifyConfigUpdate();
+    }
   }
-}
 
   _clearEditingState() {
     this._blockEditorState = {
