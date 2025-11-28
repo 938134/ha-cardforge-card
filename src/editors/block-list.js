@@ -7,7 +7,8 @@ class BlockList extends LitElement {
     config: { type: Object },
     hass: { type: Object },
     editingBlockId: { type: String },
-    _editingBlockConfig: { state: true }
+    _editingBlockConfig: { state: true },
+    _availableEntities: { state: true }
   };
 
   static styles = [
@@ -322,6 +323,19 @@ class BlockList extends LitElement {
   constructor() {
     super();
     this._editingBlockConfig = null;
+    this._availableEntities = [];
+  }
+
+  willUpdate(changedProperties) {
+    // 当编辑块ID变化时，重置编辑配置
+    if (changedProperties.has('editingBlockId')) {
+      this._resetEditingConfig();
+    }
+    
+    // 当hass变化时，更新实体列表
+    if (changedProperties.has('hass')) {
+      this._updateAvailableEntities();
+    }
   }
 
   render() {
@@ -382,7 +396,7 @@ class BlockList extends LitElement {
   }
 
   _renderNormalBlock(block) {
-    const displayName = block.title || this._getBlockDisplayName(block);
+    const displayName = this._getBlockDisplayName(block);
     const state = this._getBlockState(block, this.hass);
     const icon = block.icon || this._getDefaultIcon(block);
     const areaInfo = this._getAreaInfo(block.area);
@@ -417,10 +431,8 @@ class BlockList extends LitElement {
   }
 
   _renderEditForm(block) {
-    // 初始化编辑配置
-    if (!this._editingBlockConfig) {
-      this._editingBlockConfig = { ...block };
-    }
+    // 确保使用最新的编辑配置
+    const editingConfig = this._editingBlockConfig || { ...block };
 
     return html`
       <div class="edit-form">
@@ -431,19 +443,19 @@ class BlockList extends LitElement {
             <div class="radio-group">
               <label class="radio-option">
                 <input type="radio" name="area" value="header" 
-                  ?checked=${this._editingBlockConfig.area === 'header'}
+                  ?checked=${editingConfig.area === 'header'}
                   @change=${e => this._updateEditingField('area', e.target.value)}>
                 标题
               </label>
               <label class="radio-option">
                 <input type="radio" name="area" value="content" 
-                  ?checked=${!this._editingBlockConfig.area || this._editingBlockConfig.area === 'content'}
+                  ?checked=${!editingConfig.area || editingConfig.area === 'content'}
                   @change=${e => this._updateEditingField('area', e.target.value)}>
                 内容
               </label>
               <label class="radio-option">
                 <input type="radio" name="area" value="footer" 
-                  ?checked=${this._editingBlockConfig.area === 'footer'}
+                  ?checked=${editingConfig.area === 'footer'}
                   @change=${e => this._updateEditingField('area', e.target.value)}>
                 页脚
               </label>
@@ -453,17 +465,17 @@ class BlockList extends LitElement {
           <!-- 实体选择 -->
           <div class="form-label">实体</div>
           <div class="form-field">
-            ${this._getAvailableEntities() ? html`
+            ${this._availableEntities.length > 0 ? html`
               <ha-combo-box
-                .items=${this._getAvailableEntities()}
-                .value=${this._editingBlockConfig.entity || ''}
+                .items=${this._availableEntities}
+                .value=${editingConfig.entity || ''}
                 @value-changed=${e => this._onEntityChange(e.detail.value)}
                 allow-custom-value
                 label="选择实体"
               ></ha-combo-box>
             ` : html`
               <ha-textfield
-                .value=${this._editingBlockConfig.entity || ''}
+                .value=${editingConfig.entity || ''}
                 @input=${e => this._updateEditingField('entity', e.target.value)}
                 placeholder="输入实体ID"
                 fullwidth
@@ -475,7 +487,7 @@ class BlockList extends LitElement {
           <div class="form-label">图标</div>
           <div class="form-field">
             <ha-icon-picker
-              .value=${this._editingBlockConfig.icon || ''}
+              .value=${editingConfig.icon || ''}
               @value-changed=${e => this._updateEditingField('icon', e.detail.value)}
               label="选择图标"
             ></ha-icon-picker>
@@ -485,7 +497,7 @@ class BlockList extends LitElement {
           <div class="form-label">内容</div>
           <div class="form-field">
             <ha-textfield
-              .value=${this._editingBlockConfig.content || ''}
+              .value=${editingConfig.content || ''}
               @input=${e => this._updateEditingField('content', e.target.value)}
               placeholder="输入显示内容"
               fullwidth
@@ -506,12 +518,23 @@ class BlockList extends LitElement {
   }
 
   _getBlockDisplayName(blockConfig) {
+    // 如果有实体，使用实体友好名称
+    if (blockConfig.entity && this.hass?.states[blockConfig.entity]) {
+      const entity = this.hass.states[blockConfig.entity];
+      return entity.attributes?.friendly_name || blockConfig.entity.split('.')[1] || '实体块';
+    }
+    
+    // 如果有标题，使用标题
     if (blockConfig.title && blockConfig.title.trim()) {
       return blockConfig.title;
     }
-    if (blockConfig.entity) {
-      return '实体块';
+    
+    // 根据内容生成名称
+    if (blockConfig.content) {
+      const content = String(blockConfig.content);
+      return content.length > 15 ? content.substring(0, 15) + '...' : content;
     }
+    
     return '内容块';
   }
 
@@ -572,10 +595,13 @@ class BlockList extends LitElement {
     return areaMap[area] || areaMap.content;
   }
 
-  _getAvailableEntities() {
-    if (!this.hass?.states) return null;
-    
-    return Object.entries(this.hass.states)
+  _updateAvailableEntities() {
+    if (!this.hass?.states) {
+      this._availableEntities = [];
+      return;
+    }
+
+    this._availableEntities = Object.entries(this.hass.states)
       .map(([entityId, state]) => ({
         value: entityId,
         label: `${state.attributes?.friendly_name || entityId} (${entityId})`
@@ -608,29 +634,41 @@ class BlockList extends LitElement {
       const entity = this.hass.states[entityId];
       
       // 自动填充图标
-      if (entity.attributes?.icon && !this._editingBlockConfig.icon) {
+      if (entity.attributes?.icon) {
         this._updateEditingField('icon', entity.attributes.icon);
+      } else {
+        // 如果没有实体图标，使用默认图标
+        this._updateEditingField('icon', this._getDefaultIcon({ entity: entityId }));
       }
       
       // 自动填充内容（状态值）
-      this._updateEditingField('content', entity.state);
+      const unit = entity.attributes?.unit_of_measurement || '';
+      const stateDisplay = unit ? `${entity.state} ${unit}` : entity.state;
+      this._updateEditingField('content', stateDisplay);
     }
   }
 
   _updateEditingField(key, value) {
-    if (this._editingBlockConfig) {
-      this._editingBlockConfig[key] = value;
-      this.requestUpdate();
+    if (!this._editingBlockConfig) {
+      this._editingBlockConfig = {};
     }
+    this._editingBlockConfig[key] = value;
+    this.requestUpdate();
+  }
+
+  _resetEditingConfig() {
+    this._editingBlockConfig = null;
   }
 
   _saveEdit() {
-    if (this._editingBlockConfig) {
-      // 直接更新原配置
+    if (this._editingBlockConfig && this.editingBlockId) {
+      // 关键修复：直接更新原配置对象
       this.config.blocks[this.editingBlockId] = { ...this._editingBlockConfig };
+      
+      // 重置编辑状态
       this._editingBlockConfig = null;
       
-      // 通知配置变更
+      // 通知配置变更 - 传递完整的配置对象
       this._notifyConfigUpdate();
       
       // 退出编辑状态
@@ -664,7 +702,7 @@ class BlockList extends LitElement {
     this.config.blocks[blockId] = blockConfig;
     
     // 直接进入编辑状态
-    this._editingBlockConfig = { ...blockConfig, id: blockId };
+    this._editingBlockConfig = { ...blockConfig };
     this.dispatchEvent(new CustomEvent('edit-block', {
       detail: { blockId }
     }));
@@ -682,8 +720,9 @@ class BlockList extends LitElement {
   }
 
   _notifyConfigUpdate() {
+    // 关键修复：传递完整的配置对象，确保其他配置不被覆盖
     this.dispatchEvent(new CustomEvent('config-changed', {
-      detail: { config: { blocks: this.config.blocks } }
+      detail: { config: this.config }
     }));
   }
 }
