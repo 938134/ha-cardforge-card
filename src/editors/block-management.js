@@ -7,7 +7,7 @@ class BlockManagement extends LitElement {
     config: { type: Object },
     hass: { type: Object },
     _editingBlockId: { state: true },
-    _editingConfig: { state: true } // 新增：独立的编辑状态
+    _editingBlockConfig: { state: true } // 编辑时的临时配置
   };
 
   static styles = [
@@ -313,7 +313,7 @@ class BlockManagement extends LitElement {
   constructor() {
     super();
     this._editingBlockId = null;
-    this._editingConfig = null; // 独立的编辑配置
+    this._editingBlockConfig = null;
   }
 
   render() {
@@ -373,17 +373,15 @@ class BlockManagement extends LitElement {
   }
 
   _renderBlockDisplay(block) {
-    // 关键修复：显示时使用实际配置，而不是编辑状态
-    const actualConfig = this.config.blocks[block.id];
-    const displayName = this._getBlockDisplayName(actualConfig);
-    const state = this._getBlockState(actualConfig);
-    const icon = actualConfig.icon || this._getDefaultIcon(actualConfig);
-    const areaInfo = this._getAreaInfo(actualConfig.area);
+    const displayName = this._getBlockDisplayName(block);
+    const state = this._getBlockState(block);
+    const icon = block.icon || this._getDefaultIcon(block);
+    const areaInfo = this._getAreaInfo(block.area);
 
     return html`
       <!-- 第一列：区域标识 -->
       <div class="area-badge">
-        <div class="area-letter ${actualConfig.area || 'content'}">${areaInfo.letter}</div>
+        <div class="area-letter ${block.area || 'content'}">${areaInfo.letter}</div>
       </div>
 
       <!-- 第二列：图标 -->
@@ -410,8 +408,8 @@ class BlockManagement extends LitElement {
   }
 
   _renderEditForm(block) {
-    // 关键修复：使用独立的编辑配置
-    const editingConfig = this._editingConfig || { ...this.config.blocks[block.id] };
+    // 使用编辑时的临时配置，如果没有则使用当前配置
+    const editingConfig = this._editingBlockConfig || this.config.blocks[block.id];
 
     return html`
       <div class="edit-form">
@@ -423,19 +421,19 @@ class BlockManagement extends LitElement {
               <label class="radio-option">
                 <input type="radio" name="area" value="header" 
                   ?checked=${editingConfig.area === 'header'}
-                  @change=${e => this._updateEditingField('area', e.target.value)}>
+                  @change=${e => this._updateEditingBlock('area', e.target.value)}>
                 标题
               </label>
               <label class="radio-option">
                 <input type="radio" name="area" value="content" 
                   ?checked=${!editingConfig.area || editingConfig.area === 'content'}
-                  @change=${e => this._updateEditingField('area', e.target.value)}>
+                  @change=${e => this._updateEditingBlock('area', e.target.value)}>
                 内容
               </label>
               <label class="radio-option">
                 <input type="radio" name="area" value="footer" 
                   ?checked=${editingConfig.area === 'footer'}
-                  @change=${e => this._updateEditingField('area', e.target.value)}>
+                  @change=${e => this._updateEditingBlock('area', e.target.value)}>
                 页脚
               </label>
             </div>
@@ -458,7 +456,7 @@ class BlockManagement extends LitElement {
           <div class="form-field">
             <ha-icon-picker
               .value=${editingConfig.icon || ''}
-              @value-changed=${e => this._updateEditingField('icon', e.detail.value)}
+              @value-changed=${e => this._updateEditingBlock('icon', e.detail.value)}
               label="选择图标"
             ></ha-icon-picker>
           </div>
@@ -468,7 +466,7 @@ class BlockManagement extends LitElement {
           <div class="form-field">
             <ha-textfield
               .value=${editingConfig.content || ''}
-              @input=${e => this._updateEditingField('content', e.target.value)}
+              @input=${e => this._updateEditingBlock('content', e.target.value)}
               placeholder="输入显示内容"
               fullwidth
             ></ha-textfield>
@@ -567,71 +565,102 @@ class BlockManagement extends LitElement {
 
   _editBlock(e, block) {
     e.stopPropagation();
-    // 关键修复：创建独立的编辑配置副本
-    this._editingConfig = JSON.parse(JSON.stringify(this.config.blocks[block.id]));
+    
+    // 关键修复：创建编辑配置的深拷贝
+    this._editingBlockConfig = JSON.parse(JSON.stringify(this.config.blocks[block.id]));
     this._editingBlockId = block.id;
+    
     this.requestUpdate();
   }
 
   _onEntityChange(entityId) {
-    this._updateEditingField('entity', entityId);
+    this._updateEditingBlock('entity', entityId);
     
     if (entityId && this.hass?.states[entityId]) {
       const entity = this.hass.states[entityId];
       
+      // 自动填充图标
       if (entity.attributes?.icon) {
-        this._updateEditingField('icon', entity.attributes.icon);
+        this._updateEditingBlock('icon', entity.attributes.icon);
+      } else {
+        // 使用默认图标
+        const entityType = entityId.split('.')[0];
+        const iconMap = {
+          'light': 'mdi:lightbulb', 'switch': 'mdi:power', 'sensor': 'mdi:gauge',
+          'binary_sensor': 'mdi:checkbox-marked-circle-outline', 'climate': 'mdi:thermostat',
+          'cover': 'mdi:blinds', 'media_player': 'mdi:speaker'
+        };
+        this._updateEditingBlock('icon', iconMap[entityType] || 'mdi:cube');
       }
       
+      // 自动填充内容
       const unit = entity.attributes?.unit_of_measurement || '';
       const stateDisplay = unit ? `${entity.state} ${unit}` : entity.state;
-      this._updateEditingField('content', stateDisplay);
+      this._updateEditingBlock('content', stateDisplay);
     }
   }
 
-  _updateEditingField(key, value) {
-    if (this._editingConfig) {
-      this._editingConfig[key] = value;
+  _updateEditingBlock(key, value) {
+    if (this._editingBlockConfig) {
+      // 更新编辑配置
+      this._editingBlockConfig[key] = value;
       this.requestUpdate();
     }
   }
 
   _saveEdit() {
-    if (this._editingConfig && this._editingBlockId) {
-      // 关键修复：保存时用编辑配置覆盖原配置
-      this.config.blocks[this._editingBlockId] = { ...this._editingConfig };
-      this._editingConfig = null;
+    if (this._editingBlockId && this._editingBlockConfig) {
+      // 关键修复：创建全新的配置对象
+      const newConfig = {
+        ...this.config,
+        blocks: {
+          ...this.config.blocks,
+          [this._editingBlockId]: { ...this._editingBlockConfig }
+        }
+      };
+      
+      // 提交新配置
+      this._submitConfigChange(newConfig);
+      
+      // 重置编辑状态
       this._editingBlockId = null;
-      this._notifyConfigUpdate();
+      this._editingBlockConfig = null;
     }
   }
 
   _cancelEdit() {
-    this._editingConfig = null;
+    // 直接丢弃编辑配置，不保存
     this._editingBlockId = null;
+    this._editingBlockConfig = null;
     this.requestUpdate();
   }
 
   _addBlock() {
     const blockId = `block_${Date.now()}`;
     
-    if (!this.config.blocks) {
-      this.config.blocks = {};
-    }
-    
-    const newBlock = {
+    // 创建新块配置
+    const newBlockConfig = {
       area: 'content',
       entity: '',
       icon: 'mdi:text-box',
       content: '请配置内容...'
     };
     
-    this.config.blocks[blockId] = newBlock;
-    // 关键修复：新块也使用独立的编辑配置
-    this._editingConfig = JSON.parse(JSON.stringify(newBlock));
-    this._editingBlockId = blockId;
+    // 创建全新配置对象
+    const newConfig = {
+      ...this.config,
+      blocks: {
+        ...this.config.blocks,
+        [blockId]: newBlockConfig
+      }
+    };
     
-    this._notifyConfigUpdate();
+    // 提交新配置
+    this._submitConfigChange(newConfig);
+    
+    // 进入编辑状态
+    this._editingBlockConfig = JSON.parse(JSON.stringify(newBlockConfig));
+    this._editingBlockId = blockId;
   }
 
   _deleteBlock(e, blockId) {
@@ -639,21 +668,30 @@ class BlockManagement extends LitElement {
     
     if (!confirm('确定要删除这个块吗？')) return;
     
-    delete this.config.blocks[blockId];
+    // 创建删除后的新配置
+    const newBlocks = { ...this.config.blocks };
+    delete newBlocks[blockId];
     
+    const newConfig = {
+      ...this.config,
+      blocks: newBlocks
+    };
+    
+    // 提交新配置
+    this._submitConfigChange(newConfig);
+    
+    // 如果删除的是正在编辑的块，重置编辑状态
     if (this._editingBlockId === blockId) {
-      this._editingConfig = null;
       this._editingBlockId = null;
+      this._editingBlockConfig = null;
     }
-    
-    this._notifyConfigUpdate();
   }
 
-  _notifyConfigUpdate() {
+  _submitConfigChange(newConfig) {
+    // 关键修复：使用全新的配置对象
     this.dispatchEvent(new CustomEvent('config-changed', {
-      detail: { config: this.config }
+      detail: { config: newConfig }
     }));
-    this.requestUpdate(); // 确保重新渲染
   }
 }
 
