@@ -7,6 +7,7 @@ class BlockList extends LitElement {
     config: { type: Object },
     hass: { type: Object },
     editingState: { type: Object },
+    blocksVersion: { type: Number }, // 新增：监听版本号
     _touchStartX: { state: true },
     _swipeThreshold: { state: true }
   };
@@ -285,9 +286,12 @@ class BlockList extends LitElement {
     this._swipeThreshold = 50;
   }
 
-  // 监听 hass 状态变化
+  // 监听版本号变化，强制重新渲染
   updated(changedProperties) {
-    if (changedProperties.has('hass') || changedProperties.has('config')) {
+    if (changedProperties.has('blocksVersion') || 
+        changedProperties.has('hass') || 
+        changedProperties.has('config')) {
+      // 版本号变化时强制重新渲染
       this.requestUpdate();
     }
   }
