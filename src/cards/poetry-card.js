@@ -11,25 +11,25 @@ class PoetryCard extends BaseCard {
           type: 'text',
           content: '静夜思',
           area: 'header',
-          style: 'font-size: 1.4em; font-weight: 600; text-align: center; color: var(--cf-primary-color);'
+          class: 'poetry-title'
         },
         poetry_dynasty_author: {
           type: 'text',
           content: '唐 — 李白',
           area: 'header',
-          style: 'font-size: 0.95em; color: var(--cf-text-secondary); text-align: center; margin-top: 4px;'
+          class: 'poetry-dynasty-author'
         },
         poetry_content: {
           type: 'text',
           content: '床前明月光，疑是地上霜。\n举头望明月，低头思故乡。',
           area: 'content',
-          style: 'font-family: "楷体", "STKaiti", serif; font-size: 1.2em; line-height: 1.8; text-align: center; white-space: pre-line;'
+          class: 'poetry-content'
         },
         poetry_translation: {
           type: 'text',
           content: '',
           area: 'content',
-          style: 'margin-top: 1em; padding-top: 1em; border-top: 1px solid var(--cf-border); font-size: 0.9em; color: var(--cf-text-secondary); line-height: 1.6; white-space: pre-line;'
+          class: 'poetry-translation'
         }
       },
       show_title: true,
@@ -38,7 +38,7 @@ class PoetryCard extends BaseCard {
       font_family: '楷体',
       font_size: '中号',
       text_color: '#212121',
-      text_align: '居中'
+      text_align: 'center'
     };
   }
 
@@ -55,55 +55,72 @@ class PoetryCard extends BaseCard {
 
   _applyDynamicConfig(config, hass, entities) {
     const blocks = config.blocks;
-    // 朝代+作者
-    if (config.show_dynasty_author && blocks.poetry_dynasty_author) {
-      const dynasty = hass?.states[entities?.poetry_dynasty]?.state || '唐';
-      const author = hass?.states[entities?.poetry_author]?.state || '李白';
-      blocks.poetry_dynasty_author.content = `${dynasty} — ${author}`;
-    }
+
     // 标题
     if (config.show_title && blocks.poetry_title) {
       blocks.poetry_title.content = hass?.states[entities?.poetry_title]?.state || '静夜思';
     }
+
+    // 朝代 + 作者（两实体）
+    if (config.show_dynasty_author && blocks.poetry_dynasty_author) {
+      const dynasty = hass?.states[entities?.poetry_dynasty]?.state || '唐';
+      const author  = hass?.states[entities?.poetry_author]?.state   || '李白';
+      blocks.poetry_dynasty_author.content = `${dynasty} — ${author}`;
+    }
+
     // 正文
     if (blocks.poetry_content) {
       blocks.poetry_content.content = hass?.states[entities?.poetry_content]?.state || blocks.poetry_content.content;
     }
+
     // 译文
     if (config.show_translation && blocks.poetry_translation) {
       blocks.poetry_translation.content = hass?.states[entities?.poetry_translation]?.state || '';
     } else {
-      blocks.poetry_translation.style += '; display: none;';
+      blocks.poetry_translation.class += ' hidden';
     }
-    // 外观
-    this._applyDisplayConfig(config);
+
+    this._applyDisplayClass(config);
   }
 
-  _applyDisplayConfig(config) {
-    const blocks = config.blocks;
-    if (!config.show_title && blocks.poetry_title) {
-      blocks.poetry_title.style += '; display: none;';
-    }
-    if (!config.show_dynasty_author && blocks.poetry_dynasty_author) {
-      blocks.poetry_dynasty_author.style += '; display: none;';
-    }
-    const fontFamily = { '楷体': '"楷体","STKaiti",serif', '宋体': '"宋体",serif', '系统默认': 'inherit' }[config.font_family] || '"楷体",serif';
-    const fontSize = { '小号': '1em', '中号': '1.2em', '大号': '1.5em' }[config.font_size] || '1.2em';
-    const textAlign = { '左对齐': 'left', '居中': 'center', '右对齐': 'right' }[config.text_align] || 'center';
-    blocks.poetry_content.style = blocks.poetry_content.style
-      .replace(/font-family:[^;]+;/, `font-family: ${fontFamily};`)
-      .replace(/font-size:[^;]+;/, `font-size: ${fontSize};`)
-      .replace(/text-align:[^;]+;/, `text-align: ${textAlign};`)
-      .replace(/color:[^;]+;/, `color: ${config.text_color};`);
+  _applyDisplayClass(config) {
+    const fontFamily = { '楷体': 'kf-kai', '宋体': 'kf-song', '系统默认': '' }[config.font_family] || 'kf-kai';
+    const fontSize   = { '小号': 'kf-small', '中号': 'kf-medium', '大号': 'kf-large' }[config.font_size] || 'kf-medium';
+    const textAlign  = { '左对齐': 'kf-left', '居中': 'kf-center', '右对齐': 'kf-right' }[config.text_align] || 'kf-center';
+
+    // 把类挂到最外层卡片，统一控制
+    this.className = [
+      'poetry-card',
+      fontFamily,
+      fontSize,
+      textAlign
+    ].join(' ');
+
+    // 文字颜色用变量，避免行间样式被覆盖
+    this.style.setProperty('--poetry-text-color', config.text_color);
   }
 
   static styles(config) {
     return `
-      .poetry-card .cardforge-area{padding: var(--cf-spacing-lg);}
-      .poetry-card .area-header{display: flex; flex-direction: column; align-items: center; gap: var(--cf-spacing-sm); margin-bottom: var(--cf-spacing-lg);}
+      .poetry-card{--poetry-text-color:#212121;}
+      .poetry-card.kf-kai .poetry-content{font-family:"楷体","STKaiti",serif;}
+      .poetry-card.kf-song .poetry-content{font-family:"宋体","SimSun",serif;}
+      .poetry-card.kf-small .poetry-content{font-size:1em;}
+      .poetry-card.kf-medium .poetry-content{font-size:1.2em;}
+      .poetry-card.kf-large .poetry-content{font-size:1.5em;}
+      .poetry-card.kf-left .poetry-content{text-align:left;}
+      .poetry-card.kf-center .poetry-content{text-align:center;}
+      .poetry-card.kf-right .poetry-content{text-align:right;}
+
+      .poetry-title{color:var(--cf-primary-color);}
+      .poetry-dynasty-author{color:var(--cf-text-secondary);}
+      .poetry-content{color:var(--poetry-text-color);line-height:1.8;white-space:pre-line;}
+      .poetry-translation{border-top:1px solid var(--cf-border);margin-top:1em;padding-top:1em;font-size:0.9em;color:var(--cf-text-secondary);line-height:1.6;white-space:pre-line;}
+      .poetry-translation.hidden{display:none;}
+
+      .poetry-card .area-header{display:flex;flex-direction:column;align-items:center;gap:4px;margin-bottom:var(--cf-spacing-lg);}
       @container cardforge-container (max-width: 400px) {
-        .poetry-card .cardforge-area{padding: var(--cf-spacing-md);}
-        .poetry-card .block-content{font-size: 0.9em;}
+        .poetry-card .area-header{margin-bottom:var(--cf-spacing-md);}
       }
     `;
   }
@@ -112,10 +129,10 @@ class PoetryCard extends BaseCard {
 PoetryCard.manifest = {
   id: 'poetry-card',
   name: '诗词卡片',
-  description: '显示经典诗词，支持动态内容',
+  description: '显示经典诗词，支持双实体朝代作者',
   icon: '📜',
   category: '文化',
-  version: '1.1.0',
+  version: '1.2.0',
   author: 'CardForge',
   config_schema: {
     show_title: { type: 'boolean', label: '显示标题', default: true },

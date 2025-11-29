@@ -20,57 +20,49 @@ class CardEditor extends LitElement {
     _cardSchema: { state: true },
   };
 
-  static styles = [
-    designSystem,
-    css`
-      .editor-container {
-        background: var(--cf-background);
-        border-radius: var(--cf-radius-lg);
-        border: 1px solid var(--cf-border);
-        box-shadow: var(--cf-shadow-sm);
-        overflow: hidden;
-        min-height: 500px;
-      }
-      .editor-layout {
-        display: flex;
-        flex-direction: column;
-        gap: 0;
-      }
+  static styles = [designSystem, css`
+    .editor-container {
+      background: var(--cf-background);
+      border-radius: var(--cf-radius-lg);
+      border: 1px solid var(--cf-border);
+      box-shadow: var(--cf-shadow-sm);
+      overflow: hidden;
+      min-height: 500px;
+    }
+    .editor-layout {
+      display: flex;
+      flex-direction: column;
+      gap: 0;
+    }
+    .editor-section {
+      background: var(--cf-surface);
+      padding: var(--cf-spacing-lg);
+      border-bottom: 1px solid var(--cf-border);
+    }
+    .editor-section:last-child {
+      border-bottom: none;
+    }
+    .section-header {
+      display: flex;
+      align-items: center;
+      gap: var(--cf-spacing-md);
+      margin-bottom: var(--cf-spacing-lg);
+      padding: var(--cf-spacing-md);
+      background: rgba(var(--cf-rgb-primary), 0.05);
+      border-radius: var(--cf-radius-md);
+      border-left: 4px solid var(--cf-primary-color);
+    }
+    .section-title {
+      font-size: 1.1em;
+      font-weight: 600;
+      color: var(--cf-text-primary);
+    }
+    @media (max-width: 768px) {
       .editor-section {
-        background: var(--cf-surface);
-        padding: var(--cf-spacing-lg);
-        border-bottom: 1px solid var(--cf-border);
-      }
-      .editor-section:last-child {
-        border-bottom: none;
-      }
-      .section-header {
-        display: flex;
-        align-items: center;
-        gap: var(--cf-spacing-md);
-        margin-bottom: var(--cf-spacing-lg);
         padding: var(--cf-spacing-md);
-        background: rgba(var(--cf-rgb-primary), 0.05);
-        border-radius: var(--cf-radius-md);
-        border-left: 4px solid var(--cf-primary-color);
       }
-      .section-title {
-        font-size: 1.1em;
-        font-weight: 600;
-        color: var(--cf-text-primary);
-      }
-      @media (max-width: 768px) {
-        .editor-section {
-          padding: var(--cf-spacing-md);
-        }
-      }
-
-      /* ===== 预览卡片容器 ===== */
-      .preview-card {
-        margin-top: var(--cf-spacing-lg);
-      }
-    `,
-  ];
+    }
+  `];
 
   constructor() {
     super();
@@ -98,13 +90,11 @@ class CardEditor extends LitElement {
     if (this.config.card_type) this._loadCardInstance();
   }
 
-  /* ① 必须用 HA 传进来的最新 config，不复用 stub！ */
   setConfig(config) {
-    this.config = { ...config };          // immutable 触发更新
+    this.config = { ...config };
     this._loadCardInstance();
   }
 
-  /* ---------- 渲染 ---------- */
   render() {
     if (!this._initialized) return this._renderLoading();
 
@@ -115,9 +105,7 @@ class CardEditor extends LitElement {
           ${this.config.card_type ? this._renderThemeSection() : ''}
           ${this.config.card_type && this._cardSchema ? this._renderCardSettings() : ''}
           ${this.config.card_type ? this._renderBlockManagement() : ''}
-
-          <!-- ② 实时预览：把最新 config/hass 原样喂给预览卡片 -->
-          ${this.config.card_type ? this._renderPreview() : ''}
+          <!-- 官方预览窗已满足，不再内置实时预览 -->
         </div>
       </div>
     `;
@@ -200,28 +188,10 @@ class CardEditor extends LitElement {
     `;
   }
 
-  /* ② 实时预览：永远用当前最新 config/hass */
-  _renderPreview() {
-    return html`
-      <div class="editor-section preview-card">
-        <div class="section-header">
-          <ha-icon icon="mdi:eye"></ha-icon>
-          <span class="section-title">实时预览</span>
-        </div>
-        <ha-cardforge-card
-          .hass=${this.hass}
-          .config=${this.config}
-        ></ha-cardforge-card>
-      </div>
-    `;
-  }
-
-  /* ---------- 事件 ---------- */
   _onCardChanged(e) {
     const cardType = e.detail.cardId;
     this.config = { ...this.config, card_type: cardType };
     this._loadCardInstance();
-    /* 自动填充默认 areas/blocks */
     const cardInstance = cardRegistry.createCardInstance(cardType);
     if (cardInstance) {
       const defaultConfig = cardInstance.getDefaultConfig();
@@ -236,7 +206,7 @@ class CardEditor extends LitElement {
   }
 
   _onConfigChanged(e) {
-    this.config = { ...e.detail.config };   // ③ immutable 更新
+    this.config = { ...e.detail.config };
     this._notifyConfigUpdate();
   }
 
@@ -269,7 +239,6 @@ class CardEditor extends LitElement {
       .sort((a, b) => a.label.localeCompare(b.label));
   }
 
-  /* ---------- HA 调用：保存时取配置 ---------- */
   getConfig() {
     return this.config;
   }
