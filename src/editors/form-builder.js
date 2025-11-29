@@ -17,27 +17,39 @@ class FormBuilder extends LitElement {
         width: 100%;
       }
       
-      .form-grid {
+      /* 开关项组 - 水平排列 */
+      .boolean-group {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 16px;
+        margin-bottom: 20px;
+        padding-bottom: 16px;
+        border-bottom: 1px solid var(--cf-border);
+      }
+      
+      .boolean-item {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        padding: 8px 12px;
+        background: var(--cf-surface);
+        border: 1px solid var(--cf-border);
+        border-radius: 8px;
+      }
+      
+      /* 其他字段组 - 2列网格 */
+      .fields-grid {
         display: grid;
         grid-template-columns: 1fr 1fr;
         gap: 16px;
         width: 100%;
       }
       
-      .form-cell {
+      .field-cell {
         display: flex;
         flex-direction: column;
         gap: 8px;
         min-width: 0;
-      }
-      
-      /* 布尔字段样式 - 紧凑布局 */
-      .boolean-cell {
-        display: flex;
-        align-items: center;
-        gap: 12px;
-        min-height: auto;
-        padding: 0;
       }
       
       .field-description {
@@ -70,9 +82,14 @@ class FormBuilder extends LitElement {
         margin-bottom: 12px;
       }
       
-      /* 响应式设计 - 只在很窄的屏幕才切换为单列 */
+      /* 响应式设计 */
       @media (max-width: 480px) {
-        .form-grid {
+        .boolean-group {
+          grid-template-columns: 1fr;
+          gap: 12px;
+        }
+        
+        .fields-grid {
           grid-template-columns: 1fr;
           gap: 12px;
         }
@@ -105,34 +122,54 @@ class FormBuilder extends LitElement {
       return this._renderEmptyState();
     }
 
-    // 获取所有字段并按类型排序：布尔类型优先
-    const fields = Object.entries(this.schema).sort(([, fieldA], [, fieldB]) => {
-      // 布尔类型排在最前面
-      if (fieldA.type === 'boolean' && fieldB.type !== 'boolean') return -1;
-      if (fieldA.type !== 'boolean' && fieldB.type === 'boolean') return 1;
-      return 0; // 保持原有顺序
-    });
+    // 分离布尔字段和其他字段
+    const booleanFields = Object.entries(this.schema).filter(([, field]) => field.type === 'boolean');
+    const otherFields = Object.entries(this.schema).filter(([, field]) => field.type !== 'boolean');
     
-    // 将字段分成每2个一组
+    return html`
+      <div class="form-builder">
+        <!-- 开关项组 -->
+        ${booleanFields.length > 0 ? html`
+          <div class="boolean-group">
+            ${booleanFields.map(([key, field]) => html`
+              <div class="boolean-item">
+                <ha-switch
+                  .checked=${this.config?.[key] !== undefined ? this.config[key] : field.default}
+                  @change=${e => this._onFieldChange(key, e.target.checked)}
+                ></ha-switch>
+                <div style="font-size: 0.9em; font-weight: 500; color: var(--cf-text-primary);">
+                  ${field.label}
+                </div>
+              </div>
+            `)}
+          </div>
+        ` : ''}
+        
+        <!-- 其他字段组 -->
+        ${otherFields.length > 0 ? this._renderOtherFields(otherFields) : ''}
+      </div>
+    `;
+  }
+
+  _renderOtherFields(fields) {
+    // 将其他字段分成每2个一组
     const rows = [];
     for (let i = 0; i < fields.length; i += 2) {
       rows.push(fields.slice(i, i + 2));
     }
     
     return html`
-      <div class="form-builder">
-        <div class="form-grid">
-          ${rows.map(row => html`
-            ${row.map(([key, field]) => html`
-              <div class="form-cell ${field.type === 'boolean' ? 'boolean-cell' : ''}">
-                ${this._renderField(key, field)}
-                ${field.description ? html`
-                  <div class="field-description">${field.description}</div>
-                ` : ''}
-              </div>
-            `)}
+      <div class="fields-grid">
+        ${rows.map(row => html`
+          ${row.map(([key, field]) => html`
+            <div class="field-cell">
+              ${this._renderField(key, field)}
+              ${field.description ? html`
+                <div class="field-description">${field.description}</div>
+              ` : ''}
+            </div>
           `)}
-        </div>
+        `)}
       </div>
     `;
   }
@@ -151,27 +188,9 @@ class FormBuilder extends LitElement {
         return this._renderColorField(key, field, value);
       case 'slider':
         return this._renderSliderField(key, field, value);
-      case 'boolean':
-        return this._renderBooleanField(key, field, value);
       default:
         return this._renderTextField(key, field, value);
     }
-  }
-
-  _renderBooleanField(key, field, value) {
-    const currentValue = this.config?.[key] !== undefined ? this.config[key] : field.default;
-    
-    return html`
-      <div style="display: flex; align-items: center; gap: 12px;">
-        <ha-switch
-          .checked=${!!currentValue}
-          @change=${e => this._onFieldChange(key, e.target.checked)}
-        ></ha-switch>
-        <div style="font-size: 0.9em; font-weight: 500; color: var(--cf-text-primary);">
-          ${field.label}
-        </div>
-      </div>
-    `;
   }
 
   _renderEntityField(key, field, value) {
