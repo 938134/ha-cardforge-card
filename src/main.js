@@ -1,4 +1,5 @@
 // src/main.js
+import 'https://unpkg.com/@polymer/paper-color-picker/paper-color-picker.js?module';
 import { HaCardForgeCard } from './ha-cardforge-card.js';
 import { CardEditor } from './editors/card-editor.js';
 
@@ -18,7 +19,7 @@ if (window.customCards) {
     name: '卡片工坊',
     description: '基于插件系统的卡片工坊，支持自由布局和数据看板',
     preview: true,
-    documentationURL: 'https://github.com/your-repo/ha-cardforge-card'
+    documentationURL: 'https://github.com/938134/ha-cardforge-card'
   });
 }
 

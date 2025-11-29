@@ -170,7 +170,7 @@ class HaCardForgeCard extends LitElement {
   static getStubConfig() {
     return {
       type: 'custom:ha-cardforge-card',
-      card_type: 'welcome-card',
+      card_type: 'clock-card',
       theme: 'auto',
       areas: {},
       blocks: {}

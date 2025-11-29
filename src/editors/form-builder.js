@@ -17,45 +17,38 @@ class FormBuilder extends LitElement {
         width: 100%;
       }
 
-      /* 开关项网格布局 */
-      .grid-switches {
+      /* 统一网格布局 - 所有字段按列填充 */
+      .form-grid {
         display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-        gap: var(--cf-spacing-md);
-        margin-bottom: var(--cf-spacing-lg);
-      }
-
-      /* 样式设置网格布局 */
-      .grid-styles {
-        display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-        gap: var(--cf-spacing-md);
+        grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+        gap: 12px;
+        width: 100%;
       }
 
       .form-field {
         display: flex;
         flex-direction: column;
-        gap: var(--cf-spacing-sm);
-        min-height: 60px;
+        gap: 6px;
+        min-height: 56px;
       }
 
       /* 开关项样式 */
       .switch-field {
         display: flex;
         align-items: center;
-        gap: var(--cf-spacing-sm);
-        padding: var(--cf-spacing-sm) 0;
+        gap: 8px;
+        padding: 4px 0;
       }
 
       .switch-label {
         font-weight: 500;
-        font-size: 0.9em;
+        font-size: 0.85em;
         color: var(--cf-text-primary);
         cursor: pointer;
       }
 
-      /* 下拉框和输入框样式 */
-      .select-field, .text-field {
+      /* 下拉框样式 */
+      .select-field {
         width: 100%;
       }
 
@@ -64,12 +57,15 @@ class FormBuilder extends LitElement {
         width: 100%;
       }
 
-      .color-preview {
-        width: 24px;
-        height: 24px;
-        border-radius: var(--cf-radius-sm);
-        border: 1px solid var(--cf-border);
-        margin-right: var(--cf-spacing-sm);
+      /* 确保颜色选择器正确显示 */
+      ha-color-picker {
+        width: 100%;
+        --ha-color-picker-size: 36px;
+      }
+
+      /* 文本输入框样式 */
+      .text-field {
+        width: 100%;
       }
 
       /* 空状态 */
@@ -87,21 +83,19 @@ class FormBuilder extends LitElement {
 
       /* 移动端适配 */
       @media (max-width: 768px) {
-        .grid-switches,
-        .grid-styles {
+        .form-grid {
           grid-template-columns: 1fr;
-          gap: var(--cf-spacing-sm);
+          gap: 10px;
         }
         
         .form-field {
-          min-height: 50px;
+          min-height: 52px;
         }
       }
 
-      @media (max-width: 600px) {
-        .grid-switches,
-        .grid-styles {
-          grid-template-columns: 1fr;
+      @media (max-width: 480px) {
+        .form-grid {
+          gap: 8px;
         }
       }
     `
@@ -112,31 +106,14 @@ class FormBuilder extends LitElement {
       return this._renderEmptyState();
     }
 
-    // 分组渲染：开关项和样式设置
-    const switchFields = [];
-    const styleFields = [];
-
-    Object.entries(this.schema).forEach(([key, field]) => {
-      if (field.type === 'boolean') {
-        switchFields.push([key, field]);
-      } else {
-        styleFields.push([key, field]);
-      }
-    });
+    // 不再分组，所有字段统一渲染
+    const fields = Object.entries(this.schema);
 
     return html`
       <div class="form-builder">
-        ${switchFields.length > 0 ? html`
-          <div class="grid-switches">
-            ${switchFields.map(([key, field]) => this._renderBooleanField(key, field))}
-          </div>
-        ` : ''}
-        
-        ${styleFields.length > 0 ? html`
-          <div class="grid-styles">
-            ${styleFields.map(([key, field]) => this._renderField(key, field))}
-          </div>
-        ` : ''}
+        <div class="form-grid">
+          ${fields.map(([key, field]) => this._renderField(key, field))}
+        </div>
       </div>
     `;
   }
@@ -153,6 +130,8 @@ class FormBuilder extends LitElement {
         return this._renderSelectField(key, field, value);
       case 'color':
         return this._renderColorField(key, field, value);
+      case 'boolean':
+        return this._renderBooleanField(key, field, value);
       default:
         return this._renderTextField(key, field, value);
     }
