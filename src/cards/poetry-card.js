@@ -2,7 +2,7 @@
 import { BaseCard } from '../core/base-card.js';
 
 class PoetryCard extends BaseCard {
-  /* ① 只写一份「实体映射」*/
+  /* ① 一份表 = 默认 blocks + 编辑器下拉 */
   static get entityMap() {
     return {
       poetry_title: {
@@ -40,7 +40,7 @@ class PoetryCard extends BaseCard {
     };
   }
 
-  /* ② 自动根据 entityMap 生成默认 blocks */
+  /* ② 自动生成默认配置 */
   getDefaultConfig() {
     const blocks = {};
     const areas = { header: [], content: [], footer: [] };
@@ -57,9 +57,9 @@ class PoetryCard extends BaseCard {
       card_type: 'poetry-card',
       theme: 'auto',
       areas: {
-        header:  { layout: 'single', blocks: areas.header  },
+        header: { layout: 'single', blocks: areas.header },
         content: { layout: 'single', blocks: areas.content },
-        footer:  { layout: 'single', blocks: areas.footer  }
+        footer: { layout: 'single', blocks: areas.footer }
       },
       blocks,
       show_title: true,
@@ -76,13 +76,12 @@ class PoetryCard extends BaseCard {
     return {
       id: 'poetry-card',
       name: '诗词卡片',
-      description: '实体映射版，无硬编码 blocks',
+      description: 'entityMap 一份表生成默认块与下拉',
       icon: '📜',
       category: '文化',
-      version: '2.0.0',
+      version: '2.1.0',
       author: 'CardForge',
-      /* ③ 编辑器用同一份 entityMap 自动生成下拉 + 默认值 */
-      entity_map: this.entityMap,
+      entity_map: this.constructor.entityMap,
       config_schema: {
         show_title: { type: 'boolean', label: '显示标题', default: true },
         show_dynasty_author: { type: 'boolean', label: '显示朝代作者', default: true },
@@ -96,7 +95,7 @@ class PoetryCard extends BaseCard {
     };
   }
 
-  /* ④ 渲染时把实体值填回 block.content（同之前）*/
+  /* ③ 渲染：只填内容，不改结构 */
   _applyDynamicConfig(config, hass, entities) {
     const blocks = config.blocks;
     if (config.show_title && blocks.poetry_title) {
@@ -104,7 +103,7 @@ class PoetryCard extends BaseCard {
     }
     if (config.show_dynasty_author && blocks.poetry_dynasty_author) {
       const dynasty = hass?.states[entities?.poetry_dynasty]?.state || '唐';
-      const author  = hass?.states[entities?.poetry_author]?.state   || '李白';
+      const author = hass?.states[entities?.poetry_author]?.state || '李白';
       blocks.poetry_dynasty_author.content = `${dynasty} — ${author}`;
     }
     if (blocks.poetry_content) {
@@ -115,6 +114,36 @@ class PoetryCard extends BaseCard {
     } else {
       blocks.poetry_translation.class += ' hidden';
     }
+  }
+
+  render(config, hass, entities) {
+    const safeConfig = this._getSafeConfig(config);
+    const dynamicConfig = JSON.parse(JSON.stringify(safeConfig));
+    this._applyDynamicConfig(dynamicConfig, hass, entities);
+
+    /* ④ 外观类 + 颜色变量写进根元素字符串 */
+    const { font_family, font_size, text_align, text_color } = dynamicConfig;
+    const classStr = [
+      'poetry-card',
+      { '楷体': 'kf-kai', '宋体': 'kf-song', '系统默认': '' }[font_family] || 'kf-kai',
+      { '小号': 'kf-small', '中号': 'kf-medium', '大号': 'kf-large' }[font_size] || 'kf-medium',
+      { '左对齐': 'kf-left', '居中': 'kf-center', '右对齐': 'kf-right' }[text_align] || 'kf-center'
+    ].filter(Boolean).join(' ');
+    const styleStr = `color:${text_color};`;
+
+    const areas = this._renderAreas(dynamicConfig, hass, entities);
+    const template = `
+      <div class="${classStr}" style="${styleStr}">
+        ${areas.header}
+        ${areas.content}
+        ${areas.footer}
+      </div>
+    `;
+
+    return {
+      template,
+      styles: PoetryCard.styles(dynamicConfig)
+    };
   }
 
   static styles(config) {
