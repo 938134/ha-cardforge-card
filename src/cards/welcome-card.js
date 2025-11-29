@@ -27,7 +27,7 @@ const CARD_CONFIG = {
   config_schema: {
     show_user: {
       type: 'boolean',
-      label: '显示用户名称',
+      label: '显示用户',
       default: true
     },
     show_greeting: {
@@ -39,33 +39,6 @@ const CARD_CONFIG = {
       type: 'boolean',
       label: '显示时间',
       default: true
-    },
-    show_quote: {
-      type: 'boolean',
-      label: '显示每日一言',
-      default: true
-    },
-    font_size: {
-      type: 'select',
-      label: '字体大小',
-      options: [
-        { value: 'small', label: '小' },
-        { value: 'medium', label: '中' },
-        { value: 'large', label: '大' }
-      ],
-      default: 'medium'
-    },
-    text_color: {
-      type: 'color',
-      label: '文字颜色',
-      options: [
-        { value: 'blue', label: '蓝色' },
-        { value: 'red', label: '红色' },
-        { value: 'green', label: '绿色' },
-        { value: 'yellow', label: '黄色' },
-        { value: 'purple', label: '紫色' }
-      ],
-      default: 'blue'
     }
   }
 };
@@ -82,19 +55,18 @@ export class WelcomeCard extends BaseCard {
       card_type: CARD_CONFIG.id,
       theme: 'auto',
       ...defaultConfig,
-      // 不再使用块管理
       areas: {
         content: {
           layout: 'single',
-          blocks: ['welcome_display']
+          blocks: ['daily_quote'] // 只保留每日一言块
         }
       },
       blocks: {
-        welcome_display: {
-          type: 'welcome_display',
+        daily_quote: {
+          type: 'quote',
           area: 'content',
           entity: '',
-          content: ''
+          content: DAILY_QUOTES[0] // 默认第一条名言
         }
       }
     };
@@ -111,13 +83,22 @@ export class WelcomeCard extends BaseCard {
     // 创建配置的深拷贝，避免修改原始配置
     const dynamicConfig = JSON.parse(JSON.stringify(safeConfig));
     
-    // 生成动态内容
-    dynamicConfig.blocks.welcome_display.content = this._generateWelcomeContent(dynamicConfig, hass);
+    // 更新每日一言内容
+    const now = new Date();
+    const dailyQuote = this._getDailyQuote(now);
+    dynamicConfig.blocks.daily_quote.content = dailyQuote;
     
-    return super.render(dynamicConfig, hass, entities);
+    const dynamicContent = this._generateDynamicContent(dynamicConfig, hass);
+    const blockContent = super.render(dynamicConfig, hass, entities);
+    
+    // 合并动态内容和块内容
+    return {
+      template: this._renderTemplate(dynamicContent, blockContent.template),
+      styles: blockContent.styles + this._renderDynamicStyles()
+    };
   }
 
-  _generateWelcomeContent(config, hass) {
+  _generateDynamicContent(config, hass) {
     const now = new Date();
     const elements = [];
     
@@ -144,12 +125,6 @@ export class WelcomeCard extends BaseCard {
     if (config.show_time) {
       const timeHtml = this._formatTime(now);
       elements.push(`<div class="welcome-time">${timeHtml}</div>`);
-    }
-    
-    // 每日一言
-    if (config.show_quote) {
-      const quote = this._getDailyQuote(now);
-      elements.push(`<div class="welcome-quote">${this._escapeHtml(quote)}</div>`);
     }
     
     return elements.join('');
@@ -193,97 +168,46 @@ export class WelcomeCard extends BaseCard {
     return DAILY_QUOTES[index];
   }
 
-  _renderBlock(blockId, blockConfig, hass, entities) {
-    // 欢迎显示块特殊处理
-    if (blockConfig.type === 'welcome_display') {
-      const content = this._getBlockContent(blockConfig, hass);
-      if (!content) return '';
-      
-      return `<div class="welcome-display">${content}</div>`;
-    }
+  _renderTemplate(dynamicContent, blockTemplate) {
+    // 从块模板中提取每日一言内容
+    const quoteMatch = blockTemplate.match(/<div class="cardforge-block[^>]*>([\s\S]*?)<\/div><\/div><\/div>/);
+    const quoteContent = quoteMatch ? quoteMatch[1] : '';
     
-    return super._renderBlock(blockId, blockConfig, hass, entities);
-  }
-
-  _getBlockContent(blockConfig, hass) {
-    // 优先从实体获取内容
-    if (blockConfig.entity && hass?.states?.[blockConfig.entity]) {
-      const entity = hass.states[blockConfig.entity];
-      return entity.state || '';
-    }
-    
-    // 回退到静态内容
-    return blockConfig.content || '';
-  }
-
-  _escapeHtml(text) {
-    if (!text) return '';
-    return text
-      .replace(/&/g, '&amp;')
-      .replace(/</g, '&lt;')
-      .replace(/>/g, '&gt;')
-      .replace(/"/g, '&quot;')
-      .replace(/'/g, '&#x27;');
-  }
-
-  _renderStyles(config, themeStyles) {
-    // 安全地访问配置，提供默认值
-    const safeConfig = config || {};
-    const font_size = safeConfig.font_size || CARD_CONFIG.config_schema.font_size.default;
-    const text_color = safeConfig.text_color || CARD_CONFIG.config_schema.text_color.default;
-    
-    const colorMap = {
-      blue: '#4285f4',
-      red: '#ea4335',
-      green: '#34a853',
-      yellow: '#fbbc05',
-      purple: '#a142f4'
-    };
-    
-    const fontSizeMap = {
-      small: { greeting: '1.3em', time: '2em', quote: '0.9em' },
-      medium: { greeting: '1.5em', time: '2.5em', quote: '1em' },
-      large: { greeting: '1.8em', time: '3em', quote: '1.1em' }
-    };
-    
-    const selectedColor = colorMap[text_color] || text_color;
-    const selectedSize = fontSizeMap[font_size] || fontSizeMap.medium;
-
     return `
-      .cardforge-card {
-        ${themeStyles}
-      }
-      
-      /* 欢迎显示区域 */
-      .cardforge-area {
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        justify-content: center;
-        min-height: 140px;
-        text-align: center;
-        padding: var(--cf-spacing-lg);
-      }
-      
+      <div class="cardforge-card ${CARD_CONFIG.id}">
+        <div class="cardforge-area area-content">
+          <div class="welcome-display">
+            ${dynamicContent}
+            ${quoteContent ? `<div class="welcome-quote">${quoteContent}</div>` : ''}
+          </div>
+        </div>
+      </div>
+    `;
+  }
+
+  _renderDynamicStyles() {
+    return `
       .welcome-display {
         display: flex;
         flex-direction: column;
         align-items: center;
+        justify-content: center;
         gap: 12px;
-        color: ${selectedColor};
+        min-height: 140px;
+        text-align: center;
+        color: var(--cf-primary-color);
         font-family: 'Segoe UI', 'Roboto', 'PingFang SC', sans-serif;
-        width: 100%;
       }
       
       .welcome-greeting {
-        font-size: ${selectedSize.greeting};
+        font-size: 1.5em;
         font-weight: 400;
         line-height: 1.3;
         margin: 0;
       }
       
       .welcome-time {
-        font-size: ${selectedSize.time};
+        font-size: 2.5em;
         font-weight: 300;
         line-height: 1.2;
         margin: 0;
@@ -291,7 +215,7 @@ export class WelcomeCard extends BaseCard {
       }
       
       .welcome-quote {
-        font-size: ${selectedSize.quote};
+        font-size: 1em;
         font-weight: 300;
         line-height: 1.5;
         margin: 0;
@@ -302,31 +226,34 @@ export class WelcomeCard extends BaseCard {
       
       /* 响应式设计 */
       @container cardforge-container (max-width: 400px) {
-        .cardforge-area {
-          min-height: 120px;
-          padding: var(--cf-spacing-md);
-        }
-        
         .welcome-display {
+          min-height: 120px;
           gap: 8px;
         }
         
         .welcome-greeting {
-          font-size: ${font_size === 'large' ? '1.5em' : 
-                      font_size === 'medium' ? '1.3em' : '1.1em'};
+          font-size: 1.3em;
         }
         
         .welcome-time {
-          font-size: ${font_size === 'large' ? '2.2em' : 
-                      font_size === 'medium' ? '1.8em' : '1.5em'};
+          font-size: 2em;
         }
         
         .welcome-quote {
-          font-size: ${font_size === 'large' ? '0.95em' : 
-                      font_size === 'medium' ? '0.85em' : '0.8em'};
+          font-size: 0.9em;
         }
       }
     `;
+  }
+
+  _escapeHtml(text) {
+    if (!text) return '';
+    return text
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#x27;');
   }
 }
 

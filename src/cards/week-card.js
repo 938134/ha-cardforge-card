@@ -20,28 +20,6 @@ const CARD_CONFIG = {
       type: 'boolean',
       label: '显示周进度',
       default: true
-    },
-    ring_color: {
-      type: 'color',
-      label: '环颜色',
-      options: [
-        { value: 'blue', label: '蓝色' },
-        { value: 'red', label: '红色' },
-        { value: 'green', label: '绿色' },
-        { value: 'yellow', label: '黄色' },
-        { value: 'purple', label: '紫色' }
-      ],
-      default: 'blue'
-    },
-    font_size: {
-      type: 'select',
-      label: '字体大小',
-      options: [
-        { value: 'small', label: '小' },
-        { value: 'medium', label: '中' },
-        { value: 'large', label: '大' }
-      ],
-      default: 'medium'
     }
   }
 };
@@ -57,21 +35,7 @@ export class WeekCard extends BaseCard {
     return {
       card_type: CARD_CONFIG.id,
       theme: 'auto',
-      ...defaultConfig,
-      areas: {
-        content: {
-          layout: 'single',
-          blocks: ['week_display']
-        }
-      },
-      blocks: {
-        week_display: {
-          type: 'week_display',
-          area: 'content',
-          entity: '',
-          content: ''
-        }
-      }
+      ...defaultConfig
     };
   }
 
@@ -79,17 +43,17 @@ export class WeekCard extends BaseCard {
     return CARD_CONFIG;
   }
 
-  // 重写渲染方法，添加动态内容
+  // 重写渲染方法，直接渲染星期内容
   render(config, hass, entities) {
     const safeConfig = this._getSafeConfig(config);
     
-    // 创建配置的深拷贝，避免修改原始配置
-    const dynamicConfig = JSON.parse(JSON.stringify(safeConfig));
+    const content = this._generateWeekContent(safeConfig);
+    const styles = this._renderStyles(safeConfig, '');
     
-    // 生成动态内容
-    dynamicConfig.blocks.week_display.content = this._generateWeekContent(dynamicConfig);
-    
-    return super.render(dynamicConfig, hass, entities);
+    return {
+      template: this._renderTemplate(content),
+      styles: styles
+    };
   }
 
   _generateWeekContent(config) {
@@ -98,31 +62,21 @@ export class WeekCard extends BaseCard {
     
     // 年进度环
     if (config.show_year_progress) {
-      elements.push(this._renderYearProgress(now, config));
+      elements.push(this._renderYearProgress(now));
     }
     
     // 周进度条
     if (config.show_week_progress) {
-      elements.push(this._renderWeekProgress(now, config));
+      elements.push(this._renderWeekProgress(now));
     }
     
     return elements.join('');
   }
 
-  _renderYearProgress(date, config) {
+  _renderYearProgress(date) {
     const yearProgress = this._getYearProgress(date);
     const weekNumber = this._getWeekNumber(date);
     const dateStr = this._formatDate(date);
-    
-    const colorMap = {
-      blue: '#4285f4',
-      red: '#ea4335',
-      green: '#34a853',
-      yellow: '#fbbc05',
-      purple: '#a142f4'
-    };
-    
-    const ringColor = colorMap[config.ring_color] || config.ring_color;
     
     return `
       <div class="year-progress">
@@ -131,7 +85,7 @@ export class WeekCard extends BaseCard {
             <!-- 背景环 -->
             <circle cx="60" cy="60" r="54" stroke="#e0e0e0" stroke-width="8" fill="none"/>
             <!-- 进度环 -->
-            <circle cx="60" cy="60" r="54" stroke="${ringColor}" stroke-width="8" 
+            <circle cx="60" cy="60" r="54" stroke="var(--cf-primary-color)" stroke-width="8" 
                     fill="none" stroke-linecap="round"
                     stroke-dasharray="${2 * Math.PI * 54}" 
                     stroke-dashoffset="${2 * Math.PI * 54 * (1 - yearProgress / 100)}"
@@ -147,7 +101,7 @@ export class WeekCard extends BaseCard {
     `;
   }
 
-  _renderWeekProgress(date, config) {
+  _renderWeekProgress(date) {
     const weekDay = date.getDay(); // 0-6, 0=周日
     const weekDays = ['日', '一', '二', '三', '四', '五', '六'];
     const weekDayNames = ['星期日', '星期一', '星期二', '星期三', '星期四', '星期五', '星期六'];
@@ -209,51 +163,19 @@ export class WeekCard extends BaseCard {
     return `${year}年${month}月${day}日`;
   }
 
-  _renderBlock(blockId, blockConfig, hass, entities) {
-    // 星期显示块特殊处理
-    if (blockConfig.type === 'week_display') {
-      const content = this._getBlockContent(blockConfig, hass);
-      if (!content) return '';
-      
-      return `<div class="week-display">${content}</div>`;
-    }
-    
-    return super._renderBlock(blockId, blockConfig, hass, entities);
-  }
-
-  _getBlockContent(blockConfig, hass) {
-    // 优先从实体获取内容
-    if (blockConfig.entity && hass?.states?.[blockConfig.entity]) {
-      const entity = hass.states[blockConfig.entity];
-      return entity.state || '';
-    }
-    
-    // 回退到静态内容
-    return blockConfig.content || '';
-  }
-
-  _escapeHtml(text) {
-    if (!text) return '';
-    return text
-      .replace(/&/g, '&amp;')
-      .replace(/</g, '&lt;')
-      .replace(/>/g, '&gt;')
-      .replace(/"/g, '&quot;')
-      .replace(/'/g, '&#x27;');
+  _renderTemplate(content) {
+    return `
+      <div class="cardforge-card ${CARD_CONFIG.id}">
+        <div class="cardforge-area area-content">
+          <div class="week-display">
+            ${content}
+          </div>
+        </div>
+      </div>
+    `;
   }
 
   _renderStyles(config, themeStyles) {
-    const safeConfig = config || {};
-    const font_size = safeConfig.font_size || CARD_CONFIG.config_schema.font_size.default;
-    
-    const fontSizeMap = {
-      small: { ring: '0.8em', percent: '0.9em', day: '0.8em' },
-      medium: { ring: '0.9em', percent: '1em', day: '0.9em' },
-      large: { ring: '1em', percent: '1.1em', day: '1em' }
-    };
-    
-    const selectedSize = fontSizeMap[font_size] || fontSizeMap.medium;
-
     return `
       .cardforge-card {
         ${themeStyles}
@@ -302,8 +224,9 @@ export class WeekCard extends BaseCard {
       }
       
       .week-number {
-        font-size: ${selectedSize.ring};
+        font-size: 0.9em;
         font-weight: 600;
+        color: var(--cf-text-primary);
         margin-bottom: 4px;
       }
       
@@ -313,7 +236,7 @@ export class WeekCard extends BaseCard {
       }
       
       .year-percent {
-        font-size: ${selectedSize.percent};
+        font-size: 1em;
         font-weight: 600;
         color: var(--cf-text-primary);
       }
@@ -381,7 +304,7 @@ export class WeekCard extends BaseCard {
       }
       
       .current-day {
-        font-size: ${selectedSize.day};
+        font-size: 0.9em;
         font-weight: 600;
         color: var(--cf-accent-color);
         white-space: nowrap;
@@ -405,8 +328,7 @@ export class WeekCard extends BaseCard {
         }
         
         .week-number {
-          font-size: ${font_size === 'large' ? '0.9em' : 
-                      font_size === 'medium' ? '0.8em' : '0.7em'};
+          font-size: 0.8em;
         }
         
         .current-date {
@@ -414,8 +336,7 @@ export class WeekCard extends BaseCard {
         }
         
         .year-percent {
-          font-size: ${font_size === 'large' ? '1em' : 
-                      font_size === 'medium' ? '0.9em' : '0.8em'};
+          font-size: 0.9em;
         }
       }
     `;
