@@ -50,7 +50,8 @@ class PoetryCard extends BaseCard {
     const safeConfig = this._getSafeConfig(config);
     const dynamicConfig = JSON.parse(JSON.stringify(safeConfig));
     this._applyDynamicConfig(dynamicConfig, hass, entities);
-    // ③ 把「类名 + 颜色变量」写进根元素
+
+    // ① 计算外观类 + 颜色变量
     const { font_family, font_size, text_align, text_color } = dynamicConfig;
     const classStr = [
       'poetry-card',
@@ -58,39 +59,42 @@ class PoetryCard extends BaseCard {
       { '小号': 'kf-small', '中号': 'kf-medium', '大号': 'kf-large' }[font_size] || 'kf-medium',
       { '左对齐': 'kf-left', '居中': 'kf-center', '右对齐': 'kf-right' }[text_align] || 'kf-center'
     ].filter(Boolean).join(' ');
+
     const styleStr = `color:${text_color};`;
 
-    const renderResult = super.render(dynamicConfig, hass, entities);
-    // 把类名和变量挂在最外层<div class="cardforge-card ...">上
-    return html`
+    // ② 构建根节点字符串（无 html 标签）
+    const areas = this._renderAreas(dynamicConfig, hass, entities);
+    const template = `
       <div class="${classStr}" style="${styleStr}">
-        ${renderResult.template}
+        ${areas.header}
+        ${areas.content}
+        ${areas.footer}
       </div>
-      <style>${renderResult.styles}</style>
     `;
+
+    return {
+      template,
+      styles: PoetryCard.styles(dynamicConfig)
+    };
   }
 
   _applyDynamicConfig(config, hass, entities) {
     const blocks = config.blocks;
 
-    // 标题
     if (config.show_title && blocks.poetry_title) {
       blocks.poetry_title.content = hass?.states[entities?.poetry_title]?.state || '静夜思';
     }
 
-    // 朝代 + 作者（两实体）
     if (config.show_dynasty_author && blocks.poetry_dynasty_author) {
       const dynasty = hass?.states[entities?.poetry_dynasty]?.state || '唐';
       const author  = hass?.states[entities?.poetry_author]?.state   || '李白';
       blocks.poetry_dynasty_author.content = `${dynasty} — ${author}`;
     }
 
-    // 正文
     if (blocks.poetry_content) {
       blocks.poetry_content.content = hass?.states[entities?.poetry_content]?.state || blocks.poetry_content.content;
     }
 
-    // 译文
     if (config.show_translation && blocks.poetry_translation) {
       blocks.poetry_translation.content = hass?.states[entities?.poetry_translation]?.state || '';
     } else {
@@ -132,10 +136,10 @@ class PoetryCard extends BaseCard {
 PoetryCard.manifest = {
   id: 'poetry-card',
   name: '诗词卡片',
-  description: '双实体朝代作者，样式类+变量控制',
+  description: '双实体朝代作者，无标签，样式类控制',
   icon: '📜',
   category: '文化',
-  version: '1.3.0',
+  version: '1.4.0',
   author: 'CardForge',
   config_schema: {
     show_title: { type: 'boolean', label: '显示标题', default: true },
