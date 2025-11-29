@@ -18,10 +18,11 @@ class CardRegistry {
 
   async _discoverCards() {
     const cardModules = [
-      () => import('../cards/poetry-card.js'),
-      () => import('../cards/welcome-card.js'),
-      () => import('../cards/oil-price-card.js'),
       () => import('../cards/clock-card.js'),
+      () => import('../cards/week-card.js'),
+      () => import('../cards/welcome-card.js'),
+      () => import('../cards/poetry-card.js'),
+      () => import('../cards/oil-price-card.js'),
     ];
 
     for (const importFn of cardModules) {

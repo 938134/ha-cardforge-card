@@ -1,92 +1,25 @@
 // src/cards/welcome-card.js
 import { BaseCard } from '../core/base-card.js';
 
-class WelcomeCard extends BaseCard {
-  getDefaultConfig() {
-    return {
-      card_type: 'welcome-card',
-      theme: 'auto',
-      areas: {
-        content: {
-          layout: 'single',
-          blocks: ['welcome_message']
-        }
-      },
-      blocks: {
-        welcome_message: {
-          type: 'text',
-          title: '',
-          content: '欢迎回家！',
-          style: 'text-align: center; font-size: 1.5em; font-weight: 600;'
-        }
-      }
-    };
-  }
+// 每日一言库
+const DAILY_QUOTES = [
+  "生活就像一盒巧克力，你永远不知道下一颗是什么味道。",
+  "成功的秘诀在于对目标的执着追求。",
+  "每一天都是新的开始，把握当下，创造美好。",
+  "微笑面对生活，生活也会对你微笑。",
+  "坚持不是看到希望才坚持，而是坚持了才看到希望。",
+  "梦想不会发光，发光的是追梦的你。",
+  "简单的生活，就是最奢华的生活。",
+  "心若向阳，无畏悲伤。",
+  "时间是最好的老师，但遗憾的是，它最后把所有的学生都杀死了。",
+  "活在当下，珍惜眼前。"
+];
 
-  getManifest() {
-    return WelcomeCard.manifest;
-  }
-
-  // 重写渲染方法，添加动态欢迎语
-  render(config, hass, entities) {
-    const safeConfig = this._getSafeConfig(config);
-    
-    // 创建配置的深拷贝，避免修改原始配置
-    const dynamicConfig = JSON.parse(JSON.stringify(safeConfig));
-    
-    // 动态生成欢迎语
-    const welcomeMessage = this._generateWelcomeMessage(hass);
-    dynamicConfig.blocks.welcome_message.content = welcomeMessage;
-    
-    return super.render(dynamicConfig, hass, entities);
-  }
-
-  _generateWelcomeMessage(hass) {
-    const hour = new Date().getHours();
-    let greeting = '你好';
-    
-    if (hour >= 5 && hour < 12) {
-      greeting = '早上好';
-    } else if (hour >= 12 && hour < 14) {
-      greeting = '中午好';
-    } else if (hour >= 14 && hour < 18) {
-      greeting = '下午好';
-    } else if (hour >= 18 && hour < 22) {
-      greeting = '晚上好';
-    }
-    
-    const userName = hass?.user?.name || '朋友';
-    return `${greeting}，${userName}！`;
-  }
-
-  static styles(config) {
-    return `
-      .welcome-card .cardforge-area {
-        padding: var(--cf-spacing-xl);
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        min-height: 120px;
-      }
-      
-      .welcome-card .block-content {
-        text-align: center;
-      }
-      
-      @container cardforge-container (max-width: 400px) {
-        .welcome-card .cardforge-area {
-          padding: var(--cf-spacing-lg);
-          min-height: 100px;
-        }
-      }
-    `;
-  }
-}
-
-WelcomeCard.manifest = {
+// 统一的配置定义
+const CARD_CONFIG = {
   id: 'welcome-card',
   name: '欢迎卡片',
-  description: '个性化欢迎信息，根据时间动态问候',
+  description: '个性化欢迎信息，根据时间动态问候，支持每日一言',
   icon: '👋',
   category: '信息',
   version: '1.0.0',
@@ -97,14 +30,307 @@ WelcomeCard.manifest = {
       label: '显示用户名称',
       default: true
     },
-    use_time_based: {
+    show_greeting: {
       type: 'boolean',
-      label: '根据时间问候',
+      label: '显示问候语',
       default: true
+    },
+    show_time: {
+      type: 'boolean',
+      label: '显示时间',
+      default: true
+    },
+    show_quote: {
+      type: 'boolean',
+      label: '显示每日一言',
+      default: true
+    },
+    font_size: {
+      type: 'select',
+      label: '字体大小',
+      options: [
+        { value: 'small', label: '小' },
+        { value: 'medium', label: '中' },
+        { value: 'large', label: '大' }
+      ],
+      default: 'medium'
+    },
+    text_color: {
+      type: 'color',
+      label: '文字颜色',
+      options: [
+        { value: 'blue', label: '蓝色' },
+        { value: 'red', label: '红色' },
+        { value: 'green', label: '绿色' },
+        { value: 'yellow', label: '黄色' },
+        { value: 'purple', label: '紫色' }
+      ],
+      default: 'blue'
     }
-  },
-  styles: WelcomeCard.styles
+  }
 };
 
-export { WelcomeCard as default, WelcomeCard };
-export const manifest = WelcomeCard.manifest;
+export class WelcomeCard extends BaseCard {
+  getDefaultConfig() {
+    // 从config_schema生成默认配置
+    const defaultConfig = {};
+    Object.entries(CARD_CONFIG.config_schema).forEach(([key, field]) => {
+      defaultConfig[key] = field.default !== undefined ? field.default : '';
+    });
+
+    return {
+      card_type: CARD_CONFIG.id,
+      theme: 'auto',
+      ...defaultConfig,
+      // 不再使用块管理
+      areas: {
+        content: {
+          layout: 'single',
+          blocks: ['welcome_display']
+        }
+      },
+      blocks: {
+        welcome_display: {
+          type: 'welcome_display',
+          area: 'content',
+          entity: '',
+          content: ''
+        }
+      }
+    };
+  }
+
+  getManifest() {
+    return CARD_CONFIG;
+  }
+
+  // 重写渲染方法，添加动态内容
+  render(config, hass, entities) {
+    const safeConfig = this._getSafeConfig(config);
+    
+    // 创建配置的深拷贝，避免修改原始配置
+    const dynamicConfig = JSON.parse(JSON.stringify(safeConfig));
+    
+    // 生成动态内容
+    dynamicConfig.blocks.welcome_display.content = this._generateWelcomeContent(dynamicConfig, hass);
+    
+    return super.render(dynamicConfig, hass, entities);
+  }
+
+  _generateWelcomeContent(config, hass) {
+    const now = new Date();
+    const elements = [];
+    
+    // 问候语和用户名称
+    if (config.show_greeting || config.show_user) {
+      const greeting = this._getGreeting(now);
+      const userName = this._getUserName(hass);
+      
+      let greetingText = '';
+      if (config.show_greeting && config.show_user) {
+        greetingText = `${greeting}，${userName}`;
+      } else if (config.show_greeting) {
+        greetingText = greeting;
+      } else if (config.show_user) {
+        greetingText = userName;
+      }
+      
+      if (greetingText) {
+        elements.push(`<div class="welcome-greeting">${this._escapeHtml(greetingText)}</div>`);
+      }
+    }
+    
+    // 时间显示
+    if (config.show_time) {
+      const timeHtml = this._formatTime(now);
+      elements.push(`<div class="welcome-time">${timeHtml}</div>`);
+    }
+    
+    // 每日一言
+    if (config.show_quote) {
+      const quote = this._getDailyQuote(now);
+      elements.push(`<div class="welcome-quote">${this._escapeHtml(quote)}</div>`);
+    }
+    
+    return elements.join('');
+  }
+
+  _getGreeting(date) {
+    const hour = date.getHours();
+    
+    if (hour >= 5 && hour < 12) {
+      return '早上好';
+    } else if (hour >= 12 && hour < 14) {
+      return '中午好';
+    } else if (hour >= 14 && hour < 18) {
+      return '下午好';
+    } else if (hour >= 18 && hour < 22) {
+      return '晚上好';
+    } else {
+      return '你好';
+    }
+  }
+
+  _getUserName(hass) {
+    return hass?.user?.name || '朋友';
+  }
+
+  _formatTime(date) {
+    const hours = date.getHours().toString().padStart(2, '0');
+    const minutes = date.getMinutes().toString().padStart(2, '0');
+    return `${hours}:${minutes}`;
+  }
+
+  _getDailyQuote(date) {
+    // 根据日期生成一个稳定的索引，确保同一天显示相同的名言
+    const dateStr = date.toDateString();
+    let hash = 0;
+    for (let i = 0; i < dateStr.length; i++) {
+      hash = ((hash << 5) - hash) + dateStr.charCodeAt(i);
+      hash = hash & hash;
+    }
+    const index = Math.abs(hash) % DAILY_QUOTES.length;
+    return DAILY_QUOTES[index];
+  }
+
+  _renderBlock(blockId, blockConfig, hass, entities) {
+    // 欢迎显示块特殊处理
+    if (blockConfig.type === 'welcome_display') {
+      const content = this._getBlockContent(blockConfig, hass);
+      if (!content) return '';
+      
+      return `<div class="welcome-display">${content}</div>`;
+    }
+    
+    return super._renderBlock(blockId, blockConfig, hass, entities);
+  }
+
+  _getBlockContent(blockConfig, hass) {
+    // 优先从实体获取内容
+    if (blockConfig.entity && hass?.states?.[blockConfig.entity]) {
+      const entity = hass.states[blockConfig.entity];
+      return entity.state || '';
+    }
+    
+    // 回退到静态内容
+    return blockConfig.content || '';
+  }
+
+  _escapeHtml(text) {
+    if (!text) return '';
+    return text
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#x27;');
+  }
+
+  _renderStyles(config, themeStyles) {
+    // 安全地访问配置，提供默认值
+    const safeConfig = config || {};
+    const font_size = safeConfig.font_size || CARD_CONFIG.config_schema.font_size.default;
+    const text_color = safeConfig.text_color || CARD_CONFIG.config_schema.text_color.default;
+    
+    const colorMap = {
+      blue: '#4285f4',
+      red: '#ea4335',
+      green: '#34a853',
+      yellow: '#fbbc05',
+      purple: '#a142f4'
+    };
+    
+    const fontSizeMap = {
+      small: { greeting: '1.3em', time: '2em', quote: '0.9em' },
+      medium: { greeting: '1.5em', time: '2.5em', quote: '1em' },
+      large: { greeting: '1.8em', time: '3em', quote: '1.1em' }
+    };
+    
+    const selectedColor = colorMap[text_color] || text_color;
+    const selectedSize = fontSizeMap[font_size] || fontSizeMap.medium;
+
+    return `
+      .cardforge-card {
+        ${themeStyles}
+      }
+      
+      /* 欢迎显示区域 */
+      .cardforge-area {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        min-height: 140px;
+        text-align: center;
+        padding: var(--cf-spacing-lg);
+      }
+      
+      .welcome-display {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 12px;
+        color: ${selectedColor};
+        font-family: 'Segoe UI', 'Roboto', 'PingFang SC', sans-serif;
+        width: 100%;
+      }
+      
+      .welcome-greeting {
+        font-size: ${selectedSize.greeting};
+        font-weight: 400;
+        line-height: 1.3;
+        margin: 0;
+      }
+      
+      .welcome-time {
+        font-size: ${selectedSize.time};
+        font-weight: 300;
+        line-height: 1.2;
+        margin: 0;
+        letter-spacing: 1px;
+      }
+      
+      .welcome-quote {
+        font-size: ${selectedSize.quote};
+        font-weight: 300;
+        line-height: 1.5;
+        margin: 0;
+        max-width: 90%;
+        opacity: 0.9;
+        font-style: italic;
+      }
+      
+      /* 响应式设计 */
+      @container cardforge-container (max-width: 400px) {
+        .cardforge-area {
+          min-height: 120px;
+          padding: var(--cf-spacing-md);
+        }
+        
+        .welcome-display {
+          gap: 8px;
+        }
+        
+        .welcome-greeting {
+          font-size: ${font_size === 'large' ? '1.5em' : 
+                      font_size === 'medium' ? '1.3em' : '1.1em'};
+        }
+        
+        .welcome-time {
+          font-size: ${font_size === 'large' ? '2.2em' : 
+                      font_size === 'medium' ? '1.8em' : '1.5em'};
+        }
+        
+        .welcome-quote {
+          font-size: ${font_size === 'large' ? '0.95em' : 
+                      font_size === 'medium' ? '0.85em' : '0.8em'};
+        }
+      }
+    `;
+  }
+}
+
+// 导出统一的manifest
+export const manifest = CARD_CONFIG;
+
+export default WelcomeCard;
