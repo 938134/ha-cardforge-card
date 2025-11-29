@@ -246,18 +246,17 @@ export class PoetryCard extends BaseCard {
       
       /* 朝代和作者在同一行显示 */
       .poetry-dynasty-author-container {
-        text-align: center;
-        margin-bottom: var(--cf-spacing-md);
         display: flex;
         justify-content: center;
         align-items: center;
         gap: var(--cf-spacing-xs);
-        flex-wrap: wrap;
+        margin-bottom: var(--cf-spacing-md);
+        text-align: center;
       }
       
       .poetry-dynasty-block,
       .poetry-author-block {
-        display: inline-block;
+        display: inline;
         margin: 0;
       }
       
@@ -299,6 +298,7 @@ export class PoetryCard extends BaseCard {
         margin-top: var(--cf-spacing-md);
       }
       
+      /* 移动端适配 */
       @container cardforge-container (max-width: 768px) {
         .poetry-title {
           font-size: ${font_size === 'large' ? '1.2em' : 
@@ -375,12 +375,12 @@ export class PoetryCard extends BaseCard {
       <div class="cardforge-block poetry-dynasty-author-container">
         ${dynastyContent ? `
           <div class="poetry-dynasty-block">
-            <div class="poetry-dynasty">${this._escapeHtml(dynastyContent)}</div>
+            <span class="poetry-dynasty">${this._escapeHtml(dynastyContent)}</span>
           </div>
         ` : ''}
         ${authorContent ? `
           <div class="poetry-author-block">
-            <div class="poetry-author">${this._escapeHtml(authorContent)}</div>
+            <span class="poetry-author">${this._escapeHtml(authorContent)}</span>
           </div>
         ` : ''}
       </div>
