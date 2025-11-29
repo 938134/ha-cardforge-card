@@ -105,7 +105,6 @@ class CardEditor extends LitElement {
           ${this.config.card_type ? this._renderThemeSection() : ''}
           ${this.config.card_type && this._cardSchema ? this._renderCardSettings() : ''}
           ${this.config.card_type ? this._renderBlockManagement() : ''}
-          <!-- 官方预览窗已满足，不再内置实时预览 -->
         </div>
       </div>
     `;
@@ -192,10 +191,16 @@ class CardEditor extends LitElement {
     const cardType = e.detail.cardId;
     this.config = { ...this.config, card_type: cardType };
     this._loadCardInstance();
+    
     const cardInstance = cardRegistry.createCardInstance(cardType);
     if (cardInstance) {
       const defaultConfig = cardInstance.getDefaultConfig();
-      this.config = { ...this.config, areas: defaultConfig.areas, blocks: defaultConfig.blocks };
+      // 合并配置，保留用户已有的 blocks，如果没有则使用默认 blocks
+      this.config = { 
+        ...this.config, 
+        ...defaultConfig,
+        blocks: this.config.blocks || defaultConfig.blocks
+      };
     }
     this._notifyConfigUpdate();
   }
@@ -206,7 +211,10 @@ class CardEditor extends LitElement {
   }
 
   _onConfigChanged(e) {
-    this.config = { ...e.detail.config };
+    // 正确处理配置更新，支持部分配置更新
+    if (e.detail.config && typeof e.detail.config === 'object') {
+      this.config = { ...this.config, ...e.detail.config };
+    }
     this._notifyConfigUpdate();
   }
 
@@ -217,7 +225,12 @@ class CardEditor extends LitElement {
 
   _loadCardInstance() {
     this._selectedCard = cardRegistry.getCard(this.config.card_type);
-    this._cardSchema = this._selectedCard?.manifest?.config_schema || null;
+    if (this._selectedCard) {
+      // 正确获取配置架构
+      this._cardSchema = this._selectedCard.manifest?.config_schema || null;
+    } else {
+      this._cardSchema = null;
+    }
   }
 
   updated(changedProperties) {

@@ -225,7 +225,18 @@ export const manifest = {
   icon: '📜',
   category: '文化',
   author: 'CardForge',
-  version: '1.0.0'
+  version: '1.0.0',
+  config_schema: {
+    show_title: { type: 'boolean', label: '显示标题', default: true },
+    show_dynasty: { type: 'boolean', label: '显示朝代', default: true },
+    show_author: { type: 'boolean', label: '显示作者', default: true },
+    show_content: { type: 'boolean', label: '显示全文', default: true },
+    show_translation: { type: 'boolean', label: '显示译文', default: false },
+    font_family: { type: 'select', label: '诗词字体', options: ['default', '书法字体', '宋体', '楷体', '黑体'], default: 'default' },
+    font_size: { type: 'select', label: '文字大小', options: ['small', 'medium', 'large'], default: 'medium' },
+    text_color: { type: 'color', label: '文字颜色', default: '#333333' },
+    text_align: { type: 'select', label: '对齐方式', options: ['left', 'center', 'right'], default: 'center' }
+  }
 };
 
 export default PoetryCard;
