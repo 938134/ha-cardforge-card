@@ -13,29 +13,247 @@ class BlockManagement extends LitElement {
     designSystem,
     css`
       .block-management{width:100%}
-      .block-list{display:flex;flex-direction:column;gap:var(--cf-spacing-xs)}   /* 紧凑间距 */
-      .block-item{display:grid;grid-template-columns:40px 50px 1fr 80px;gap:var(--cf-spacing-sm);align-items:center;background:var(--cf-surface);border:2px solid transparent;border-radius:var(--cf-radius-md);padding:var(--cf-spacing-sm);min-height:60px;cursor:pointer}
-      .block-item.editing{border-color:var(--cf-primary-color);background:rgba(var(--cf-rgb-primary),0.05)}
-      .area-badge{display:flex;align-items:center;justify-content:center}
-      .area-letter{width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:.9em;font-weight:700;color:white}
-      .area-letter.header{background:#2196F3}.area-letter.content{background:#4CAF50}.area-letter.footer{background:#FF9800}
-      .block-icon{width:40px;height:40px;border-radius:var(--cf-radius-md);background:rgba(var(--cf-rgb-primary),0.1);display:flex;align-items:center;justify-content:center;font-size:1.3em}
-      .block-info{display:flex;flex-direction:column;gap:4px;min-width:0;flex:1}
-      .block-name{font-size:.95em;font-weight:600;color:var(--cf-text-primary);line-height:1.2;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-      .block-state{font-size:.8em;color:var(--cf-text-secondary);line-height:1.2;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-      .block-actions{display:flex;gap:var(--cf-spacing-xs);justify-content:flex-end}
-      .block-action{width:36px;height:36px;border-radius:var(--cf-radius-sm);display:flex;align-items:center;justify-content:center;background:var(--cf-background);border:1px solid var(--cf-border);cursor:pointer;color:var(--cf-text-secondary)}
-      .edit-form{grid-column:1 / -1;background:var(--cf-surface);border:2px solid var(--cf-primary-color);border-radius:var(--cf-radius-md);padding:var(--cf-spacing-md);margin-top:var(--cf-spacing-xs)}   /* 紧凑间距 */
-      .form-grid{display:grid;grid-template-columns:80px 1fr;gap:var(--cf-spacing-sm);align-items:center}
-      .form-label{font-weight:500;font-size:.9em;color:var(--cf-text-primary)}
-      .form-field{display:flex;gap:var(--cf-spacing-sm);align-items:center}
-      .radio-group{display:flex;gap:var(--cf-spacing-md)}
-      .radio-option{display:flex;align-items:center;gap:var(--cf-spacing-xs);cursor:pointer}
-      .form-actions{display:flex;gap:var(--cf-spacing-sm);justify-content:flex-end;margin-top:var(--cf-spacing-md);padding-top:var(--cf-spacing-sm);border-top:1px solid var(--cf-border)}
-      .action-btn{padding:var(--cf-spacing-sm) var(--cf-spacing-md);border:1px solid var(--cf-border);border-radius:var(--cf-radius-sm);background:var(--cf-surface);color:var(--cf-text-primary);cursor:pointer;font-size:.85em;font-weight:500;min-width:80px}
-      .action-btn.primary{background:var(--cf-primary-color);color:white;border-color:var(--cf-primary-color)}
-      .add-block-btn{width:100%;padding:var(--cf-spacing-md);border:2px dashed var(--cf-border);border-radius:var(--cf-radius-md);background:transparent;color:var(--cf-text-secondary);cursor:pointer;display:flex;align-items:center;justify-content:center;gap:var(--cf-spacing-sm);font-size:.95em;font-weight:500;margin-top:var(--cf-spacing-sm)}   /* 紧凑间距 */
-      .empty-state{text-align:center;padding:var(--cf-spacing-lg);color:var(--cf-text-secondary);border:2px dashed var(--cf-border);border-radius:var(--cf-radius-md);background:rgba(var(--cf-rgb-primary),0.02)}
+      
+      /* 块列表 - 更紧凑的间距 */
+      .block-list{
+        display:flex;
+        flex-direction:column;
+        gap: 6px;  /* 从 var(--cf-spacing-xs) 改为 6px */
+      }
+      
+      /* 块项 - 更紧凑的布局 */
+      .block-item{
+        display:grid;
+        grid-template-columns: 36px 40px 1fr 70px;  /* 缩小列宽 */
+        gap: 8px;  /* 从 var(--cf-spacing-sm) 改为 8px */
+        align-items:center;
+        background:var(--cf-surface);
+        border:1px solid var(--cf-border);
+        border-radius:var(--cf-radius-md);
+        padding: 8px;  /* 从 var(--cf-spacing-sm) 改为 8px */
+        min-height: 52px;  /* 从 60px 改为 52px */
+        cursor:pointer;
+        transition: all var(--cf-transition-fast);
+      }
+      
+      .block-item:hover {
+        border-color: var(--cf-primary-color);
+        background: rgba(var(--cf-rgb-primary), 0.02);
+      }
+      
+      .block-item.editing{
+        border-color:var(--cf-primary-color);
+        background:rgba(var(--cf-rgb-primary),0.05);
+      }
+      
+      /* 区域徽章 - 更小 */
+      .area-badge{
+        display:flex;
+        align-items:center;
+        justify-content:center;
+      }
+      
+      .area-letter{
+        width: 28px;  /* 从 32px 改为 28px */
+        height: 28px;  /* 从 32px 改为 28px */
+        border-radius:50%;
+        display:flex;
+        align-items:center;
+        justify-content:center;
+        font-size:0.8em;  /* 从 0.9em 改为 0.8em */
+        font-weight:700;
+        color:white;
+      }
+      
+      .area-letter.header{background:#2196F3}
+      .area-letter.content{background:#4CAF50}
+      .area-letter.footer{background:#FF9800}
+      
+      /* 块图标 - 更小 */
+      .block-icon{
+        width: 36px;  /* 从 40px 改为 36px */
+        height: 36px;  /* 从 40px 改为 36px */
+        border-radius:var(--cf-radius-md);
+        background:rgba(var(--cf-rgb-primary),0.1);
+        display:flex;
+        align-items:center;
+        justify-content:center;
+        font-size:1.1em;  /* 从 1.3em 改为 1.1em */
+      }
+      
+      /* 块信息 - 更紧凑 */
+      .block-info{
+        display:flex;
+        flex-direction:column;
+        gap: 2px;  /* 从 4px 改为 2px */
+        min-width:0;
+        flex:1;
+      }
+      
+      .block-name{
+        font-size:0.9em;  /* 保持 0.9em */
+        font-weight:600;
+        color:var(--cf-text-primary);
+        line-height:1.2;
+        overflow:hidden;
+        text-overflow:ellipsis;
+        white-space:nowrap;
+      }
+      
+      .block-state{
+        font-size:0.75em;  /* 从 0.8em 改为 0.75em */
+        color:var(--cf-text-secondary);
+        line-height:1.2;
+        overflow:hidden;
+        text-overflow:ellipsis;
+        white-space:nowrap;
+      }
+      
+      /* 块操作 - 更小 */
+      .block-actions{
+        display:flex;
+        gap: 4px;  /* 从 var(--cf-spacing-xs) 改为 4px */
+        justify-content:flex-end;
+      }
+      
+      .block-action{
+        width: 32px;  /* 从 36px 改为 32px */
+        height: 32px;  /* 从 36px 改为 32px */
+        border-radius:var(--cf-radius-sm);
+        display:flex;
+        align-items:center;
+        justify-content:center;
+        background:var(--cf-background);
+        border:1px solid var(--cf-border);
+        cursor:pointer;
+        color:var(--cf-text-secondary);
+        transition: all var(--cf-transition-fast);
+      }
+      
+      .block-action:hover {
+        background: var(--cf-primary-color);
+        border-color: var(--cf-primary-color);
+        color: white;
+      }
+      
+      /* 编辑表单 - 更紧凑 */
+      .edit-form{
+        grid-column:1 / -1;
+        background:var(--cf-surface);
+        border:1px solid var(--cf-primary-color);
+        border-radius:var(--cf-radius-md);
+        padding: 12px;  /* 从 var(--cf-spacing-md) 改为 12px */
+        margin-top: 6px;  /* 从 var(--cf-spacing-xs) 改为 6px */
+      }
+      
+      .form-grid{
+        display:grid;
+        grid-template-columns: 70px 1fr;  /* 从 80px 1fr 改为 70px 1fr */
+        gap: 8px;  /* 从 var(--cf-spacing-sm) 改为 8px */
+        align-items:center;
+      }
+      
+      .form-label{
+        font-weight:500;
+        font-size:0.85em;  /* 从 0.9em 改为 0.85em */
+        color:var(--cf-text-primary);
+      }
+      
+      .form-field{
+        display:flex;
+        gap: 8px;  /* 从 var(--cf-spacing-sm) 改为 8px */
+        align-items:center;
+      }
+      
+      .radio-group{
+        display:flex;
+        gap: 12px;  /* 从 var(--cf-spacing-md) 改为 12px */
+      }
+      
+      .radio-option{
+        display:flex;
+        align-items:center;
+        gap: 6px;  /* 从 var(--cf-spacing-xs) 改为 6px */
+        cursor:pointer;
+      }
+      
+      .form-actions{
+        display:flex;
+        gap: 8px;  /* 从 var(--cf-spacing-sm) 改为 8px */
+        justify-content:flex-end;
+        margin-top: 12px;  /* 从 var(--cf-spacing-md) 改为 12px */
+        padding-top: 8px;  /* 从 var(--cf-spacing-sm) 改为 8px */
+        border-top:1px solid var(--cf-border);
+      }
+      
+      .action-btn{
+        padding: 6px 12px;  /* 从 var(--cf-spacing-sm) var(--cf-spacing-md) 改为 6px 12px */
+        border:1px solid var(--cf-border);
+        border-radius:var(--cf-radius-sm);
+        background:var(--cf-surface);
+        color:var(--cf-text-primary);
+        cursor:pointer;
+        font-size:0.8em;  /* 从 0.85em 改为 0.8em */
+        font-weight:500;
+        min-width: 60px;  /* 从 80px 改为 60px */
+        transition: all var(--cf-transition-fast);
+      }
+      
+      .action-btn:hover {
+        background: var(--cf-background);
+      }
+      
+      .action-btn.primary{
+        background:var(--cf-primary-color);
+        color:white;
+        border-color:var(--cf-primary-color);
+      }
+      
+      .action-btn.primary:hover {
+        background: var(--cf-primary-color);
+        opacity: 0.9;
+      }
+      
+      /* 添加块按钮 - 更紧凑 */
+      .add-block-btn{
+        width:100%;
+        padding: 10px;  /* 从 var(--cf-spacing-md) 改为 10px */
+        border:1px dashed var(--cf-border);
+        border-radius:var(--cf-radius-md);
+        background:transparent;
+        color:var(--cf-text-secondary);
+        cursor:pointer;
+        display:flex;
+        align-items:center;
+        justify-content:center;
+        gap: 6px;  /* 从 var(--cf-spacing-sm) 改为 6px */
+        font-size:0.9em;  /* 从 0.95em 改为 0.9em */
+        font-weight:500;
+        margin-top: 8px;  /* 从 var(--cf-spacing-sm) 改为 8px */
+        transition: all var(--cf-transition-fast);
+      }
+      
+      .add-block-btn:hover {
+        border-color: var(--cf-primary-color);
+        color: var(--cf-primary-color);
+        background: rgba(var(--cf-rgb-primary), 0.05);
+      }
+      
+      /* 空状态 - 更紧凑 */
+      .empty-state{
+        text-align:center;
+        padding: 16px;  /* 从 var(--cf-spacing-lg) 改为 16px */
+        color:var(--cf-text-secondary);
+        border:1px dashed var(--cf-border);
+        border-radius:var(--cf-radius-md);
+        background:rgba(var(--cf-rgb-primary),0.02);
+      }
+      
+      .empty-icon {
+        font-size: 1.5em;  /* 从 2em 改为 1.5em */
+        opacity: 0.5;
+        margin-bottom: 8px;  /* 从 var(--cf-spacing-md) 改为 8px */
+      }
     `,
   ];
 
