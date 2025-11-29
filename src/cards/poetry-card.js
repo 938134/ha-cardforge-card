@@ -141,7 +141,7 @@ export class PoetryCard extends BaseCard {
       <div class="cardforge-card poetry-card">
         <div class="cardforge-area area-content">
           <div class="layout-single">
-            ${config.show_title && title ? `<div class="poetry-title">${title}</div>` : ''}
+            ${config.show_title && title ? `<div class="poetry-title">《${title}》</div>` : ''}
             ${(config.show_dynasty || config.show_author) && (dynasty || author) ? `
               <div class="poetry-meta">
                 ${config.show_dynasty ? dynasty : ''}
@@ -178,5 +178,16 @@ export class PoetryCard extends BaseCard {
     return blockConfig.content || '';
   }
 }
+
+// 导出 manifest 用于旧版注册系统
+export const manifest = {
+  id: 'poetry-card',
+  name: '诗词卡片',
+  description: '显示经典诗词，支持多种样式配置',
+  icon: '📜',
+  category: '文化',
+  author: 'CardForge',
+  version: '1.0.0'
+};
 
 export default PoetryCard;
