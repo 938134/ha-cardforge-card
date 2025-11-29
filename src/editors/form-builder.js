@@ -16,16 +16,21 @@ class FormBuilder extends LitElement {
       .form-builder {
         width: 100%;
       }
-      .form-grid {
+      .row {
         display: flex;
         flex-wrap: wrap;
         gap: var(--cf-spacing-sm);
       }
-      .form-field {
-        flex: 1 1 280px;          /* 关键：先填行，再换行 */
+      .cell {
+        flex: 1 1 280px;          /* 两列：最小 280px，不足自动换行 */
         display: flex;
         flex-direction: column;
         gap: var(--cf-spacing-xs);
+      }
+      @media (max-width: 480px) {
+        .cell {
+          flex: 1 1 100%;         /* 窄屏 1 列 */
+        }
       }
       .empty-state {
         text-align: center;
@@ -45,13 +50,30 @@ class FormBuilder extends LitElement {
       return this._renderEmptyState();
     }
 
+    /* 1. 先拿所有字段 */
+    const fields = Object.entries(this.schema);
+
+    /* 2. 排序：boolean 优先，其余保持原顺序 */
+    const sorted = [
+      ...fields.filter(([, f]) => f.type === 'boolean'),
+      ...fields.filter(([, f]) => f.type !== 'boolean')
+    ];
+
+    /* 3. 每行两个组件 */
+    const rows = [];
+    for (let i = 0; i < sorted.length; i += 2) {
+      rows.push(sorted.slice(i, i + 2));
+    }
+
     return html`
       <div class="form-builder">
-        <div class="form-grid">
-          ${Object.entries(this.schema).map(([key, field]) =>
-            this._renderField(key, field)
-          )}
-        </div>
+        ${rows.map(row => html`
+          <div class="row">
+            ${row.map(([key, field]) => html`
+              <div class="cell">${this._renderField(key, field)}</div>
+            `)}
+          </div>
+        `)}
       </div>
     `;
   }
@@ -80,39 +102,35 @@ class FormBuilder extends LitElement {
   _renderBooleanField(key, field, value) {
     const currentValue = this.config?.[key] !== undefined ? this.config[key] : field.default;
     return html`
-      <div class="form-field">
-        <div class="cf-flex cf-gap-sm">
-          <ha-switch
-            .checked=${!!currentValue}
-            @change=${e => this._onFieldChange(key, e.target.checked)}
-          ></ha-switch>
-          <div class="field-label">${field.label}</div>
-        </div>
+      <div class="cf-flex cf-gap-sm">
+        <ha-switch
+          .checked=${!!currentValue}
+          @change=${e => this._onFieldChange(key, e.target.checked)}
+        ></ha-switch>
+        <div class="field-label">${field.label}</div>
       </div>
     `;
   }
 
   _renderEntityField(key, field, value) {
     return html`
-      <div class="form-field">
-        ${this.availableEntities ? html`
-          <ha-combo-box
-            .items=${this.availableEntities}
-            .value=${value || ''}
-            @value-changed=${e => this._onFieldChange(key, e.detail.value)}
-            allow-custom-value
-            .label=${field.label}
-            fullwidth
-          ></ha-combo-box>
-        ` : html`
-          <ha-textfield
-            .value=${value || ''}
-            @input=${e => this._onFieldChange(key, e.target.value)}
-            .label=${field.label}
-            fullwidth
-          ></ha-textfield>
-        `}
-      </div>
+      ${this.availableEntities ? html`
+        <ha-combo-box
+          .items=${this.availableEntities}
+          .value=${value || ''}
+          @value-changed=${e => this._onFieldChange(key, e.detail.value)}
+          allow-custom-value
+          .label=${field.label}
+          fullwidth
+        ></ha-combo-box>
+      ` : html`
+        <ha-textfield
+          .value=${value || ''}
+          @input=${e => this._onFieldChange(key, e.target.value)}
+          .label=${field.label}
+          fullwidth
+        ></ha-textfield>
+      `}
     `;
   }
 
@@ -139,28 +157,26 @@ class FormBuilder extends LitElement {
     const currentColor = value || field.default || 'blue';
 
     return html`
-      <div class="form-field">
-        <ha-select
-          .value=${currentColor}
-          @closed=${this._preventClose}
-          naturalMenuWidth
-          fixedMenuPosition
-          fullwidth
-          .label=${field.label}
-        >
-          ${colorOptions.map(option => html`
-            <ha-list-item 
-              .value=${option.value}
-              @click=${() => this._onFieldChange(key, option.value)}
-            >
-              <div class="cf-flex cf-gap-sm">
-                <div class="color-preview" style="background: ${getColorPreview(option.value)}"></div>
-                <span>${option.label}</span>
-              </div>
-            </ha-list-item>
-          `)}
-        </ha-select>
-      </div>
+      <ha-select
+        .value=${currentColor}
+        @closed=${this._preventClose}
+        naturalMenuWidth
+        fixedMenuPosition
+        fullwidth
+        .label=${field.label}
+      >
+        ${colorOptions.map(option => html`
+          <ha-list-item 
+            .value=${option.value}
+            @click=${() => this._onFieldChange(key, option.value)}
+          >
+            <div class="cf-flex cf-gap-sm">
+              <div class="color-preview" style="background: ${getColorPreview(option.value)}"></div>
+              <span>${option.label}</span>
+            </div>
+          </ha-list-item>
+        `)}
+      </ha-select>
     `;
   }
 
@@ -171,7 +187,7 @@ class FormBuilder extends LitElement {
     const step = field.step || 1;
 
     return html`
-      <div class="form-field">
+      <div class="cf-flex cf-gap-sm">
         <ha-slider
           .value=${currentValue}
           .min=${min}
@@ -189,14 +205,12 @@ class FormBuilder extends LitElement {
 
   _renderIconField(key, field, value) {
     return html`
-      <div class="form-field">
-        <ha-icon-picker
-          .value=${value || ''}
-          @value-changed=${e => this._onFieldChange(key, e.detail.value)}
-          .label=${field.label}
-          fullwidth
-        ></ha-icon-picker>
-      </div>
+      <ha-icon-picker
+        .value=${value || ''}
+        @value-changed=${e => this._onFieldChange(key, e.detail.value)}
+        .label=${field.label}
+        fullwidth
+      ></ha-icon-picker>
     `;
   }
 
@@ -204,39 +218,35 @@ class FormBuilder extends LitElement {
     const options = field.options || [];
 
     return html`
-      <div class="form-field">
-        <ha-select
-          .value=${value || ''}
-          @closed=${this._preventClose}
-          naturalMenuWidth
-          fixedMenuPosition
-          fullwidth
-          .label=${field.label}
-        >
-          ${options.map(option => html`
-            <ha-list-item 
-              .value=${option.value || option}
-              @click=${() => this._onFieldChange(key, option.value || option)}
-            >
-              ${option.label || option}
-            </ha-list-item>
-          `)}
-        </ha-select>
-      </div>
+      <ha-select
+        .value=${value || ''}
+        @closed=${this._preventClose}
+        naturalMenuWidth
+        fixedMenuPosition
+        fullwidth
+        .label=${field.label}
+      >
+        ${options.map(option => html`
+          <ha-list-item 
+            .value=${option.value || option}
+            @click=${() => this._onFieldChange(key, option.value || option)}
+          >
+            ${option.label || option}
+          </ha-list-item>
+        `)}
+      </ha-select>
     `;
   }
 
   _renderTextField(key, field, value) {
     return html`
-      <div class="form-field">
-        <ha-textfield
-          .value=${value || ''}
-          @input=${e => this._onFieldChange(key, e.target.value)}
-          placeholder=${field.placeholder || ''}
-          fullwidth
-          .label=${field.label}
-        ></ha-textfield>
-      </div>
+      <ha-textfield
+        .value=${value || ''}
+        @input=${e => this._onFieldChange(key, e.target.value)}
+        placeholder=${field.placeholder || ''}
+        fullwidth
+        .label=${field.label}
+      ></ha-textfield>
     `;
   }
 
