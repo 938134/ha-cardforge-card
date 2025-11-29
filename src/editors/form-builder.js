@@ -17,12 +17,19 @@ class FormBuilder extends LitElement {
         width: 100%;
       }
 
-      /* 自适应网格布局 */
-      .form-grid {
+      /* 开关项网格布局 */
+      .grid-switches {
         display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
         gap: var(--cf-spacing-md);
-        width: 100%;
+        margin-bottom: var(--cf-spacing-lg);
+      }
+
+      /* 样式设置网格布局 */
+      .grid-styles {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: var(--cf-spacing-md);
       }
 
       .form-field {
@@ -52,6 +59,19 @@ class FormBuilder extends LitElement {
         width: 100%;
       }
 
+      /* 颜色选择器样式 */
+      .color-field {
+        width: 100%;
+      }
+
+      .color-preview {
+        width: 24px;
+        height: 24px;
+        border-radius: var(--cf-radius-sm);
+        border: 1px solid var(--cf-border);
+        margin-right: var(--cf-spacing-sm);
+      }
+
       /* 空状态 */
       .empty-state {
         text-align: center;
@@ -67,13 +87,21 @@ class FormBuilder extends LitElement {
 
       /* 移动端适配 */
       @media (max-width: 768px) {
-        .form-grid {
+        .grid-switches,
+        .grid-styles {
           grid-template-columns: 1fr;
           gap: var(--cf-spacing-sm);
         }
         
         .form-field {
           min-height: 50px;
+        }
+      }
+
+      @media (max-width: 600px) {
+        .grid-switches,
+        .grid-styles {
+          grid-template-columns: 1fr;
         }
       }
     `
@@ -84,29 +112,29 @@ class FormBuilder extends LitElement {
       return this._renderEmptyState();
     }
 
-    // 分组渲染：先渲染布尔字段，再渲染其他字段
-    const booleanFields = [];
-    const otherFields = [];
+    // 分组渲染：开关项和样式设置
+    const switchFields = [];
+    const styleFields = [];
 
     Object.entries(this.schema).forEach(([key, field]) => {
       if (field.type === 'boolean') {
-        booleanFields.push([key, field]);
+        switchFields.push([key, field]);
       } else {
-        otherFields.push([key, field]);
+        styleFields.push([key, field]);
       }
     });
 
     return html`
       <div class="form-builder">
-        ${booleanFields.length > 0 ? html`
-          <div class="form-grid">
-            ${booleanFields.map(([key, field]) => this._renderBooleanField(key, field))}
+        ${switchFields.length > 0 ? html`
+          <div class="grid-switches">
+            ${switchFields.map(([key, field]) => this._renderBooleanField(key, field))}
           </div>
         ` : ''}
         
-        ${otherFields.length > 0 ? html`
-          <div class="form-grid" style="margin-top: ${booleanFields.length > 0 ? 'var(--cf-spacing-lg)' : '0'}">
-            ${otherFields.map(([key, field]) => this._renderField(key, field))}
+        ${styleFields.length > 0 ? html`
+          <div class="grid-styles">
+            ${styleFields.map(([key, field]) => this._renderField(key, field))}
           </div>
         ` : ''}
       </div>
@@ -203,16 +231,17 @@ class FormBuilder extends LitElement {
   }
 
   _renderColorField(key, field, value) {
+    const currentValue = value || field.default || '#333333';
+    
     return html`
       <div class="form-field">
-        <ha-textfield
-          class="text-field"
-          .value=${value || ''}
-          @input=${e => this._onFieldChange(key, e.target.value)}
-          placeholder=${field.placeholder || field.label}
+        <ha-color-picker
+          class="color-field"
+          .value=${currentValue}
+          @value-changed=${e => this._onFieldChange(key, e.detail.value)}
+          label=${field.label}
           fullwidth
-          type="text"
-        ></ha-textfield>
+        ></ha-color-picker>
       </div>
     `;
   }

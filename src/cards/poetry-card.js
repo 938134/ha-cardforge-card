@@ -97,7 +97,7 @@ export class PoetryCard extends BaseCard {
         default: defaultConfig.font_size
       },
       text_color: {
-        type: 'color',
+        type: 'color',  // 使用 color 类型
         label: '文字颜色',
         default: defaultConfig.text_color
       },
