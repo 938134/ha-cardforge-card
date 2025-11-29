@@ -1,4 +1,4 @@
-/ src/editors/block-management.js
+// src/editors/block-management.js
 import { LitElement, html, css } from 'https://unpkg.com/lit@2.8.0/index.js?module';
 import { designSystem } from '../core/design-system.js';
 
