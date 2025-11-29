@@ -17,10 +17,10 @@ class FormBuilder extends LitElement {
         width: 100%;
       }
 
-      /* 自适应网格布局 - 所有字段混合排列 */
+      /* 自适应网格布局 - 2列布局 */
       .form-grid {
         display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+        grid-template-columns: repeat(2, 1fr);
         gap: var(--cf-spacing-md);
         width: 100%;
       }
@@ -84,7 +84,7 @@ class FormBuilder extends LitElement {
       return this._renderEmptyState();
     }
 
-    // 不再分组，所有字段按定义顺序排列
+    // 所有字段按定义顺序排列
     const fields = Object.entries(this.schema);
 
     return html`
