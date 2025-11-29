@@ -42,12 +42,14 @@ class FormBuilder extends LitElement {
         background: var(--cf-surface);
         border: 1px solid var(--cf-border);
         border-radius: var(--cf-radius-md);
+        min-height: 60px;
       }
       
       .field-label {
         font-size: 0.9em;
         font-weight: 500;
         color: var(--cf-text-primary);
+        margin-bottom: var(--cf-spacing-xs);
       }
       
       .field-description {
@@ -82,7 +84,7 @@ class FormBuilder extends LitElement {
       }
       
       /* 响应式设计 */
-      @container form-builder (max-width: 600px) {
+      @container form-builder (max-width: 768px) {
         .form-grid {
           grid-template-columns: 1fr;
           gap: var(--cf-spacing-sm);
@@ -92,6 +94,23 @@ class FormBuilder extends LitElement {
       /* 确保表单组件样式一致 */
       ha-textfield, ha-select, ha-combo-box, ha-icon-picker {
         width: 100%;
+      }
+      
+      /* 修复下拉框标签显示 */
+      ha-select {
+        --ha-select-label: var(--cf-text-primary);
+      }
+      
+      ha-textfield {
+        --ha-textfield-label-color: var(--cf-text-primary);
+      }
+      
+      ha-combo-box {
+        --ha-combo-box-label-color: var(--cf-text-primary);
+      }
+      
+      ha-icon-picker {
+        --ha-icon-picker-label-color: var(--cf-text-primary);
       }
       
       /* 滑块组件特殊布局 */
@@ -114,6 +133,12 @@ class FormBuilder extends LitElement {
         display: flex;
         flex-direction: column;
         gap: var(--cf-spacing-sm);
+        width: 100%;
+      }
+      
+      /* 确保组件有最小宽度 */
+      .form-cell:not(.boolean-cell) {
+        min-height: 80px;
       }
     `
   ];
@@ -143,12 +168,10 @@ class FormBuilder extends LitElement {
           ${rows.map(row => html`
             ${row.map(([key, field]) => html`
               <div class="form-cell ${field.type === 'boolean' ? 'boolean-cell' : ''}">
-                <div class="field-group">
-                  ${this._renderField(key, field)}
-                  ${field.description ? html`
-                    <div class="field-description">${field.description}</div>
-                  ` : ''}
-                </div>
+                ${this._renderField(key, field)}
+                ${field.description ? html`
+                  <div class="field-description">${field.description}</div>
+                ` : ''}
               </div>
             `)}
           `)}
@@ -196,23 +219,27 @@ class FormBuilder extends LitElement {
 
   _renderEntityField(key, field, value) {
     return html`
-      <div class="field-label">${field.label}</div>
-      ${this.availableEntities ? html`
-        <ha-combo-box
-          .items=${this.availableEntities}
-          .value=${value || ''}
-          @value-changed=${e => this._onFieldChange(key, e.detail.value)}
-          allow-custom-value
-          fullwidth
-        ></ha-combo-box>
-      ` : html`
-        <ha-textfield
-          .value=${value || ''}
-          @input=${e => this._onFieldChange(key, e.target.value)}
-          placeholder=${field.placeholder || ''}
-          fullwidth
-        ></ha-textfield>
-      `}
+      <div class="field-group">
+        <div class="field-label">${field.label}</div>
+        ${this.availableEntities ? html`
+          <ha-combo-box
+            .items=${this.availableEntities}
+            .value=${value || ''}
+            @value-changed=${e => this._onFieldChange(key, e.detail.value)}
+            allow-custom-value
+            .label=${field.label}
+            fullwidth
+          ></ha-combo-box>
+        ` : html`
+          <ha-textfield
+            .value=${value || ''}
+            @input=${e => this._onFieldChange(key, e.target.value)}
+            placeholder=${field.placeholder || ''}
+            .label=${field.label}
+            fullwidth
+          ></ha-textfield>
+        `}
+      </div>
     `;
   }
 
@@ -239,26 +266,29 @@ class FormBuilder extends LitElement {
     const currentColor = value || field.default || 'blue';
 
     return html`
-      <div class="field-label">${field.label}</div>
-      <ha-select
-        .value=${currentColor}
-        @closed=${this._preventClose}
-        naturalMenuWidth
-        fixedMenuPosition
-        fullwidth
-      >
-        ${colorOptions.map(option => html`
-          <ha-list-item 
-            .value=${option.value}
-            @click=${() => this._onFieldChange(key, option.value)}
-          >
-            <div class="cf-flex cf-gap-sm">
-              <div class="color-preview" style="background: ${getColorPreview(option.value)}"></div>
-              <span>${option.label}</span>
-            </div>
-          </ha-list-item>
-        `)}
-      </ha-select>
+      <div class="field-group">
+        <div class="field-label">${field.label}</div>
+        <ha-select
+          .value=${currentColor}
+          @closed=${this._preventClose}
+          naturalMenuWidth
+          fixedMenuPosition
+          fullwidth
+          .label=${field.label}
+        >
+          ${colorOptions.map(option => html`
+            <ha-list-item 
+              .value=${option.value}
+              @click=${() => this._onFieldChange(key, option.value)}
+            >
+              <div class="cf-flex cf-gap-sm">
+                <div class="color-preview" style="background: ${getColorPreview(option.value)}"></div>
+                <span>${option.label}</span>
+              </div>
+            </ha-list-item>
+          `)}
+        </ha-select>
+      </div>
     `;
   }
 
@@ -269,30 +299,35 @@ class FormBuilder extends LitElement {
     const step = field.step || 1;
 
     return html`
-      <div class="field-label">${field.label}</div>
-      <div class="slider-container">
-        <ha-slider
-          .value=${currentValue}
-          .min=${min}
-          .max=${max}
-          .step=${step}
-          @change=${e => this._onFieldChange(key, parseInt(e.target.value))}
-          pin
-          fullwidth
-        ></ha-slider>
-        <div class="slider-value">${currentValue}${field.unit || ''}</div>
+      <div class="field-group">
+        <div class="field-label">${field.label}</div>
+        <div class="slider-container">
+          <ha-slider
+            .value=${currentValue}
+            .min=${min}
+            .max=${max}
+            .step=${step}
+            @change=${e => this._onFieldChange(key, parseInt(e.target.value))}
+            pin
+            fullwidth
+          ></ha-slider>
+          <div class="slider-value">${currentValue}${field.unit || ''}</div>
+        </div>
       </div>
     `;
   }
 
   _renderIconField(key, field, value) {
     return html`
-      <div class="field-label">${field.label}</div>
-      <ha-icon-picker
-        .value=${value || ''}
-        @value-changed=${e => this._onFieldChange(key, e.detail.value)}
-        fullwidth
-      ></ha-icon-picker>
+      <div class="field-group">
+        <div class="field-label">${field.label}</div>
+        <ha-icon-picker
+          .value=${value || ''}
+          @value-changed=${e => this._onFieldChange(key, e.detail.value)}
+          .label=${field.label}
+          fullwidth
+        ></ha-icon-picker>
+      </div>
     `;
   }
 
@@ -300,35 +335,41 @@ class FormBuilder extends LitElement {
     const options = field.options || [];
 
     return html`
-      <div class="field-label">${field.label}</div>
-      <ha-select
-        .value=${value || ''}
-        @closed=${this._preventClose}
-        naturalMenuWidth
-        fixedMenuPosition
-        fullwidth
-      >
-        ${options.map(option => html`
-          <ha-list-item 
-            .value=${option.value || option}
-            @click=${() => this._onFieldChange(key, option.value || option)}
-          >
-            ${option.label || option}
-          </ha-list-item>
-        `)}
-      </ha-select>
+      <div class="field-group">
+        <div class="field-label">${field.label}</div>
+        <ha-select
+          .value=${value || ''}
+          @closed=${this._preventClose}
+          naturalMenuWidth
+          fixedMenuPosition
+          fullwidth
+          .label=${field.label}
+        >
+          ${options.map(option => html`
+            <ha-list-item 
+              .value=${option.value || option}
+              @click=${() => this._onFieldChange(key, option.value || option)}
+            >
+              ${option.label || option}
+            </ha-list-item>
+          `)}
+        </ha-select>
+      </div>
     `;
   }
 
   _renderTextField(key, field, value) {
     return html`
-      <div class="field-label">${field.label}</div>
-      <ha-textfield
-        .value=${value || ''}
-        @input=${e => this._onFieldChange(key, e.target.value)}
-        placeholder=${field.placeholder || ''}
-        fullwidth
-      ></ha-textfield>
+      <div class="field-group">
+        <div class="field-label">${field.label}</div>
+        <ha-textfield
+          .value=${value || ''}
+          @input=${e => this._onFieldChange(key, e.target.value)}
+          placeholder=${field.placeholder || ''}
+          .label=${field.label}
+          fullwidth
+        ></ha-textfield>
+      </div>
     `;
   }
 
