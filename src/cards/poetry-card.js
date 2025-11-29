@@ -228,8 +228,6 @@ export class PoetryCard extends BaseCard {
       }
       
       .poetry-title-block,
-      .poetry-dynasty-block,
-      .poetry-author-block,
       .poetry-content-block,
       .poetry-translation-block {
         text-align: center;
@@ -246,19 +244,36 @@ export class PoetryCard extends BaseCard {
         margin-bottom: var(--cf-spacing-xs);
       }
       
+      /* 朝代和作者在同一行显示 */
+      .poetry-dynasty-author-container {
+        text-align: center;
+        margin-bottom: var(--cf-spacing-md);
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        gap: var(--cf-spacing-xs);
+        flex-wrap: wrap;
+      }
+      
+      .poetry-dynasty-block,
+      .poetry-author-block {
+        display: inline-block;
+        margin: 0;
+      }
+      
       .poetry-dynasty,
       .poetry-author {
         font-size: 0.9em;
         opacity: 0.8;
         font-style: italic;
         line-height: 1.3;
-        display: inline-block;
-        margin: 0 var(--cf-spacing-xs);
+        display: inline;
       }
       
-      .poetry-dynasty-author-container {
-        text-align: center;
-        margin-bottom: var(--cf-spacing-md);
+      /* 在朝代和作者之间添加连接符 */
+      .poetry-dynasty::after {
+        content: " - ";
+        margin: 0 var(--cf-spacing-xs);
       }
       
       .poetry-content {
@@ -295,40 +310,81 @@ export class PoetryCard extends BaseCard {
                       font_size === 'medium' ? '1em' : '0.9em'};
         }
         
+        .poetry-dynasty-author-container {
+          flex-direction: column;
+          gap: 0;
+        }
+        
+        .poetry-dynasty::after {
+          content: "";
+          margin: 0;
+        }
+        
         .poetry-dynasty,
         .poetry-author {
           display: block;
-          margin: var(--cf-spacing-xs) 0;
         }
       }
     `;
   }
 
-  // 重写渲染方法，确保配置安全
-  _renderAreas(config, hass, entities) {
-    const safeConfig = config || {};
-    const areas = {};
+  // 重写渲染区域方法，将朝代和作者组合在一起
+  _renderArea(areaName, areaConfig, config, hass, entities) {
+    const blocks = [];
+    let currentIndex = 0;
     
-    // 支持新的扁平化配置结构
-    const blocks = safeConfig.blocks || {};
+    while (currentIndex < areaConfig.blocks.length) {
+      const blockId = areaConfig.blocks[currentIndex];
+      const blockConfig = config.blocks[blockId];
+      
+      if (blockConfig.type === 'poetry_dynasty') {
+        // 找到朝代块，检查下一个是否是作者块
+        const nextBlockId = areaConfig.blocks[currentIndex + 1];
+        const nextBlockConfig = nextBlockId ? config.blocks[nextBlockId] : null;
+        
+        if (nextBlockConfig && nextBlockConfig.type === 'poetry_author') {
+          // 将朝代和作者组合在一起
+          blocks.push(this._renderDynastyAuthorGroup(blockConfig, nextBlockConfig, hass));
+          currentIndex += 2; // 跳过两个块
+          continue;
+        }
+      }
+      
+      // 普通块渲染
+      blocks.push(this._renderBlock(blockId, blockConfig, hass, entities));
+      currentIndex += 1;
+    }
     
-    // 按区域分组块
-    const headerBlocks = this._getBlocksByArea(blocks, 'header');
-    const contentBlocks = this._getBlocksByArea(blocks, 'content'); 
-    const footerBlocks = this._getBlocksByArea(blocks, 'footer');
+    const layout = areaConfig.layout || 'single';
     
-    // 渲染各区域
-    areas.header = headerBlocks.length > 0 ? 
-      this._renderArea('header', { blocks: headerBlocks }, safeConfig, hass, entities) : '';
+    return `
+      <div class="cardforge-area area-${areaName}">
+        ${this._renderLayout(layout, blocks.join(''))}
+      </div>
+    `;
+  }
+
+  // 渲染朝代和作者组合
+  _renderDynastyAuthorGroup(dynastyBlock, authorBlock, hass) {
+    const dynastyContent = this._getBlockContent(dynastyBlock, hass);
+    const authorContent = this._getBlockContent(authorBlock, hass);
     
-    areas.content = contentBlocks.length > 0 ? 
-      this._renderArea('content', { blocks: contentBlocks }, safeConfig, hass, entities) : 
-      this._renderArea('content', { blocks: [] }, safeConfig, hass, entities);
+    if (!dynastyContent && !authorContent) return '';
     
-    areas.footer = footerBlocks.length > 0 ? 
-      this._renderArea('footer', { blocks: footerBlocks }, safeConfig, hass, entities) : '';
-    
-    return areas;
+    return `
+      <div class="cardforge-block poetry-dynasty-author-container">
+        ${dynastyContent ? `
+          <div class="poetry-dynasty-block">
+            <div class="poetry-dynasty">${this._escapeHtml(dynastyContent)}</div>
+          </div>
+        ` : ''}
+        ${authorContent ? `
+          <div class="poetry-author-block">
+            <div class="poetry-author">${this._escapeHtml(authorContent)}</div>
+          </div>
+        ` : ''}
+      </div>
+    `;
   }
 }
 
