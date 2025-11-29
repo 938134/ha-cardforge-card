@@ -20,23 +20,6 @@ const CARD_CONFIG = {
         { value: 'large', label: '大' }
       ],
       default: 'medium'
-    },
-    text_color: {
-      type: 'color',
-      label: '文字颜色',
-      options: [
-        { value: 'blue', label: '蓝色' },
-        { value: 'red', label: '红色' },
-        { value: 'green', label: '绿色' },
-        { value: 'yellow', label: '黄色' },
-        { value: 'purple', label: '紫色' }
-      ],
-      default: 'blue'
-    },
-    show_translation: {
-      type: 'boolean',
-      label: '显示译文',
-      default: false
     }
   }
 };
@@ -76,13 +59,7 @@ export class PoetryCard extends BaseCard {
           type: 'poetry_content',
           area: 'content',
           entity: '',
-          content: '床前明月光，疑是地上霜。举头望明月，低头思故乡。'
-        },
-        poetry_translation: {
-          type: 'poetry_translation',
-          area: 'content',
-          entity: '',
-          content: '明亮的月光洒在窗户纸上，好像地上泛起了一层霜。我禁不住抬起头来，看那天窗外空中的一轮明月，不由得低头沉思，想起远方的家乡。'
+          content: '床前明月光疑是地上霜举头望明月低头思故乡'
         }
       }
     };
@@ -106,20 +83,41 @@ export class PoetryCard extends BaseCard {
         case 'poetry_author':
           return `<span class="poetry-author">${this._escapeHtml(content)}</span>`;
         case 'poetry_content':
-          const lines = content.split(/[，。！？；]/).filter(line => line.trim());
+          const lines = this._splitPoetryContent(content);
           const contentHtml = lines.map(line => 
             `<div class="poetry-line">${this._escapeHtml(line)}</div>`
           ).join('');
           return `<div class="poetry-content">${contentHtml}</div>`;
-        case 'poetry_translation':
-          const showTranslation = this.config?.show_translation ?? CARD_CONFIG.config_schema.show_translation.default;
-          if (!showTranslation) return '';
-          return `<div class="poetry-translation">${this._escapeHtml(content)}</div>`;
         default:
           return '';
       }
     }
     return super._renderBlock(blockId, blockConfig, hass, entities);
+  }
+
+  _splitPoetryContent(content) {
+    // 根据字数自动分行（五言或七言）
+    const text = content.replace(/[，。！？；\s]/g, ''); // 移除所有标点符号和空格
+    const charCount = text.length;
+    
+    if (charCount % 5 === 0) {
+      // 五言诗
+      return this._splitByCount(text, 5);
+    } else if (charCount % 7 === 0) {
+      // 七言诗
+      return this._splitByCount(text, 7);
+    } else {
+      // 其他格式，每行最多7个字
+      return this._splitByCount(text, 7);
+    }
+  }
+
+  _splitByCount(text, count) {
+    const lines = [];
+    for (let i = 0; i < text.length; i += count) {
+      lines.push(text.substring(i, i + count));
+    }
+    return lines;
   }
 
   _getBlockContent(blockConfig, hass) {
@@ -166,7 +164,7 @@ export class PoetryCard extends BaseCard {
             blocks.push(`
               <div class="poetry-dynasty-author">
                 ${dynastyContent ? `<span class="poetry-dynasty">${this._escapeHtml(dynastyContent)}</span>` : ''}
-                ${dynastyContent && authorContent ? '<span class="poetry-separator"> - </span>' : ''}
+                ${dynastyContent && authorContent ? '<span class="poetry-separator">·</span>' : ''}
                 ${authorContent ? `<span class="poetry-author">${this._escapeHtml(authorContent)}</span>` : ''}
               </div>
             `);
@@ -197,24 +195,14 @@ export class PoetryCard extends BaseCard {
     // 安全地访问配置，提供默认值
     const safeConfig = config || {};
     const font_size = safeConfig.font_size || CARD_CONFIG.config_schema.font_size.default;
-    const text_color = safeConfig.text_color || CARD_CONFIG.config_schema.text_color.default;
-    
-    const colorMap = {
-      blue: '#4285f4',
-      red: '#ea4335',
-      green: '#34a853',
-      yellow: '#fbbc05',
-      purple: '#a142f4'
-    };
     
     const fontSizeMap = {
-      small: '0.9em',
-      medium: '1.1em',
-      large: '1.3em'
+      small: { title: '1.1em', content: '0.9em', author: '0.8em' },
+      medium: { title: '1.3em', content: '1.1em', author: '0.9em' },
+      large: { title: '1.5em', content: '1.3em', author: '1em' }
     };
     
-    const selectedColor = colorMap[text_color] || text_color;
-    const selectedSize = fontSizeMap[font_size] || font_size;
+    const selectedSize = fontSizeMap[font_size] || fontSizeMap.medium;
 
     return `
       .cardforge-card {
@@ -228,30 +216,29 @@ export class PoetryCard extends BaseCard {
       
       .poetry-title,
       .poetry-dynasty-author,
-      .poetry-content,
-      .poetry-translation {
+      .poetry-content {
         text-align: center;
-        color: ${selectedColor};
         font-family: 'Noto Serif SC', serif;
         margin: 0;
         padding: 0;
       }
       
       .poetry-title {
-        font-size: ${font_size === 'large' ? '1.4em' : 
-                    font_size === 'medium' ? '1.2em' : '1em'};
+        font-size: ${selectedSize.title};
         font-weight: bold;
         line-height: 1.3;
-        margin-bottom: var(--cf-spacing-sm);
+        margin-bottom: 8px;
+        color: var(--primary-text-color); /* 使用主题主文字色 */
       }
       
       /* 朝代和作者在同一行显示 */
       .poetry-dynasty-author {
-        font-size: 0.9em;
+        font-size: ${selectedSize.author};
         opacity: 0.8;
         font-style: italic;
         line-height: 1.3;
-        margin-bottom: var(--cf-spacing-md);
+        margin-bottom: 12px;
+        color: var(--secondary-text-color); /* 使用主题次文字色 */
       }
       
       .poetry-dynasty,
@@ -260,29 +247,21 @@ export class PoetryCard extends BaseCard {
         display: inline;
       }
       
+      .poetry-separator {
+        margin: 0 6px;
+        opacity: 0.6;
+      }
+      
       .poetry-content {
-        font-size: ${selectedSize};
+        font-size: ${selectedSize.content};
         line-height: 1.8;
-        margin: var(--cf-spacing-md) 0;
+        margin: 0;
+        color: var(--primary-text-color); /* 使用主题主文字色 */
       }
       
       .poetry-line {
-        margin: 0.2em 0;
+        margin: 0.1em 0;
         line-height: 1.6;
-      }
-      
-      .poetry-translation {
-        font-size: 0.85em;
-        opacity: 0.9;
-        line-height: 1.6;
-        font-family: 'Noto Sans SC', sans-serif;
-        padding: var(--cf-spacing-md);
-        background: rgba(0, 0, 0, 0.05);
-        border-radius: var(--cf-radius-sm);
-        margin-top: var(--cf-spacing-md);
-        display: inline-block;
-        text-align: left;
-        max-width: 90%;
       }
     `;
   }

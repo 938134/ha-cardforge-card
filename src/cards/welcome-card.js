@@ -88,13 +88,16 @@ export class WelcomeCard extends BaseCard {
     const dailyQuote = this._getDailyQuote(now);
     dynamicConfig.blocks.daily_quote.content = dailyQuote;
     
+    // 生成动态内容
     const dynamicContent = this._generateDynamicContent(dynamicConfig, hass);
-    const blockContent = super.render(dynamicConfig, hass, entities);
+    
+    // 渲染块内容（每日一言）
+    const blockResult = super.render(dynamicConfig, hass, entities);
     
     // 合并动态内容和块内容
     return {
-      template: this._renderTemplate(dynamicContent, blockContent.template),
-      styles: blockContent.styles + this._renderDynamicStyles()
+      template: this._renderTemplate(dynamicContent, blockResult.template),
+      styles: blockResult.styles + this._renderDynamicStyles()
     };
   }
 
@@ -169,16 +172,15 @@ export class WelcomeCard extends BaseCard {
   }
 
   _renderTemplate(dynamicContent, blockTemplate) {
-    // 从块模板中提取每日一言内容
-    const quoteMatch = blockTemplate.match(/<div class="cardforge-block[^>]*>([\s\S]*?)<\/div><\/div><\/div>/);
-    const quoteContent = quoteMatch ? quoteMatch[1] : '';
-    
+    // 直接使用动态内容和块模板，不进行复杂的字符串匹配
     return `
       <div class="cardforge-card ${CARD_CONFIG.id}">
         <div class="cardforge-area area-content">
           <div class="welcome-display">
             ${dynamicContent}
-            ${quoteContent ? `<div class="welcome-quote">${quoteContent}</div>` : ''}
+            <div class="welcome-quote">
+              ${this._getDailyQuote(new Date())}
+            </div>
           </div>
         </div>
       </div>
