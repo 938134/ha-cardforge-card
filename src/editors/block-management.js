@@ -11,29 +11,32 @@ class BlockManagement extends LitElement {
 
   static styles = [designSystem, css`
     .block-management{width:100%}
-    .block-list{display:flex;flex-direction:column;gap:var(--cf-spacing-sm)}
-    .block-item{display:grid;grid-template-columns:40px 50px 1fr 80px;gap:var(--cf-spacing-md);align-items:center;background:var(--cf-surface);border:2px solid transparent;border-radius:var(--cf-radius-md);padding:var(--cf-spacing-md);min-height:60px;cursor:pointer}
+    .block-list{display:flex;flex-direction:column;gap:6px}
+    .block-item{display:grid;grid-template-columns:36px 44px 1fr 72px;gap:10px;align-items:center;background:var(--cf-surface);border:1px solid var(--cf-border);border-radius:var(--cf-radius-md);padding:10px;min-height:52px;cursor:pointer}
     .block-item.editing{border-color:var(--cf-primary-color);background:rgba(var(--cf-rgb-primary),0.05)}
     .area-badge{display:flex;align-items:center;justify-content:center}
-    .area-letter{width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:.9em;font-weight:700;color:white}
+    .area-letter{width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:.8em;font-weight:700;color:white}
     .area-letter.header{background:#2196F3}.area-letter.content{background:#4CAF50}.area-letter.footer{background:#FF9800}
-    .block-icon{width:40px;height:40px;border-radius:var(--cf-radius-md);background:rgba(var(--cf-rgb-primary),0.1);display:flex;align-items:center;justify-content:center;font-size:1.3em}
-    .block-info{display:flex;flex-direction:column;gap:2px;min-width:0;flex:1}
-    .block-name{font-size:.95em;font-weight:600;color:var(--cf-text-primary);line-height:1.2;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-    .block-state{font-size:.8em;color:var(--cf-text-secondary);line-height:1.2;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;margin-top:2px}
-    .block-actions{display:flex;gap:var(--cf-spacing-xs);justify-content:flex-end}
-    .block-action{width:36px;height:36px;border-radius:var(--cf-radius-sm);display:flex;align-items:center;justify-content:center;background:var(--cf-background);border:1px solid var(--cf-border);cursor:pointer;color:var(--cf-text-secondary)}
-    .edit-form{grid-column:1 / -1;background:var(--cf-surface);border:2px solid var(--cf-primary-color);border-radius:var(--cf-radius-md);padding:var(--cf-spacing-lg);margin-top:var(--cf-spacing-md)}
-    .form-grid{display:grid;grid-template-columns:80px 1fr;gap:var(--cf-spacing-md);align-items:center}
-    .form-label{font-weight:500;font-size:.9em;color:var(--cf-text-primary)}
-    .form-field{display:flex;gap:var(--cf-spacing-sm);align-items:center}
-    .radio-group{display:flex;gap:var(--cf-spacing-md)}
-    .radio-option{display:flex;align-items:center;gap:var(--cf-spacing-xs);cursor:pointer}
-    .form-actions{display:flex;gap:var(--cf-spacing-sm);justify-content:flex-end;margin-top:var(--cf-spacing-lg);padding-top:var(--cf-spacing-md);border-top:1px solid var(--cf-border)}
-    .action-btn{padding:var(--cf-spacing-sm) var(--cf-spacing-lg);border:1px solid var(--cf-border);border-radius:var(--cf-radius-sm);background:var(--cf-surface);color:var(--cf-text-primary);cursor:pointer;font-size:.85em;font-weight:500;min-width:80px}
+    .block-icon{width:36px;height:36px;border-radius:var(--cf-radius-sm);background:rgba(var(--cf-rgb-primary),0.1);display:flex;align-items:center;justify-content:center;font-size:1.2em}
+    .block-info{display:flex;flex-direction:column;gap:1px;min-width:0;flex:1}
+    .block-name{font-size:.85em;font-weight:600;color:var(--cf-text-primary);line-height:1.2;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+    .block-state{font-size:.75em;color:var(--cf-text-secondary);line-height:1.2;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;margin-top:1px}
+    .block-actions{display:flex;gap:6px;justify-content:flex-end}
+    .block-action{width:32px;height:32px;border-radius:var(--cf-radius-sm);display:flex;align-items:center;justify-content:center;background:var(--cf-background);border:1px solid var(--cf-border);cursor:pointer;color:var(--cf-text-secondary);font-size:.9em}
+    .block-action:hover{background:var(--cf-primary-color);color:white;border-color:var(--cf-primary-color)}
+    .edit-form{grid-column:1 / -1;background:var(--cf-surface);border:1px solid var(--cf-primary-color);border-radius:var(--cf-radius-md);padding:12px;margin-top:8px}
+    .form-grid{display:grid;grid-template-columns:70px 1fr;gap:10px;align-items:center}
+    .form-label{font-weight:500;font-size:.85em;color:var(--cf-text-primary)}
+    .form-field{display:flex;gap:8px;align-items:center}
+    .radio-group{display:flex;gap:12px}
+    .radio-option{display:flex;align-items:center;gap:6px;cursor:pointer;font-size:.85em}
+    .form-actions{display:flex;gap:8px;justify-content:flex-end;margin-top:12px;padding-top:10px;border-top:1px solid var(--cf-border)}
+    .action-btn{padding:6px 12px;border:1px solid var(--cf-border);border-radius:var(--cf-radius-sm);background:var(--cf-surface);color:var(--cf-text-primary);cursor:pointer;font-size:.8em;font-weight:500;min-width:60px}
     .action-btn.primary{background:var(--cf-primary-color);color:white;border-color:var(--cf-primary-color)}
-    .add-block-btn{width:100%;padding:var(--cf-spacing-lg);border:2px dashed var(--cf-border);border-radius:var(--cf-radius-md);background:transparent;color:var(--cf-text-secondary);cursor:pointer;display:flex;align-items:center;justify-content:center;gap:var(--cf-spacing-sm);font-size:.95em;font-weight:500;margin-top:var(--cf-spacing-md)}
-    .empty-state{text-align:center;padding:var(--cf-spacing-xl);color:var(--cf-text-secondary);border:2px dashed var(--cf-border);border-radius:var(--cf-radius-md);background:rgba(var(--cf-rgb-primary),0.02)}
+    .add-block-btn{width:100%;padding:12px;border:1px dashed var(--cf-border);border-radius:var(--cf-radius-md);background:transparent;color:var(--cf-text-secondary);cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;font-size:.9em;font-weight:500;margin-top:8px}
+    .add-block-btn:hover{background:rgba(var(--cf-rgb-primary),0.05);border-color:var(--cf-primary-color);color:var(--cf-primary-color)}
+    .empty-state{text-align:center;padding:20px;color:var(--cf-text-secondary);border:1px dashed var(--cf-border);border-radius:var(--cf-radius-md);background:rgba(var(--cf-rgb-primary),0.02)}
+    .empty-icon{font-size:1.5em;opacity:0.5;margin-bottom:8px}
   `];
 
   constructor() {
@@ -49,15 +52,15 @@ class BlockManagement extends LitElement {
           <div class="block-management">
             <div class="block-list">${blocks.map(b => this._renderBlock(b))}</div>
             <button class="add-block-btn" @click=${this._addBlock}>
-              <ha-icon icon="mdi:plus"></ha-icon>添加新块
+              <ha-icon icon="mdi:plus" style="font-size: 16px;"></ha-icon>添加新块
             </button>
           </div>`
       : html`
           <div class="empty-state">
             <ha-icon class="empty-icon" icon="mdi:cube-outline"></ha-icon>
-            <div class="cf-text-md cf-mb-sm">还没有添加任何块</div>
+            <div class="cf-text-md cf-mb-sm" style="font-size: 0.9em;">还没有添加任何块</div>
             <button class="add-block-btn" @click=${this._addBlock}>
-              <ha-icon icon="mdi:plus"></ha-icon>添加第一个块
+              <ha-icon icon="mdi:plus" style="font-size: 16px;"></ha-icon>添加第一个块
             </button>
           </div>`;
   }
@@ -72,7 +75,7 @@ class BlockManagement extends LitElement {
           </div>
         </div>
         <div class="block-icon">
-          <ha-icon .icon=${block.icon || this._defaultIcon(block)}></ha-icon>
+          <ha-icon .icon=${block.icon || this._defaultIcon(block)} style="font-size: 18px;"></ha-icon>
         </div>
         <div class="block-info">
           <div class="block-name">${this._blockName(block)}</div>
@@ -80,10 +83,10 @@ class BlockManagement extends LitElement {
         </div>
         <div class="block-actions">
           <div class="block-action" @click=${() => this._startEdit(block.id)}>
-            <ha-icon icon="mdi:pencil"></ha-icon>
+            <ha-icon icon="mdi:pencil" style="font-size: 16px;"></ha-icon>
           </div>
           <div class="block-action" @click=${() => this._deleteBlock(block.id)}>
-            <ha-icon icon="mdi:delete"></ha-icon>
+            <ha-icon icon="mdi:delete" style="font-size: 16px;"></ha-icon>
           </div>
         </div>
         ${isEditing ? this._editForm(block) : ''}
@@ -111,14 +114,16 @@ class BlockManagement extends LitElement {
             .value=${block.entity || ''}
             @value-changed=${e => this._handleEntityPick(block.id, e.detail.value)}
             allow-custom-value
-            label="选择实体">
+            label="选择实体"
+            style="font-size: 0.85em;">
           </ha-combo-box>
 
           <div class="form-label">图标</div>
           <ha-icon-picker
             .value=${block.icon || ''}
             @value-changed=${e => this._patchBlock(block.id, { icon: e.detail.value })}
-            label="选择图标">
+            label="选择图标"
+            style="font-size: 0.85em;">
           </ha-icon-picker>
 
           <div class="form-label">内容</div>
@@ -126,7 +131,8 @@ class BlockManagement extends LitElement {
             .value=${block.content || ''}
             @input=${e => this._patchBlock(block.id, { content: e.target.value })}
             placeholder="输入显示内容"
-            fullwidth>
+            fullwidth
+            style="font-size: 0.85em;">
           </ha-textfield>
         </div>
 
