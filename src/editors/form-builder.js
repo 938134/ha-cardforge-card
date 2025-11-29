@@ -15,21 +15,19 @@ class FormBuilder extends LitElement {
     css`
       .form-builder {
         width: 100%;
-        container-type: inline-size;
-        container-name: form-builder;
       }
       
       .form-grid {
         display: grid;
-        grid-template-columns: repeat(2, 1fr);
-        gap: var(--cf-spacing-md);
+        grid-template-columns: 1fr 1fr;
+        gap: 16px;
         width: 100%;
       }
       
       .form-cell {
         display: flex;
         flex-direction: column;
-        gap: var(--cf-spacing-sm);
+        gap: 8px;
         min-width: 0;
       }
       
@@ -37,11 +35,11 @@ class FormBuilder extends LitElement {
       .boolean-cell {
         display: flex;
         align-items: center;
-        gap: var(--cf-spacing-sm);
-        padding: var(--cf-spacing-sm);
+        gap: 12px;
+        padding: 12px;
         background: var(--cf-surface);
         border: 1px solid var(--cf-border);
-        border-radius: var(--cf-radius-md);
+        border-radius: 8px;
         min-height: 60px;
       }
       
@@ -49,13 +47,12 @@ class FormBuilder extends LitElement {
         font-size: 0.9em;
         font-weight: 500;
         color: var(--cf-text-primary);
-        margin-bottom: var(--cf-spacing-xs);
+        margin-bottom: 4px;
       }
       
       .field-description {
         font-size: 0.8em;
         color: var(--cf-text-secondary);
-        margin-top: 2px;
         line-height: 1.3;
       }
       
@@ -63,31 +60,31 @@ class FormBuilder extends LitElement {
       .color-preview {
         width: 20px;
         height: 20px;
-        border-radius: var(--cf-radius-sm);
+        border-radius: 4px;
         border: 1px solid var(--cf-border);
       }
       
       /* 空状态 */
       .empty-state {
         text-align: center;
-        padding: var(--cf-spacing-xl);
+        padding: 20px;
         color: var(--cf-text-secondary);
         background: var(--cf-surface);
-        border-radius: var(--cf-radius-md);
+        border-radius: 8px;
         border: 2px dashed var(--cf-border);
       }
       
       .empty-icon {
         font-size: 2em;
         opacity: 0.5;
-        margin-bottom: var(--cf-spacing-md);
+        margin-bottom: 12px;
       }
       
-      /* 响应式设计 */
-      @container form-builder (max-width: 768px) {
+      /* 响应式设计 - 只在很窄的屏幕才切换为单列 */
+      @media (max-width: 480px) {
         .form-grid {
           grid-template-columns: 1fr;
-          gap: var(--cf-spacing-sm);
+          gap: 12px;
         }
       }
       
@@ -96,28 +93,11 @@ class FormBuilder extends LitElement {
         width: 100%;
       }
       
-      /* 修复下拉框标签显示 */
-      ha-select {
-        --ha-select-label: var(--cf-text-primary);
-      }
-      
-      ha-textfield {
-        --ha-textfield-label-color: var(--cf-text-primary);
-      }
-      
-      ha-combo-box {
-        --ha-combo-box-label-color: var(--cf-text-primary);
-      }
-      
-      ha-icon-picker {
-        --ha-icon-picker-label-color: var(--cf-text-primary);
-      }
-      
       /* 滑块组件特殊布局 */
       .slider-container {
         display: flex;
         align-items: center;
-        gap: var(--cf-spacing-md);
+        gap: 12px;
         width: 100%;
       }
       
@@ -132,13 +112,8 @@ class FormBuilder extends LitElement {
       .field-group {
         display: flex;
         flex-direction: column;
-        gap: var(--cf-spacing-sm);
+        gap: 8px;
         width: 100%;
-      }
-      
-      /* 确保组件有最小宽度 */
-      .form-cell:not(.boolean-cell) {
-        min-height: 80px;
       }
     `
   ];
@@ -205,12 +180,12 @@ class FormBuilder extends LitElement {
     const currentValue = this.config?.[key] !== undefined ? this.config[key] : field.default;
     
     return html`
-      <div class="cf-flex cf-gap-sm">
+      <div style="display: flex; align-items: center; gap: 12px;">
         <ha-switch
           .checked=${!!currentValue}
           @change=${e => this._onFieldChange(key, e.target.checked)}
         ></ha-switch>
-        <div class="cf-flex cf-flex-column">
+        <div style="display: flex; flex-direction: column;">
           <div class="field-label">${field.label}</div>
         </div>
       </div>
@@ -281,7 +256,7 @@ class FormBuilder extends LitElement {
               .value=${option.value}
               @click=${() => this._onFieldChange(key, option.value)}
             >
-              <div class="cf-flex cf-gap-sm">
+              <div style="display: flex; align-items: center; gap: 8px;">
                 <div class="color-preview" style="background: ${getColorPreview(option.value)}"></div>
                 <span>${option.label}</span>
               </div>
