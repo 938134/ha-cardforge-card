@@ -50,7 +50,24 @@ class PoetryCard extends BaseCard {
     const safeConfig = this._getSafeConfig(config);
     const dynamicConfig = JSON.parse(JSON.stringify(safeConfig));
     this._applyDynamicConfig(dynamicConfig, hass, entities);
-    return super.render(dynamicConfig, hass, entities);
+    // ③ 把「类名 + 颜色变量」写进根元素
+    const { font_family, font_size, text_align, text_color } = dynamicConfig;
+    const classStr = [
+      'poetry-card',
+      { '楷体': 'kf-kai', '宋体': 'kf-song', '系统默认': '' }[font_family] || 'kf-kai',
+      { '小号': 'kf-small', '中号': 'kf-medium', '大号': 'kf-large' }[font_size] || 'kf-medium',
+      { '左对齐': 'kf-left', '居中': 'kf-center', '右对齐': 'kf-right' }[text_align] || 'kf-center'
+    ].filter(Boolean).join(' ');
+    const styleStr = `color:${text_color};`;
+
+    const renderResult = super.render(dynamicConfig, hass, entities);
+    // 把类名和变量挂在最外层<div class="cardforge-card ...">上
+    return html`
+      <div class="${classStr}" style="${styleStr}">
+        ${renderResult.template}
+      </div>
+      <style>${renderResult.styles}</style>
+    `;
   }
 
   _applyDynamicConfig(config, hass, entities) {
@@ -79,41 +96,27 @@ class PoetryCard extends BaseCard {
     } else {
       blocks.poetry_translation.class += ' hidden';
     }
-
-    this._applyDisplayClass(config);
-  }
-
-  _applyDisplayClass(config) {
-    const fontFamily = { '楷体': 'kf-kai', '宋体': 'kf-song', '系统默认': '' }[config.font_family] || 'kf-kai';
-    const fontSize   = { '小号': 'kf-small', '中号': 'kf-medium', '大号': 'kf-large' }[config.font_size] || 'kf-medium';
-    const textAlign  = { '左对齐': 'kf-left', '居中': 'kf-center', '右对齐': 'kf-right' }[config.text_align] || 'kf-center';
-
-    // 把类挂到最外层卡片，统一控制
-    this.className = [
-      'poetry-card',
-      fontFamily,
-      fontSize,
-      textAlign
-    ].join(' ');
-
-    // 文字颜色用变量，避免行间样式被覆盖
-    this.style.setProperty('--poetry-text-color', config.text_color);
   }
 
   static styles(config) {
     return `
-      .poetry-card{--poetry-text-color:#212121;}
+      .poetry-card{
+        --poetry-text-color:#212121;
+        display:flex;
+        flex-direction:column;
+        gap:var(--cf-spacing-md);
+      }
       .poetry-card.kf-kai .poetry-content{font-family:"楷体","STKaiti",serif;}
       .poetry-card.kf-song .poetry-content{font-family:"宋体","SimSun",serif;}
       .poetry-card.kf-small .poetry-content{font-size:1em;}
       .poetry-card.kf-medium .poetry-content{font-size:1.2em;}
       .poetry-card.kf-large .poetry-content{font-size:1.5em;}
-      .poetry-card.kf-left .poetry-content{text-align:left;}
+      .poetry-card.kf-left  .poetry-content{text-align:left;}
       .poetry-card.kf-center .poetry-content{text-align:center;}
       .poetry-card.kf-right .poetry-content{text-align:right;}
 
-      .poetry-title{color:var(--cf-primary-color);}
-      .poetry-dynasty-author{color:var(--cf-text-secondary);}
+      .poetry-title{color:var(--cf-primary-color);font-size:1.4em;font-weight:600;text-align:center;}
+      .poetry-dynasty-author{color:var(--cf-text-secondary);font-size:0.95em;text-align:center;margin-top:4px;}
       .poetry-content{color:var(--poetry-text-color);line-height:1.8;white-space:pre-line;}
       .poetry-translation{border-top:1px solid var(--cf-border);margin-top:1em;padding-top:1em;font-size:0.9em;color:var(--cf-text-secondary);line-height:1.6;white-space:pre-line;}
       .poetry-translation.hidden{display:none;}
@@ -129,10 +132,10 @@ class PoetryCard extends BaseCard {
 PoetryCard.manifest = {
   id: 'poetry-card',
   name: '诗词卡片',
-  description: '显示经典诗词，支持双实体朝代作者',
+  description: '双实体朝代作者，样式类+变量控制',
   icon: '📜',
   category: '文化',
-  version: '1.2.0',
+  version: '1.3.0',
   author: 'CardForge',
   config_schema: {
     show_title: { type: 'boolean', label: '显示标题', default: true },
