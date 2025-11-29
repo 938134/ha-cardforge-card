@@ -17,49 +17,11 @@ class FormBuilder extends LitElement {
         width: 100%;
       }
 
-      /* 响应式网格布局 */
+      /* 动态网格布局 - 按列填充 */
       .form-grid {
         display: grid;
         grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
         gap: var(--cf-spacing-md);
-      }
-
-      /* 开关组专用布局 */
-      .switch-group {
-        display: grid;
-        grid-template-columns: repeat(3, 1fr);
-        gap: var(--cf-spacing-md);
-        margin-bottom: var(--cf-spacing-lg);
-      }
-
-      /* 实体组样式 */
-      .entity-group {
-        margin-bottom: var(--cf-spacing-lg);
-        padding: var(--cf-spacing-md);
-        background: rgba(var(--cf-rgb-primary), 0.03);
-        border-radius: var(--cf-radius-md);
-        border: 1px solid var(--cf-border);
-      }
-
-      .group-header {
-        display: flex;
-        align-items: center;
-        gap: var(--cf-spacing-sm);
-        margin-bottom: var(--cf-spacing-md);
-        padding-bottom: var(--cf-spacing-sm);
-        border-bottom: 1px solid var(--cf-border);
-      }
-
-      .group-title {
-        font-weight: 600;
-        font-size: 0.95em;
-        color: var(--cf-text-primary);
-      }
-
-      .entity-grid {
-        display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-        gap: var(--cf-spacing-sm);
       }
 
       .form-field {
@@ -68,7 +30,7 @@ class FormBuilder extends LitElement {
         gap: var(--cf-spacing-sm);
       }
 
-      /* 开关字段特殊样式 */
+      /* 开关字段样式 */
       .switch-field {
         display: flex;
         align-items: center;
@@ -77,10 +39,7 @@ class FormBuilder extends LitElement {
         border: 1px solid var(--cf-border);
         border-radius: var(--cf-radius-md);
         background: var(--cf-surface);
-      }
-
-      .switch-field ha-switch {
-        margin-right: var(--cf-spacing-xs);
+        min-height: 44px;
       }
 
       .field-label {
@@ -124,33 +83,12 @@ class FormBuilder extends LitElement {
           gap: var(--cf-spacing-sm);
         }
 
-        .switch-group {
-          grid-template-columns: repeat(2, 1fr);
-          gap: var(--cf-spacing-sm);
-        }
-
-        .entity-grid {
-          grid-template-columns: 1fr;
-        }
-
-        .entity-group {
-          padding: var(--cf-spacing-sm);
-        }
-
         .switch-field {
           padding: var(--cf-spacing-xs);
-          min-height: 44px; /* 触摸友好 */
         }
 
         .form-field {
           gap: var(--cf-spacing-xs);
-        }
-      }
-
-      /* 超小屏适配 */
-      @container (max-width: 480px) {
-        .switch-group {
-          grid-template-columns: 1fr;
         }
       }
 
@@ -174,48 +112,11 @@ class FormBuilder extends LitElement {
       return this._renderEmptyState();
     }
 
-    // 分离开关字段、实体字段和其他字段
-    const switchFields = [];
-    const entityFields = [];
-    const otherFields = [];
-
-    Object.entries(this.schema).forEach(([key, field]) => {
-      if (field.type === 'boolean') {
-        switchFields.push({ key, field });
-      } else if (key.startsWith('entity_')) {
-        entityFields.push({ key, field });
-      } else {
-        otherFields.push({ key, field });
-      }
-    });
-
     return html`
       <div class="form-builder">
-        ${switchFields.length > 0 ? html`
-          <div class="switch-group">
-            ${switchFields.map(({ key, field }) => this._renderBooleanField(key, field))}
-          </div>
-        ` : ''}
-        
-        ${entityFields.length > 0 ? this._renderEntityGroup(entityFields) : ''}
-        
         <div class="form-grid">
-          ${otherFields.map(({ key, field }) => this._renderField(key, field))}
-        </div>
-      </div>
-    `;
-  }
-
-  _renderEntityGroup(entityFields) {
-    return html`
-      <div class="entity-group">
-        <div class="group-header">
-          <ha-icon icon="mdi:database"></ha-icon>
-          <span class="group-title">数据实体</span>
-        </div>
-        <div class="entity-grid">
-          ${entityFields.map(({ key, field }) => 
-            this._renderEntityField(key, field, this.config?.[key])
+          ${Object.entries(this.schema).map(([key, field]) => 
+            this._renderField(key, field)
           )}
         </div>
       </div>
@@ -247,12 +148,14 @@ class FormBuilder extends LitElement {
     const currentValue = this.config?.[key] !== undefined ? this.config[key] : field.default;
     
     return html`
-      <div class="switch-field">
-        <ha-switch
-          .checked=${!!currentValue}
-          @change=${e => this._onFieldChange(key, e.target.checked)}
-        ></ha-switch>
-        <div class="field-label">${field.label}</div>
+      <div class="form-field">
+        <div class="switch-field">
+          <ha-switch
+            .checked=${!!currentValue}
+            @change=${e => this._onFieldChange(key, e.target.checked)}
+          ></ha-switch>
+          <div class="field-label">${field.label}</div>
+        </div>
       </div>
     `;
   }
@@ -288,19 +191,16 @@ class FormBuilder extends LitElement {
       { value: 'red', label: '红色' },
       { value: 'green', label: '绿色' },
       { value: 'yellow', label: '黄色' },
-      { value: 'purple', label: '紫色' },
-      { value: 'orange', label: '橙色' }
+      { value: 'purple', label: '紫色' }
     ];
 
-    // 获取颜色预览
     const getColorPreview = (colorValue) => {
       const colorMap = {
         blue: '#4285f4',
         red: '#ea4335',
         green: '#34a853',
         yellow: '#fbbc05',
-        purple: '#a142f4',
-        orange: '#ff6d01'
+        purple: '#a142f4'
       };
       return colorMap[colorValue] || colorValue;
     };
