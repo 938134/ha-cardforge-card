@@ -15,32 +15,115 @@ class FormBuilder extends LitElement {
     css`
       .form-builder {
         width: 100%;
+        container-type: inline-size;
+        container-name: form-builder;
       }
-      .row {
+      
+      .form-grid {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: var(--cf-spacing-md);
+        width: 100%;
+      }
+      
+      .form-cell {
         display: flex;
-        flex-wrap: wrap;
+        flex-direction: column;
         gap: var(--cf-spacing-sm);
+        min-width: 0;
       }
-      .cell {
-        flex: 1 1 280px;          /* 两列：最小 280px，不足自动换行 */
+      
+      /* 布尔字段特殊布局 - 单列显示 */
+      .boolean-fields {
         display: flex;
         flex-direction: column;
         gap: var(--cf-spacing-xs);
+        margin-bottom: var(--cf-spacing-lg);
+        padding-bottom: var(--cf-spacing-md);
+        border-bottom: 1px solid var(--cf-border);
       }
-      @media (max-width: 480px) {
-        .cell {
-          flex: 1 1 100%;         /* 窄屏 1 列 */
-        }
+      
+      .boolean-field {
+        display: flex;
+        align-items: center;
+        gap: var(--cf-spacing-sm);
+        padding: var(--cf-spacing-sm) 0;
       }
+      
+      .boolean-field:not(:last-child) {
+        border-bottom: 1px solid var(--cf-border-light, rgba(0, 0, 0, 0.1));
+      }
+      
+      .field-label {
+        font-size: 0.9em;
+        font-weight: 500;
+        color: var(--cf-text-primary);
+      }
+      
+      .field-description {
+        font-size: 0.8em;
+        color: var(--cf-text-secondary);
+        margin-top: 2px;
+        line-height: 1.3;
+      }
+      
+      /* 颜色预览 */
+      .color-preview {
+        width: 20px;
+        height: 20px;
+        border-radius: var(--cf-radius-sm);
+        border: 1px solid var(--cf-border);
+      }
+      
+      /* 空状态 */
       .empty-state {
         text-align: center;
-        padding: var(--cf-spacing-lg);
+        padding: var(--cf-spacing-xl);
         color: var(--cf-text-secondary);
+        background: var(--cf-surface);
+        border-radius: var(--cf-radius-md);
+        border: 2px dashed var(--cf-border);
       }
+      
       .empty-icon {
         font-size: 2em;
         opacity: 0.5;
         margin-bottom: var(--cf-spacing-md);
+      }
+      
+      /* 响应式设计 */
+      @container form-builder (max-width: 600px) {
+        .form-grid {
+          grid-template-columns: 1fr;
+          gap: var(--cf-spacing-sm);
+        }
+      }
+      
+      /* 确保表单组件样式一致 */
+      ha-textfield, ha-select, ha-combo-box, ha-icon-picker {
+        width: 100%;
+      }
+      
+      /* 滑块组件特殊布局 */
+      .slider-container {
+        display: flex;
+        align-items: center;
+        gap: var(--cf-spacing-md);
+        width: 100%;
+      }
+      
+      .slider-value {
+        min-width: 40px;
+        text-align: center;
+        font-size: 0.9em;
+        color: var(--cf-text-secondary);
+      }
+      
+      /* 字段组样式 */
+      .field-group {
+        display: flex;
+        flex-direction: column;
+        gap: var(--cf-spacing-sm);
       }
     `
   ];
@@ -50,29 +133,48 @@ class FormBuilder extends LitElement {
       return this._renderEmptyState();
     }
 
-    /* 1. 先拿所有字段 */
     const fields = Object.entries(this.schema);
-
-    /* 2. 排序：boolean 优先，其余保持原顺序 */
-    const sorted = [
-      ...fields.filter(([, f]) => f.type === 'boolean'),
-      ...fields.filter(([, f]) => f.type !== 'boolean')
-    ];
-
-    /* 3. 每行两个组件 */
-    const rows = [];
-    for (let i = 0; i < sorted.length; i += 2) {
-      rows.push(sorted.slice(i, i + 2));
-    }
-
+    
+    // 分离布尔字段和其他字段
+    const booleanFields = fields.filter(([, field]) => field.type === 'boolean');
+    const otherFields = fields.filter(([, field]) => field.type !== 'boolean');
+    
     return html`
       <div class="form-builder">
-        ${rows.map(row => html`
-          <div class="row">
-            ${row.map(([key, field]) => html`
-              <div class="cell">${this._renderField(key, field)}</div>
-            `)}
+        <!-- 布尔字段单独一行 -->
+        ${booleanFields.length > 0 ? html`
+          <div class="boolean-fields">
+            ${booleanFields.map(([key, field]) => 
+              this._renderBooleanField(key, field)
+            )}
           </div>
+        ` : ''}
+        
+        <!-- 其他字段按2列布局 -->
+        ${this._renderFieldGrid(otherFields)}
+      </div>
+    `;
+  }
+
+  _renderFieldGrid(fields) {
+    const rows = [];
+    for (let i = 0; i < fields.length; i += 2) {
+      rows.push(fields.slice(i, i + 2));
+    }
+    
+    return html`
+      <div class="form-grid">
+        ${rows.map(row => html`
+          ${row.map(([key, field]) => html`
+            <div class="form-cell">
+              <div class="field-group">
+                ${this._renderField(key, field)}
+                ${field.description ? html`
+                  <div class="field-description">${field.description}</div>
+                ` : ''}
+              </div>
+            </div>
+          `)}
         `)}
       </div>
     `;
@@ -101,13 +203,19 @@ class FormBuilder extends LitElement {
 
   _renderBooleanField(key, field, value) {
     const currentValue = this.config?.[key] !== undefined ? this.config[key] : field.default;
+    
     return html`
-      <div class="cf-flex cf-gap-sm">
+      <div class="boolean-field">
         <ha-switch
           .checked=${!!currentValue}
           @change=${e => this._onFieldChange(key, e.target.checked)}
         ></ha-switch>
-        <div class="field-label">${field.label}</div>
+        <div class="cf-flex cf-flex-column">
+          <div class="field-label">${field.label}</div>
+          ${field.description ? html`
+            <div class="field-description">${field.description}</div>
+          ` : ''}
+        </div>
       </div>
     `;
   }
@@ -187,7 +295,7 @@ class FormBuilder extends LitElement {
     const step = field.step || 1;
 
     return html`
-      <div class="cf-flex cf-gap-sm">
+      <div class="slider-container">
         <ha-slider
           .value=${currentValue}
           .min=${min}
@@ -196,10 +304,10 @@ class FormBuilder extends LitElement {
           @change=${e => this._onFieldChange(key, parseInt(e.target.value))}
           pin
           fullwidth
-          .label=${field.label}
         ></ha-slider>
-        <div class="cf-text-sm">${currentValue}${field.unit || ''}</div>
+        <div class="slider-value">${currentValue}${field.unit || ''}</div>
       </div>
+      <div class="field-label">${field.label}</div>
     `;
   }
 

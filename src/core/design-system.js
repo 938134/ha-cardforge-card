@@ -127,7 +127,68 @@ export const designSystem = css`
     color: var(--cf-text-primary);
   }
 
-  /* ===== 工具类：保持原样 ===== */
+  /* ===== 表单布局系统 ===== */
+  .cf-form-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: var(--cf-spacing-md);
+    width: 100%;
+  }
+
+  .cf-form-row {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: var(--cf-spacing-md);
+    width: 100%;
+  }
+
+  .cf-form-cell {
+    display: flex;
+    flex-direction: column;
+    gap: var(--cf-spacing-sm);
+    min-width: 0;
+  }
+
+  /* 表单字段样式 */
+  .cf-field-label {
+    font-size: 0.9em;
+    font-weight: 500;
+    color: var(--cf-text-primary);
+    margin-bottom: var(--cf-spacing-xs);
+  }
+
+  .cf-field-description {
+    font-size: 0.8em;
+    color: var(--cf-text-secondary);
+    margin-top: var(--cf-spacing-xs);
+    line-height: 1.3;
+  }
+
+  /* 表单组件样式 */
+  .cf-form-section {
+    background: var(--cf-surface);
+    border: 1px solid var(--cf-border);
+    border-radius: var(--cf-radius-md);
+    padding: var(--cf-spacing-lg);
+    margin-bottom: var(--cf-spacing-md);
+  }
+
+  .cf-form-section-header {
+    display: flex;
+    align-items: center;
+    gap: var(--cf-spacing-sm);
+    margin-bottom: var(--cf-spacing-md);
+    padding-bottom: var(--cf-spacing-sm);
+    border-bottom: 1px solid var(--cf-border);
+  }
+
+  .cf-form-section-title {
+    font-size: 1em;
+    font-weight: 600;
+    color: var(--cf-text-primary);
+  }
+
+  /* 工具类：保持原样 */
   .cf-grid { display: grid; gap: var(--cf-spacing-md); }
   .cf-grid-2 { grid-template-columns: repeat(2, 1fr); }
   .cf-grid-3 { grid-template-columns: repeat(3, 1fr); }
@@ -177,7 +238,7 @@ export const designSystem = css`
   }
   .cf-animate-fadeIn { animation: cf-fadeIn 0.25s ease; }
 
-  /* ===== 响应式容器查询：保持原样 ===== */
+  /* ===== 响应式容器查询 ===== */
   @container cardforge-container (max-width: 768px) {
     .cardforge-card {
       padding: var(--cf-spacing-md);
@@ -190,6 +251,17 @@ export const designSystem = css`
     .cf-grid-4 {
       grid-template-columns: 1fr;
     }
+    
+    /* 表单响应式 */
+    .cf-form-row {
+      grid-template-columns: 1fr;
+      gap: var(--cf-spacing-sm);
+    }
+    
+    .cf-form-grid {
+      grid-template-columns: 1fr;
+      gap: var(--cf-spacing-sm);
+    }
   }
 
   @container cardforge-container (max-width: 480px) {
@@ -198,6 +270,10 @@ export const designSystem = css`
     }
     .cardforge-card {
       padding: var(--cf-spacing-sm);
+    }
+    
+    .cf-form-section {
+      padding: var(--cf-spacing-md);
     }
   }
 
