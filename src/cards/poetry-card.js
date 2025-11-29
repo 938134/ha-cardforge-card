@@ -102,7 +102,12 @@ export class PoetryCard extends BaseCard {
         case 'poetry_translation':
           const showTranslation = this.config?.show_translation ?? CARD_CONFIG.config_schema.show_translation.default;
           if (!showTranslation) return '';
-          return `<div class="poetry-translation">${this._escapeHtml(content)}</div>`;
+          return `
+            <div class="translation-section">
+              <div class="translation-divider"></div>
+              <div class="poetry-translation">${this._escapeHtml(content)}</div>
+            </div>
+          `;
         default:
           return '';
       }
@@ -111,20 +116,23 @@ export class PoetryCard extends BaseCard {
   }
 
   _splitPoetryContent(content) {
-    // 保留标点符号，按标点分行
-    const segments = content.split(/([，。！？；])/);
+    // 按标点符号正确分行，保留完整诗句
     const lines = [];
     let currentLine = '';
     
-    for (let i = 0; i < segments.length; i++) {
-      const segment = segments[i];
-      if (segment) {
-        currentLine += segment;
-        // 如果遇到句号、问号、感叹号，或者达到一定长度，就换行
-        if (/[。！？]/.test(segment) || currentLine.length >= 8) {
-          lines.push(currentLine.trim());
-          currentLine = '';
-        }
+    for (let i = 0; i < content.length; i++) {
+      const char = content[i];
+      currentLine += char;
+      
+      // 遇到句号、问号、感叹号时分行
+      if (/[。！？]/.test(char)) {
+        lines.push(currentLine.trim());
+        currentLine = '';
+      }
+      // 遇到逗号、分号且达到一定长度时分行（避免过长的句子）
+      else if (/[，；]/.test(char) && currentLine.length >= 6) {
+        lines.push(currentLine.trim());
+        currentLine = '';
       }
     }
     
@@ -232,10 +240,9 @@ export class PoetryCard extends BaseCard {
       
       .poetry-title,
       .poetry-dynasty-author,
-      .poetry-content,
-      .poetry-translation {
+      .poetry-content {
         text-align: center;
-        color: var(--primary-text-color); /* 使用主题主文字色 */
+        color: var(--primary-text-color);
         font-family: 'Noto Serif SC', serif;
         margin: 0;
         padding: 0;
@@ -251,11 +258,11 @@ export class PoetryCard extends BaseCard {
       /* 朝代和作者在同一行显示 */
       .poetry-dynasty-author {
         font-size: ${selectedSize.author};
-        color: var(--secondary-text-color); /* 使用主题次文字色 */
+        color: var(--secondary-text-color);
         opacity: 0.8;
         font-style: italic;
         line-height: 1.3;
-        margin-bottom: 12px;
+        margin-bottom: 16px;
       }
       
       .poetry-dynasty,
@@ -272,7 +279,7 @@ export class PoetryCard extends BaseCard {
       .poetry-content {
         font-size: ${selectedSize.content};
         line-height: 1.8;
-        margin: 0;
+        margin: 0 0 20px 0;
       }
       
       .poetry-line {
@@ -280,19 +287,60 @@ export class PoetryCard extends BaseCard {
         line-height: 1.6;
       }
       
+      /* 译文部分 */
+      .translation-section {
+        margin-top: 16px;
+      }
+      
+      .translation-divider {
+        width: 60%;
+        height: 1px;
+        background: var(--divider-color);
+        margin: 0 auto 16px auto;
+        opacity: 0.6;
+      }
+      
       .poetry-translation {
         font-size: ${selectedSize.translation};
-        color: var(--secondary-text-color); /* 使用主题次文字色 */
-        opacity: 0.9;
+        color: var(--secondary-text-color);
         line-height: 1.6;
         font-family: 'Noto Sans SC', sans-serif;
-        padding: 12px;
-        background: rgba(0, 0, 0, 0.05);
-        border-radius: var(--cf-radius-sm);
-        margin-top: 16px;
-        display: inline-block;
         text-align: left;
         max-width: 90%;
+        margin: 0 auto;
+        padding: 12px;
+        background: rgba(0, 0, 0, 0.03);
+        border-radius: var(--cf-radius-sm);
+      }
+      
+      /* 响应式设计 */
+      @container cardforge-container (max-width: 400px) {
+        .poetry-title {
+          font-size: ${font_size === 'large' ? '1.3em' : 
+                      font_size === 'medium' ? '1.1em' : '1em'};
+        }
+        
+        .poetry-dynasty-author {
+          font-size: ${font_size === 'large' ? '0.9em' : 
+                      font_size === 'medium' ? '0.8em' : '0.75em'};
+          margin-bottom: 12px;
+        }
+        
+        .poetry-content {
+          font-size: ${font_size === 'large' ? '1.1em' : 
+                      font_size === 'medium' ? '0.95em' : '0.85em'};
+          margin-bottom: 16px;
+        }
+        
+        .poetry-translation {
+          font-size: ${font_size === 'large' ? '0.85em' : 
+                      font_size === 'medium' ? '0.8em' : '0.75em'};
+          padding: 8px;
+        }
+        
+        .translation-divider {
+          margin-bottom: 12px;
+        }
       }
     `;
   }

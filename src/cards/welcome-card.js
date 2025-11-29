@@ -39,6 +39,11 @@ const CARD_CONFIG = {
       type: 'boolean',
       label: '显示时间',
       default: true
+    },
+    show_quote: {
+      type: 'boolean',
+      label: '显示每日一言',
+      default: true
     }
   }
 };
@@ -66,7 +71,7 @@ export class WelcomeCard extends BaseCard {
           type: 'quote',
           area: 'content',
           entity: '', // 默认为空，不关联实体
-          content: this._getDailyQuote(new Date()) // 默认每日一言
+          content: '' // 内容为空，由渲染时动态生成
         }
       }
     };
@@ -80,33 +85,31 @@ export class WelcomeCard extends BaseCard {
   render(config, hass, entities) {
     const safeConfig = this._getSafeConfig(config);
     
-    // 创建配置的深拷贝，避免修改原始配置
-    const dynamicConfig = JSON.parse(JSON.stringify(safeConfig));
-    
-    // 更新每日一言内容（根据实体状态或默认名言）
-    const quoteContent = this._getQuoteContent(dynamicConfig, hass);
-    dynamicConfig.blocks.daily_quote.content = quoteContent;
-    
     // 生成动态内容
-    const dynamicContent = this._generateDynamicContent(dynamicConfig, hass);
-    
-    // 渲染块内容（每日一言）
-    const blockResult = super.render(dynamicConfig, hass, entities);
+    const dynamicContent = this._generateDynamicContent(safeConfig, hass);
+    const quoteContent = this._getQuoteContent(safeConfig, hass);
     
     // 合并动态内容和块内容
     return {
-      template: this._renderTemplate(dynamicContent, quoteContent),
-      styles: blockResult.styles + this._renderDynamicStyles()
+      template: this._renderTemplate(dynamicContent, quoteContent, safeConfig),
+      styles: this._renderDynamicStyles()
     };
   }
 
   _getQuoteContent(config, hass) {
+    // 如果不显示每日一言，返回空字符串
+    if (!config.show_quote) {
+      return '';
+    }
+    
     const quoteBlock = config.blocks.daily_quote;
     
     // 如果关联了实体，显示实体状态值
     if (quoteBlock.entity && hass?.states?.[quoteBlock.entity]) {
       const entity = hass.states[quoteBlock.entity];
-      return entity.state || '实体无状态';
+      const state = entity.state;
+      // 确保状态值是字符串
+      return typeof state === 'string' ? state : String(state || '');
     }
     
     // 如果没有关联实体，显示每日一言
@@ -183,13 +186,16 @@ export class WelcomeCard extends BaseCard {
     return DAILY_QUOTES[index];
   }
 
-  _renderTemplate(dynamicContent, quoteContent) {
+  _renderTemplate(dynamicContent, quoteContent, config) {
+    // 只有当显示每日一言开关开启且有内容时才显示
+    const showQuote = config.show_quote && quoteContent;
+    
     return `
       <div class="cardforge-card ${CARD_CONFIG.id}">
         <div class="cardforge-area area-content">
           <div class="welcome-display">
             ${dynamicContent}
-            ${quoteContent ? `<div class="welcome-quote">${this._escapeHtml(quoteContent)}</div>` : ''}
+            ${showQuote ? `<div class="welcome-quote">${this._escapeHtml(quoteContent)}</div>` : ''}
           </div>
         </div>
       </div>
@@ -260,7 +266,11 @@ export class WelcomeCard extends BaseCard {
 
   _escapeHtml(text) {
     if (!text) return '';
-    return text
+    
+    // 确保text是字符串
+    const safeText = typeof text === 'string' ? text : String(text);
+    
+    return safeText
       .replace(/&/g, '&amp;')
       .replace(/</g, '&lt;')
       .replace(/>/g, '&gt;')
