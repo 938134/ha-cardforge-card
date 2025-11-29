@@ -17,19 +17,15 @@ class FormBuilder extends LitElement {
         width: 100%;
       }
       .form-grid {
-        display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+        display: flex;
+        flex-wrap: wrap;
         gap: var(--cf-spacing-sm);
       }
       .form-field {
+        flex: 1 1 280px;          /* 关键：先填行，再换行 */
         display: flex;
         flex-direction: column;
         gap: var(--cf-spacing-xs);
-      }
-      .field-label {
-        font-weight: 500;
-        font-size: 0.9em;
-        color: var(--cf-text-primary);
       }
       .empty-state {
         text-align: center;
@@ -99,21 +95,20 @@ class FormBuilder extends LitElement {
   _renderEntityField(key, field, value) {
     return html`
       <div class="form-field">
-        <div class="field-label">${field.label}</div>
         ${this.availableEntities ? html`
           <ha-combo-box
             .items=${this.availableEntities}
             .value=${value || ''}
             @value-changed=${e => this._onFieldChange(key, e.detail.value)}
             allow-custom-value
-            label="选择实体"
+            .label=${field.label}
             fullwidth
           ></ha-combo-box>
         ` : html`
           <ha-textfield
             .value=${value || ''}
             @input=${e => this._onFieldChange(key, e.target.value)}
-            placeholder="输入实体ID"
+            .label=${field.label}
             fullwidth
           ></ha-textfield>
         `}
@@ -142,17 +137,16 @@ class FormBuilder extends LitElement {
     };
 
     const currentColor = value || field.default || 'blue';
-    const previewColor = getColorPreview(currentColor);
 
     return html`
       <div class="form-field">
-        <div class="field-label">${field.label}</div>
         <ha-select
           .value=${currentColor}
           @closed=${this._preventClose}
           naturalMenuWidth
           fixedMenuPosition
           fullwidth
+          .label=${field.label}
         >
           ${colorOptions.map(option => html`
             <ha-list-item 
@@ -178,19 +172,17 @@ class FormBuilder extends LitElement {
 
     return html`
       <div class="form-field">
-        <div class="field-label">${field.label}</div>
-        <div class="cf-flex cf-gap-sm">
-          <ha-slider
-            .value=${currentValue}
-            .min=${min}
-            .max=${max}
-            .step=${step}
-            @change=${e => this._onFieldChange(key, parseInt(e.target.value))}
-            pin
-            fullwidth
-          ></ha-slider>
-          <div class="cf-text-sm">${currentValue}${field.unit || ''}</div>
-        </div>
+        <ha-slider
+          .value=${currentValue}
+          .min=${min}
+          .max=${max}
+          .step=${step}
+          @change=${e => this._onFieldChange(key, parseInt(e.target.value))}
+          pin
+          fullwidth
+          .label=${field.label}
+        ></ha-slider>
+        <div class="cf-text-sm">${currentValue}${field.unit || ''}</div>
       </div>
     `;
   }
@@ -198,11 +190,10 @@ class FormBuilder extends LitElement {
   _renderIconField(key, field, value) {
     return html`
       <div class="form-field">
-        <div class="field-label">${field.label}</div>
         <ha-icon-picker
           .value=${value || ''}
           @value-changed=${e => this._onFieldChange(key, e.detail.value)}
-          label="选择图标"
+          .label=${field.label}
           fullwidth
         ></ha-icon-picker>
       </div>
@@ -214,13 +205,13 @@ class FormBuilder extends LitElement {
 
     return html`
       <div class="form-field">
-        <div class="field-label">${field.label}</div>
         <ha-select
           .value=${value || ''}
           @closed=${this._preventClose}
           naturalMenuWidth
           fixedMenuPosition
           fullwidth
+          .label=${field.label}
         >
           ${options.map(option => html`
             <ha-list-item 
@@ -238,12 +229,12 @@ class FormBuilder extends LitElement {
   _renderTextField(key, field, value) {
     return html`
       <div class="form-field">
-        <div class="field-label">${field.label}</div>
         <ha-textfield
           .value=${value || ''}
           @input=${e => this._onFieldChange(key, e.target.value)}
           placeholder=${field.placeholder || ''}
           fullwidth
+          .label=${field.label}
         ></ha-textfield>
       </div>
     `;
