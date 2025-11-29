@@ -97,8 +97,20 @@ export class PoetryCard extends BaseCard {
         default: defaultConfig.font_size
       },
       text_color: {
-        type: 'color',  // 使用 color 类型
+        type: 'select',
         label: '文字颜色',
+        options: [
+          '#333333', // 黑色
+          '#666666', // 深灰
+          '#999999', // 中灰
+          '#ffffff', // 白色
+          '#ff4444', // 红色
+          '#ff8844', // 橙色
+          '#ffcc44', // 黄色
+          '#44ff44', // 绿色
+          '#4488ff', // 蓝色
+          '#8844ff', // 紫色
+        ],
         default: defaultConfig.text_color
       },
       text_align: {
@@ -234,7 +246,16 @@ export const manifest = {
     show_translation: { type: 'boolean', label: '显示译文', default: false },
     font_family: { type: 'select', label: '诗词字体', options: ['default', '书法字体', '宋体', '楷体', '黑体'], default: 'default' },
     font_size: { type: 'select', label: '文字大小', options: ['small', 'medium', 'large'], default: 'medium' },
-    text_color: { type: 'color', label: '文字颜色', default: '#333333' },
+    text_color: { 
+      type: 'select', 
+      label: '文字颜色', 
+      options: [
+        '#333333', '#666666', '#999999', '#ffffff',
+        '#ff4444', '#ff8844', '#ffcc44', '#44ff44', 
+        '#4488ff', '#8844ff'
+      ], 
+      default: '#333333' 
+    },
     text_align: { type: 'select', label: '对齐方式', options: ['left', 'center', 'right'], default: 'center' }
   }
 };

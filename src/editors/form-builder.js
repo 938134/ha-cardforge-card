@@ -17,19 +17,12 @@ class FormBuilder extends LitElement {
         width: 100%;
       }
 
-      /* 开关项网格布局 */
-      .grid-switches {
+      /* 自适应网格布局 - 所有字段混合排列 */
+      .form-grid {
         display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
         gap: var(--cf-spacing-md);
-        margin-bottom: var(--cf-spacing-lg);
-      }
-
-      /* 样式设置网格布局 */
-      .grid-styles {
-        display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-        gap: var(--cf-spacing-md);
+        width: 100%;
       }
 
       .form-field {
@@ -59,19 +52,6 @@ class FormBuilder extends LitElement {
         width: 100%;
       }
 
-      /* 颜色选择器样式 */
-      .color-field {
-        width: 100%;
-      }
-
-      .color-preview {
-        width: 24px;
-        height: 24px;
-        border-radius: var(--cf-radius-sm);
-        border: 1px solid var(--cf-border);
-        margin-right: var(--cf-spacing-sm);
-      }
-
       /* 空状态 */
       .empty-state {
         text-align: center;
@@ -87,21 +67,13 @@ class FormBuilder extends LitElement {
 
       /* 移动端适配 */
       @media (max-width: 768px) {
-        .grid-switches,
-        .grid-styles {
+        .form-grid {
           grid-template-columns: 1fr;
           gap: var(--cf-spacing-sm);
         }
         
         .form-field {
           min-height: 50px;
-        }
-      }
-
-      @media (max-width: 600px) {
-        .grid-switches,
-        .grid-styles {
-          grid-template-columns: 1fr;
         }
       }
     `
@@ -112,31 +84,14 @@ class FormBuilder extends LitElement {
       return this._renderEmptyState();
     }
 
-    // 分组渲染：开关项和样式设置
-    const switchFields = [];
-    const styleFields = [];
-
-    Object.entries(this.schema).forEach(([key, field]) => {
-      if (field.type === 'boolean') {
-        switchFields.push([key, field]);
-      } else {
-        styleFields.push([key, field]);
-      }
-    });
+    // 不再分组，所有字段按定义顺序排列
+    const fields = Object.entries(this.schema);
 
     return html`
       <div class="form-builder">
-        ${switchFields.length > 0 ? html`
-          <div class="grid-switches">
-            ${switchFields.map(([key, field]) => this._renderBooleanField(key, field))}
-          </div>
-        ` : ''}
-        
-        ${styleFields.length > 0 ? html`
-          <div class="grid-styles">
-            ${styleFields.map(([key, field]) => this._renderField(key, field))}
-          </div>
-        ` : ''}
+        <div class="form-grid">
+          ${fields.map(([key, field]) => this._renderField(key, field))}
+        </div>
       </div>
     `;
   }
@@ -145,6 +100,8 @@ class FormBuilder extends LitElement {
     const value = this.config?.[key] !== undefined ? this.config[key] : field.default;
 
     switch (field.type) {
+      case 'boolean':
+        return this._renderBooleanField(key, field, value);
       case 'entity':
         return this._renderEntityField(key, field, value);
       case 'icon':
@@ -231,19 +188,8 @@ class FormBuilder extends LitElement {
   }
 
   _renderColorField(key, field, value) {
-    const currentValue = value || field.default || '#333333';
-    
-    return html`
-      <div class="form-field">
-        <ha-color-picker
-          class="color-field"
-          .value=${currentValue}
-          @value-changed=${e => this._onFieldChange(key, e.detail.value)}
-          label=${field.label}
-          fullwidth
-        ></ha-color-picker>
-      </div>
-    `;
+    // 颜色字段现在也使用选择器
+    return this._renderSelectField(key, field, value);
   }
 
   _renderTextField(key, field, value) {
