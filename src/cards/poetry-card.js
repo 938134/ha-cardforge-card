@@ -56,8 +56,7 @@ export class PoetryCard extends BaseCard {
       blocks: {
         poetry_content: {
           type: 'poetry',
-          area: 'content',
-          title: '每日诗词'
+          area: 'content'
         }
       }
     };
@@ -130,15 +129,15 @@ export class PoetryCard extends BaseCard {
     let title = '', dynasty = '', author = '', content = '', translation = '';
     
     Object.values(blocks).forEach(block => {
-      if (block.type === 'poetry_title' || block.title?.includes('标题')) {
+      if (block.title && block.title.includes('标题')) {
         title = this._getBlockContent(block, hass);
-      } else if (block.type === 'poetry_dynasty' || block.title?.includes('朝代')) {
+      } else if (block.title && block.title.includes('朝代')) {
         dynasty = this._getBlockContent(block, hass);
-      } else if (block.type === 'poetry_author' || block.title?.includes('作者')) {
+      } else if (block.title && block.title.includes('作者')) {
         author = this._getBlockContent(block, hass);
-      } else if (block.type === 'poetry_content' || block.title?.includes('内容')) {
+      } else if (block.title && block.title.includes('内容')) {
         content = this._getBlockContent(block, hass);
-      } else if (block.type === 'poetry_translation' || block.title?.includes('译文')) {
+      } else if (block.title && block.title.includes('译文')) {
         translation = this._getBlockContent(block, hass);
       }
     });
@@ -210,6 +209,7 @@ export class PoetryCard extends BaseCard {
     const safeConfig = config || {};
     const font_size = safeConfig.font_size || CARD_CONFIG.config_schema.font_size.default;
     const text_color = safeConfig.text_color || CARD_CONFIG.config_schema.text_color.default;
+    const show_translation = safeConfig.show_translation ?? CARD_CONFIG.config_schema.show_translation.default;
     
     const colorMap = {
       blue: '#4285f4',
@@ -276,6 +276,7 @@ export class PoetryCard extends BaseCard {
         text-align: left;
         line-height: 1.6;
         font-family: 'Noto Sans SC', sans-serif;
+        display: ${show_translation ? 'block' : 'none'};
       }
       
       @container cardforge-container (max-width: 768px) {
@@ -293,6 +294,19 @@ export class PoetryCard extends BaseCard {
                       font_size === 'medium' ? '1em' : '0.9em'};
         }
       }
+    `;
+  }
+
+  // 重写渲染方法，确保配置更新时重新渲染
+  _renderTemplate(config, hass, entities) {
+    const areas = this._renderAreas(config, hass, entities);
+    
+    return `
+      <div class="cardforge-card ${config.card_type || ''}">
+        ${areas.header}
+        ${areas.content}
+        ${areas.footer}
+      </div>
     `;
   }
 }
