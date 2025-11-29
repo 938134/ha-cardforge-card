@@ -17,24 +17,39 @@ class FormBuilder extends LitElement {
         width: 100%;
       }
 
-      /* 紧凑网格布局 - 2列 */
+      /* 自适应网格布局 */
       .form-grid {
         display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
         gap: var(--cf-spacing-md);
+        width: 100%;
       }
 
       .form-field {
         display: flex;
         flex-direction: column;
         gap: var(--cf-spacing-sm);
+        min-height: 60px;
       }
 
-      .field-label {
+      /* 开关项样式 */
+      .switch-field {
+        display: flex;
+        align-items: center;
+        gap: var(--cf-spacing-sm);
+        padding: var(--cf-spacing-sm) 0;
+      }
+
+      .switch-label {
         font-weight: 500;
         font-size: 0.9em;
         color: var(--cf-text-primary);
-        margin-bottom: var(--cf-spacing-xs);
+        cursor: pointer;
+      }
+
+      /* 下拉框和输入框样式 */
+      .select-field, .text-field {
+        width: 100%;
       }
 
       /* 空状态 */
@@ -56,6 +71,10 @@ class FormBuilder extends LitElement {
           grid-template-columns: 1fr;
           gap: var(--cf-spacing-sm);
         }
+        
+        .form-field {
+          min-height: 50px;
+        }
       }
     `
   ];
@@ -65,13 +84,31 @@ class FormBuilder extends LitElement {
       return this._renderEmptyState();
     }
 
+    // 分组渲染：先渲染布尔字段，再渲染其他字段
+    const booleanFields = [];
+    const otherFields = [];
+
+    Object.entries(this.schema).forEach(([key, field]) => {
+      if (field.type === 'boolean') {
+        booleanFields.push([key, field]);
+      } else {
+        otherFields.push([key, field]);
+      }
+    });
+
     return html`
       <div class="form-builder">
-        <div class="form-grid">
-          ${Object.entries(this.schema).map(([key, field]) => 
-            this._renderField(key, field)
-          )}
-        </div>
+        ${booleanFields.length > 0 ? html`
+          <div class="form-grid">
+            ${booleanFields.map(([key, field]) => this._renderBooleanField(key, field))}
+          </div>
+        ` : ''}
+        
+        ${otherFields.length > 0 ? html`
+          <div class="form-grid" style="margin-top: ${booleanFields.length > 0 ? 'var(--cf-spacing-lg)' : '0'}">
+            ${otherFields.map(([key, field]) => this._renderField(key, field))}
+          </div>
+        ` : ''}
       </div>
     `;
   }
@@ -86,34 +123,41 @@ class FormBuilder extends LitElement {
         return this._renderIconField(key, field, value);
       case 'select':
         return this._renderSelectField(key, field, value);
-      case 'boolean':
-        return this._renderBooleanField(key, field, value);
+      case 'color':
+        return this._renderColorField(key, field, value);
       default:
         return this._renderTextField(key, field, value);
     }
   }
 
+  _renderBooleanField(key, field, value) {
+    const currentValue = this.config?.[key] !== undefined ? this.config[key] : field.default;
+    
+    return html`
+      <div class="form-field">
+        <label class="switch-field">
+          <ha-switch
+            .checked=${!!currentValue}
+            @change=${e => this._onFieldChange(key, e.target.checked)}
+          ></ha-switch>
+          <span class="switch-label">${field.label}</span>
+        </label>
+      </div>
+    `;
+  }
+
   _renderEntityField(key, field, value) {
     return html`
       <div class="form-field">
-        <div class="field-label">${field.label}</div>
-        ${this.availableEntities ? html`
-          <ha-combo-box
-            .items=${this.availableEntities}
-            .value=${value || ''}
-            @value-changed=${e => this._onFieldChange(key, e.detail.value)}
-            allow-custom-value
-            label="选择实体"
-            fullwidth
-          ></ha-combo-box>
-        ` : html`
-          <ha-textfield
-            .value=${value || ''}
-            @input=${e => this._onFieldChange(key, e.target.value)}
-            placeholder="输入实体ID"
-            fullwidth
-          ></ha-textfield>
-        `}
+        <ha-combo-box
+          class="select-field"
+          .items=${this.availableEntities}
+          .value=${value || ''}
+          @value-changed=${e => this._onFieldChange(key, e.detail.value)}
+          allow-custom-value
+          label=${field.label}
+          fullwidth
+        ></ha-combo-box>
       </div>
     `;
   }
@@ -121,11 +165,10 @@ class FormBuilder extends LitElement {
   _renderIconField(key, field, value) {
     return html`
       <div class="form-field">
-        <div class="field-label">${field.label}</div>
         <ha-icon-picker
           .value=${value || ''}
           @value-changed=${e => this._onFieldChange(key, e.detail.value)}
-          label="选择图标"
+          label=${field.label}
           fullwidth
         ></ha-icon-picker>
       </div>
@@ -137,13 +180,14 @@ class FormBuilder extends LitElement {
 
     return html`
       <div class="form-field">
-        <div class="field-label">${field.label}</div>
         <ha-select
+          class="select-field"
           .value=${value || ''}
           @closed=${this._preventClose}
           naturalMenuWidth
           fixedMenuPosition
           fullwidth
+          label=${field.label}
         >
           ${options.map(option => html`
             <ha-list-item 
@@ -158,14 +202,17 @@ class FormBuilder extends LitElement {
     `;
   }
 
-  _renderBooleanField(key, field, value) {
+  _renderColorField(key, field, value) {
     return html`
       <div class="form-field">
-        <ha-switch
-          .checked=${!!value}
-          @change=${e => this._onFieldChange(key, e.target.checked)}
-        ></ha-switch>
-        <div class="field-label" style="margin-bottom: 0;">${field.label}</div>
+        <ha-textfield
+          class="text-field"
+          .value=${value || ''}
+          @input=${e => this._onFieldChange(key, e.target.value)}
+          placeholder=${field.placeholder || field.label}
+          fullwidth
+          type="text"
+        ></ha-textfield>
       </div>
     `;
   }
@@ -173,11 +220,11 @@ class FormBuilder extends LitElement {
   _renderTextField(key, field, value) {
     return html`
       <div class="form-field">
-        <div class="field-label">${field.label}</div>
         <ha-textfield
+          class="text-field"
           .value=${value || ''}
           @input=${e => this._onFieldChange(key, e.target.value)}
-          placeholder=${field.placeholder || ''}
+          placeholder=${field.placeholder || field.label}
           fullwidth
         ></ha-textfield>
       </div>
