@@ -20,70 +20,45 @@ class CardEditor extends LitElement {
     _cardSchema: { state: true },
   };
 
-  static styles = [designSystem, css`
-    .editor-container {
-      background: var(--cf-background);
-      border-radius: var(--cf-radius-lg);
-      border: 1px solid var(--cf-border);
-      box-shadow: var(--cf-shadow-sm);
-      overflow: hidden;
-      min-height: 500px;
-      container-type: inline-size;
-      container-name: cardforge-editor;
-    }
-    .editor-layout {
-      display: flex;
-      flex-direction: column;
-      gap: 0;
-    }
-    .editor-section {
-      background: var(--cf-surface);
-      padding: var(--cf-spacing-lg);
-      border-bottom: 1px solid var(--cf-border);
-    }
-    .editor-section:last-child {
-      border-bottom: none;
-    }
-    .section-header {
-      display: flex;
-      align-items: center;
-      gap: var(--cf-spacing-md);
-      margin-bottom: var(--cf-spacing-lg);
-      padding: var(--cf-spacing-md);
-      background: rgba(var(--cf-rgb-primary), 0.05);
-      border-radius: var(--cf-radius-md);
-      border-left: 4px solid var(--cf-primary-color);
-    }
-    .section-title {
-      font-size: 1.1em;
-      font-weight: 600;
-      color: var(--cf-text-primary);
-    }
-
-    /* 编辑器内部响应式 */
-    @container cardforge-editor (max-width: 768px) {
-      .editor-section {
-        padding: var(--cf-spacing-md);
+  static styles = [
+    designSystem,
+    css`
+      .editor-container {
+        background: var(--cf-background);
+        border-radius: var(--cf-radius-lg);
+        border: 1px solid var(--cf-border);
+        box-shadow: var(--cf-shadow-sm);
+        overflow: hidden;
+        min-height: 500px;
+        container-type: inline-size;
+        container-name: cardforge-editor;
       }
-      
-      .section-header {
+      .editor-layout {
+        display: flex;
         flex-direction: column;
-        align-items: flex-start;
-        gap: var(--cf-spacing-sm);
-        padding: var(--cf-spacing-sm);
+        gap: 0;
       }
-    }
-
-    @container cardforge-editor (max-width: 480px) {
       .editor-section {
-        padding: var(--cf-spacing-sm);
+        background: var(--cf-surface);
+        padding: var(--cf-spacing-lg);
+        border-bottom: 1px solid var(--cf-border);
       }
-      
+      .editor-section:last-child {
+        border-bottom: none;
+      }
       .section-header {
+        display: flex;
+        align-items: center;
+        gap: var(--cf-spacing-sm);
         margin-bottom: var(--cf-spacing-md);
       }
-    }
-  `];
+      .section-title {
+        font-size: 1em;
+        font-weight: 600;
+        color: var(--cf-text-primary);
+      }
+    `,
+  ];
 
   constructor() {
     super();

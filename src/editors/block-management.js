@@ -9,39 +9,41 @@ class BlockManagement extends LitElement {
     _editingBlockId: { state: true },
   };
 
-  static styles = [designSystem, css`
-    .block-management{width:100%}
-    .block-list{display:flex;flex-direction:column;gap:var(--cf-spacing-sm)}
-    .block-item{display:grid;grid-template-columns:40px 50px 1fr 80px;gap:var(--cf-spacing-md);align-items:center;background:var(--cf-surface);border:2px solid transparent;border-radius:var(--cf-radius-md);padding:var(--cf-spacing-md);min-height:70px;cursor:pointer}
-    .block-item.editing{border-color:var(--cf-primary-color);background:rgba(var(--cf-rgb-primary),0.05)}
-    .area-badge{display:flex;align-items:center;justify-content:center}
-    .area-letter{width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:.9em;font-weight:700;color:white}
-    .area-letter.header{background:#2196F3}.area-letter.content{background:#4CAF50}.area-letter.footer{background:#FF9800}
-    .block-icon{width:40px;height:40px;border-radius:var(--cf-radius-md);background:rgba(var(--cf-rgb-primary),0.1);display:flex;align-items:center;justify-content:center;font-size:1.3em}
-    .block-info{display:flex;flex-direction:column;gap:4px;min-width:0;flex:1}
-    .block-name{font-size:.95em;font-weight:600;color:var(--cf-text-primary);line-height:1.2;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-    .block-state{font-size:.8em;color:var(--cf-text-secondary);line-height:1.2;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-    .block-actions{display:flex;gap:var(--cf-spacing-xs);justify-content:flex-end}
-    .block-action{width:36px;height:36px;border-radius:var(--cf-radius-sm);display:flex;align-items:center;justify-content:center;background:var(--cf-background);border:1px solid var(--cf-border);cursor:pointer;color:var(--cf-text-secondary)}
-    .edit-form{grid-column:1 / -1;background:var(--cf-surface);border:2px solid var(--cf-primary-color);border-radius:var(--cf-radius-md);padding:var(--cf-spacing-lg);margin-top:var(--cf-spacing-md)}
-    .form-grid{display:grid;grid-template-columns:80px 1fr;gap:var(--cf-spacing-md);align-items:center}
-    .form-label{font-weight:500;font-size:.9em;color:var(--cf-text-primary)}
-    .form-field{display:flex;gap:var(--cf-spacing-sm);align-items:center}
-    .radio-group{display:flex;gap:var(--cf-spacing-md)}
-    .radio-option{display:flex;align-items:center;gap:var(--cf-spacing-xs);cursor:pointer}
-    .form-actions{display:flex;gap:var(--cf-spacing-sm);justify-content:flex-end;margin-top:var(--cf-spacing-lg);padding-top:var(--cf-spacing-md);border-top:1px solid var(--cf-border)}
-    .action-btn{padding:var(--cf-spacing-sm) var(--cf-spacing-lg);border:1px solid var(--cf-border);border-radius:var(--cf-radius-sm);background:var(--cf-surface);color:var(--cf-text-primary);cursor:pointer;font-size:.85em;font-weight:500;min-width:80px}
-    .action-btn.primary{background:var(--cf-primary-color);color:white;border-color:var(--cf-primary-color)}
-    .add-block-btn{width:100%;padding:var(--cf-spacing-lg);border:2px dashed var(--cf-border);border-radius:var(--cf-radius-md);background:transparent;color:var(--cf-text-secondary);cursor:pointer;display:flex;align-items:center;justify-content:center;gap:var(--cf-spacing-sm);font-size:.95em;font-weight:500;margin-top:var(--cf-spacing-md)}
-    .empty-state{text-align:center;padding:var(--cf-spacing-xl);color:var(--cf-text-secondary);border:2px dashed var(--cf-border);border-radius:var(--cf-radius-md);background:rgba(var(--cf-rgb-primary),0.02)}
-  `];
+  static styles = [
+    designSystem,
+    css`
+      .block-management{width:100%}
+      .block-list{display:flex;flex-direction:column;gap:var(--cf-spacing-xs)}
+      .block-item{display:grid;grid-template-columns:40px 50px 1fr 80px;gap:var(--cf-spacing-sm);align-items:center;background:var(--cf-surface);border:2px solid transparent;border-radius:var(--cf-radius-md);padding:var(--cf-spacing-sm);min-height:60px;cursor:pointer}
+      .block-item.editing{border-color:var(--cf-primary-color);background:rgba(var(--cf-rgb-primary),0.05)}
+      .area-badge{display:flex;align-items:center;justify-content:center}
+      .area-letter{width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:.9em;font-weight:700;color:white}
+      .area-letter.header{background:#2196F3}.area-letter.content{background:#4CAF50}.area-letter.footer{background:#FF9800}
+      .block-icon{width:40px;height:40px;border-radius:var(--cf-radius-md);background:rgba(var(--cf-rgb-primary),0.1);display:flex;align-items:center;justify-content:center;font-size:1.3em}
+      .block-info{display:flex;flex-direction:column;gap:4px;min-width:0;flex:1}
+      .block-name{font-size:.95em;font-weight:600;color:var(--cf-text-primary);line-height:1.2;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+      .block-state{font-size:.8em;color:var(--cf-text-secondary);line-height:1.2;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+      .block-actions{display:flex;gap:var(--cf-spacing-xs);justify-content:flex-end}
+      .block-action{width:36px;height:36px;border-radius:var(--cf-radius-sm);display:flex;align-items:center;justify-content:center;background:var(--cf-background);border:1px solid var(--cf-border);cursor:pointer;color:var(--cf-text-secondary)}
+      .edit-form{grid-column:1 / -1;background:var(--cf-surface);border:2px solid var(--cf-primary-color);border-radius:var(--cf-radius-md);padding:var(--cf-spacing-md);margin-top:var(--cf-spacing-sm)}
+      .form-grid{display:grid;grid-template-columns:80px 1fr;gap:var(--cf-spacing-sm);align-items:center}
+      .form-label{font-weight:500;font-size:.9em;color:var(--cf-text-primary)}
+      .form-field{display:flex;gap:var(--cf-spacing-sm);align-items:center}
+      .radio-group{display:flex;gap:var(--cf-spacing-md)}
+      .radio-option{display:flex;align-items:center;gap:var(--cf-spacing-xs);cursor:pointer}
+      .form-actions{display:flex;gap:var(--cf-spacing-sm);justify-content:flex-end;margin-top:var(--cf-spacing-md);padding-top:var(--cf-spacing-sm);border-top:1px solid var(--cf-border)}
+      .action-btn{padding:var(--cf-spacing-sm) var(--cf-spacing-md);border:1px solid var(--cf-border);border-radius:var(--cf-radius-sm);background:var(--cf-surface);color:var(--cf-text-primary);cursor:pointer;font-size:.85em;font-weight:500;min-width:80px}
+      .action-btn.primary{background:var(--cf-primary-color);color:white;border-color:var(--cf-primary-color)}
+      .add-block-btn{width:100%;padding:var(--cf-spacing-md);border:2px dashed var(--cf-border);border-radius:var(--cf-radius-md);background:transparent;color:var(--cf-text-secondary);cursor:pointer;display:flex;align-items:center;justify-content:center;gap:var(--cf-spacing-sm);font-size:.95em;font-weight:500;margin-top:var(--cf-spacing-sm)}
+      .empty-state{text-align:center;padding:var(--cf-spacing-lg);color:var(--cf-text-secondary);border:2px dashed var(--cf-border);border-radius:var(--cf-radius-md);background:rgba(var(--cf-rgb-primary),0.02)}
+    `,
+  ];
 
   constructor() {
     super();
     this._editingBlockId = null;
   }
 
-  /* ---------- 渲染 ---------- */
   render() {
     const blocks = this._getAllBlocks();
     return blocks.length
@@ -137,7 +139,6 @@ class BlockManagement extends LitElement {
       </div>`;
   }
 
-  /* ---------- 数据 ---------- */
   _getAllBlocks() {
     return this.config.blocks
       ? Object.entries(this.config.blocks).map(([id, c]) => ({ id, ...c }))
@@ -178,7 +179,6 @@ class BlockManagement extends LitElement {
     return map[domain] || 'mdi:cube';
   }
 
-  /* ---------- 交互 ---------- */
   _startEdit(blockId) {
     this._editingBlockId = blockId;
   }

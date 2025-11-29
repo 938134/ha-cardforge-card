@@ -16,89 +16,26 @@ class FormBuilder extends LitElement {
       .form-builder {
         width: 100%;
       }
-
-      /* 动态网格布局 - 按列填充 */
       .form-grid {
         display: grid;
         grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-        gap: var(--cf-spacing-md);
+        gap: var(--cf-spacing-sm);
       }
-
       .form-field {
         display: flex;
         flex-direction: column;
-        gap: var(--cf-spacing-sm);
+        gap: var(--cf-spacing-xs);
       }
-
-      /* 开关字段样式 */
-      .switch-field {
-        display: flex;
-        align-items: center;
-        gap: var(--cf-spacing-sm);
-        padding: var(--cf-spacing-sm);
-        border: 1px solid var(--cf-border);
-        border-radius: var(--cf-radius-md);
-        background: var(--cf-surface);
-        min-height: 44px;
-      }
-
       .field-label {
         font-weight: 500;
         font-size: 0.9em;
         color: var(--cf-text-primary);
       }
-
-      /* 颜色选择器样式 */
-      .color-picker {
-        display: flex;
-        align-items: center;
-        gap: var(--cf-spacing-sm);
-      }
-
-      .color-preview {
-        width: 20px;
-        height: 20px;
-        border-radius: var(--cf-radius-sm);
-        border: 1px solid var(--cf-border);
-      }
-
-      /* 滑动条样式 */
-      .slider-container {
-        display: flex;
-        align-items: center;
-        gap: var(--cf-spacing-sm);
-      }
-
-      .slider-value {
-        min-width: 40px;
-        font-size: 0.85em;
-        color: var(--cf-text-secondary);
-        text-align: right;
-      }
-
-      /* 移动端适配 */
-      @container (max-width: 768px) {
-        .form-grid {
-          grid-template-columns: 1fr;
-          gap: var(--cf-spacing-sm);
-        }
-
-        .switch-field {
-          padding: var(--cf-spacing-xs);
-        }
-
-        .form-field {
-          gap: var(--cf-spacing-xs);
-        }
-      }
-
-      /* 空状态 */
       .empty-state {
         text-align: center;
         padding: var(--cf-spacing-lg);
         color: var(--cf-text-secondary);
       }
-
       .empty-icon {
         font-size: 2em;
         opacity: 0.5;
@@ -115,7 +52,7 @@ class FormBuilder extends LitElement {
     return html`
       <div class="form-builder">
         <div class="form-grid">
-          ${Object.entries(this.schema).map(([key, field]) => 
+          ${Object.entries(this.schema).map(([key, field]) =>
             this._renderField(key, field)
           )}
         </div>
@@ -146,10 +83,9 @@ class FormBuilder extends LitElement {
 
   _renderBooleanField(key, field, value) {
     const currentValue = this.config?.[key] !== undefined ? this.config[key] : field.default;
-    
     return html`
       <div class="form-field">
-        <div class="switch-field">
+        <div class="cf-flex cf-gap-sm">
           <ha-switch
             .checked=${!!currentValue}
             @change=${e => this._onFieldChange(key, e.target.checked)}
@@ -223,7 +159,7 @@ class FormBuilder extends LitElement {
               .value=${option.value}
               @click=${() => this._onFieldChange(key, option.value)}
             >
-              <div class="color-picker">
+              <div class="cf-flex cf-gap-sm">
                 <div class="color-preview" style="background: ${getColorPreview(option.value)}"></div>
                 <span>${option.label}</span>
               </div>
@@ -243,7 +179,7 @@ class FormBuilder extends LitElement {
     return html`
       <div class="form-field">
         <div class="field-label">${field.label}</div>
-        <div class="slider-container">
+        <div class="cf-flex cf-gap-sm">
           <ha-slider
             .value=${currentValue}
             .min=${min}
@@ -253,7 +189,7 @@ class FormBuilder extends LitElement {
             pin
             fullwidth
           ></ha-slider>
-          <div class="slider-value">${currentValue}${field.unit || ''}</div>
+          <div class="cf-text-sm">${currentValue}${field.unit || ''}</div>
         </div>
       </div>
     `;
@@ -336,5 +272,4 @@ class FormBuilder extends LitElement {
 if (!customElements.get('form-builder')) {
   customElements.define('form-builder', FormBuilder);
 }
-
 export { FormBuilder };
