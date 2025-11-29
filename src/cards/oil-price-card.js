@@ -137,13 +137,13 @@ export class OilPriceCard extends BaseCard {
         case 'oil_title':
           return `<div class="oil-title">🗺️ ${this._escapeHtml(content)}</div>`;
         case 'oil_89':
-          return this._renderOilBlock('🟢', '89号', content, '元/L');
+          return this._renderOilBlock('🟢', '89号', content);
         case 'oil_92':
-          return this._renderOilBlock('🔵', '92号', content, '元/L');
+          return this._renderOilBlock('🔵', '92号', content);
         case 'oil_95':
-          return this._renderOilBlock('🟠', '95号', content, '元/L');
+          return this._renderOilBlock('🟠', '95号', content);
         case 'oil_diesel':
-          return this._renderOilBlock('⚫', '0号柴油', content, '元/L');
+          return this._renderOilBlock('⚫', '0号柴油', content);
         case 'oil_tip':
           return `<div class="oil-tip">💡 ${this._escapeHtml(content)}</div>`;
         default:
@@ -153,13 +153,15 @@ export class OilPriceCard extends BaseCard {
     return super._renderBlock(blockId, blockConfig, hass, entities);
   }
 
-  _renderOilBlock(icon, label, price, unit) {
+  _renderOilBlock(icon, label, price) {
     return `
       <div class="oil-block">
-        <div class="oil-icon">${icon}</div>
-        <div class="oil-label">${this._escapeHtml(label)}</div>
+        <div class="oil-header">
+          <span class="oil-icon">${icon}</span>
+          <span class="oil-label">${this._escapeHtml(label)}</span>
+        </div>
         <div class="oil-price">${this._escapeHtml(price)}</div>
-        <div class="oil-unit">${this._escapeHtml(unit)}</div>
+        <div class="oil-unit">元/L</div>
       </div>
     `;
   }
@@ -193,25 +195,25 @@ export class OilPriceCard extends BaseCard {
       
       /* 标题区域 */
       .area-header {
-        margin-bottom: 12px;
+        margin-bottom: 8px;
         text-align: center;
       }
       
       .oil-title {
-        font-size: 1.1em;
+        font-size: 1em;
         font-weight: 600;
-        color: var(--cf-text-primary);
+        color: var(--primary-text-color);
         display: flex;
         align-items: center;
         justify-content: center;
-        gap: 6px;
+        gap: 4px;
       }
       
       /* 内容区域 - 紧凑的4列布局 */
       .layout-grid.grid-1x4 {
         display: grid;
         grid-template-columns: repeat(4, 1fr);
-        gap: 8px;
+        gap: 4px;
         margin: 0;
       }
       
@@ -220,110 +222,127 @@ export class OilPriceCard extends BaseCard {
         flex-direction: column;
         align-items: center;
         text-align: center;
-        padding: 8px 4px;
+        padding: 6px 2px;
         background: rgba(var(--cf-rgb-primary), 0.05);
-        border-radius: var(--cf-radius-md);
-        min-height: 70px;
+        border-radius: 6px;
+        min-height: 55px;
         justify-content: center;
       }
       
-      .oil-icon {
-        font-size: 1.2em;
+      .oil-header {
+        display: flex;
+        align-items: center;
+        gap: 2px;
         margin-bottom: 2px;
+      }
+      
+      .oil-icon {
+        font-size: 0.9em;
       }
       
       .oil-label {
-        font-size: 0.8em;
+        font-size: 0.7em;
         font-weight: 500;
-        color: var(--cf-text-primary);
-        margin-bottom: 2px;
-        line-height: 1.2;
+        color: var(--primary-text-color);
+        line-height: 1;
       }
       
       .oil-price {
-        font-size: 1em;
+        font-size: 0.9em;
         font-weight: 600;
-        color: var(--cf-primary-color);
-        line-height: 1.2;
+        color: var(--primary-color);
+        line-height: 1;
         margin-bottom: 1px;
       }
       
       .oil-unit {
-        font-size: 0.7em;
-        color: var(--cf-text-secondary);
-        line-height: 1.2;
+        font-size: 0.6em;
+        color: var(--secondary-text-color);
+        line-height: 1;
       }
       
       /* 页脚区域 */
       .area-footer {
-        margin-top: 12px;
-        padding-top: 8px;
-        border-top: 1px solid var(--cf-border);
+        margin-top: 8px;
+        padding-top: 6px;
+        border-top: 1px solid var(--divider-color);
         text-align: center;
       }
       
       .oil-tip {
-        font-size: 0.8em;
-        color: var(--cf-text-secondary);
+        font-size: 0.75em;
+        color: var(--secondary-text-color);
         display: flex;
         align-items: center;
         justify-content: center;
-        gap: 4px;
+        gap: 3px;
       }
       
       /* 响应式设计 */
       @container cardforge-container (max-width: 400px) {
         .layout-grid.grid-1x4 {
           grid-template-columns: repeat(2, 1fr);
-          gap: 6px;
+          gap: 3px;
         }
         
         .oil-block {
-          padding: 6px 3px;
-          min-height: 60px;
+          padding: 4px 1px;
+          min-height: 50px;
+        }
+        
+        .oil-header {
+          gap: 1px;
+        }
+        
+        .oil-icon {
+          font-size: 0.8em;
         }
         
         .oil-label {
-          font-size: 0.75em;
+          font-size: 0.65em;
         }
         
         .oil-price {
-          font-size: 0.9em;
+          font-size: 0.85em;
         }
         
         .oil-unit {
-          font-size: 0.65em;
+          font-size: 0.55em;
+        }
+        
+        .oil-title {
+          font-size: 0.9em;
+        }
+        
+        .oil-tip {
+          font-size: 0.7em;
         }
       }
       
       @container cardforge-container (max-width: 300px) {
         .layout-grid.grid-1x4 {
           grid-template-columns: 1fr;
-          gap: 4px;
+          gap: 2px;
         }
         
         .oil-block {
           flex-direction: row;
-          justify-content: flex-start;
-          gap: 8px;
-          padding: 6px 8px;
+          justify-content: space-between;
+          align-items: center;
+          padding: 4px 8px;
           min-height: auto;
-        }
-        
-        .oil-icon {
-          margin-bottom: 0;
-          flex-shrink: 0;
-        }
-        
-        .oil-label {
-          margin-bottom: 0;
-          min-width: 50px;
           text-align: left;
+        }
+        
+        .oil-header {
+          margin-bottom: 0;
+          gap: 4px;
         }
         
         .oil-price {
           margin-bottom: 0;
           margin-left: auto;
+          margin-right: 4px;
         }
         
         .oil-unit {

@@ -76,7 +76,7 @@ export class WeekCard extends BaseCard {
   _renderYearProgress(date) {
     const yearProgress = this._getYearProgress(date);
     const weekNumber = this._getWeekNumber(date);
-    const dateStr = this._formatDate(date);
+    const dateStr = this._formatShortDate(date);
     
     return `
       <div class="year-progress">
@@ -92,11 +92,13 @@ export class WeekCard extends BaseCard {
                     transform="rotate(-90 60 60)"/>
           </svg>
           <div class="ring-content">
-            <div class="week-number">第 ${weekNumber} 周</div>
-            <div class="current-date">${dateStr}</div>
+            <div class="year-percent">${Math.round(yearProgress)}%</div>
           </div>
         </div>
-        <div class="year-percent">${Math.round(yearProgress)}%</div>
+        <div class="ring-info">
+          <div class="week-number">第 ${weekNumber} 周</div>
+          <div class="current-date">${dateStr}</div>
+        </div>
       </div>
     `;
   }
@@ -104,39 +106,33 @@ export class WeekCard extends BaseCard {
   _renderWeekProgress(date) {
     const weekDay = date.getDay(); // 0-6, 0=周日
     const weekDays = ['日', '一', '二', '三', '四', '五', '六'];
-    const weekDayNames = ['星期日', '星期一', '星期二', '星期三', '星期四', '星期五', '星期六'];
-    
-    const currentDayName = weekDayNames[weekDay];
-    const weekProgress = (weekDay === 0 ? 7 : weekDay) / 7 * 100; // 周一到周日为完整一周
     
     let weekBars = '';
     let dayLabels = '';
-    let indicatorPosition = '';
     
     // 生成星期进度条和标签
     for (let i = 0; i < 7; i++) {
-      const isActive = i < (weekDay === 0 ? 6 : weekDay - 1); // 已过天数
-      const isCurrent = i === (weekDay === 0 ? 6 : weekDay - 1); // 当前天
+      const isActive = i < weekDay; // 已过天数（包括今天）
+      const isCurrent = i === weekDay; // 当前天
       
-      weekBars += `<div class="week-bar ${isActive ? 'active' : ''} ${isCurrent ? 'current' : ''}"></div>`;
-      dayLabels += `<div class="day-label">${weekDays[i]}</div>`;
-      
+      let colorClass = 'future';
       if (isCurrent) {
-        indicatorPosition = `left: ${(i * 14.2857) + 7.14285}%`; // 计算箭头位置
+        colorClass = 'current';
+      } else if (isActive) {
+        colorClass = 'active';
       }
+      
+      weekBars += `<div class="week-bar ${colorClass}"></div>`;
+      dayLabels += `<div class="day-label">${weekDays[i]}</div>`;
     }
     
     return `
       <div class="week-progress">
-        <div class="progress-bar">
+        <div class="progress-bars">
           ${weekBars}
         </div>
         <div class="day-labels">
           ${dayLabels}
-        </div>
-        <div class="current-indicator" style="${indicatorPosition}">
-          <div class="indicator-arrow"></div>
-          <div class="current-day">${currentDayName}</div>
         </div>
       </div>
     `;
@@ -156,11 +152,10 @@ export class WeekCard extends BaseCard {
     return Math.ceil((pastDays + firstDay.getDay() + 1) / 7);
   }
 
-  _formatDate(date) {
-    const year = date.getFullYear();
-    const month = (date.getMonth() + 1).toString().padStart(2, '0');
-    const day = date.getDate().toString().padStart(2, '0');
-    return `${year}年${month}月${day}日`;
+  _formatShortDate(date) {
+    const month = (date.getMonth() + 1).toString();
+    const day = date.getDate().toString();
+    return `${month}月${day}日`;
   }
 
   _renderTemplate(content) {
@@ -223,37 +218,42 @@ export class WeekCard extends BaseCard {
         width: 100%;
       }
       
-      .week-number {
-        font-size: 0.9em;
-        font-weight: 600;
-        color: var(--cf-text-primary);
-        margin-bottom: 4px;
-      }
-      
-      .current-date {
-        font-size: 0.8em;
-        color: var(--cf-text-secondary);
-      }
-      
       .year-percent {
+        font-size: 1.2em;
+        font-weight: 600;
+        color: var(--cf-primary-color);
+      }
+      
+      .ring-info {
+        display: flex;
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 4px;
+      }
+      
+      .week-number {
         font-size: 1em;
         font-weight: 600;
         color: var(--cf-text-primary);
+      }
+      
+      .current-date {
+        font-size: 0.9em;
+        color: var(--cf-text-secondary);
       }
       
       /* 周进度条样式 */
       .week-progress {
         width: 100%;
         max-width: 300px;
-        position: relative;
       }
       
-      .progress-bar {
+      .progress-bars {
         display: flex;
         width: 100%;
-        height: 12px;
-        background: #e0e0e0;
-        border-radius: 6px;
+        height: 16px;
+        background: #f0f0f0;
+        border-radius: 8px;
         overflow: hidden;
         margin-bottom: 8px;
       }
@@ -261,7 +261,6 @@ export class WeekCard extends BaseCard {
       .week-bar {
         flex: 1;
         height: 100%;
-        background: #e0e0e0;
         transition: background-color 0.3s ease;
       }
       
@@ -273,11 +272,14 @@ export class WeekCard extends BaseCard {
         background: var(--cf-accent-color);
       }
       
+      .week-bar.future {
+        background: #e0e0e0;
+      }
+      
       .day-labels {
         display: flex;
         justify-content: space-between;
         width: 100%;
-        margin-bottom: 20px;
       }
       
       .day-label {
@@ -285,29 +287,6 @@ export class WeekCard extends BaseCard {
         color: var(--cf-text-secondary);
         text-align: center;
         flex: 1;
-      }
-      
-      .current-indicator {
-        position: absolute;
-        top: 100%;
-        transform: translateX(-50%);
-        text-align: center;
-      }
-      
-      .indicator-arrow {
-        width: 0;
-        height: 0;
-        border-left: 6px solid transparent;
-        border-right: 6px solid transparent;
-        border-top: 8px solid var(--cf-accent-color);
-        margin: 0 auto 4px;
-      }
-      
-      .current-day {
-        font-size: 0.9em;
-        font-weight: 600;
-        color: var(--cf-accent-color);
-        white-space: nowrap;
       }
       
       /* 响应式设计 */
@@ -327,16 +306,20 @@ export class WeekCard extends BaseCard {
           height: 100px;
         }
         
+        .year-percent {
+          font-size: 1em;
+        }
+        
         .week-number {
-          font-size: 0.8em;
+          font-size: 0.9em;
         }
         
         .current-date {
-          font-size: 0.7em;
+          font-size: 0.8em;
         }
         
-        .year-percent {
-          font-size: 0.9em;
+        .progress-bars {
+          height: 14px;
         }
       }
     `;

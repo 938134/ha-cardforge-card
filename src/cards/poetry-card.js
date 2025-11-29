@@ -5,12 +5,17 @@ import { BaseCard } from '../core/base-card.js';
 const CARD_CONFIG = {
   id: 'poetry-card',
   name: '诗词卡片',
-  description: '显示经典诗词，支持块管理',
+  description: '显示经典诗词，支持译文显示',
   icon: '📜',
   category: '文化',
   version: '1.0.0',
   author: 'CardForge',
   config_schema: {
+    show_translation: {
+      type: 'boolean',
+      label: '显示译文',
+      default: false
+    },
     font_size: {
       type: 'select',
       label: '字体大小',
@@ -59,7 +64,13 @@ export class PoetryCard extends BaseCard {
           type: 'poetry_content',
           area: 'content',
           entity: '',
-          content: '床前明月光疑是地上霜举头望明月低头思故乡'
+          content: '床前明月光，疑是地上霜。举头望明月，低头思故乡。'
+        },
+        poetry_translation: {
+          type: 'poetry_translation',
+          area: 'content',
+          entity: '',
+          content: '明亮的月光洒在窗户纸上，好像地上泛起了一层霜。我禁不住抬起头来，看那天窗外空中的一轮明月，不由得低头沉思，想起远方的家乡。'
         }
       }
     };
@@ -88,6 +99,10 @@ export class PoetryCard extends BaseCard {
             `<div class="poetry-line">${this._escapeHtml(line)}</div>`
           ).join('');
           return `<div class="poetry-content">${contentHtml}</div>`;
+        case 'poetry_translation':
+          const showTranslation = this.config?.show_translation ?? CARD_CONFIG.config_schema.show_translation.default;
+          if (!showTranslation) return '';
+          return `<div class="poetry-translation">${this._escapeHtml(content)}</div>`;
         default:
           return '';
       }
@@ -96,27 +111,28 @@ export class PoetryCard extends BaseCard {
   }
 
   _splitPoetryContent(content) {
-    // 根据字数自动分行（五言或七言）
-    const text = content.replace(/[，。！？；\s]/g, ''); // 移除所有标点符号和空格
-    const charCount = text.length;
-    
-    if (charCount % 5 === 0) {
-      // 五言诗
-      return this._splitByCount(text, 5);
-    } else if (charCount % 7 === 0) {
-      // 七言诗
-      return this._splitByCount(text, 7);
-    } else {
-      // 其他格式，每行最多7个字
-      return this._splitByCount(text, 7);
-    }
-  }
-
-  _splitByCount(text, count) {
+    // 保留标点符号，按标点分行
+    const segments = content.split(/([，。！？；])/);
     const lines = [];
-    for (let i = 0; i < text.length; i += count) {
-      lines.push(text.substring(i, i + count));
+    let currentLine = '';
+    
+    for (let i = 0; i < segments.length; i++) {
+      const segment = segments[i];
+      if (segment) {
+        currentLine += segment;
+        // 如果遇到句号、问号、感叹号，或者达到一定长度，就换行
+        if (/[。！？]/.test(segment) || currentLine.length >= 8) {
+          lines.push(currentLine.trim());
+          currentLine = '';
+        }
+      }
     }
+    
+    // 添加最后一行
+    if (currentLine.trim()) {
+      lines.push(currentLine.trim());
+    }
+    
     return lines;
   }
 
@@ -197,9 +213,9 @@ export class PoetryCard extends BaseCard {
     const font_size = safeConfig.font_size || CARD_CONFIG.config_schema.font_size.default;
     
     const fontSizeMap = {
-      small: { title: '1.1em', content: '0.9em', author: '0.8em' },
-      medium: { title: '1.3em', content: '1.1em', author: '0.9em' },
-      large: { title: '1.5em', content: '1.3em', author: '1em' }
+      small: { title: '1.1em', content: '0.9em', author: '0.8em', translation: '0.8em' },
+      medium: { title: '1.3em', content: '1.1em', author: '0.9em', translation: '0.9em' },
+      large: { title: '1.5em', content: '1.3em', author: '1em', translation: '1em' }
     };
     
     const selectedSize = fontSizeMap[font_size] || fontSizeMap.medium;
@@ -216,8 +232,10 @@ export class PoetryCard extends BaseCard {
       
       .poetry-title,
       .poetry-dynasty-author,
-      .poetry-content {
+      .poetry-content,
+      .poetry-translation {
         text-align: center;
+        color: var(--primary-text-color); /* 使用主题主文字色 */
         font-family: 'Noto Serif SC', serif;
         margin: 0;
         padding: 0;
@@ -228,17 +246,16 @@ export class PoetryCard extends BaseCard {
         font-weight: bold;
         line-height: 1.3;
         margin-bottom: 8px;
-        color: var(--primary-text-color); /* 使用主题主文字色 */
       }
       
       /* 朝代和作者在同一行显示 */
       .poetry-dynasty-author {
         font-size: ${selectedSize.author};
+        color: var(--secondary-text-color); /* 使用主题次文字色 */
         opacity: 0.8;
         font-style: italic;
         line-height: 1.3;
         margin-bottom: 12px;
-        color: var(--secondary-text-color); /* 使用主题次文字色 */
       }
       
       .poetry-dynasty,
@@ -256,12 +273,26 @@ export class PoetryCard extends BaseCard {
         font-size: ${selectedSize.content};
         line-height: 1.8;
         margin: 0;
-        color: var(--primary-text-color); /* 使用主题主文字色 */
       }
       
       .poetry-line {
         margin: 0.1em 0;
         line-height: 1.6;
+      }
+      
+      .poetry-translation {
+        font-size: ${selectedSize.translation};
+        color: var(--secondary-text-color); /* 使用主题次文字色 */
+        opacity: 0.9;
+        line-height: 1.6;
+        font-family: 'Noto Sans SC', sans-serif;
+        padding: 12px;
+        background: rgba(0, 0, 0, 0.05);
+        border-radius: var(--cf-radius-sm);
+        margin-top: 16px;
+        display: inline-block;
+        text-align: left;
+        max-width: 90%;
       }
     `;
   }

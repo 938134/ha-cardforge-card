@@ -65,8 +65,8 @@ export class WelcomeCard extends BaseCard {
         daily_quote: {
           type: 'quote',
           area: 'content',
-          entity: '',
-          content: DAILY_QUOTES[0] // 默认第一条名言
+          entity: '', // 默认为空，不关联实体
+          content: this._getDailyQuote(new Date()) // 默认每日一言
         }
       }
     };
@@ -83,10 +83,9 @@ export class WelcomeCard extends BaseCard {
     // 创建配置的深拷贝，避免修改原始配置
     const dynamicConfig = JSON.parse(JSON.stringify(safeConfig));
     
-    // 更新每日一言内容
-    const now = new Date();
-    const dailyQuote = this._getDailyQuote(now);
-    dynamicConfig.blocks.daily_quote.content = dailyQuote;
+    // 更新每日一言内容（根据实体状态或默认名言）
+    const quoteContent = this._getQuoteContent(dynamicConfig, hass);
+    dynamicConfig.blocks.daily_quote.content = quoteContent;
     
     // 生成动态内容
     const dynamicContent = this._generateDynamicContent(dynamicConfig, hass);
@@ -96,9 +95,22 @@ export class WelcomeCard extends BaseCard {
     
     // 合并动态内容和块内容
     return {
-      template: this._renderTemplate(dynamicContent, blockResult.template),
+      template: this._renderTemplate(dynamicContent, quoteContent),
       styles: blockResult.styles + this._renderDynamicStyles()
     };
+  }
+
+  _getQuoteContent(config, hass) {
+    const quoteBlock = config.blocks.daily_quote;
+    
+    // 如果关联了实体，显示实体状态值
+    if (quoteBlock.entity && hass?.states?.[quoteBlock.entity]) {
+      const entity = hass.states[quoteBlock.entity];
+      return entity.state || '实体无状态';
+    }
+    
+    // 如果没有关联实体，显示每日一言
+    return this._getDailyQuote(new Date());
   }
 
   _generateDynamicContent(config, hass) {
@@ -171,16 +183,13 @@ export class WelcomeCard extends BaseCard {
     return DAILY_QUOTES[index];
   }
 
-  _renderTemplate(dynamicContent, blockTemplate) {
-    // 直接使用动态内容和块模板，不进行复杂的字符串匹配
+  _renderTemplate(dynamicContent, quoteContent) {
     return `
       <div class="cardforge-card ${CARD_CONFIG.id}">
         <div class="cardforge-area area-content">
           <div class="welcome-display">
             ${dynamicContent}
-            <div class="welcome-quote">
-              ${this._getDailyQuote(new Date())}
-            </div>
+            ${quoteContent ? `<div class="welcome-quote">${this._escapeHtml(quoteContent)}</div>` : ''}
           </div>
         </div>
       </div>
@@ -197,7 +206,7 @@ export class WelcomeCard extends BaseCard {
         gap: 12px;
         min-height: 140px;
         text-align: center;
-        color: var(--cf-primary-color);
+        color: var(--primary-text-color);
         font-family: 'Segoe UI', 'Roboto', 'PingFang SC', sans-serif;
       }
       
@@ -224,6 +233,7 @@ export class WelcomeCard extends BaseCard {
         max-width: 90%;
         opacity: 0.9;
         font-style: italic;
+        color: var(--secondary-text-color);
       }
       
       /* 响应式设计 */
