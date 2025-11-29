@@ -12,7 +12,45 @@ export class PoetryCard extends BaseCard {
       font_family: 'default',
       font_size: 'medium',
       text_color: '#333333',
-      text_align: 'center'
+      text_align: 'center',
+      // 默认块配置
+      blocks: {
+        poetry_title: {
+          area: 'content',
+          usage: 'title',
+          icon: 'mdi:format-title',
+          content: '静夜思',
+          entity: ''
+        },
+        poetry_dynasty: {
+          area: 'content', 
+          usage: 'dynasty',
+          icon: 'mdi:calendar-clock',
+          content: '唐',
+          entity: ''
+        },
+        poetry_author: {
+          area: 'content',
+          usage: 'author', 
+          icon: 'mdi:account',
+          content: '李白',
+          entity: ''
+        },
+        poetry_content: {
+          area: 'content',
+          usage: 'content',
+          icon: 'mdi:book-open-variant',
+          content: '床前明月光，疑是地上霜。\n举头望明月，低头思故乡。',
+          entity: ''
+        },
+        poetry_translation: {
+          area: 'content',
+          usage: 'translation',
+          icon: 'mdi:translate',
+          content: '明亮的月光洒在窗户上，好像地上泛起了一层霜。我禁不住抬起头来，看那天窗外空中的一轮明月，不由得低头沉思，想起远方的家乡。',
+          entity: ''
+        }
+      }
     };
   }
 
