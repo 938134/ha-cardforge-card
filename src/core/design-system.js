@@ -208,12 +208,6 @@ export const designSystem = css`
       grid-template-columns: 1fr;
     }
     
-    /* 表单构建器移动端优化 */
-    .form-grid {
-      grid-template-columns: 1fr !important;
-      gap: var(--cf-spacing-sm) !important;
-    }
-    
     .switch-group {
       grid-template-columns: repeat(2, 1fr) !important;
       gap: var(--cf-spacing-sm) !important;
