@@ -28,6 +28,8 @@ class CardEditor extends LitElement {
       box-shadow: var(--cf-shadow-sm);
       overflow: hidden;
       min-height: 500px;
+      container-type: inline-size;
+      container-name: cardforge-editor;
     }
     .editor-layout {
       display: flex;
@@ -57,9 +59,28 @@ class CardEditor extends LitElement {
       font-weight: 600;
       color: var(--cf-text-primary);
     }
-    @media (max-width: 768px) {
+
+    /* 编辑器内部响应式 */
+    @container cardforge-editor (max-width: 768px) {
       .editor-section {
         padding: var(--cf-spacing-md);
+      }
+      
+      .section-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: var(--cf-spacing-sm);
+        padding: var(--cf-spacing-sm);
+      }
+    }
+
+    @container cardforge-editor (max-width: 480px) {
+      .editor-section {
+        padding: var(--cf-spacing-sm);
+      }
+      
+      .section-header {
+        margin-bottom: var(--cf-spacing-md);
       }
     }
   `];
@@ -126,7 +147,7 @@ class CardEditor extends LitElement {
       <div class="editor-section">
         <div class="section-header">
           <ha-icon icon="mdi:palette"></ha-icon>
-          <span class="section-title">选择卡片类型</span>
+          <span class="section-title">卡片类型</span>
         </div>
         <card-selector
           .cards=${this._cards}
@@ -191,16 +212,10 @@ class CardEditor extends LitElement {
     const cardType = e.detail.cardId;
     this.config = { ...this.config, card_type: cardType };
     this._loadCardInstance();
-    
     const cardInstance = cardRegistry.createCardInstance(cardType);
     if (cardInstance) {
       const defaultConfig = cardInstance.getDefaultConfig();
-      // 合并配置，保留用户已有的 blocks，如果没有则使用默认 blocks
-      this.config = { 
-        ...this.config, 
-        ...defaultConfig,
-        blocks: this.config.blocks || defaultConfig.blocks
-      };
+      this.config = { ...this.config, areas: defaultConfig.areas, blocks: defaultConfig.blocks };
     }
     this._notifyConfigUpdate();
   }
@@ -211,10 +226,7 @@ class CardEditor extends LitElement {
   }
 
   _onConfigChanged(e) {
-    // 正确处理配置更新，支持部分配置更新
-    if (e.detail.config && typeof e.detail.config === 'object') {
-      this.config = { ...this.config, ...e.detail.config };
-    }
+    this.config = { ...this.config, ...e.detail.config };
     this._notifyConfigUpdate();
   }
 
@@ -225,12 +237,7 @@ class CardEditor extends LitElement {
 
   _loadCardInstance() {
     this._selectedCard = cardRegistry.getCard(this.config.card_type);
-    if (this._selectedCard) {
-      // 正确获取配置架构
-      this._cardSchema = this._selectedCard.manifest?.config_schema || null;
-    } else {
-      this._cardSchema = null;
-    }
+    this._cardSchema = this._selectedCard?.manifest?.config_schema || null;
   }
 
   updated(changedProperties) {

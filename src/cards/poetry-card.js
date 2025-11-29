@@ -1,263 +1,227 @@
 // src/cards/poetry-card.js
 import { BaseCard } from '../core/base-card.js';
 
+// 统一的配置schema
+const CONFIG_SCHEMA = {
+  show_title: {
+    type: 'boolean',
+    label: '显示标题',
+    default: true
+  },
+  show_dynasty_author: {
+    type: 'boolean',
+    label: '显示朝代作者',
+    default: true
+  },
+  show_translation: {
+    type: 'boolean',
+    label: '显示译文',
+    default: false
+  },
+  font_size: {
+    type: 'select',
+    label: '字体大小',
+    options: [
+      { value: 'small', label: '小' },
+      { value: 'medium', label: '中' },
+      { value: 'large', label: '大' }
+    ],
+    default: 'medium'
+  },
+  text_color: {
+    type: 'color',
+    label: '文字颜色',
+    options: [
+      { value: 'blue', label: '蓝色' },
+      { value: 'red', label: '红色' },
+      { value: 'green', label: '绿色' },
+      { value: 'yellow', label: '黄色' },
+      { value: 'purple', label: '紫色' }
+    ],
+    default: 'blue'
+  }
+};
+
+// 统一的manifest
+const MANIFEST = {
+  id: 'poetry-card',
+  name: '诗词卡片',
+  description: '显示经典诗词，支持实体数据源',
+  icon: '📜',
+  category: '文化',
+  version: '1.0.0',
+  author: 'CardForge',
+  config_schema: CONFIG_SCHEMA
+};
+
 export class PoetryCard extends BaseCard {
   getDefaultConfig() {
     return {
-      show_title: true,
-      show_dynasty: true,
-      show_author: true,
-      show_content: true,
-      show_translation: false,
-      font_family: 'default',
-      font_size: 'medium',
-      text_color: '#333333',
-      text_align: 'center',
-      // 默认块配置
+      card_type: 'poetry-card',
+      theme: 'inkwash',
+      // 实体配置
+      entity_title: '',
+      entity_dynasty: '',
+      entity_author: '',
+      entity_content: '',
+      entity_translation: '',
+      // 显示配置
+      ...Object.keys(CONFIG_SCHEMA).reduce((acc, key) => {
+        acc[key] = CONFIG_SCHEMA[key].default;
+        return acc;
+      }, {}),
+      // 块配置
       blocks: {
-        poetry_title: {
-          area: 'content',
-          usage: 'title',
-          icon: 'mdi:format-title',
-          content: '静夜思',
-          entity: ''
-        },
-        poetry_dynasty: {
-          area: 'content', 
-          usage: 'dynasty',
-          icon: 'mdi:calendar-clock',
-          content: '唐',
-          entity: ''
-        },
-        poetry_author: {
-          area: 'content',
-          usage: 'author', 
-          icon: 'mdi:account',
-          content: '李白',
-          entity: ''
-        },
         poetry_content: {
-          area: 'content',
-          usage: 'content',
-          icon: 'mdi:book-open-variant',
-          content: '床前明月光，疑是地上霜。\n举头望明月，低头思故乡。',
-          entity: ''
-        },
-        poetry_translation: {
-          area: 'content',
-          usage: 'translation',
-          icon: 'mdi:translate',
-          content: '明亮的月光洒在窗户上，好像地上泛起了一层霜。我禁不住抬起头来，看那天窗外空中的一轮明月，不由得低头沉思，想起远方的家乡。',
-          entity: ''
+          type: 'poetry',
+          area: 'content'
         }
       }
     };
   }
 
   getManifest() {
-    const defaultConfig = this.getDefaultConfig();
-    
-    // 自动从 defaultConfig 生成配置架构
-    const configSchema = {
-      show_title: {
-        type: 'boolean',
-        label: '显示标题',
-        default: defaultConfig.show_title
-      },
-      show_dynasty: {
-        type: 'boolean', 
-        label: '显示朝代',
-        default: defaultConfig.show_dynasty
-      },
-      show_author: {
-        type: 'boolean',
-        label: '显示作者', 
-        default: defaultConfig.show_author
-      },
-      show_content: {
-        type: 'boolean',
-        label: '显示全文',
-        default: defaultConfig.show_content
-      },
-      show_translation: {
-        type: 'boolean',
-        label: '显示译文',
-        default: defaultConfig.show_translation
-      },
-      font_family: {
-        type: 'select',
-        label: '诗词字体',
-        options: ['default', '书法字体', '宋体', '楷体', '黑体'],
-        default: defaultConfig.font_family
-      },
-      font_size: {
-        type: 'select',
-        label: '文字大小', 
-        options: ['small', 'medium', 'large'],
-        default: defaultConfig.font_size
-      },
-      text_color: {
-        type: 'select',
-        label: '文字颜色',
-        options: [
-          '#333333', // 黑色
-          '#666666', // 深灰
-          '#999999', // 中灰
-          '#ffffff', // 白色
-          '#ff4444', // 红色
-          '#ff8844', // 橙色
-          '#ffcc44', // 黄色
-          '#44ff44', // 绿色
-          '#4488ff', // 蓝色
-          '#8844ff', // 紫色
-        ],
-        default: defaultConfig.text_color
-      },
-      text_align: {
-        type: 'select',
-        label: '对齐方式',
-        options: ['left', 'center', 'right'],
-        default: defaultConfig.text_align
-      }
-    };
-
-    return {
-      id: 'poetry-card',
-      name: '诗词卡片',
-      description: '显示经典诗词，支持多种样式配置',
-      icon: '📜',
-      category: '文化',
-      author: 'CardForge',
-      version: '1.0.0',
-      config_schema: configSchema,
-      styles: (config) => this._generateStyles(config)
-    };
+    return MANIFEST;
   }
 
-  _generateStyles(config) {
-    return `
-      .poetry-card {
-        font-family: ${config.font_family === 'default' ? 'inherit' : config.font_family};
-        font-size: ${config.font_size === 'small' ? '0.9em' : config.font_size === 'large' ? '1.2em' : '1em'};
-        color: ${config.text_color};
-        text-align: ${config.text_align};
-        line-height: 1.6;
-      }
-      
-      .poetry-title {
-        font-size: 1.3em;
-        font-weight: bold;
-        margin-bottom: 0.5em;
-      }
-      
-      .poetry-meta {
-        font-size: 0.9em;
-        color: var(--cf-text-secondary);
-        margin-bottom: 1em;
-      }
-      
-      .poetry-content {
-        white-space: pre-line;
-        margin-bottom: 1em;
-      }
-      
-      .poetry-translation {
-        font-size: 0.9em;
-        color: var(--cf-text-secondary);
-        border-top: 1px solid var(--cf-border);
-        padding-top: 1em;
-        white-space: pre-line;
-      }
-    `;
+  _renderBlock(blockId, blockConfig, hass, entities) {
+    if (blockConfig.type === 'poetry') {
+      return this._renderPoetryBlock(hass);
+    }
+    return super._renderBlock(blockId, blockConfig, hass, entities);
   }
 
-  _renderTemplate(config, hass, entities) {
-    const blocks = config.blocks || {};
+  _renderPoetryBlock(hass) {
+    const poetryData = this._getPoetryData(hass);
     
-    // 获取各个实体的状态值
-    const titleBlock = this._findBlockByUsage(blocks, 'title');
-    const dynastyBlock = this._findBlockByUsage(blocks, 'dynasty');
-    const authorBlock = this._findBlockByUsage(blocks, 'author');
-    const contentBlock = this._findBlockByUsage(blocks, 'content');
-    const translationBlock = this._findBlockByUsage(blocks, 'translation');
-
-    const title = titleBlock ? this._getBlockContent(titleBlock, hass, entities) : '';
-    const dynasty = dynastyBlock ? this._getBlockContent(dynastyBlock, hass, entities) : '';
-    const author = authorBlock ? this._getBlockContent(authorBlock, hass, entities) : '';
-    const content = contentBlock ? this._getBlockContent(contentBlock, hass, entities) : '';
-    const translation = translationBlock ? this._getBlockContent(translationBlock, hass, entities) : '';
-
     return `
-      <div class="cardforge-card poetry-card">
-        <div class="cardforge-area area-content">
-          <div class="layout-single">
-            ${config.show_title && title ? `<div class="poetry-title">《${title}》</div>` : ''}
-            ${(config.show_dynasty || config.show_author) && (dynasty || author) ? `
-              <div class="poetry-meta">
-                ${config.show_dynasty ? dynasty : ''}
-                ${config.show_dynasty && config.show_author && dynasty && author ? ' - ' : ''}
-                ${config.show_author ? author : ''}
-              </div>
-            ` : ''}
-            ${config.show_content && content ? `<div class="poetry-content">${content}</div>` : ''}
-            ${config.show_translation && translation ? `<div class="poetry-translation">${translation}</div>` : ''}
-          </div>
-        </div>
+      <div class="cardforge-block poetry-block">
+        ${this._renderPoetryTitle(poetryData)}
+        ${this._renderPoetrySubtitle(poetryData)}
+        ${this._renderPoetryContent(poetryData)}
+        ${this._renderPoetryTranslation(poetryData)}
       </div>
     `;
   }
 
-  _findBlockByUsage(blocks, usage) {
-    return Object.values(blocks).find(block => block.usage === usage);
+  _renderPoetryTitle(poetryData) {
+    if (!this.config.show_title || !poetryData.title) return '';
+    return `<div class="poetry-title">${poetryData.title}</div>`;
   }
 
-  _getBlockContent(blockConfig, hass, entities) {
-    // 优先从实体获取内容
-    if (blockConfig.entity && hass?.states[blockConfig.entity]) {
-      const entity = hass.states[blockConfig.entity];
-      return entity.state || '';
-    }
+  _renderPoetrySubtitle(poetryData) {
+    if (!this.config.show_dynasty_author || (!poetryData.dynasty && !poetryData.author)) return '';
     
-    // 从实体映射获取内容
-    if (entities && blockConfig.id && entities[blockConfig.id] && hass?.states[entities[blockConfig.id]]) {
-      const entity = hass.states[entities[blockConfig.id]];
-      return entity.state || '';
-    }
+    const subtitleParts = [];
+    if (poetryData.dynasty) subtitleParts.push(poetryData.dynasty);
+    if (poetryData.author) subtitleParts.push(poetryData.author);
     
-    // 回退到静态内容
-    return blockConfig.content || '';
+    if (subtitleParts.length === 0) return '';
+    
+    return `<div class="poetry-subtitle">${subtitleParts.join(' - ')}</div>`;
+  }
+
+  _renderPoetryContent(poetryData) {
+    if (!poetryData.content) return '<div class="poetry-content">暂无诗词内容</div>';
+    
+    const lines = poetryData.content.split(/[，。！？]/).filter(line => line.trim());
+    const contentHtml = lines.map(line => 
+      `<div class="poetry-line">${line}</div>`
+    ).join('');
+    
+    return `<div class="poetry-content">${contentHtml}</div>`;
+  }
+
+  _renderPoetryTranslation(poetryData) {
+    if (!this.config.show_translation || !poetryData.translation) return '';
+    return `<div class="poetry-translation">${poetryData.translation}</div>`;
+  }
+
+  _getPoetryData(hass) {
+    return {
+      title: this._getEntityState('entity_title', hass),
+      dynasty: this._getEntityState('entity_dynasty', hass),
+      author: this._getEntityState('entity_author', hass),
+      content: this._getEntityState('entity_content', hass),
+      translation: this._getEntityState('entity_translation', hass)
+    };
+  }
+
+  _getEntityState(entityKey, hass) {
+    const entityId = this.config[entityKey];
+    if (!entityId || !hass?.states?.[entityId]) return '';
+    
+    const entity = hass.states[entityId];
+    return entity.state || '';
+  }
+
+  _renderStyles(config, themeStyles) {
+    const colorMap = {
+      blue: '#4285f4',
+      red: '#ea4335', 
+      green: '#34a853',
+      yellow: '#fbbc05',
+      purple: '#a142f4'
+    };
+    
+    const fontSizeMap = {
+      small: '0.9em',
+      medium: '1.1em', 
+      large: '1.3em'
+    };
+    
+    const selectedColor = colorMap[config.text_color] || config.text_color;
+    const selectedSize = fontSizeMap[config.font_size] || config.font_size;
+
+    return `
+      .cardforge-card {
+        ${themeStyles}
+      }
+      
+      .poetry-block {
+        text-align: center;
+        color: ${selectedColor};
+        font-family: 'Noto Serif SC', serif;
+      }
+      
+      .poetry-title {
+        font-size: ${config.font_size === 'large' ? '1.4em' : 
+                    config.font_size === 'medium' ? '1.2em' : '1em'};
+        font-weight: bold;
+        margin-bottom: 0.3em;
+      }
+      
+      .poetry-subtitle {
+        font-size: 0.9em;
+        opacity: 0.8;
+        margin-bottom: 1em;
+        font-style: italic;
+      }
+      
+      .poetry-content {
+        font-size: ${selectedSize};
+        line-height: 1.8;
+        margin: 1em 0;
+      }
+      
+      .poetry-line {
+        margin: 0.2em 0;
+      }
+      
+      .poetry-translation {
+        font-size: 0.85em;
+        opacity: 0.9;
+        margin-top: 1.5em;
+        padding-top: 1em;
+        border-top: 1px solid ${selectedColor}30;
+        text-align: left;
+        line-height: 1.6;
+      }
+    `;
   }
 }
 
-// 导出 manifest 用于旧版注册系统
-export const manifest = {
-  id: 'poetry-card',
-  name: '诗词卡片',
-  description: '显示经典诗词，支持多种样式配置',
-  icon: '📜',
-  category: '文化',
-  author: 'CardForge',
-  version: '1.0.0',
-  config_schema: {
-    show_title: { type: 'boolean', label: '显示标题', default: true },
-    show_dynasty: { type: 'boolean', label: '显示朝代', default: true },
-    show_author: { type: 'boolean', label: '显示作者', default: true },
-    show_content: { type: 'boolean', label: '显示全文', default: true },
-    show_translation: { type: 'boolean', label: '显示译文', default: false },
-    font_family: { type: 'select', label: '诗词字体', options: ['default', '书法字体', '宋体', '楷体', '黑体'], default: 'default' },
-    font_size: { type: 'select', label: '文字大小', options: ['small', 'medium', 'large'], default: 'medium' },
-    text_color: { 
-      type: 'select', 
-      label: '文字颜色', 
-      options: [
-        '#333333', '#666666', '#999999', '#ffffff',
-        '#ff4444', '#ff8844', '#ffcc44', '#44ff44', 
-        '#4488ff', '#8844ff'
-      ], 
-      default: '#333333' 
-    },
-    text_align: { type: 'select', label: '对齐方式', options: ['left', 'center', 'right'], default: 'center' }
-  }
-};
+// 导出统一的manifest
+export const manifest = MANIFEST;
 
 export default PoetryCard;

@@ -191,7 +191,7 @@ export const designSystem = css`
   .cf-animate-fadeIn { animation: cf-fadeIn 0.25s ease; }
 
   /* ===== 响应式容器查询 ===== */
-  @container cardforge-container (max-width: 400px) {
+  @container cardforge-container (max-width: 768px) {
     .cardforge-card {
       padding: var(--cf-spacing-md);
     }
@@ -206,6 +206,27 @@ export const designSystem = css`
     .cf-grid-3,
     .cf-grid-4 {
       grid-template-columns: 1fr;
+    }
+    
+    /* 表单构建器移动端优化 */
+    .form-grid {
+      grid-template-columns: 1fr !important;
+      gap: var(--cf-spacing-sm) !important;
+    }
+    
+    .switch-group {
+      grid-template-columns: repeat(2, 1fr) !important;
+      gap: var(--cf-spacing-sm) !important;
+    }
+  }
+
+  @container cardforge-container (max-width: 480px) {
+    .switch-group {
+      grid-template-columns: 1fr !important;
+    }
+    
+    .cardforge-card {
+      padding: var(--cf-spacing-sm);
     }
   }
 

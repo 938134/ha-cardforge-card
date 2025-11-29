@@ -1,4 +1,4 @@
-// src/editors/block-management.js
+/ src/editors/block-management.js
 import { LitElement, html, css } from 'https://unpkg.com/lit@2.8.0/index.js?module';
 import { designSystem } from '../core/design-system.js';
 
@@ -12,15 +12,15 @@ class BlockManagement extends LitElement {
   static styles = [designSystem, css`
     .block-management{width:100%}
     .block-list{display:flex;flex-direction:column;gap:var(--cf-spacing-sm)}
-    .block-item{display:grid;grid-template-columns:40px 50px 1fr 80px;gap:var(--cf-spacing-md);align-items:center;background:var(--cf-surface);border:2px solid transparent;border-radius:var(--cf-radius-md);padding:var(--cf-spacing-md);min-height:60px;cursor:pointer}
+    .block-item{display:grid;grid-template-columns:40px 50px 1fr 80px;gap:var(--cf-spacing-md);align-items:center;background:var(--cf-surface);border:2px solid transparent;border-radius:var(--cf-radius-md);padding:var(--cf-spacing-md);min-height:70px;cursor:pointer}
     .block-item.editing{border-color:var(--cf-primary-color);background:rgba(var(--cf-rgb-primary),0.05)}
     .area-badge{display:flex;align-items:center;justify-content:center}
     .area-letter{width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:.9em;font-weight:700;color:white}
     .area-letter.header{background:#2196F3}.area-letter.content{background:#4CAF50}.area-letter.footer{background:#FF9800}
     .block-icon{width:40px;height:40px;border-radius:var(--cf-radius-md);background:rgba(var(--cf-rgb-primary),0.1);display:flex;align-items:center;justify-content:center;font-size:1.3em}
-    .block-info{display:flex;flex-direction:column;gap:2px;min-width:0;flex:1}
+    .block-info{display:flex;flex-direction:column;gap:4px;min-width:0;flex:1}
     .block-name{font-size:.95em;font-weight:600;color:var(--cf-text-primary);line-height:1.2;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-    .block-state{font-size:.8em;color:var(--cf-text-secondary);line-height:1.2;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;margin-top:2px}
+    .block-state{font-size:.8em;color:var(--cf-text-secondary);line-height:1.2;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
     .block-actions{display:flex;gap:var(--cf-spacing-xs);justify-content:flex-end}
     .block-action{width:36px;height:36px;border-radius:var(--cf-radius-sm);display:flex;align-items:center;justify-content:center;background:var(--cf-background);border:1px solid var(--cf-border);cursor:pointer;color:var(--cf-text-secondary)}
     .edit-form{grid-column:1 / -1;background:var(--cf-surface);border:2px solid var(--cf-primary-color);border-radius:var(--cf-radius-md);padding:var(--cf-spacing-lg);margin-top:var(--cf-spacing-md)}
