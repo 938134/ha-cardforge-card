@@ -2,7 +2,7 @@
 import { css } from 'https://unpkg.com/lit@2.8.0/index.js?module';
 
 export const designSystem = css`
-  /* ===== CSS 变量系统 ===== */
+  /* ===== 变量层：完全保持原样 ===== */
   :host {
     /* 颜色系统 */
     --cf-primary-color: var(--primary-color, #03a9f4);
@@ -15,38 +15,38 @@ export const designSystem = css`
     --cf-error-color: var(--error-color, #f44336);
     --cf-warning-color: var(--warning-color, #ff9800);
     --cf-success-color: var(--success-color, #4caf50);
-    
+
     /* RGB 颜色（用于透明度） */
     --cf-rgb-primary: 3, 169, 244;
     --cf-rgb-accent: 255, 64, 129;
     --cf-rgb-background: 255, 255, 255;
     --cf-rgb-surface: 255, 255, 255;
-    
+
     /* 深色模式颜色 */
     --cf-dark-background: #1a1a1a;
     --cf-dark-surface: #2d2d2d;
     --cf-dark-border: #404040;
     --cf-dark-text: #e0e0e0;
     --cf-dark-text-secondary: #a0a0a0;
-    
+
     /* 间距系统 */
     --cf-spacing-xs: 4px;
     --cf-spacing-sm: 8px;
     --cf-spacing-md: 12px;
     --cf-spacing-lg: 16px;
     --cf-spacing-xl: 20px;
-    
+
     /* 圆角系统 */
     --cf-radius-sm: 4px;
     --cf-radius-md: 8px;
     --cf-radius-lg: 12px;
     --cf-radius-xl: 16px;
-    
+
     /* 阴影系统 */
     --cf-shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.1);
     --cf-shadow-md: 0 2px 8px rgba(0, 0, 0, 0.12);
     --cf-shadow-lg: 0 4px 16px rgba(0, 0, 0, 0.15);
-    
+
     /* 动画系统 */
     --cf-transition-fast: 0.15s ease;
     --cf-transition-normal: 0.25s ease;
@@ -57,7 +57,7 @@ export const designSystem = css`
     --cardforge-container-min-height: 80px;
   }
 
-  /* ===== 深色模式适配 ===== */
+  /* ===== 深色模式适配：保持原样 ===== */
   @media (prefers-color-scheme: dark) {
     :host {
       --cf-background: var(--cf-dark-background);
@@ -68,7 +68,7 @@ export const designSystem = css`
     }
   }
 
-  /* ===== 统一卡片容器样式 ===== */
+  /* ===== 统一卡片容器：flex 版 ===== */
   .cardforge-card {
     display: flex;
     flex-direction: column;
@@ -88,7 +88,7 @@ export const designSystem = css`
     gap: var(--cf-spacing-md);
   }
 
-  /* ===== 布局系统 ===== */
+  /* ===== 布局系统：flex 先行后列 ===== */
   .layout-single {
     display: flex;
     flex-direction: column;
@@ -96,23 +96,15 @@ export const designSystem = css`
   }
 
   .layout-grid {
-    display: grid;
+    display: flex;
+    flex-wrap: wrap;
     gap: var(--cf-spacing-md);
   }
-
-  .layout-grid.grid-2x2 {
-    grid-template: repeat(2, 1fr) / repeat(2, 1fr);
+  .layout-grid > * {
+    flex: 1 1 160px;   /* 默认最小宽度，可在具体卡片里覆盖 */
   }
 
-  .layout-grid.grid-1x4 {
-    grid-template: 1fr / repeat(4, 1fr);
-  }
-
-  .layout-grid.grid-3x3 {
-    grid-template: repeat(3, 1fr) / repeat(3, 1fr);
-  }
-
-  /* ===== 块样式 ===== */
+  /* ===== 块样式：保持原样 ===== */
   .cardforge-block {
     display: flex;
     flex-direction: column;
@@ -135,82 +127,68 @@ export const designSystem = css`
     color: var(--cf-text-primary);
   }
 
-  /* ===== 布局工具类 ===== */
+  /* ===== 工具类：保持原样 ===== */
   .cf-grid { display: grid; gap: var(--cf-spacing-md); }
   .cf-grid-2 { grid-template-columns: repeat(2, 1fr); }
   .cf-grid-3 { grid-template-columns: repeat(3, 1fr); }
   .cf-grid-4 { grid-template-columns: repeat(4, 1fr); }
-  
+
   .cf-flex { display: flex; }
   .cf-flex-column { flex-direction: column; }
   .cf-flex-center { align-items: center; justify-content: center; }
   .cf-flex-between { align-items: center; justify-content: space-between; }
-  
-  /* ===== 间距工具类 ===== */
+
   .cf-gap-sm { gap: var(--cf-spacing-sm); }
   .cf-gap-md { gap: var(--cf-spacing-md); }
   .cf-gap-lg { gap: var(--cf-spacing-lg); }
-  
+
   .cf-p-sm { padding: var(--cf-spacing-sm); }
   .cf-p-md { padding: var(--cf-spacing-md); }
   .cf-p-lg { padding: var(--cf-spacing-lg); }
-  
+
   .cf-m-sm { margin: var(--cf-spacing-sm); }
   .cf-m-md { margin: var(--cf-spacing-md); }
   .cf-m-lg { margin: var(--cf-spacing-lg); }
 
-  /* ===== 文本工具类 ===== */
   .cf-text-sm { font-size: 0.85em; }
   .cf-text-md { font-size: 1em; }
   .cf-text-lg { font-size: 1.2em; }
   .cf-text-xl { font-size: 1.5em; }
-  
+
   .cf-text-center { text-align: center; }
   .cf-text-left { text-align: left; }
   .cf-text-right { text-align: right; }
-  
+
   .cf-font-medium { font-weight: 500; }
   .cf-font-semibold { font-weight: 600; }
   .cf-font-bold { font-weight: 700; }
 
-  /* ===== 状态样式 ===== */
   .cf-status-on { color: var(--cf-success-color); }
   .cf-status-off { color: var(--cf-text-secondary); }
   .cf-status-unavailable { color: var(--cf-error-color); opacity: 0.5; }
-  
+
   .cf-error { color: var(--cf-error-color); }
   .cf-warning { color: var(--cf-warning-color); }
   .cf-success { color: var(--cf-success-color); }
 
-  /* ===== 动画系统 ===== */
   @keyframes cf-fadeIn {
     from { opacity: 0; transform: translateY(8px); }
     to { opacity: 1; transform: translateY(0); }
   }
-  
   .cf-animate-fadeIn { animation: cf-fadeIn 0.25s ease; }
 
-  /* ===== 响应式容器查询 ===== */
+  /* ===== 响应式容器查询：保持原样 ===== */
   @container cardforge-container (max-width: 768px) {
     .cardforge-card {
       padding: var(--cf-spacing-md);
     }
-    
-    .layout-grid.grid-2x2,
-    .layout-grid.grid-1x4,
-    .layout-grid.grid-3x3 {
-      grid-template: 1fr / 1fr;
+    .layout-grid > * {
+      flex: 1 1 100%;        /* 窄屏强制 1 列 */
     }
-    
     .cf-grid-2,
     .cf-grid-3,
     .cf-grid-4 {
       grid-template-columns: 1fr;
-    }
-    
-    .switch-group {
-      grid-template-columns: repeat(2, 1fr) !important;
-      gap: var(--cf-spacing-sm) !important;
     }
   }
 
@@ -218,13 +196,12 @@ export const designSystem = css`
     .switch-group {
       grid-template-columns: 1fr !important;
     }
-    
     .cardforge-card {
       padding: var(--cf-spacing-sm);
     }
   }
 
-  /* ===== 错误和加载状态 ===== */
+  /* ===== 错误/加载/空状态：保持原样 ===== */
   .cardforge-error-container,
   .cardforge-loading-container,
   .cardforge-empty-container {
@@ -252,13 +229,13 @@ export const designSystem = css`
     100% { transform: rotate(360deg); }
   }
 
-  /* ===== 编辑器样式 ===== */
+  /* ===== 编辑器字体：保持原样 ===== */
   .editor-container {
     font-family: var(--paper-font-body1_-_font-family);
     -webkit-font-smoothing: var(--paper-font-body1_-_-webkit-font-smoothing);
   }
 
-  /* ===== 深色模式类 ===== */
+  /* ===== 深色模式类：保持原样 ===== */
   .cf-dark-mode {
     --cf-background: var(--cf-dark-background);
     --cf-surface: var(--cf-dark-surface);
