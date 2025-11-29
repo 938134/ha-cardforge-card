@@ -164,7 +164,9 @@ export class PoetryCard extends BaseCard {
   }
 
   _renderPoetryTranslation(blockConfig, hass) {
-    if (!this.config.show_translation) return '';
+    // 安全地访问配置，防止undefined错误
+    const showTranslation = this.config?.show_translation ?? CARD_CONFIG.config_schema.show_translation.default;
+    if (!showTranslation) return '';
     
     const content = this._getBlockContent(blockConfig, hass);
     if (!content) return '';
@@ -178,7 +180,7 @@ export class PoetryCard extends BaseCard {
 
   _getBlockContent(blockConfig, hass) {
     // 优先从实体获取内容
-    if (blockConfig.entity && hass?.states[blockConfig.entity]) {
+    if (blockConfig.entity && hass?.states?.[blockConfig.entity]) {
       const entity = hass.states[blockConfig.entity];
       return entity.state || '';
     }
@@ -198,6 +200,11 @@ export class PoetryCard extends BaseCard {
   }
 
   _renderStyles(config, themeStyles) {
+    // 安全地访问配置，提供默认值
+    const safeConfig = config || {};
+    const font_size = safeConfig.font_size || CARD_CONFIG.config_schema.font_size.default;
+    const text_color = safeConfig.text_color || CARD_CONFIG.config_schema.text_color.default;
+    
     const colorMap = {
       blue: '#4285f4',
       red: '#ea4335',
@@ -212,8 +219,8 @@ export class PoetryCard extends BaseCard {
       large: '1.3em'
     };
     
-    const selectedColor = colorMap[config.text_color] || config.text_color;
-    const selectedSize = fontSizeMap[config.font_size] || config.font_size;
+    const selectedColor = colorMap[text_color] || text_color;
+    const selectedSize = fontSizeMap[font_size] || font_size;
 
     return `
       .cardforge-card {
@@ -232,10 +239,11 @@ export class PoetryCard extends BaseCard {
       }
       
       .poetry-title {
-        font-size: ${config.font_size === 'large' ? '1.4em' : 
-                    config.font_size === 'medium' ? '1.2em' : '1em'};
+        font-size: ${font_size === 'large' ? '1.4em' : 
+                    font_size === 'medium' ? '1.2em' : '1em'};
         font-weight: bold;
         line-height: 1.3;
+        margin-bottom: var(--cf-spacing-xs);
       }
       
       .poetry-dynasty,
@@ -244,6 +252,13 @@ export class PoetryCard extends BaseCard {
         opacity: 0.8;
         font-style: italic;
         line-height: 1.3;
+        display: inline-block;
+        margin: 0 var(--cf-spacing-xs);
+      }
+      
+      .poetry-dynasty-author-container {
+        text-align: center;
+        margin-bottom: var(--cf-spacing-md);
       }
       
       .poetry-content {
@@ -269,41 +284,51 @@ export class PoetryCard extends BaseCard {
         margin-top: var(--cf-spacing-md);
       }
       
-      /* 朝代和作者在同一行显示 */
-      .poetry-dynasty-block,
-      .poetry-author-block {
-        display: inline-block;
-        margin: 0 var(--cf-spacing-xs);
-      }
-      
-      .poetry-dynasty::after {
-        content: " - ";
-        margin: 0 var(--cf-spacing-xs);
-      }
-      
       @container cardforge-container (max-width: 768px) {
         .poetry-title {
-          font-size: ${config.font_size === 'large' ? '1.2em' : 
-                      config.font_size === 'medium' ? '1.1em' : '0.95em'};
+          font-size: ${font_size === 'large' ? '1.2em' : 
+                      font_size === 'medium' ? '1.1em' : '0.95em'};
         }
         
         .poetry-content {
-          font-size: ${config.font_size === 'large' ? '1.1em' : 
-                      config.font_size === 'medium' ? '1em' : '0.9em'};
+          font-size: ${font_size === 'large' ? '1.1em' : 
+                      font_size === 'medium' ? '1em' : '0.9em'};
         }
         
-        .poetry-dynasty-block,
-        .poetry-author-block {
+        .poetry-dynasty,
+        .poetry-author {
           display: block;
-          margin: 0;
-        }
-        
-        .poetry-dynasty::after {
-          content: "";
-          margin: 0;
+          margin: var(--cf-spacing-xs) 0;
         }
       }
     `;
+  }
+
+  // 重写渲染方法，确保配置安全
+  _renderAreas(config, hass, entities) {
+    const safeConfig = config || {};
+    const areas = {};
+    
+    // 支持新的扁平化配置结构
+    const blocks = safeConfig.blocks || {};
+    
+    // 按区域分组块
+    const headerBlocks = this._getBlocksByArea(blocks, 'header');
+    const contentBlocks = this._getBlocksByArea(blocks, 'content'); 
+    const footerBlocks = this._getBlocksByArea(blocks, 'footer');
+    
+    // 渲染各区域
+    areas.header = headerBlocks.length > 0 ? 
+      this._renderArea('header', { blocks: headerBlocks }, safeConfig, hass, entities) : '';
+    
+    areas.content = contentBlocks.length > 0 ? 
+      this._renderArea('content', { blocks: contentBlocks }, safeConfig, hass, entities) : 
+      this._renderArea('content', { blocks: [] }, safeConfig, hass, entities);
+    
+    areas.footer = footerBlocks.length > 0 ? 
+      this._renderArea('footer', { blocks: footerBlocks }, safeConfig, hass, entities) : '';
+    
+    return areas;
   }
 }
 
