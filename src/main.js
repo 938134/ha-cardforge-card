@@ -1,5 +1,4 @@
 // src/main.js
-import 'https://unpkg.com/@polymer/paper-color-picker/paper-color-picker.js?module';
 import { HaCardForgeCard } from './ha-cardforge-card.js';
 import { CardEditor } from './editors/card-editor.js';
 
