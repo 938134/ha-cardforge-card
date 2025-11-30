@@ -83,15 +83,15 @@ export class WeekCard extends BaseCard {
     return `
       <div class="year-progress">
         <div class="progress-ring">
-          <svg width="90" height="90" viewBox="0 0 90 90">
+          <svg width="80" height="80" viewBox="0 0 80 80">
             <!-- 背景环 -->
-            <circle cx="45" cy="45" r="40" stroke="#e0e0e0" stroke-width="6" fill="none"/>
+            <circle cx="40" cy="40" r="36" stroke="#e0e0e0" stroke-width="6" fill="none"/>
             <!-- 进度环 -->
-            <circle cx="45" cy="45" r="40" stroke="var(--cf-primary-color)" stroke-width="6" 
+            <circle cx="40" cy="40" r="36" stroke="var(--cf-primary-color)" stroke-width="6" 
                     fill="none" stroke-linecap="round"
-                    stroke-dasharray="${2 * Math.PI * 40}" 
-                    stroke-dashoffset="${2 * Math.PI * 40 * (1 - yearProgress / 100)}"
-                    transform="rotate(-90 45 45)"/>
+                    stroke-dasharray="${2 * Math.PI * 36}" 
+                    stroke-dashoffset="${2 * Math.PI * 36 * (1 - yearProgress / 100)}"
+                    transform="rotate(-90 40 40)"/>
           </svg>
           <div class="ring-content">
             <div class="year-percent">${Math.round(yearProgress)}%</div>
@@ -186,18 +186,18 @@ export class WeekCard extends BaseCard {
         justify-content: center;
         min-height: 160px;
         padding: var(--cf-spacing-lg);
-        gap: 20px;
+        gap: 24px;
       }
       
       .week-display {
         display: flex;
         flex-direction: column;
         align-items: center;
-        gap: 20px;
+        gap: 24px;
         width: 100%;
       }
       
-      /* 年进度环样式 - 优化布局 */
+      /* 年进度环样式 - 优化大小 */
       .year-progress {
         display: flex;
         align-items: center;
@@ -207,8 +207,8 @@ export class WeekCard extends BaseCard {
       
       .progress-ring {
         position: relative;
-        width: 90px;
-        height: 90px;
+        width: 80px;
+        height: 80px;
         flex-shrink: 0;
       }
       
@@ -225,7 +225,7 @@ export class WeekCard extends BaseCard {
         font-size: 1em;
         font-weight: 600;
         color: var(--cf-primary-color);
-        line-height: 1;
+        line-height: 1.2;
       }
       
       .ring-info {
@@ -233,12 +233,10 @@ export class WeekCard extends BaseCard {
         flex-direction: column;
         align-items: flex-start;
         gap: 6px;
-        justify-content: center;
-        height: 90px; /* 与环高度一致，实现垂直居中 */
       }
       
       .week-number {
-        font-size: 1.2em;
+        font-size: 1.1em;
         font-weight: 600;
         color: var(--cf-text-primary);
         line-height: 1.2;
@@ -253,7 +251,7 @@ export class WeekCard extends BaseCard {
       /* 周进度条样式 */
       .week-progress {
         width: 100%;
-        max-width: 300px;
+        max-width: 280px;
       }
       
       .progress-bars {
@@ -263,7 +261,7 @@ export class WeekCard extends BaseCard {
         background: #f0f0f0;
         border-radius: 8px;
         overflow: hidden;
-        margin-bottom: 8px;
+        margin-bottom: 10px;
       }
       
       .week-bar {
@@ -302,21 +300,20 @@ export class WeekCard extends BaseCard {
         .cardforge-area {
           min-height: 140px;
           padding: var(--cf-spacing-md);
-          gap: 16px;
+          gap: 20px;
         }
         
         .week-display {
+          gap: 20px;
+        }
+        
+        .year-progress {
           gap: 16px;
         }
         
         .progress-ring {
-          width: 80px;
-          height: 80px;
-        }
-        
-        .ring-info {
-          height: 80px;
-          gap: 4px;
+          width: 70px;
+          height: 70px;
         }
         
         .year-percent {
@@ -324,7 +321,7 @@ export class WeekCard extends BaseCard {
         }
         
         .week-number {
-          font-size: 1.1em;
+          font-size: 1em;
         }
         
         .current-date {
@@ -333,33 +330,34 @@ export class WeekCard extends BaseCard {
         
         .progress-bars {
           height: 14px;
+          margin-bottom: 8px;
         }
         
-        .day-label {
-          font-size: 0.75em;
+        .week-progress {
+          max-width: 260px;
         }
       }
 
       @container cardforge-container (max-width: 320px) {
         .year-progress {
-          gap: 15px;
+          gap: 12px;
         }
         
         .progress-ring {
-          width: 70px;
-          height: 70px;
-        }
-        
-        .ring-info {
-          height: 70px;
+          width: 60px;
+          height: 60px;
         }
         
         .week-number {
-          font-size: 1em;
+          font-size: 0.9em;
         }
         
         .current-date {
           font-size: 0.85em;
+        }
+        
+        .week-progress {
+          max-width: 240px;
         }
       }
     `;
