@@ -389,52 +389,53 @@ export class DashboardCard extends BaseCard {
         display: grid;
         gap: 10px;
         height: 100%;
+        width: 100%;
       }
       
-      /* 布局定义 */
+      /* 布局定义 - 使用 auto-fit 和 minmax 实现弹性网格 */
       .layout-single {
         grid-template-columns: 1fr;
       }
       
       .layout-double {
-        grid-template-columns: repeat(2, 1fr);
+        grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
       }
       
       .layout-triple {
-        grid-template-columns: repeat(3, 1fr);
+        grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
       }
       
       .layout-quad {
-        grid-template-columns: repeat(4, 1fr);
+        grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
       }
       
       .layout-grid-2x2 {
-        grid-template-columns: repeat(2, 1fr);
-        grid-template-rows: repeat(2, 1fr);
+        grid-template-columns: repeat(2, minmax(120px, 1fr));
+        grid-template-rows: repeat(2, minmax(80px, 1fr));
       }
       
       .layout-grid-3x3 {
-        grid-template-columns: repeat(3, 1fr);
-        grid-template-rows: repeat(3, 1fr);
+        grid-template-columns: repeat(3, minmax(100px, 1fr));
+        grid-template-rows: repeat(3, minmax(70px, 1fr));
       }
       
       /* 自定义布局 */
       .layout-custom-1x1 { grid-template-columns: 1fr; }
-      .layout-custom-1x2 { grid-template-columns: repeat(2, 1fr); }
-      .layout-custom-1x3 { grid-template-columns: repeat(3, 1fr); }
-      .layout-custom-1x4 { grid-template-columns: repeat(4, 1fr); }
-      .layout-custom-2x1 { grid-template-columns: 1fr; grid-template-rows: repeat(2, 1fr); }
-      .layout-custom-2x2 { grid-template-columns: repeat(2, 1fr); grid-template-rows: repeat(2, 1fr); }
-      .layout-custom-2x3 { grid-template-columns: repeat(3, 1fr); grid-template-rows: repeat(2, 1fr); }
-      .layout-custom-2x4 { grid-template-columns: repeat(4, 1fr); grid-template-rows: repeat(2, 1fr); }
-      .layout-custom-3x1 { grid-template-columns: 1fr; grid-template-rows: repeat(3, 1fr); }
-      .layout-custom-3x2 { grid-template-columns: repeat(2, 1fr); grid-template-rows: repeat(3, 1fr); }
-      .layout-custom-3x3 { grid-template-columns: repeat(3, 1fr); grid-template-rows: repeat(3, 1fr); }
-      .layout-custom-3x4 { grid-template-columns: repeat(4, 1fr); grid-template-rows: repeat(3, 1fr); }
-      .layout-custom-4x1 { grid-template-columns: 1fr; grid-template-rows: repeat(4, 1fr); }
-      .layout-custom-4x2 { grid-template-columns: repeat(2, 1fr); grid-template-rows: repeat(4, 1fr); }
-      .layout-custom-4x3 { grid-template-columns: repeat(3, 1fr); grid-template-rows: repeat(4, 1fr); }
-      .layout-custom-4x4 { grid-template-columns: repeat(4, 1fr); grid-template-rows: repeat(4, 1fr); }
+      .layout-custom-1x2 { grid-template-columns: repeat(2, minmax(160px, 1fr)); }
+      .layout-custom-1x3 { grid-template-columns: repeat(3, minmax(140px, 1fr)); }
+      .layout-custom-1x4 { grid-template-columns: repeat(4, minmax(120px, 1fr)); }
+      .layout-custom-2x1 { grid-template-columns: 1fr; grid-template-rows: repeat(2, minmax(80px, 1fr)); }
+      .layout-custom-2x2 { grid-template-columns: repeat(2, minmax(120px, 1fr)); grid-template-rows: repeat(2, minmax(80px, 1fr)); }
+      .layout-custom-2x3 { grid-template-columns: repeat(3, minmax(100px, 1fr)); grid-template-rows: repeat(2, minmax(70px, 1fr)); }
+      .layout-custom-2x4 { grid-template-columns: repeat(4, minmax(90px, 1fr)); grid-template-rows: repeat(2, minmax(60px, 1fr)); }
+      .layout-custom-3x1 { grid-template-columns: 1fr; grid-template-rows: repeat(3, minmax(70px, 1fr)); }
+      .layout-custom-3x2 { grid-template-columns: repeat(2, minmax(100px, 1fr)); grid-template-rows: repeat(3, minmax(70px, 1fr)); }
+      .layout-custom-3x3 { grid-template-columns: repeat(3, minmax(90px, 1fr)); grid-template-rows: repeat(3, minmax(60px, 1fr)); }
+      .layout-custom-3x4 { grid-template-columns: repeat(4, minmax(80px, 1fr)); grid-template-rows: repeat(3, minmax(50px, 1fr)); }
+      .layout-custom-4x1 { grid-template-columns: 1fr; grid-template-rows: repeat(4, minmax(60px, 1fr)); }
+      .layout-custom-4x2 { grid-template-columns: repeat(2, minmax(90px, 1fr)); grid-template-rows: repeat(4, minmax(60px, 1fr)); }
+      .layout-custom-4x3 { grid-template-columns: repeat(3, minmax(80px, 1fr)); grid-template-rows: repeat(4, minmax(50px, 1fr)); }
+      .layout-custom-4x4 { grid-template-columns: repeat(4, minmax(70px, 1fr)); grid-template-rows: repeat(4, minmax(45px, 1fr)); }
       
       /* 仪表盘块基础样式 */
       .dashboard-block {
@@ -445,6 +446,7 @@ export class DashboardCard extends BaseCard {
         padding: 10px;
         min-height: 70px;
         transition: all var(--cf-transition-fast);
+        box-sizing: border-box;
       }
       
       .dashboard-block:hover {
@@ -489,6 +491,7 @@ export class DashboardCard extends BaseCard {
         display: flex;
         align-items: center;
         justify-content: center;
+        flex-shrink: 0;
       }
       
       /* 文本区域 */
@@ -511,6 +514,9 @@ export class DashboardCard extends BaseCard {
         color: var(--cf-text-secondary);
         line-height: 1.2;
         margin-bottom: 4px;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
       }
       
       .block-content {
@@ -518,12 +524,16 @@ export class DashboardCard extends BaseCard {
         font-weight: 600;
         color: var(--cf-text-primary);
         line-height: 1.3;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
       }
       
       .block-unit {
         font-size: 0.8em;
         color: var(--cf-text-secondary);
         line-height: 1.3;
+        flex-shrink: 0;
       }
       
       /* 页脚区域 - 无样式 */
@@ -571,22 +581,42 @@ export class DashboardCard extends BaseCard {
         font-size: 0.9em;
       }
       
-      /* 响应式设计 */
+      /* 智能响应式设计 - 基于容器宽度 */
+      @container cardforge-container (max-width: 800px) {
+        .layout-quad,
+        .layout-custom-1x4 {
+          grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
+        }
+        
+        .layout-triple,
+        .layout-custom-1x3 {
+          grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+        }
+        
+        .layout-grid-3x3 {
+          grid-template-columns: repeat(auto-fit, minmax(90px, 1fr));
+          grid-template-rows: auto;
+        }
+      }
+      
       @container cardforge-container (max-width: 600px) {
         .dashboard-content {
           padding: var(--cf-spacing-sm);
         }
         
         .layout-quad,
-        .layout-triple,
-        .layout-custom-1x4,
-        .layout-custom-1x3 {
-          grid-template-columns: repeat(2, 1fr);
+        .layout-custom-1x4 {
+          grid-template-columns: repeat(auto-fit, minmax(80px, 1fr));
         }
         
-        .layout-grid-3x3 {
-          grid-template-columns: repeat(2, 1fr);
-          grid-template-rows: auto;
+        .layout-triple,
+        .layout-custom-1x3 {
+          grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
+        }
+        
+        .layout-double,
+        .layout-custom-1x2 {
+          grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
         }
         
         .content-grid {
@@ -614,7 +644,6 @@ export class DashboardCard extends BaseCard {
         }
         
         .content-grid {
-          grid-template-columns: 1fr !important;
           gap: 6px;
         }
         
@@ -635,6 +664,22 @@ export class DashboardCard extends BaseCard {
         .dashboard-footer {
           padding: 8px 10px;
         }
+        
+        /* 在超小屏幕上强制单列 */
+        .layout-quad,
+        .layout-triple,
+        .layout-double,
+        .layout-custom-1x4,
+        .layout-custom-1x3,
+        .layout-custom-1x2 {
+          grid-template-columns: 1fr;
+        }
+        
+        .layout-grid-2x2,
+        .layout-grid-3x3 {
+          grid-template-columns: 1fr;
+          grid-template-rows: auto;
+        }
       }
       
       @container cardforge-container (max-width: 300px) {
@@ -653,6 +698,15 @@ export class DashboardCard extends BaseCard {
         
         .block-unit {
           font-size: 0.75em;
+        }
+      }
+      
+      /* 确保块内容在小屏幕上也能正常显示 */
+      .block-layout-horizontal {
+        @container cardforge-container (max-width: 200px) {
+          flex-direction: column;
+          text-align: center;
+          gap: 4px;
         }
       }
     `;
