@@ -249,6 +249,41 @@ class BlockManagement extends LitElement {
         opacity: 0.5;
         margin-bottom: 8px;
       }
+
+      /* 下拉菜单样式优化 */
+      ha-select {
+        --ha-select-background: var(--cf-surface);
+        --ha-select-border-color: var(--cf-border);
+        --ha-select-color: var(--cf-text-primary);
+      }
+
+      ha-list-item {
+        --mdc-list-item-graphic-margin: 8px;
+      }
+
+      .area-option {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 8px 12px;
+      }
+
+      .area-badge-small {
+        width: 20px;
+        height: 20px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 0.7em;
+        font-weight: 700;
+        color: white;
+        flex-shrink: 0;
+      }
+
+      .area-badge-small.header { background: #2196F3; }
+      .area-badge-small.content { background: #4CAF50; }
+      .area-badge-small.footer { background: #FF9800; }
     `,
   ];
 
@@ -317,9 +352,7 @@ class BlockManagement extends LitElement {
               @closed=${this._preventClose}
               @change=${e => this._patchBlock(block.id, { area: e.target.value })}
             >
-              <ha-list-item value="header">标题</ha-list-item>
-              <ha-list-item value="content">内容</ha-list-item>
-              <ha-list-item value="footer">页脚</ha-list-item>
+              ${this._renderAreaOptions()}
             </ha-select>
           </div>
 
@@ -352,6 +385,23 @@ class BlockManagement extends LitElement {
         </div>
       </div>
     `;
+  }
+
+  _renderAreaOptions() {
+    const areas = [
+      { value: 'header', label: '标题区域', badge: 'H', color: 'header' },
+      { value: 'content', label: '内容区域', badge: 'C', color: 'content' },
+      { value: 'footer', label: '页脚区域', badge: 'F', color: 'footer' }
+    ];
+
+    return areas.map(area => html`
+      <ha-list-item .value=${area.value}>
+        <div class="area-option">
+          <div class="area-badge-small ${area.color}">${area.badge}</div>
+          <span>${area.label}</span>
+        </div>
+      </ha-list-item>
+    `);
   }
 
   _renderEntityField(block) {
@@ -415,30 +465,29 @@ class BlockManagement extends LitElement {
   }
 
   _blockName(b) {
-    // 优先使用用户自定义的名称，然后是实体名称，最后是默认名称
+    // 优先使用用户自定义的名称
     if (b.name) return b.name;
+    
+    // 其次使用实体友好名称
     if (b.entity && this.hass?.states[b.entity]) {
-      return this.hass.states[b.entity].attributes?.friendly_name || this._getDefaultBlockName(b.type);
+      return this.hass.states[b.entity].attributes?.friendly_name || this._getDefaultBlockName(b);
     }
-    return this._getDefaultBlockName(b.type);
+    
+    // 最后使用默认名称
+    return this._getDefaultBlockName(b);
   }
 
-  _getDefaultBlockName(blockType) {
-    const nameMap = {
-      'poetry_title': '诗词标题',
-      'poetry_dynasty': '诗词朝代', 
-      'poetry_author': '诗词作者',
-      'poetry_content': '诗词内容',
-      'poetry_translation': '诗词译文',
-      'oil_title': '油价标题',
-      'oil_89': '89号汽油',
-      'oil_92': '92号汽油', 
-      'oil_95': '95号汽油',
-      'oil_diesel': '0号柴油',
-      'oil_tip': '油价提示',
-      'quote': '每日一言'
-    };
-    return nameMap[blockType] || '内容块';
+  _getDefaultBlockName(block) {
+    // 优先使用块配置中的 name 属性
+    if (block.name) return block.name;
+    
+    // 其次使用实体友好名称
+    if (block.entity && this.hass?.states[block.entity]) {
+      return this.hass.states[block.entity].attributes?.friendly_name || '实体块';
+    }
+    
+    // 最后使用通用名称
+    return '内容块';
   }
 
   _blockState(b) {
@@ -495,22 +544,24 @@ class BlockManagement extends LitElement {
   }
 
   _handleEntityPick(blockId, entityId) {
-    if (!entityId) return this._patchBlock(blockId, { entity: entityId });
+    if (!entityId) {
+      // 清空实体时，保留用户自定义的图标和名称
+      return this._patchBlock(blockId, { entity: '' });
+    }
     
     const st = this.hass.states[entityId];
-    if (!st) return this._patchBlock(blockId, { entity: entityId });
-    
-    const patch = { entity: entityId };
-    
-    // 只有用户没有自定义图标时才使用实体图标
-    if (!this.config.blocks[blockId]?.icon && st.attributes?.icon) {
-      patch.icon = st.attributes.icon;
+    if (!st) {
+      return this._patchBlock(blockId, { entity: entityId });
     }
     
-    // 只有用户没有自定义名称时才使用实体名称
-    if (!this.config.blocks[blockId]?.name) {
-      patch.name = st.attributes?.friendly_name || this._getDefaultBlockName(this.config.blocks[blockId]?.type);
-    }
+    // 选择实体时自动填充图标和名称
+    const patch = { 
+      entity: entityId,
+      // 总是使用实体的图标（覆盖用户设置）
+      icon: st.attributes?.icon || this._defaultIcon({ entity: entityId }),
+      // 使用实体的友好名称，如果没有则使用当前块的默认名称
+      name: st.attributes?.friendly_name || this._getDefaultBlockName(this.config.blocks[blockId])
+    };
     
     this._patchBlock(blockId, patch);
   }
