@@ -255,10 +255,10 @@ export class WelcomeCard extends BaseCard {
       
       .quote-divider {
         width: 1px;
-        height: 100%;
+        height: 1.5em;
         background: var(--divider-color);
-        opacity: 0.6;
         flex-shrink: 0;
+        margin-top: 2px;
       }
       
       .quote-content {
@@ -266,9 +266,8 @@ export class WelcomeCard extends BaseCard {
         font-weight: 300;
         line-height: 1.5;
         margin: 0;
-        opacity: 0.9;
         font-style: italic;
-        color: var(--secondary-text-color);
+        color: var(--primary-text-color);
         flex: 1;
         word-wrap: break-word;
         overflow-wrap: break-word;
@@ -301,8 +300,12 @@ export class WelcomeCard extends BaseCard {
         .quote-content {
           font-size: 0.9em;
         }
+        
+        .quote-divider {
+          height: 1.4em;
+        }
       }
-
+  
       @container cardforge-container (max-width: 320px) {
         .welcome-quote {
           gap: 8px;
@@ -316,8 +319,12 @@ export class WelcomeCard extends BaseCard {
           font-size: 0.85em;
           line-height: 1.4;
         }
+        
+        .quote-divider {
+          height: 1.3em;
+        }
       }
-
+  
       /* 超小屏幕保护 */
       @container cardforge-container (max-width: 240px) {
         .welcome-greeting {
