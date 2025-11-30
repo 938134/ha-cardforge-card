@@ -140,9 +140,9 @@ export class DashboardCard extends BaseCard {
   }
 
   _renderTemplate(config, hass, entities) {
-    const headerContent = this._renderHeader(config);
+    const headerContent = this._renderHeader(config, hass, entities);
     const contentContent = this._renderContent(config, hass, entities);
-    const footerContent = this._renderFooter(config);
+    const footerContent = this._renderFooter(config, hass, entities);
 
     return `
       <div class="cardforge-card ${CARD_CONFIG.id}">
@@ -153,18 +153,31 @@ export class DashboardCard extends BaseCard {
     `;
   }
 
-  _renderHeader(config) {
+  _renderHeader(config, hass, entities) {
     if (!config.show_header) return '';
 
-    const headerBlock = this._findBlockByArea(config.blocks, 'header');
-    if (!headerBlock) return '';
+    const headerBlocks = this._getBlocksByArea(config.blocks, 'header');
+    if (headerBlocks.length === 0) return '';
 
     const alignmentClass = `header-${config.header_alignment || 'center'}`;
-    const content = this._getBlockContent(headerBlock, null); // hass 在内容区域处理
+    
+    // 渲染所有标题块
+    const headerContent = headerBlocks.map(blockId => {
+      const blockConfig = config.blocks[blockId];
+      const content = this._getBlockContent(blockConfig, hass, entities);
+      const icon = blockConfig.icon ? `<ha-icon icon="${blockConfig.icon}"></ha-icon>` : '';
+      
+      return `
+        <div class="header-block" data-block-id="${blockId}">
+          ${icon}
+          <span class="header-text">${this._escapeHtml(content)}</span>
+        </div>
+      `;
+    }).join('');
 
     return `
       <div class="dashboard-header ${alignmentClass}">
-        <div class="header-content">${this._escapeHtml(content)}</div>
+        ${headerContent}
       </div>
     `;
   }
@@ -184,8 +197,8 @@ export class DashboardCard extends BaseCard {
       `;
     }
 
-    const blocksHtml = contentBlocks.map(block => 
-      this._renderDashboardBlock(block, config.blocks[block], hass, entities, config)
+    const blocksHtml = contentBlocks.map(blockId => 
+      this._renderDashboardBlock(blockId, config.blocks[blockId], hass, entities, config)
     ).join('');
 
     return `
@@ -256,18 +269,31 @@ export class DashboardCard extends BaseCard {
     `;
   }
 
-  _renderFooter(config) {
+  _renderFooter(config, hass, entities) {
     if (!config.show_footer) return '';
 
-    const footerBlock = this._findBlockByArea(config.blocks, 'footer');
-    if (!footerBlock) return '';
+    const footerBlocks = this._getBlocksByArea(config.blocks, 'footer');
+    if (footerBlocks.length === 0) return '';
 
     const alignmentClass = `footer-${config.footer_alignment || 'center'}`;
-    const content = this._getBlockContent(footerBlock, null);
+    
+    // 渲染所有页脚块
+    const footerContent = footerBlocks.map(blockId => {
+      const blockConfig = config.blocks[blockId];
+      const content = this._getBlockContent(blockConfig, hass, entities);
+      const icon = blockConfig.icon ? `<ha-icon icon="${blockConfig.icon}"></ha-icon>` : '';
+      
+      return `
+        <div class="footer-block" data-block-id="${blockId}">
+          ${icon}
+          <span class="footer-text">${this._escapeHtml(content)}</span>
+        </div>
+      `;
+    }).join('');
 
     return `
       <div class="dashboard-footer ${alignmentClass}">
-        <div class="footer-content">${this._escapeHtml(content)}</div>
+        ${footerContent}
       </div>
     `;
   }
@@ -277,11 +303,6 @@ export class DashboardCard extends BaseCard {
       return `custom-${config.custom_rows || 1}x${config.custom_columns || 4}`;
     }
     return config.content_layout || 'quad';
-  }
-
-  _findBlockByArea(blocks, area) {
-    if (!blocks) return null;
-    return Object.values(blocks).find(block => block.area === area);
   }
 
   _getBlocksByArea(blocks, area) {
@@ -338,17 +359,27 @@ export class DashboardCard extends BaseCard {
         padding: var(--cf-spacing-sm) var(--cf-spacing-md);
         border-bottom: 1px solid var(--cf-border);
         background: var(--cf-surface);
+        display: flex;
+        align-items: center;
+        gap: var(--cf-spacing-sm);
       }
       
-      .header-content {
+      .header-block {
+        display: flex;
+        align-items: center;
+        gap: 8px;
         font-size: 1em;
         font-weight: 600;
         color: var(--cf-text-primary);
       }
       
-      .header-left { text-align: left; }
-      .header-center { text-align: center; }
-      .header-right { text-align: right; }
+      .header-left { justify-content: flex-start; }
+      .header-center { justify-content: center; }
+      .header-right { justify-content: flex-end; }
+      
+      .header-text {
+        line-height: 1.3;
+      }
       
       /* 内容区域 */
       .dashboard-content {
@@ -498,6 +529,32 @@ export class DashboardCard extends BaseCard {
         line-height: 1.3;
       }
       
+      /* 页脚区域 */
+      .dashboard-footer {
+        padding: var(--cf-spacing-sm) var(--cf-spacing-md);
+        border-top: 1px solid var(--cf-border);
+        background: var(--cf-surface);
+        display: flex;
+        align-items: center;
+        gap: var(--cf-spacing-sm);
+      }
+      
+      .footer-block {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        font-size: 0.85em;
+        color: var(--cf-text-secondary);
+      }
+      
+      .footer-left { justify-content: flex-start; }
+      .footer-center { justify-content: center; }
+      .footer-right { justify-content: flex-end; }
+      
+      .footer-text {
+        line-height: 1.3;
+      }
+      
       /* 空状态 */
       .empty-content {
         display: flex;
@@ -518,19 +575,6 @@ export class DashboardCard extends BaseCard {
       .empty-text {
         font-size: 0.9em;
       }
-      
-      /* 页脚区域 */
-      .dashboard-footer {
-        padding: var(--cf-spacing-sm) var(--cf-spacing-md);
-        border-top: 1px solid var(--cf-border);
-        background: var(--cf-surface);
-        color: var(--cf-text-secondary);
-        font-size: 0.85em;
-      }
-      
-      .footer-left { text-align: left; }
-      .footer-center { text-align: center; }
-      .footer-right { text-align: right; }
       
       /* 响应式设计 */
       @container cardforge-container (max-width: 600px) {
