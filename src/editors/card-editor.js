@@ -187,15 +187,16 @@ class CardEditor extends LitElement {
     // 只有选择了卡片类型时才显示块管理
     if (!this.config.card_type) return false;
     
-    // 根据块数量决定是否显示块管理
+    // 获取卡片块模式
+    const card = cardRegistry.getCard(this.config.card_type);
+    const blockMode = card?.manifest?.block_mode || 'custom';
+    
+    // 无块模式不显示块管理
+    if (blockMode === 'none') return false;
+    
+    // 其他模式根据块数量决定
     const blockCount = Object.keys(this.config.blocks || {}).length;
-    return blockCount > 0 || this._hasUserAddedBlocks();
-  }
-
-  _hasUserAddedBlocks() {
-    // 检查是否有用户添加的块（以 block_ 开头的ID）
-    const blocks = this.config.blocks || {};
-    return Object.keys(blocks).some(id => id.startsWith('block_'));
+    return blockCount > 0 || blockMode === 'custom';
   }
 
   _onCardChanged(e) {

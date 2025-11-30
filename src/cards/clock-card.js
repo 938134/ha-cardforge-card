@@ -10,6 +10,7 @@ const CARD_CONFIG = {
   category: '时间',
   version: '1.0.0',
   author: 'CardForge',
+  block_mode: 'none',
   config_schema: {
     use_24_hour: {
       type: 'boolean',

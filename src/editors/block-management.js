@@ -1,6 +1,7 @@
 // src/editors/block-management.js
 import { LitElement, html, css } from 'https://unpkg.com/lit@2.8.0/index.js?module';
 import { designSystem } from '../core/design-system.js';
+import { cardRegistry } from '../core/card-registry.js';
 
 class BlockManagement extends LitElement {
   static properties = {
@@ -294,11 +295,16 @@ class BlockManagement extends LitElement {
 
   render() {
     const blocks = this._getAllBlocks();
-    const blockCount = blocks.length;
+    const blockMode = this._getCardBlockMode();
+    
+    // 无块模式不显示任何内容
+    if (blockMode === 'none') {
+      return this._renderEmptyState();
+    }
     
     // 根据块数量决定显示逻辑
-    if (blockCount === 0) {
-      return this._renderEmptyState(true); // 无块卡片
+    if (blocks.length === 0) {
+      return this._renderEmptyState();
     }
     
     return html`
@@ -354,16 +360,16 @@ class BlockManagement extends LitElement {
           >
             ${this._renderAreaOptions()}
           </ha-select>
-  
+
           ${this._renderEntityField(block)}
-  
+
           <ha-icon-picker
             .value=${block.icon || ''}
             @value-changed=${e => this._patchBlock(block.id, { icon: e.detail.value })}
             label="图标"
             fullwidth
           ></ha-icon-picker>
-  
+
           <ha-textfield
             .value=${block.content || ''}
             @input=${e => this._patchBlock(block.id, { content: e.target.value })}
@@ -372,7 +378,7 @@ class BlockManagement extends LitElement {
             fullwidth
           ></ha-textfield>
         </div>
-  
+
         <div class="form-actions">
           <button class="action-btn" @click=${this._cancelEdit}>取消</button>
           <button class="action-btn primary" @click=${this._saveEdit}>保存</button>
@@ -429,7 +435,19 @@ class BlockManagement extends LitElement {
     `;
   }
 
-  _renderEmptyState(showAddButton = false) {
+  _renderEmptyState() {
+    const blockMode = this._getCardBlockMode();
+    
+    if (blockMode === 'none') {
+      return html`
+        <div class="empty-state">
+          <ha-icon class="empty-icon" icon="mdi:block-helper"></ha-icon>
+          <div class="cf-text-md cf-mb-sm">此卡片无需配置块</div>
+        </div>
+      `;
+    }
+    
+    const showAddButton = blockMode === 'custom';
     return html`
       <div class="empty-state">
         <ha-icon class="empty-icon" icon="mdi:cube-outline"></ha-icon>
@@ -457,6 +475,18 @@ class BlockManagement extends LitElement {
         label: `${st.attributes?.friendly_name || id} (${id})`
       }))
       .sort((a, b) => a.label.localeCompare(b.label));
+  }
+
+  _getCardBlockMode() {
+    if (!this.config.card_type) return 'custom';
+    
+    try {
+      const card = cardRegistry.getCard(this.config.card_type);
+      return card?.manifest?.block_mode || 'custom';
+    } catch (error) {
+      console.warn('获取卡片块模式失败:', error);
+      return 'custom';
+    }
   }
 
   _blockName(b) {
@@ -511,14 +541,23 @@ class BlockManagement extends LitElement {
   }
 
   _shouldShowAddButton() {
-    // 只有无预设块的卡片才显示添加按钮
-    const blocks = this._getAllBlocks();
-    return blocks.length === 0;
+    const blockMode = this._getCardBlockMode();
+    return blockMode === 'custom';
   }
 
   _shouldShowDeleteButton(block) {
-    // 只有用户添加的块才显示删除按钮（通过块ID判断）
-    return block.id && block.id.startsWith('block_');
+    const blockMode = this._getCardBlockMode();
+    
+    if (blockMode === 'custom') {
+      // 自定义模式：所有块都可以删除
+      return true;
+    } else if (blockMode === 'preset') {
+      // 预设模式：只有用户添加的块可以删除
+      return block.id && block.id.startsWith('block_');
+    } else {
+      // 无块模式：不能删除任何块
+      return false;
+    }
   }
 
   _startEdit(blockId) {
@@ -549,7 +588,7 @@ class BlockManagement extends LitElement {
       return this._patchBlock(blockId, { entity: entityId });
     }
     
-    // 选择实体时自动填充图标、名称和内容
+    // 选择实体时自动填充图标和名称
     const patch = { 
       entity: entityId,
       // 总是使用实体的图标（覆盖用户设置）

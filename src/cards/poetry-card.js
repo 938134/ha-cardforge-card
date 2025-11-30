@@ -10,6 +10,7 @@ const CARD_CONFIG = {
   category: '文化',
   version: '1.0.0',
   author: 'CardForge',
+  block_mode: 'preset',
   config_schema: {
     show_translation: {
       type: 'boolean',

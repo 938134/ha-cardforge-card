@@ -22,7 +22,7 @@ class CardRegistry {
       () => import('../cards/week-card.js'),
       () => import('../cards/welcome-card.js'),
       () => import('../cards/poetry-card.js'),
-      () => import('../cards/oil-price-card.js'),
+      () => import('../cards/dashboard-card.js'),
     ];
 
     for (const importFn of cardModules) {

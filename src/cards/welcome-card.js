@@ -24,6 +24,7 @@ const CARD_CONFIG = {
   category: '信息',
   version: '1.0.0',
   author: 'CardForge',
+  block_mode: 'preset',
   config_schema: {
     show_user: {
       type: 'boolean',
