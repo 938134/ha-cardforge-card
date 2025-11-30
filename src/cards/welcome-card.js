@@ -196,7 +196,12 @@ export class WelcomeCard extends BaseCard {
         <div class="cardforge-area area-content">
           <div class="welcome-display">
             ${dynamicContent}
-            ${showQuote ? `<div class="welcome-quote">${this._escapeHtml(quoteContent)}</div>` : ''}
+            ${showQuote ? `
+              <div class="welcome-quote">
+                <span class="quote-icon">💬</span>
+                <span class="quote-text">${this._escapeHtml(quoteContent)}</span>
+              </div>
+            ` : ''}
           </div>
         </div>
       </div>
@@ -233,20 +238,34 @@ export class WelcomeCard extends BaseCard {
       }
       
       .welcome-quote {
+        display: flex;
+        align-items: flex-start;
+        gap: 8px;
+        max-width: 90%;
+        margin: 8px 0 0 0;
+        padding: 12px 16px;
+        background: rgba(var(--cf-rgb-primary), 0.08);
+        border-radius: 12px;
+        border-left: 3px solid var(--cf-primary-color);
+      }
+      
+      .quote-icon {
+        font-size: 1.2em;
+        flex-shrink: 0;
+        margin-top: 2px;
+        opacity: 0.8;
+      }
+      
+      .quote-text {
         font-size: 1em;
-        font-weight: 300;
+        font-weight: 500;
         line-height: 1.5;
         margin: 0;
-        max-width: 90%;
-        opacity: 0.8;
-        font-style: italic;
-        color: var(--secondary-text-color);
-        text-align: center;
+        color: var(--cf-primary-color);
+        text-align: left;
         word-wrap: break-word;
-        white-space: pre-line;
-        padding: 8px 12px;
-        border-radius: 8px;
-        background: rgba(0, 0, 0, 0.03);
+        overflow-wrap: break-word;
+        white-space: normal;
       }
       
       /* 响应式设计 */
@@ -265,16 +284,57 @@ export class WelcomeCard extends BaseCard {
         }
         
         .welcome-quote {
-          font-size: 0.9em;
-          padding: 6px 10px;
           max-width: 95%;
+          padding: 10px 12px;
+          margin: 6px 0 0 0;
+        }
+        
+        .quote-icon {
+          font-size: 1.1em;
+        }
+        
+        .quote-text {
+          font-size: 0.95em;
         }
       }
-
+      
       @container cardforge-container (max-width: 320px) {
+        .welcome-display {
+          min-height: 110px;
+        }
+        
+        .welcome-greeting {
+          font-size: 1.2em;
+        }
+        
+        .welcome-time {
+          font-size: 1.8em;
+        }
+        
         .welcome-quote {
+          max-width: 100%;
+          padding: 8px 10px;
+          flex-direction: column;
+          align-items: center;
+          text-align: center;
+          gap: 4px;
+        }
+        
+        .quote-text {
+          text-align: center;
+          font-size: 0.9em;
+        }
+      }
+      
+      /* 超长内容保护 */
+      @container cardforge-container (max-width: 280px) {
+        .welcome-quote {
+          padding: 6px 8px;
+        }
+        
+        .quote-text {
           font-size: 0.85em;
-          padding: 4px 8px;
+          line-height: 1.4;
         }
       }
     `;

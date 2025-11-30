@@ -121,32 +121,30 @@ export class PoetryCard extends BaseCard {
   }
 
   _splitPoetryContent(content) {
-    // 按标点符号正确分行，保留完整诗句
-    const lines = [];
-    let currentLine = '';
+    // 智能分行策略：根据容器宽度决定
+    // 窄屏：每句一行
+    // 宽屏：按完整诗句分行（保持语义完整性）
+    
+    const sentences = [];
+    let currentSentence = '';
     
     for (let i = 0; i < content.length; i++) {
       const char = content[i];
-      currentLine += char;
+      currentSentence += char;
       
-      // 遇到句号、问号、感叹号时分行
+      // 遇到完整诗句结束符号时分行
       if (/[。！？]/.test(char)) {
-        lines.push(currentLine.trim());
-        currentLine = '';
-      }
-      // 遇到逗号、分号且达到一定长度时分行（避免过长的句子）
-      else if (/[，；]/.test(char) && currentLine.length >= 6) {
-        lines.push(currentLine.trim());
-        currentLine = '';
+        sentences.push(currentSentence.trim());
+        currentSentence = '';
       }
     }
     
-    // 添加最后一行
-    if (currentLine.trim()) {
-      lines.push(currentLine.trim());
+    // 添加最后一句（如果没有结束符号）
+    if (currentSentence.trim()) {
+      sentences.push(currentSentence.trim());
     }
     
-    return lines;
+    return sentences;
   }
 
   _getBlockContent(blockConfig, hass) {
@@ -318,33 +316,112 @@ export class PoetryCard extends BaseCard {
         border-radius: var(--cf-radius-sm);
       }
       
-      /* 响应式设计 */
+      /* 响应式设计 - 优化小屏字体和分行 */
       @container cardforge-container (max-width: 400px) {
         .poetry-title {
-          font-size: ${font_size === 'large' ? '1.3em' : 
-                      font_size === 'medium' ? '1.1em' : '1em'};
+          font-size: ${font_size === 'large' ? '1.4em' : 
+                      font_size === 'medium' ? '1.2em' : '1.1em'};
         }
         
         .poetry-dynasty-author {
-          font-size: ${font_size === 'large' ? '0.9em' : 
-                      font_size === 'medium' ? '0.8em' : '0.75em'};
-          margin-bottom: 12px;
+          font-size: ${font_size === 'large' ? '1em' : 
+                      font_size === 'medium' ? '0.95em' : '0.9em'};
+          margin-bottom: 14px;
         }
         
         .poetry-content {
-          font-size: ${font_size === 'large' ? '1.1em' : 
-                      font_size === 'medium' ? '0.95em' : '0.85em'};
+          font-size: ${font_size === 'large' ? '1.2em' : 
+                      font_size === 'medium' ? '1.05em' : '0.95em'};
           margin-bottom: 16px;
+          line-height: 1.7;
+        }
+        
+        .poetry-line {
+          line-height: 1.5;
+          margin: 0.2em 0;
         }
         
         .poetry-translation {
-          font-size: ${font_size === 'large' ? '0.85em' : 
-                      font_size === 'medium' ? '0.8em' : '0.75em'};
-          padding: 8px;
+          font-size: ${font_size === 'large' ? '0.95em' : 
+                      font_size === 'medium' ? '0.9em' : '0.85em'};
+          padding: 10px;
+          max-width: 95%;
         }
         
         .translation-divider {
+          margin-bottom: 14px;
+        }
+      }
+
+      @container cardforge-container (max-width: 320px) {
+        .poetry-title {
+          font-size: ${font_size === 'large' ? '1.3em' : 
+                      font_size === 'medium' ? '1.15em' : '1.05em'};
+        }
+        
+        .poetry-content {
+          font-size: ${font_size === 'large' ? '1.15em' : 
+                      font_size === 'medium' ? '1em' : '0.9em'};
+          line-height: 1.6;
+        }
+        
+        .poetry-line {
+          line-height: 1.4;
+          margin: 0.3em 0;
+        }
+      }
+
+      /* 宽屏优化 - 智能分行 */
+      @container cardforge-container (min-width: 500px) {
+        .poetry-content {
+          line-height: 1.9;
+        }
+        
+        .poetry-line {
+          line-height: 1.7;
+          margin: 0.15em 0;
+        }
+        
+        /* 宽屏时诗句可以更舒展 */
+        .poetry-title {
           margin-bottom: 12px;
+        }
+        
+        .poetry-dynasty-author {
+          margin-bottom: 20px;
+        }
+      }
+
+      @container cardforge-container (min-width: 600px) {
+        .poetry-content {
+          font-size: ${font_size === 'large' ? '1.4em' : 
+                      font_size === 'medium' ? '1.2em' : '1.1em'};
+          line-height: 2;
+        }
+        
+        .poetry-line {
+          line-height: 1.8;
+          margin: 0.2em 0;
+        }
+        
+        .poetry-translation {
+          font-size: ${font_size === 'large' ? '1.1em' : 
+                      font_size === 'medium' ? '1em' : '0.95em'};
+          max-width: 85%;
+          padding: 16px;
+        }
+      }
+
+      /* 超宽屏优化 */
+      @container cardforge-container (min-width: 800px) {
+        .poetry-content {
+          font-size: ${font_size === 'large' ? '1.5em' : 
+                      font_size === 'medium' ? '1.3em' : '1.2em'};
+          line-height: 2.1;
+        }
+        
+        .poetry-line {
+          line-height: 1.9;
         }
       }
     `;
