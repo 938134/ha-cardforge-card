@@ -343,42 +343,36 @@ class BlockManagement extends LitElement {
     return html`
       <div class="edit-form">
         <div class="form-grid">
-          <div class="form-field">
-            <ha-select
-              .value=${block.area || 'content'}
-              naturalMenuWidth
-              fixedMenuPosition
-              fullwidth
-              @closed=${this._preventClose}
-              @change=${e => this._patchBlock(block.id, { area: e.target.value })}
-            >
-              ${this._renderAreaOptions()}
-            </ha-select>
-          </div>
-
-          <div class="form-field">
-            ${this._renderEntityField(block)}
-          </div>
-
-          <div class="form-field">
-            <ha-icon-picker
-              .value=${block.icon || ''}
-              @value-changed=${e => this._patchBlock(block.id, { icon: e.detail.value })}
-              label="选择图标"
-              fullwidth
-            ></ha-icon-picker>
-          </div>
-
-          <div class="form-field">
-            <ha-textfield
-              .value=${block.content || ''}
-              @input=${e => this._patchBlock(block.id, { content: e.target.value })}
-              placeholder="输入显示内容"
-              fullwidth
-            ></ha-textfield>
-          </div>
+          <ha-select
+            .value=${block.area || 'content'}
+            naturalMenuWidth
+            fixedMenuPosition
+            fullwidth
+            @closed=${this._preventClose}
+            @change=${e => this._patchBlock(block.id, { area: e.target.value })}
+            label="区域"
+          >
+            ${this._renderAreaOptions()}
+          </ha-select>
+  
+          ${this._renderEntityField(block)}
+  
+          <ha-icon-picker
+            .value=${block.icon || ''}
+            @value-changed=${e => this._patchBlock(block.id, { icon: e.detail.value })}
+            label="图标"
+            fullwidth
+          ></ha-icon-picker>
+  
+          <ha-textfield
+            .value=${block.content || ''}
+            @input=${e => this._patchBlock(block.id, { content: e.target.value })}
+            placeholder="输入显示内容"
+            label="内容"
+            fullwidth
+          ></ha-textfield>
         </div>
-
+  
         <div class="form-actions">
           <button class="action-btn" @click=${this._cancelEdit}>取消</button>
           <button class="action-btn primary" @click=${this._saveEdit}>保存</button>
@@ -412,7 +406,7 @@ class BlockManagement extends LitElement {
           .value=${block.entity || ''}
           @value-changed=${e => this._handleEntityPick(block.id, e.detail.value)}
           allow-custom-value
-          label="选择实体"
+          label="实体"
           fullwidth
         ></ha-combo-box>
       ` : html`
@@ -420,6 +414,7 @@ class BlockManagement extends LitElement {
           .value=${block.entity || ''}
           @input=${e => this._patchBlock(block.id, { entity: e.target.value })}
           placeholder="输入实体ID"
+          label="实体"
           fullwidth
         ></ha-textfield>
       `}
@@ -554,13 +549,15 @@ class BlockManagement extends LitElement {
       return this._patchBlock(blockId, { entity: entityId });
     }
     
-    // 选择实体时自动填充图标和名称
+    // 选择实体时自动填充图标、名称和内容
     const patch = { 
       entity: entityId,
       // 总是使用实体的图标（覆盖用户设置）
       icon: st.attributes?.icon || this._defaultIcon({ entity: entityId }),
       // 使用实体的友好名称，如果没有则使用当前块的默认名称
-      name: st.attributes?.friendly_name || this._getDefaultBlockName(this.config.blocks[blockId])
+      name: st.attributes?.friendly_name || this._getDefaultBlockName(this.config.blocks[blockId]),
+      // 使用实体状态作为内容
+      content: st.state || ''
     };
     
     this._patchBlock(blockId, patch);
