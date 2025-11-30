@@ -46,31 +46,36 @@ export class PoetryCard extends BaseCard {
           type: 'poetry_title',
           area: 'content',
           entity: '',
-          content: '静夜思'
+          content: '静夜思',
+          name: '诗词标题'
         },
         poetry_dynasty: {
           type: 'poetry_dynasty', 
           area: 'content',
           entity: '',
-          content: '唐'
+          content: '唐',
+          name: '诗词朝代'
         },
         poetry_author: {
           type: 'poetry_author',
           area: 'content',
           entity: '',
-          content: '李白'
+          content: '李白',
+          name: '诗词作者'
         },
         poetry_content: {
           type: 'poetry_content',
           area: 'content',
           entity: '',
-          content: '床前明月光，疑是地上霜。举头望明月，低头思故乡。'
+          content: '床前明月光，疑是地上霜。举头望明月，低头思故乡。',
+          name: '诗词内容'
         },
         poetry_translation: {
           type: 'poetry_translation',
           area: 'content',
           entity: '',
-          content: '明亮的月光洒在窗户纸上，好像地上泛起了一层霜。我禁不住抬起头来，看那天窗外空中的一轮明月，不由得低头沉思，想起远方的家乡。'
+          content: '明亮的月光洒在窗户纸上，好像地上泛起了一层霜。我禁不住抬起头来，看那天窗外空中的一轮明月，不由得低头沉思，想起远方的家乡。',
+          name: '诗词译文'
         }
       }
     };

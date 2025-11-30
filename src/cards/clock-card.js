@@ -45,7 +45,9 @@ export class ClockCard extends BaseCard {
     return {
       card_type: CARD_CONFIG.id,
       theme: 'auto',
-      ...defaultConfig
+      ...defaultConfig,
+      // 明确设置为空对象，表示无块
+      blocks: {}
     };
   }
 

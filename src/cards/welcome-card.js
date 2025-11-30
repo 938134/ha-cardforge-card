@@ -71,7 +71,8 @@ export class WelcomeCard extends BaseCard {
           type: 'quote',
           area: 'content',
           entity: '', // 默认为空，不关联实体
-          content: '' // 内容为空，由渲染时动态生成
+          content: '', // 内容为空，由渲染时动态生成
+          name: '每日一言'
         }
       }
     };

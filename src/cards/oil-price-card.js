@@ -65,37 +65,43 @@ export class OilPriceCard extends BaseCard {
           type: 'oil_title',
           area: 'header',
           entity: '',
-          content: '广东省油价'
+          content: '广东省油价',
+          name: '油价标题'
         },
         gas_89: {
           type: 'oil_89',
           area: 'content',
           entity: '',
-          content: '7.50'
+          content: '7.50',
+          name: '89号汽油'
         },
         gas_92: {
           type: 'oil_92',
           area: 'content',
           entity: '',
-          content: '7.85'
+          content: '7.85',
+          name: '92号汽油'
         },
         gas_95: {
           type: 'oil_95',
           area: 'content',
           entity: '',
-          content: '8.35'
+          content: '8.35',
+          name: '95号汽油'
         },
         gas_diesel: {
           type: 'oil_diesel',
           area: 'content',
           entity: '',
-          content: '7.45'
+          content: '7.45',
+          name: '0号柴油'
         },
         update_tip: {
           type: 'oil_tip',
           area: 'footer',
           entity: '',
-          content: '贴士：较昨日持平 08:00'
+          content: '贴士：较昨日持平 08:00',
+          name: '油价提示'
         }
       }
     };

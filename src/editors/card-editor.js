@@ -100,7 +100,7 @@ class CardEditor extends LitElement {
           ${this._renderCardSelectionSection()}
           ${this.config.card_type ? this._renderThemeSection() : ''}
           ${this.config.card_type && this._cardSchema ? this._renderCardSettings() : ''}
-          ${this.config.card_type ? this._renderBlockManagement() : ''}
+          ${this._shouldShowBlockManagement() ? this._renderBlockManagement() : ''}
         </div>
       </div>
     `;
@@ -181,6 +181,21 @@ class CardEditor extends LitElement {
         ></block-management>
       </div>
     `;
+  }
+
+  _shouldShowBlockManagement() {
+    // 只有选择了卡片类型时才显示块管理
+    if (!this.config.card_type) return false;
+    
+    // 根据块数量决定是否显示块管理
+    const blockCount = Object.keys(this.config.blocks || {}).length;
+    return blockCount > 0 || this._hasUserAddedBlocks();
+  }
+
+  _hasUserAddedBlocks() {
+    // 检查是否有用户添加的块（以 block_ 开头的ID）
+    const blocks = this.config.blocks || {};
+    return Object.keys(blocks).some(id => id.startsWith('block_'));
   }
 
   _onCardChanged(e) {
