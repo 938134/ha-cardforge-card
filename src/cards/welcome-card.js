@@ -1,7 +1,7 @@
 // src/cards/welcome-card.js
 import { BaseCard } from '../core/base-card.js';
 
-// 每日一言库 - 扩展更多名言
+// 每日一言库
 const DAILY_QUOTES = [
   "生活就像一盒巧克力，你永远不知道下一颗是什么味道。",
   "成功的秘诀在于对目标的执着追求。",
@@ -12,12 +12,7 @@ const DAILY_QUOTES = [
   "简单的生活，就是最奢华的生活。",
   "心若向阳，无畏悲伤。",
   "时间是最好的老师，但遗憾的是，它最后把所有的学生都杀死了。",
-  "活在当下，珍惜眼前。",
-  "人生没有彩排，每一天都是现场直播。",
-  "不要等待机会，而要创造机会。",
-  "世界上最遥远的距离，是想到和做到之间的距离。",
-  "你的时间有限，不要浪费在别人的生活里。",
-  "真正的发现之旅不在于寻找新风景，而在于拥有新眼光。"
+  "活在当下，珍惜眼前。"
 ];
 
 // 统一的配置定义
@@ -201,13 +196,7 @@ export class WelcomeCard extends BaseCard {
         <div class="cardforge-area area-content">
           <div class="welcome-display">
             ${dynamicContent}
-            ${showQuote ? `
-              <div class="quote-section">
-                <div class="quote-decoration">💫</div>
-                <div class="welcome-quote">${this._escapeHtml(quoteContent)}</div>
-                <div class="quote-source">每日一言</div>
-              </div>
-            ` : ''}
+            ${showQuote ? `<div class="welcome-quote">${this._escapeHtml(quoteContent)}</div>` : ''}
           </div>
         </div>
       </div>
@@ -221,155 +210,72 @@ export class WelcomeCard extends BaseCard {
         flex-direction: column;
         align-items: center;
         justify-content: center;
-        gap: 16px;
-        min-height: 160px;
+        gap: 12px;
+        min-height: 140px;
         text-align: center;
         color: var(--primary-text-color);
-        font-family: 'Segoe UI', 'Roboto', 'PingFang SC', 'Microsoft YaHei', sans-serif;
+        font-family: 'Segoe UI', 'Roboto', 'PingFang SC', sans-serif;
       }
       
       .welcome-greeting {
-        font-size: 1.6em;
-        font-weight: 500;
+        font-size: 1.5em;
+        font-weight: 400;
         line-height: 1.3;
         margin: 0;
-        background: linear-gradient(135deg, var(--cf-primary-color), var(--cf-accent-color));
-        -webkit-background-clip: text;
-        -webkit-text-fill-color: transparent;
-        background-clip: text;
-        text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
       }
       
       .welcome-time {
-        font-size: 2.8em;
+        font-size: 2.5em;
         font-weight: 300;
         line-height: 1.2;
         margin: 0;
-        letter-spacing: 2px;
-        color: var(--cf-primary-color);
-        text-shadow: 0 2px 8px rgba(var(--cf-rgb-primary), 0.2);
-        font-variant-numeric: tabular-nums;
-      }
-      
-      /* 每日一言区域 - 突出显示 */
-      .quote-section {
-        margin-top: 8px;
-        padding: 20px;
-        background: linear-gradient(135deg, rgba(var(--cf-rgb-primary), 0.08), rgba(var(--cf-rgb-accent), 0.05));
-        border-radius: var(--cf-radius-lg);
-        border: 1px solid rgba(var(--cf-rgb-primary), 0.15);
-        position: relative;
-        max-width: 90%;
-        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
-      }
-      
-      .quote-decoration {
-        position: absolute;
-        top: -12px;
-        left: 50%;
-        transform: translateX(-50%);
-        font-size: 1.5em;
-        background: var(--cf-background);
-        padding: 0 12px;
-        z-index: 1;
+        letter-spacing: 1px;
       }
       
       .welcome-quote {
-        font-size: 1.1em;
-        font-weight: 400;
-        line-height: 1.6;
+        font-size: 1em;
+        font-weight: 300;
+        line-height: 1.5;
         margin: 0;
-        color: var(--cf-text-primary);
-        text-align: center;
-        display: -webkit-box;
-        -webkit-line-clamp: 3;
-        -webkit-box-orient: vertical;
-        overflow: hidden;
-      }
-      
-      .quote-source {
-        font-size: 0.8em;
-        font-weight: 500;
-        color: var(--cf-primary-color);
-        margin-top: 8px;
-        text-align: center;
-        text-transform: uppercase;
-        letter-spacing: 1px;
+        max-width: 90%;
         opacity: 0.8;
-      }
-      
-      /* 多行文本支持 */
-      .welcome-quote.multiline {
-        -webkit-line-clamp: unset;
-        display: block;
-        overflow: visible;
+        font-style: italic;
+        color: var(--secondary-text-color);
+        text-align: center;
+        word-wrap: break-word;
+        white-space: pre-line;
+        padding: 8px 12px;
+        border-radius: 8px;
+        background: rgba(0, 0, 0, 0.03);
       }
       
       /* 响应式设计 */
       @container cardforge-container (max-width: 400px) {
         .welcome-display {
-          min-height: 140px;
-          gap: 12px;
+          min-height: 120px;
+          gap: 8px;
         }
         
         .welcome-greeting {
-          font-size: 1.4em;
-        }
-        
-        .welcome-time {
-          font-size: 2.4em;
-          letter-spacing: 1px;
-        }
-        
-        .quote-section {
-          padding: 16px;
-          max-width: 95%;
-        }
-        
-        .welcome-quote {
-          font-size: 1em;
-          line-height: 1.5;
-        }
-        
-        .quote-decoration {
           font-size: 1.3em;
-          top: -10px;
-        }
-      }
-      
-      @container cardforge-container (max-width: 320px) {
-        .welcome-greeting {
-          font-size: 1.2em;
         }
         
         .welcome-time {
           font-size: 2em;
         }
         
-        .quote-section {
-          padding: 12px;
-        }
-        
         .welcome-quote {
-          font-size: 0.95em;
-          line-height: 1.4;
+          font-size: 0.9em;
+          padding: 6px 10px;
+          max-width: 95%;
         }
       }
-      
-      /* 动画效果 */
-      @keyframes fadeInUp {
-        from {
-          opacity: 0;
-          transform: translateY(20px);
+
+      @container cardforge-container (max-width: 320px) {
+        .welcome-quote {
+          font-size: 0.85em;
+          padding: 4px 8px;
         }
-        to {
-          opacity: 1;
-          transform: translateY(0);
-        }
-      }
-      
-      .quote-section {
-        animation: fadeInUp 0.6s ease-out;
       }
     `;
   }

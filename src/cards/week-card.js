@@ -83,15 +83,15 @@ export class WeekCard extends BaseCard {
     return `
       <div class="year-progress">
         <div class="progress-ring">
-          <svg width="100" height="100" viewBox="0 0 100 100">
+          <svg width="90" height="90" viewBox="0 0 90 90">
             <!-- 背景环 -->
-            <circle cx="50" cy="50" r="45" stroke="#e0e0e0" stroke-width="8" fill="none"/>
+            <circle cx="45" cy="45" r="40" stroke="#e0e0e0" stroke-width="6" fill="none"/>
             <!-- 进度环 -->
-            <circle cx="50" cy="50" r="45" stroke="var(--cf-primary-color)" stroke-width="8" 
+            <circle cx="45" cy="45" r="40" stroke="var(--cf-primary-color)" stroke-width="6" 
                     fill="none" stroke-linecap="round"
-                    stroke-dasharray="${2 * Math.PI * 45}" 
-                    stroke-dashoffset="${2 * Math.PI * 45 * (1 - yearProgress / 100)}"
-                    transform="rotate(-90 50 50)"/>
+                    stroke-dasharray="${2 * Math.PI * 40}" 
+                    stroke-dashoffset="${2 * Math.PI * 40 * (1 - yearProgress / 100)}"
+                    transform="rotate(-90 45 45)"/>
           </svg>
           <div class="ring-content">
             <div class="year-percent">${Math.round(yearProgress)}%</div>
@@ -125,14 +125,11 @@ export class WeekCard extends BaseCard {
       }
       
       weekBars += `<div class="week-bar ${colorClass}"></div>`;
-      dayLabels += `<div class="day-label ${isCurrent ? 'current-day' : ''}">${weekDays[i]}</div>`;
+      dayLabels += `<div class="day-label">${weekDays[i]}</div>`;
     }
     
     return `
       <div class="week-progress">
-        <div class="progress-header">
-          <span class="progress-title">本周进度</span>
-        </div>
         <div class="progress-bars">
           ${weekBars}
         </div>
@@ -187,20 +184,20 @@ export class WeekCard extends BaseCard {
         flex-direction: column;
         align-items: center;
         justify-content: center;
-        min-height: 180px;
+        min-height: 160px;
         padding: var(--cf-spacing-lg);
-        gap: 24px;
+        gap: 20px;
       }
       
       .week-display {
         display: flex;
         flex-direction: column;
         align-items: center;
-        gap: 24px;
+        gap: 20px;
         width: 100%;
       }
       
-      /* 年进度环样式 - 优化大小 */
+      /* 年进度环样式 - 优化布局 */
       .year-progress {
         display: flex;
         align-items: center;
@@ -210,8 +207,9 @@ export class WeekCard extends BaseCard {
       
       .progress-ring {
         position: relative;
-        width: 100px;
-        height: 100px;
+        width: 90px;
+        height: 90px;
+        flex-shrink: 0;
       }
       
       .ring-content {
@@ -224,92 +222,62 @@ export class WeekCard extends BaseCard {
       }
       
       .year-percent {
-        font-size: 1.4em;
-        font-weight: 700;
+        font-size: 1em;
+        font-weight: 600;
         color: var(--cf-primary-color);
-        text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        line-height: 1;
       }
       
       .ring-info {
         display: flex;
         flex-direction: column;
         align-items: flex-start;
-        gap: 8px;
+        gap: 6px;
+        justify-content: center;
+        height: 90px; /* 与环高度一致，实现垂直居中 */
       }
       
       .week-number {
         font-size: 1.2em;
-        font-weight: 700;
+        font-weight: 600;
         color: var(--cf-text-primary);
-        background: linear-gradient(135deg, var(--cf-primary-color), var(--cf-accent-color));
-        -webkit-background-clip: text;
-        -webkit-text-fill-color: transparent;
-        background-clip: text;
+        line-height: 1.2;
       }
       
       .current-date {
         font-size: 1em;
-        font-weight: 600;
         color: var(--cf-text-secondary);
-        background: var(--cf-surface);
-        padding: 4px 8px;
-        border-radius: var(--cf-radius-sm);
-        border: 1px solid var(--cf-border);
+        line-height: 1.2;
       }
       
-      /* 周进度条样式 - 增强视觉效果 */
+      /* 周进度条样式 */
       .week-progress {
         width: 100%;
-        max-width: 320px;
-        background: var(--cf-surface);
-        border: 1px solid var(--cf-border);
-        border-radius: var(--cf-radius-lg);
-        padding: 16px;
-        box-shadow: var(--cf-shadow-sm);
-      }
-      
-      .progress-header {
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        margin-bottom: 12px;
-      }
-      
-      .progress-title {
-        font-size: 0.9em;
-        font-weight: 600;
-        color: var(--cf-text-secondary);
-        text-transform: uppercase;
-        letter-spacing: 1px;
+        max-width: 300px;
       }
       
       .progress-bars {
         display: flex;
         width: 100%;
-        height: 20px;
-        background: #f5f5f5;
-        border-radius: 10px;
+        height: 16px;
+        background: #f0f0f0;
+        border-radius: 8px;
         overflow: hidden;
-        margin-bottom: 12px;
-        box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.1);
+        margin-bottom: 8px;
       }
       
       .week-bar {
         flex: 1;
         height: 100%;
-        transition: all 0.3s ease;
-        position: relative;
+        transition: background-color 0.3s ease;
       }
       
       .week-bar.active {
-        background: linear-gradient(135deg, var(--cf-primary-color), #42a5f5);
-        box-shadow: 0 2px 4px rgba(66, 165, 245, 0.3);
+        background: var(--cf-primary-color);
       }
       
       .week-bar.current {
-        background: linear-gradient(135deg, var(--cf-accent-color), #ff6b6b);
-        box-shadow: 0 2px 6px rgba(255, 107, 107, 0.4);
-        animation: pulse 2s ease-in-out infinite;
+        background: var(--cf-accent-color);
       }
       
       .week-bar.future {
@@ -323,51 +291,36 @@ export class WeekCard extends BaseCard {
       }
       
       .day-label {
-        font-size: 0.85em;
+        font-size: 0.8em;
         color: var(--cf-text-secondary);
         text-align: center;
         flex: 1;
-        font-weight: 500;
-        transition: all 0.3s ease;
-      }
-      
-      .day-label.current-day {
-        color: var(--cf-accent-color);
-        font-weight: 700;
-        transform: scale(1.1);
-      }
-      
-      /* 动画效果 */
-      @keyframes pulse {
-        0%, 100% {
-          opacity: 1;
-          transform: scaleY(1);
-        }
-        50% {
-          opacity: 0.8;
-          transform: scaleY(0.95);
-        }
       }
       
       /* 响应式设计 */
       @container cardforge-container (max-width: 400px) {
         .cardforge-area {
-          min-height: 160px;
+          min-height: 140px;
           padding: var(--cf-spacing-md);
-          gap: 20px;
+          gap: 16px;
         }
         
         .week-display {
-          gap: 20px;
+          gap: 16px;
         }
         
         .progress-ring {
-          width: 90px;
-          height: 90px;
+          width: 80px;
+          height: 80px;
+        }
+        
+        .ring-info {
+          height: 80px;
+          gap: 4px;
         }
         
         .year-percent {
-          font-size: 1.2em;
+          font-size: 0.9em;
         }
         
         .week-number {
@@ -378,43 +331,35 @@ export class WeekCard extends BaseCard {
           font-size: 0.9em;
         }
         
-        .week-progress {
-          padding: 12px;
-          max-width: 280px;
-        }
-        
         .progress-bars {
-          height: 16px;
-          border-radius: 8px;
+          height: 14px;
         }
         
         .day-label {
-          font-size: 0.8em;
+          font-size: 0.75em;
         }
       }
-      
+
       @container cardforge-container (max-width: 320px) {
         .year-progress {
-          flex-direction: column;
-          gap: 12px;
-          text-align: center;
-        }
-        
-        .ring-info {
-          align-items: center;
+          gap: 15px;
         }
         
         .progress-ring {
-          width: 80px;
-          height: 80px;
+          width: 70px;
+          height: 70px;
         }
         
-        .year-percent {
-          font-size: 1.1em;
+        .ring-info {
+          height: 70px;
         }
         
-        .week-progress {
-          max-width: 100%;
+        .week-number {
+          font-size: 1em;
+        }
+        
+        .current-date {
+          font-size: 0.85em;
         }
       }
     `;
