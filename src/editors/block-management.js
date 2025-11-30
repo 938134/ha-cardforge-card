@@ -371,10 +371,10 @@ class BlockManagement extends LitElement {
           ></ha-icon-picker>
 
           <ha-textfield
-            .value=${block.content || ''}
-            @input=${e => this._patchBlock(block.id, { content: e.target.value })}
-            placeholder="输入显示内容"
-            label="内容"
+            .value=${block.name || ''}
+            @input=${e => this._patchBlock(block.id, { name: e.target.value })}
+            placeholder="输入块名称"
+            label="块名称"
             fullwidth
           ></ha-textfield>
         </div>
@@ -472,7 +472,7 @@ class BlockManagement extends LitElement {
     return Object.entries(this.hass.states)
       .map(([id, st]) => ({
         value: id,
-        label: `${st.attributes?.friendly_name || id} (${id})`
+        label: `${st.attributes?.friendly_name || id} (${st.state})`
       }))
       .sort((a, b) => a.label.localeCompare(b.label));
   }
@@ -516,17 +516,17 @@ class BlockManagement extends LitElement {
   }
 
   _blockState(b) {
-    // 优先显示块配置的静态内容
-    if (b.content) {
-      const content = String(b.content);
-      return content.substring(0, 30) + (content.length > 30 ? '…' : '');
-    }
-    
-    // 其次显示实体状态
+    // 优先显示实体状态
     if (b.entity && this.hass?.states[b.entity]) {
       const st = this.hass.states[b.entity];
       const u = st.attributes?.unit_of_measurement || '';
       return `${st.state}${u ? ' ' + u : ''}`;
+    }
+    
+    // 其次显示块配置的静态内容
+    if (b.content) {
+      const content = String(b.content);
+      return content.substring(0, 30) + (content.length > 30 ? '…' : '');
     }
     
     return '点击配置';
@@ -588,18 +588,24 @@ class BlockManagement extends LitElement {
       return this._patchBlock(blockId, { entity: entityId });
     }
     
-    // 选择实体时自动填充图标和名称
+    // 选择实体时自动填充图标和友好名称
     const patch = { 
       entity: entityId,
-      // 总是使用实体的图标（覆盖用户设置）
+      // 自动填充图标（总是使用实体图标）
       icon: st.attributes?.icon || this._defaultIcon({ entity: entityId }),
-      // 使用实体的友好名称，如果没有则使用当前块的默认名称
-      name: st.attributes?.friendly_name || this._getDefaultBlockName(this.config.blocks[blockId]),
-      // 使用实体状态作为内容
-      content: st.state || ''
+      // 自动填充块名称（使用友好名称）
+      name: st.attributes?.friendly_name || this._formatEntityId(entityId)
     };
     
     this._patchBlock(blockId, patch);
+  }
+
+  _formatEntityId(entityId) {
+    // 将 entity_id 格式化为友好名称
+    return entityId
+      .split('.')[1]
+      ?.replace(/_/g, ' ')
+      .replace(/\b\w/g, l => l.toUpperCase()) || entityId;
   }
 
   _addBlock() {
@@ -608,8 +614,8 @@ class BlockManagement extends LitElement {
       area: 'content', 
       entity: '', 
       icon: 'mdi:text-box', 
-      content: '请配置内容…',
-      name: '新块'
+      name: '新块',
+      content: ''
     };
     this._fireConfig({ ...this.config, blocks: { ...this.config.blocks, [id]: block } });
     this._editingBlockId = id;

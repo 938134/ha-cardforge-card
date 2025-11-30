@@ -57,24 +57,6 @@ export class BaseCard {
     `;
   }
 
-_getBlockContent(blockConfig, hass, entities) {
-  // 优先从实体获取内容
-  if (blockConfig.entity && hass?.states[blockConfig.entity]) {
-    const entity = hass.states[blockConfig.entity];
-    return entity.state || blockConfig.entity;
-  }
-  
-  // 从实体映射获取内容
-  if (entities && blockConfig.id && entities[blockConfig.id] && hass?.states[entities[blockConfig.id]]) {
-    const entity = hass.states[entities[blockConfig.id]];
-    return entity.state || entities[blockConfig.id];
-  }
-  
-  // 回退到静态内容
-  return blockConfig.content || '';
-}
-
-
   _renderAreas(config, hass, entities) {
     const areas = {};
     
@@ -130,12 +112,36 @@ _getBlockContent(blockConfig, hass, entities) {
     if (!blockConfig) return '';
     
     const content = this._getBlockContent(blockConfig, hass, entities);
+    
+    // 标题块和页脚块特殊处理
+    if (blockConfig.area === 'header' || blockConfig.area === 'footer') {
+      return this._renderHeaderFooterBlock(blockId, blockConfig, content);
+    }
+    
+    // 内容块保持原有逻辑，由各卡片自定义
     const style = blockConfig.style ? `style="${blockConfig.style}"` : '';
     
     return `
       <div class="cardforge-block block-${blockConfig.type}" data-block-id="${blockId}" ${style}>
         ${blockConfig.title ? `<div class="block-title">${blockConfig.title}</div>` : ''}
         <div class="block-content">${content}</div>
+      </div>
+    `;
+  }
+
+  _renderHeaderFooterBlock(blockId, blockConfig, content) {
+    const icon = blockConfig.icon ? `
+      <div class="header-footer-icon">
+        <ha-icon icon="${blockConfig.icon}"></ha-icon>
+      </div>
+    ` : '';
+    
+    return `
+      <div class="cardforge-block block-${blockConfig.area}" data-block-id="${blockId}">
+        <div class="header-footer-content">
+          ${icon}
+          <div class="header-footer-text">${this._renderSafeHTML(content)}</div>
+        </div>
       </div>
     `;
   }
@@ -178,6 +184,34 @@ _getBlockContent(blockConfig, hass, entities) {
       .cardforge-card {
         ${themeStyles}
       }
+      
+      /* 标题块和页脚块样式 */
+      .block-header,
+      .block-footer {
+        text-align: center;
+        padding: var(--cf-spacing-sm);
+      }
+      
+      .header-footer-content {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: var(--cf-spacing-sm);
+        min-height: 40px;
+      }
+      
+      .header-footer-icon {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+      
+      .header-footer-text {
+        font-size: 1em;
+        color: var(--cf-text-primary);
+        line-height: 1.3;
+      }
+      
       ${cardStyles}
     `;
   }
