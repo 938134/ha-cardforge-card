@@ -46,4 +46,3 @@
 resources:
   - url: /local/ha-cardforge.js
     type: module
-    
