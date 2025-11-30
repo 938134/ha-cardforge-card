@@ -7,7 +7,6 @@ class BlockManagement extends LitElement {
     config: { type: Object },
     hass: { type: Object },
     _editingBlockId: { state: true },
-    _hoverBlockId: { state: true },
   };
 
   static styles = [
@@ -25,7 +24,7 @@ class BlockManagement extends LitElement {
       /* 块项 - 更紧凑的布局 */
       .block-item{
         display:grid;
-        grid-template-columns: 36px 40px 1fr;
+        grid-template-columns: 36px 40px 1fr auto;
         gap: 8px;
         align-items:center;
         background:var(--cf-surface);
@@ -33,19 +32,12 @@ class BlockManagement extends LitElement {
         border-radius:var(--cf-radius-md);
         padding: 8px;
         min-height: 52px;
-        cursor:pointer;
         transition: all var(--cf-transition-fast);
-        position: relative;
       }
       
       .block-item:hover {
         border-color: var(--cf-primary-color);
         background: rgba(var(--cf-rgb-primary), 0.02);
-      }
-      
-      .block-item:hover .block-actions {
-        opacity: 1;
-        visibility: visible;
       }
       
       .block-item.editing{
@@ -116,16 +108,11 @@ class BlockManagement extends LitElement {
         white-space:nowrap;
       }
       
-      /* 块操作 - 悬停显示 */
+      /* 块操作 - 固定显示 */
       .block-actions{
-        position: absolute;
-        top: 8px;
-        right: 8px;
         display:flex;
         gap: 4px;
-        opacity: 0;
-        visibility: hidden;
-        transition: all var(--cf-transition-fast);
+        align-items:center;
       }
       
       .block-action{
@@ -149,6 +136,10 @@ class BlockManagement extends LitElement {
         color: white;
       }
       
+      .block-action.hidden {
+        display: none;
+      }
+      
       /* 编辑表单 - 更紧凑 */
       .edit-form{
         grid-column:1 / -1;
@@ -161,33 +152,20 @@ class BlockManagement extends LitElement {
       
       .form-grid{
         display:grid;
-        grid-template-columns: 70px 1fr;
-        gap: 8px;
-        align-items:center;
+        grid-template-columns: 1fr;
+        gap: 12px;
+      }
+      
+      .form-field{
+        display:flex;
+        flex-direction: column;
+        gap: 6px;
       }
       
       .form-label{
         font-weight:500;
         font-size:0.85em;
         color:var(--cf-text-primary);
-      }
-      
-      .form-field{
-        display:flex;
-        gap: 8px;
-        align-items:center;
-      }
-      
-      .radio-group{
-        display:flex;
-        gap: 12px;
-      }
-      
-      .radio-option{
-        display:flex;
-        align-items:center;
-        gap: 6px;
-        cursor:pointer;
       }
       
       .form-actions{
@@ -277,7 +255,6 @@ class BlockManagement extends LitElement {
   constructor() {
     super();
     this._editingBlockId = null;
-    this._hoverBlockId = null;
   }
 
   render() {
@@ -298,13 +275,10 @@ class BlockManagement extends LitElement {
 
   _renderBlock(block) {
     const isEditing = this._editingBlockId === block.id;
-    const isHovering = this._hoverBlockId === block.id;
+    const showDelete = this._shouldShowDeleteButton(block);
     
     return html`
-      <div class="block-item ${isEditing ? 'editing' : ''}"
-           @mouseenter=${() => this._hoverBlockId = block.id}
-           @mouseleave=${() => this._hoverBlockId = null}
-           @click=${() => this._startEdit(block.id)}>
+      <div class="block-item ${isEditing ? 'editing' : ''}">
         <div class="area-badge">
           <div class="area-letter ${block.area || 'content'}">
             ${block.area === 'header' ? 'H' : block.area === 'footer' ? 'F' : 'C'}
@@ -318,11 +292,13 @@ class BlockManagement extends LitElement {
           <div class="block-state">${this._blockState(block)}</div>
         </div>
         <div class="block-actions">
-          ${this._shouldShowDeleteButton(block) ? html`
-            <div class="block-action" @click=${(e) => this._deleteBlock(e, block.id)}>
-              <ha-icon icon="mdi:delete"></ha-icon>
-            </div>
-          ` : ''}
+          <div class="block-action" @click=${() => this._startEdit(block.id)}>
+            <ha-icon icon="mdi:pencil"></ha-icon>
+          </div>
+          <div class="block-action ${showDelete ? '' : 'hidden'}" 
+               @click=${(e) => this._deleteBlock(e, block.id)}>
+            <ha-icon icon="mdi:delete"></ha-icon>
+          </div>
         </div>
         ${isEditing ? this._editForm(block) : ''}
       </div>`;
@@ -332,47 +308,72 @@ class BlockManagement extends LitElement {
     return html`
       <div class="edit-form">
         <div class="form-grid">
-          <div class="form-label">区域</div>
-          <div class="radio-group">
-            ${['header', 'content', 'footer'].map(a => html`
-              <label class="radio-option">
-                <input type="radio" name="area" value=${a}
-                  ?checked=${(block.area || 'content') === a}
-                  @change=${e => this._patchBlock(block.id, { area: e.target.value })}>
-                ${a === 'header' ? '标题' : a === 'footer' ? '页脚' : '内容'}
-              </label>`)}
+          <div class="form-field">
+            <ha-select
+              .value=${block.area || 'content'}
+              naturalMenuWidth
+              fixedMenuPosition
+              fullwidth
+              @closed=${this._preventClose}
+              @change=${e => this._patchBlock(block.id, { area: e.target.value })}
+            >
+              <ha-list-item value="header">标题</ha-list-item>
+              <ha-list-item value="content">内容</ha-list-item>
+              <ha-list-item value="footer">页脚</ha-list-item>
+            </ha-select>
           </div>
 
-          <div class="form-label">实体</div>
-          <ha-combo-box
-            .items=${this._entities}
-            .value=${block.entity || ''}
-            @value-changed=${e => this._handleEntityPick(block.id, e.detail.value)}
-            allow-custom-value
-            label="选择实体">
-          </ha-combo-box>
+          <div class="form-field">
+            ${this._renderEntityField(block)}
+          </div>
 
-          <div class="form-label">图标</div>
-          <ha-icon-picker
-            .value=${block.icon || ''}
-            @value-changed=${e => this._patchBlock(block.id, { icon: e.detail.value })}
-            label="选择图标">
-          </ha-icon-picker>
+          <div class="form-field">
+            <ha-icon-picker
+              .value=${block.icon || ''}
+              @value-changed=${e => this._patchBlock(block.id, { icon: e.detail.value })}
+              label="选择图标"
+              fullwidth
+            ></ha-icon-picker>
+          </div>
 
-          <div class="form-label">内容</div>
-          <ha-textfield
-            .value=${block.content || ''}
-            @input=${e => this._patchBlock(block.id, { content: e.target.value })}
-            placeholder="输入显示内容"
-            fullwidth>
-          </ha-textfield>
+          <div class="form-field">
+            <ha-textfield
+              .value=${block.content || ''}
+              @input=${e => this._patchBlock(block.id, { content: e.target.value })}
+              placeholder="输入显示内容"
+              fullwidth
+            ></ha-textfield>
+          </div>
         </div>
 
         <div class="form-actions">
           <button class="action-btn" @click=${this._cancelEdit}>取消</button>
-          <button class="action-btn primary" @click=${this._finishEdit}>保存</button>
+          <button class="action-btn primary" @click=${this._saveEdit}>保存</button>
         </div>
-      </div>`;
+      </div>
+    `;
+  }
+
+  _renderEntityField(block) {
+    return html`
+      ${this._entities.length > 0 ? html`
+        <ha-combo-box
+          .items=${this._entities}
+          .value=${block.entity || ''}
+          @value-changed=${e => this._handleEntityPick(block.id, e.detail.value)}
+          allow-custom-value
+          label="选择实体"
+          fullwidth
+        ></ha-combo-box>
+      ` : html`
+        <ha-textfield
+          .value=${block.entity || ''}
+          @input=${e => this._patchBlock(block.id, { entity: e.target.value })}
+          placeholder="输入实体ID"
+          fullwidth
+        ></ha-textfield>
+      `}
+    `;
   }
 
   _renderAddButton() {
@@ -484,7 +485,7 @@ class BlockManagement extends LitElement {
     this._editingBlockId = null;
   }
 
-  _finishEdit() {
+  _saveEdit() {
     this._editingBlockId = null;
   }
 
@@ -533,6 +534,10 @@ class BlockManagement extends LitElement {
     const { [blockId]: _, ...rest } = this.config.blocks;
     this._fireConfig({ ...this.config, blocks: rest });
     if (this._editingBlockId === blockId) this._editingBlockId = null;
+  }
+
+  _preventClose(e) {
+    e.stopPropagation();
   }
 
   _fireConfig(newConfig) {
