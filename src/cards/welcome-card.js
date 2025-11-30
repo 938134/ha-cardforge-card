@@ -198,8 +198,9 @@ export class WelcomeCard extends BaseCard {
             ${dynamicContent}
             ${showQuote ? `
               <div class="welcome-quote">
-                <span class="quote-icon">💬</span>
-                <span class="quote-text">${this._escapeHtml(quoteContent)}</span>
+                <div class="quote-icon">💬</div>
+                <div class="quote-divider"></div>
+                <div class="quote-content">${this._escapeHtml(quoteContent)}</div>
               </div>
             ` : ''}
           </div>
@@ -240,32 +241,37 @@ export class WelcomeCard extends BaseCard {
       .welcome-quote {
         display: flex;
         align-items: flex-start;
-        gap: 8px;
+        gap: 12px;
+        margin: 0;
         max-width: 90%;
-        margin: 8px 0 0 0;
-        padding: 12px 16px;
-        background: rgba(var(--cf-rgb-primary), 0.08);
-        border-radius: 12px;
-        border-left: 3px solid var(--cf-primary-color);
+        text-align: left;
       }
       
       .quote-icon {
         font-size: 1.2em;
         flex-shrink: 0;
         margin-top: 2px;
-        opacity: 0.8;
       }
       
-      .quote-text {
+      .quote-divider {
+        width: 1px;
+        height: 100%;
+        background: var(--divider-color);
+        opacity: 0.6;
+        flex-shrink: 0;
+      }
+      
+      .quote-content {
         font-size: 1em;
-        font-weight: 500;
+        font-weight: 300;
         line-height: 1.5;
         margin: 0;
-        color: var(--cf-primary-color);
-        text-align: left;
+        opacity: 0.9;
+        font-style: italic;
+        color: var(--secondary-text-color);
+        flex: 1;
         word-wrap: break-word;
         overflow-wrap: break-word;
-        white-space: normal;
       }
       
       /* 响应式设计 */
@@ -284,27 +290,38 @@ export class WelcomeCard extends BaseCard {
         }
         
         .welcome-quote {
+          gap: 10px;
           max-width: 95%;
-          padding: 10px 12px;
-          margin: 6px 0 0 0;
         }
         
         .quote-icon {
           font-size: 1.1em;
         }
         
-        .quote-text {
-          font-size: 0.95em;
+        .quote-content {
+          font-size: 0.9em;
         }
       }
-      
+
       @container cardforge-container (max-width: 320px) {
-        .welcome-display {
-          min-height: 110px;
+        .welcome-quote {
+          gap: 8px;
         }
         
+        .quote-icon {
+          font-size: 1em;
+        }
+        
+        .quote-content {
+          font-size: 0.85em;
+          line-height: 1.4;
+        }
+      }
+
+      /* 超小屏幕保护 */
+      @container cardforge-container (max-width: 240px) {
         .welcome-greeting {
-          font-size: 1.2em;
+          font-size: 1.1em;
         }
         
         .welcome-time {
@@ -312,29 +329,16 @@ export class WelcomeCard extends BaseCard {
         }
         
         .welcome-quote {
-          max-width: 100%;
-          padding: 8px 10px;
           flex-direction: column;
           align-items: center;
           text-align: center;
-          gap: 4px;
+          gap: 6px;
         }
         
-        .quote-text {
-          text-align: center;
-          font-size: 0.9em;
-        }
-      }
-      
-      /* 超长内容保护 */
-      @container cardforge-container (max-width: 280px) {
-        .welcome-quote {
-          padding: 6px 8px;
-        }
-        
-        .quote-text {
-          font-size: 0.85em;
-          line-height: 1.4;
+        .quote-divider {
+          width: 80%;
+          height: 1px;
+          margin: 2px 0;
         }
       }
     `;
