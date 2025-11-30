@@ -354,11 +354,9 @@ export class DashboardCard extends BaseCard {
         min-height: 200px;
       }
       
-      /* 标题区域 */
+      /* 标题区域 - 无样式 */
       .dashboard-header {
         padding: var(--cf-spacing-sm) var(--cf-spacing-md);
-        border-bottom: 1px solid var(--cf-border);
-        background: var(--cf-surface);
         display: flex;
         align-items: center;
         gap: var(--cf-spacing-sm);
@@ -369,7 +367,6 @@ export class DashboardCard extends BaseCard {
         align-items: center;
         gap: 8px;
         font-size: 1em;
-        font-weight: 600;
         color: var(--cf-text-primary);
       }
       
@@ -529,11 +526,9 @@ export class DashboardCard extends BaseCard {
         line-height: 1.3;
       }
       
-      /* 页脚区域 */
+      /* 页脚区域 - 无样式 */
       .dashboard-footer {
         padding: var(--cf-spacing-sm) var(--cf-spacing-md);
-        border-top: 1px solid var(--cf-border);
-        background: var(--cf-surface);
         display: flex;
         align-items: center;
         gap: var(--cf-spacing-sm);
@@ -605,6 +600,11 @@ export class DashboardCard extends BaseCard {
         
         .block-content {
           font-size: 1em;
+        }
+        
+        .dashboard-header,
+        .dashboard-footer {
+          padding: var(--cf-spacing-sm);
         }
       }
       
