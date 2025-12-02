@@ -1,4 +1,4 @@
-// src/cards/dashboard-card.js
+// src/cards/dashboard.js
 import { renderBlocks } from '../core/block-renderer.js';
 
 export const card = {
@@ -11,8 +11,6 @@ export const card = {
     version: '2.0.0',
     author: 'CardForge'
   },
-  
-  cardType: 'container',
   
   schema: {
     layout: {
@@ -31,7 +29,7 @@ export const card = {
       min: 1,
       max: 6,
       default: 3,
-      visibleWhen: (config) => config.layout === 'grid' || config.layout === 'compact'
+      visibleWhen: (config) => config.layout === 'grid'
     },
     gap: {
       type: 'select',
@@ -55,26 +53,26 @@ export const card = {
     }
   },
   
-  blocks: {
-    mode: 'custom'
-  },
-  
   template: (config, data, context) => {
     const blocks = config.blocks || {};
     const blockCount = Object.keys(blocks).length;
     
+    // 如果没有块，显示空状态
     if (blockCount === 0) {
       return `
         <div class="dashboard-card empty">
           <div class="empty-icon">📊</div>
           <div class="empty-text">暂无数据块</div>
+          <div class="empty-hint">请在编辑器中添加数据块</div>
         </div>
       `;
     }
     
+    // 标题
     const titleHtml = config.cardTitle ? 
       `<div class="dashboard-title">${escapeHtml(config.cardTitle)}</div>` : '';
     
+    // 使用统一的块渲染函数
     const blocksHtml = context.renderBlocks(blocks);
     
     return `
@@ -92,6 +90,7 @@ export const card = {
   },
   
   styles: (config, theme) => {
+    // 间距映射
     const gapMap = {
       small: '8px',
       medium: '12px',
@@ -122,14 +121,17 @@ export const card = {
         height: calc(100% - 40px);
       }
       
+      /* 网格布局 */
       .layout-grid .dashboard-content {
         grid-template-columns: repeat(${config.columns}, 1fr);
       }
       
+      /* 列表布局 */
       .layout-list .dashboard-content {
         grid-template-columns: 1fr;
       }
       
+      /* 紧凑布局 */
       .layout-compact .dashboard-content {
         grid-template-columns: repeat(${config.columns}, 1fr);
       }
@@ -152,6 +154,7 @@ export const card = {
         font-size: 1em;
       }
       
+      /* 空状态 */
       .dashboard-card.empty {
         display: flex;
         flex-direction: column;
@@ -172,6 +175,12 @@ export const card = {
         margin-bottom: 8px;
       }
       
+      .empty-hint {
+        font-size: 0.9em;
+        opacity: 0.7;
+      }
+      
+      /* 响应式设计 */
       @container cardforge-container (max-width: 800px) {
         .layout-grid .dashboard-content,
         .layout-compact .dashboard-content {
@@ -200,6 +209,28 @@ export const card = {
         .cardforge-block {
           flex-direction: row;
           text-align: left;
+        }
+      }
+      
+      @container cardforge-container (max-width: 300px) {
+        .dashboard-card {
+          padding: 8px;
+        }
+        
+        .cardforge-block {
+          padding: 10px;
+        }
+        
+        .block-icon {
+          font-size: 1.3em;
+        }
+        
+        .block-name {
+          font-size: 0.85em;
+        }
+        
+        .block-value {
+          font-size: 1.1em;
         }
       }
     `;
