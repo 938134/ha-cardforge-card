@@ -49,8 +49,8 @@ class CardEditor extends LitElement {
       /* 卡片选择器样式 */
       .card-grid {
         display: grid;
-        grid-template-columns: repeat(auto-fill, minmax(80px, 1fr));
-        gap: var(--cf-spacing-sm);
+        grid-template-columns: repeat(auto-fill, minmax(90px, 1fr));
+        gap: var(--cf-spacing-md);
       }
       
       .card-item {
@@ -58,17 +58,20 @@ class CardEditor extends LitElement {
         flex-direction: column;
         align-items: center;
         justify-content: center;
-        padding: var(--cf-spacing-sm);
+        padding: var(--cf-spacing-md);
         border: 1px solid var(--cf-border);
         border-radius: var(--cf-radius-md);
         cursor: pointer;
         transition: all var(--cf-transition-fast);
         background: var(--cf-surface);
         text-align: center;
+        min-height: 90px;
       }
       
       .card-item:hover {
         border-color: var(--cf-primary-color);
+        transform: translateY(-2px);
+        box-shadow: var(--cf-shadow-sm);
       }
       
       .card-item.selected {
@@ -78,21 +81,25 @@ class CardEditor extends LitElement {
       }
       
       .card-icon {
-        font-size: 1.5em;
-        margin-bottom: 6px;
+        font-size: 1.8em;
+        margin-bottom: 8px;
       }
       
       .card-name {
-        font-size: 0.8em;
+        font-size: 0.85em;
         font-weight: 500;
         line-height: 1.2;
+      }
+      
+      .card-item.selected .card-name {
+        color: white;
       }
       
       /* 主题选择器样式 */
       .theme-grid {
         display: grid;
-        grid-template-columns: repeat(auto-fill, minmax(80px, 1fr));
-        gap: var(--cf-spacing-sm);
+        grid-template-columns: repeat(auto-fill, minmax(90px, 1fr));
+        gap: var(--cf-spacing-md);
       }
       
       .theme-item {
@@ -100,28 +107,32 @@ class CardEditor extends LitElement {
         flex-direction: column;
         align-items: center;
         justify-content: center;
-        padding: var(--cf-spacing-sm);
+        padding: var(--cf-spacing-md);
         border: 1px solid var(--cf-border);
         border-radius: var(--cf-radius-md);
         cursor: pointer;
         transition: all var(--cf-transition-fast);
         background: var(--cf-surface);
         text-align: center;
+        min-height: 100px;
       }
       
       .theme-item:hover {
         border-color: var(--cf-primary-color);
+        transform: translateY(-2px);
+        box-shadow: var(--cf-shadow-sm);
       }
       
       .theme-item.selected {
         border-color: var(--cf-primary-color);
+        border-width: 2px;
       }
       
       .theme-preview {
         width: 100%;
-        height: 40px;
+        height: 50px;
         border-radius: var(--cf-radius-sm);
-        margin-bottom: 6px;
+        margin-bottom: 10px;
         border: 2px solid transparent;
       }
       
@@ -130,7 +141,7 @@ class CardEditor extends LitElement {
       }
       
       .theme-name {
-        font-size: 0.8em;
+        font-size: 0.85em;
         font-weight: 500;
         line-height: 1.2;
       }
@@ -143,18 +154,26 @@ class CardEditor extends LitElement {
       }
       
       .empty-icon {
-        font-size: 2em;
-        margin-bottom: var(--cf-spacing-sm);
+        font-size: 2.5em;
+        margin-bottom: var(--cf-spacing-md);
         opacity: 0.5;
+      }
+      
+      /* 配置表单 */
+      .config-form {
+        display: flex;
+        flex-direction: column;
+        gap: var(--cf-spacing-lg);
       }
     `
   ];
 
   constructor() {
     super();
+    // 初始配置使用 getStubConfig 的默认值
     this.config = {
       type: 'custom:ha-cardforge-card',
-      card_type: '',
+      card_type: '',  // 初始为空，等待选择
       theme: 'auto'
     };
     this._cards = [];
@@ -171,12 +190,23 @@ class CardEditor extends LitElement {
     this._themes = themeSystem.getAllThemes();
     this._initialized = true;
     
-    if (this.config.card_type) {
+    // 如果配置中没有 card_type，设置为第一个卡片
+    if (!this.config.card_type && this._cards.length > 0) {
+      const firstCard = this._cards[0];
+      this.config.card_type = firstCard.id;
+      this._selectedCard = cardSystem.getCard(firstCard.id);
+      this._notifyConfigChange(); // 通知配置已更新
+    } else if (this.config.card_type) {
       this._selectedCard = cardSystem.getCard(this.config.card_type);
     }
   }
 
   setConfig(config) {
+    if (!config || !config.card_type) {
+      // 如果没有有效配置，保持默认
+      return;
+    }
+    
     this.config = { ...config };
     if (this._initialized && this.config.card_type) {
       this._selectedCard = cardSystem.getCard(this.config.card_type);
@@ -217,7 +247,7 @@ class CardEditor extends LitElement {
           ${this._cards.map(card => html`
             <div 
               class="card-item ${this.config.card_type === card.id ? 'selected' : ''}"
-              @click=${() => this._selectCard(card.id)}
+              @click=${() => this._selectCard(card)}
               title="${card.description}"
             >
               <div class="card-icon">${card.icon}</div>
@@ -249,6 +279,7 @@ class CardEditor extends LitElement {
                   background: ${preview.background};
                   color: ${preview.color};
                   border: ${preview.border};
+                  ${preview.boxShadow ? `box-shadow: ${preview.boxShadow};` : ''}
                 "></div>
                 <div class="theme-name">${theme.name}</div>
               </div>
@@ -274,16 +305,21 @@ class CardEditor extends LitElement {
       `;
     }
 
-    // 简单的表单渲染（完整版可以使用 form-builder.js）
     return html`
       <div class="editor-section">
         <div class="section-header">
           <ha-icon icon="mdi:cog"></ha-icon>
           <span class="section-title">卡片设置</span>
         </div>
-        <div style="display: flex; flex-direction: column; gap: var(--cf-spacing-md);">
+        <div class="config-form">
           ${schemaKeys.map(key => {
             const field = schema[key];
+            // 检查字段是否应该显示
+            if (field.visibleWhen && typeof field.visibleWhen === 'function') {
+              if (!field.visibleWhen(this.config)) {
+                return '';
+              }
+            }
             return this._renderField(key, field);
           })}
         </div>
@@ -332,6 +368,9 @@ class CardEditor extends LitElement {
             .value=${value}
             @input=${e => this._updateConfig(key, parseInt(e.target.value) || 0)}
             .label=${field.label}
+            .min=${field.min}
+            .max=${field.max}
+            .step=${field.step || 1}
             fullwidth
           ></ha-textfield>
         `;
@@ -349,25 +388,26 @@ class CardEditor extends LitElement {
     }
   }
 
-  _selectCard(cardId) {
-    const card = cardSystem.getCard(cardId);
-    if (!card) return;
-    
-    // 构建新配置
-    const newConfig = {
-      ...this.config,
-      card_type: cardId
-    };
+  _selectCard(card) {
+    const currentConfig = { ...this.config };
     
     // 应用schema中的默认值
+    const defaultConfig = {};
     Object.entries(card.schema).forEach(([key, field]) => {
-      if (newConfig[key] === undefined && field.default !== undefined) {
-        newConfig[key] = field.default;
+      if (field.default !== undefined) {
+        defaultConfig[key] = field.default;
       }
     });
     
-    this.config = newConfig;
-    this._selectedCard = card;
+    this.config = {
+      type: 'custom:ha-cardforge-card',
+      card_type: card.id,
+      theme: currentConfig.theme || 'auto',
+      ...defaultConfig,
+      ...currentConfig  // 用户已有的配置覆盖默认值
+    };
+    
+    this._selectedCard = cardSystem.getCard(card.id);
     this._notifyConfigChange();
   }
 
