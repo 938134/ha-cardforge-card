@@ -388,28 +388,30 @@ class CardEditor extends LitElement {
     }
   }
 
-  _selectCard(card) {
-    const currentConfig = { ...this.config };
-    
-    // 应用schema中的默认值
-    const defaultConfig = {};
-    Object.entries(card.schema).forEach(([key, field]) => {
-      if (field.default !== undefined) {
-        defaultConfig[key] = field.default;
-      }
-    });
-    
-    this.config = {
-      type: 'custom:ha-cardforge-card',
-      card_type: card.id,
-      theme: currentConfig.theme || 'auto',
-      ...defaultConfig,
-      ...currentConfig  // 用户已有的配置覆盖默认值
-    };
-    
-    this._selectedCard = cardSystem.getCard(card.id);
-    this._notifyConfigChange();
-  }
+_selectCard(card) {
+  const currentConfig = { ...this.config };
+  
+  // 应用schema中的默认值
+  const defaultConfig = {};
+  Object.entries(card.schema).forEach(([key, field]) => {
+    if (field.default !== undefined) {
+      defaultConfig[key] = field.default;
+    }
+  });
+  
+  this.config = {
+    type: 'custom:ha-cardforge-card',
+    card_type: card.id,
+    theme: currentConfig.theme || 'auto',
+    ...defaultConfig,
+    ...currentConfig  // 用户已有的配置覆盖默认值
+  };
+  
+  this._selectedCard = cardSystem.getCard(card.id);
+  
+  // 添加：强制触发配置更新事件，确保预览更新
+  this._notifyConfigChange(true);
+}
 
   _selectTheme(themeId) {
     this.config = { ...this.config, theme: themeId };
@@ -421,11 +423,15 @@ class CardEditor extends LitElement {
     this._notifyConfigChange();
   }
 
-  _notifyConfigChange() {
-    this.dispatchEvent(new CustomEvent('config-changed', {
-      detail: { config: this.config }
-    }));
-  }
+_notifyConfigChange(forceUpdate = false) {
+  const event = new CustomEvent('config-changed', {
+    detail: { 
+      config: this.config,
+      forceUpdate: forceUpdate  // 添加这个标志
+    }
+  });
+  this.dispatchEvent(event);
+}
 
   getConfig() {
     return this.config;
