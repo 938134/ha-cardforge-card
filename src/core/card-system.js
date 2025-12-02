@@ -7,26 +7,31 @@ class CardSystem {
     this._initialized = false;
   }
 
+  /**
+   * 初始化卡片系统
+   */
   async initialize() {
     if (this._initialized) return;
     
     console.log('🔄 初始化卡片系统...');
     
-    // 恢复原有的动态发现方式
+    // 动态发现所有卡片
     await this._discoverCards();
     
     this._initialized = true;
     console.log(`✅ 卡片系统初始化完成，加载 ${this.cards.size} 张卡片`);
   }
 
+  /**
+   * 动态发现卡片
+   */
   async _discoverCards() {
-    // 使用函数包装的导入，保持原有 card-registry 的方式
     const cardModules = [
       () => import('../cards/clock.js'),
       () => import('../cards/week.js'),
       () => import('../cards/welcome.js'),
       () => import('../cards/poetry.js'),
-      () => import('../cards/dashboard.js'),
+      () => import('../cards/dashboard.js')
     ];
 
     for (const importFn of cardModules) {
@@ -34,11 +39,14 @@ class CardSystem {
         const module = await importFn();
         this._registerCardModule(module);
       } catch (error) {
-        console.error(`❌ 加载卡片失败:`, error);
+        console.warn(`⚠️ 加载卡片失败:`, error);
       }
     }
   }
 
+  /**
+   * 注册卡片模块
+   */
   _registerCardModule(module) {
     if (!module.card) {
       console.warn('卡片缺少 card 声明，跳过注册');
@@ -68,10 +76,16 @@ class CardSystem {
     console.log(`✅ 注册卡片: ${cardId} (${module.card.meta.name})`);
   }
 
+  /**
+   * 获取卡片定义
+   */
   getCard(cardId) {
     return this.cards.get(cardId)?.definition;
   }
 
+  /**
+   * 获取所有卡片列表
+   */
   getAllCards() {
     return Array.from(this.cards.values()).map(item => ({
       id: item.id,
@@ -80,6 +94,9 @@ class CardSystem {
     }));
   }
 
+  /**
+   * 渲染卡片
+   */
   renderCard(cardId, userConfig = {}, hass = null, themeVariables = {}) {
     const card = this.getCard(cardId);
     if (!card) {
@@ -113,6 +130,9 @@ class CardSystem {
     }
   }
 
+  /**
+   * 合并配置（用户配置 + 默认值）
+   */
   _mergeConfig(schema, userConfig) {
     const config = { ...userConfig };
     
@@ -126,6 +146,9 @@ class CardSystem {
     return config;
   }
 
+  /**
+   * 渲染错误卡片
+   */
   _renderErrorCard(message) {
     return {
       template: `
