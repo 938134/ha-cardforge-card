@@ -1,5 +1,3 @@
-// src/themes/glass.js
-
 export const theme = {
   id: 'glass',
   name: '毛玻璃',
@@ -19,12 +17,14 @@ export const theme = {
   },
   
   styles: `
-    backdrop-filter: blur(20px) saturate(180%);
-    -webkit-backdrop-filter: blur(20px) saturate(180%);
-    border: 1px solid rgba(255, 255, 255, 0.2);
-    background: linear-gradient(135deg, 
-      rgba(255, 255, 255, 0.1) 0%, 
-      rgba(255, 255, 255, 0.05) 100%);
+    .cardforge-container {
+      background: linear-gradient(135deg, 
+        rgba(255, 255, 255, 0.1) 0%, 
+        rgba(255, 255, 255, 0.05) 100%);
+      backdrop-filter: blur(20px) saturate(180%);
+      -webkit-backdrop-filter: blur(20px) saturate(180%);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+    }
   `,
   
   preview: {
