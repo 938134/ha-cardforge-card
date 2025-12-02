@@ -1,47 +1,36 @@
-// src/themes/glass-theme.js
-export default {
+// src/themes/glass.js
+
+export const theme = {
   id: 'glass',
   name: '毛玻璃',
   description: '半透明磨砂玻璃效果',
   icon: '🔮',
-  category: 'effect',
-
+  
+  variables: {
+    '--cf-primary-color': '#ffffff',
+    '--cf-accent-color': '#ffffff',
+    '--cf-background': 'rgba(255, 255, 255, 0.15)',
+    '--cf-surface': 'rgba(255, 255, 255, 0.1)',
+    '--cf-border': 'rgba(255, 255, 255, 0.2)',
+    '--cf-text-primary': '#ffffff',
+    '--cf-text-secondary': 'rgba(255, 255, 255, 0.8)',
+    '--cf-block-bg': 'rgba(255, 255, 255, 0.1)',
+    '--cf-radius-md': '12px'
+  },
+  
+  styles: `
+    backdrop-filter: blur(20px) saturate(180%);
+    -webkit-backdrop-filter: blur(20px) saturate(180%);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    background: linear-gradient(135deg, 
+      rgba(255, 255, 255, 0.1) 0%, 
+      rgba(255, 255, 255, 0.05) 100%);
+  `,
+  
   preview: {
-    background: `
-      linear-gradient(135deg, 
-        rgba(124, 58, 237, 0.6) 0%, 
-        rgba(236, 72, 153, 0.4) 50%,
-        rgba(239, 68, 68, 0.3) 100%
-      )
-    `,
-    color: 'white',
+    background: 'linear-gradient(135deg, rgba(124, 58, 237, 0.6) 0%, rgba(236, 72, 153, 0.4) 50%, rgba(239, 68, 68, 0.3) 100%)',
+    color: '#ffffff',
     border: '1px solid rgba(255, 255, 255, 0.3)',
     boxShadow: '0 8px 32px rgba(0, 0, 0, 0.1)'
-  },
-
-  getStyles(config = {}) {
-    const blur = config.blurIntensity || 20;
-    const opacity = config.opacity || 0.8;
-    const saturation = config.saturation || 180;
-    const borderOpacity = config.borderOpacity || 0.15;
-
-    return `
-      background: linear-gradient(135deg, 
-        rgba(var(--rgb-primary-background-color), ${opacity * 0.3}) 0%, 
-        rgba(var(--rgb-primary-background-color), ${opacity * 0.2}) 50%,
-        rgba(var(--rgb-primary-background-color), ${opacity * 0.15}) 100%);
-      backdrop-filter: blur(${blur}px) saturate(${saturation}%);
-      -webkit-backdrop-filter: blur(${blur}px) saturate(${saturation}%);
-      border: 1px solid rgba(var(--rgb-primary-text-color), ${borderOpacity});
-      color: var(--primary-text-color);
-    `;
-  },
-
-  applyTheme(element, config = {}) {
-    if (config.useGradientOverlay) {
-      element.classList.add('gradient-overlay');
-    } else {
-      element.classList.remove('gradient-overlay');
-    }
   }
 };
