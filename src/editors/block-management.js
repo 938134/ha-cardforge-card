@@ -1,134 +1,122 @@
 // src/editors/block-management.js
 import { LitElement, html, css } from 'https://unpkg.com/lit@2.8.0/index.js?module';
 import { designSystem } from '../core/design-system.js';
-import { cardRegistry } from '../core/card-registry.js';
 
 class BlockManagement extends LitElement {
   static properties = {
     config: { type: Object },
     hass: { type: Object },
     _editingBlockId: { state: true },
+    _availableEntities: { state: true },
+    _showEmptyState: { state: true }
   };
 
   static styles = [
     designSystem,
     css`
-      .block-management{width:100%}
-      
-      /* 块列表 - 更紧凑的间距 */
-      .block-list{
-        display:flex;
-        flex-direction:column;
-        gap: 6px;
+      .block-management {
+        width: 100%;
       }
       
-      /* 块项 - 更紧凑的布局 */
-      .block-item{
-        display:grid;
-        grid-template-columns: 36px 40px 1fr auto;
+      /* 块列表 */
+      .block-list {
+        display: flex;
+        flex-direction: column;
         gap: 8px;
-        align-items:center;
-        background:var(--cf-surface);
-        border:1px solid var(--cf-border);
-        border-radius:var(--cf-radius-md);
-        padding: 8px;
-        min-height: 52px;
+      }
+      
+      /* 块项 */
+      .block-item {
+        display: grid;
+        grid-template-columns: 40px 1fr auto;
+        gap: 12px;
+        align-items: center;
+        background: var(--cf-surface);
+        border: 1px solid var(--cf-border);
+        border-radius: var(--cf-radius-md);
+        padding: 12px;
+        min-height: 60px;
         transition: all var(--cf-transition-fast);
       }
       
       .block-item:hover {
         border-color: var(--cf-primary-color);
-        background: rgba(var(--cf-rgb-primary), 0.02);
+        background: var(--cf-surface);
       }
       
-      .block-item.editing{
-        border-color:var(--cf-primary-color);
-        background:rgba(var(--cf-rgb-primary),0.05);
+      .block-item.editing {
+        border-color: var(--cf-primary-color);
+        background: var(--cf-surface);
       }
       
-      /* 区域徽章 - 更小 */
-      .area-badge{
-        display:flex;
-        align-items:center;
-        justify-content:center;
+      /* 块图标 */
+      .block-icon-preview {
+        width: 40px;
+        height: 40px;
+        border-radius: var(--cf-radius-md);
+        background: rgba(var(--cf-rgb-primary), 0.1);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.2em;
+        flex-shrink: 0;
       }
       
-      .area-letter{
-        width: 28px;
-        height: 28px;
-        border-radius:50%;
-        display:flex;
-        align-items:center;
-        justify-content:center;
-        font-size:0.8em;
-        font-weight:700;
-        color:white;
-      }
-      
-      .area-letter.header{background:#2196F3}
-      .area-letter.content{background:#4CAF50}
-      .area-letter.footer{background:#FF9800}
-      
-      /* 块图标 - 更小 */
-      .block-icon{
-        width: 36px;
-        height: 36px;
-        border-radius:var(--cf-radius-md);
-        background:rgba(var(--cf-rgb-primary),0.1);
-        display:flex;
-        align-items:center;
-        justify-content:center;
-        font-size:1.1em;
-      }
-      
-      /* 块信息 - 更紧凑 */
-      .block-info{
-        display:flex;
-        flex-direction:column;
-        gap: 2px;
-        min-width:0;
-        flex:1;
-      }
-      
-      .block-name{
-        font-size:0.9em;
-        font-weight:600;
-        color:var(--cf-text-primary);
-        line-height:1.2;
-        overflow:hidden;
-        text-overflow:ellipsis;
-        white-space:nowrap;
-      }
-      
-      .block-state{
-        font-size:0.75em;
-        color:var(--cf-text-secondary);
-        line-height:1.2;
-        overflow:hidden;
-        text-overflow:ellipsis;
-        white-space:nowrap;
-      }
-      
-      /* 块操作 - 固定显示 */
-      .block-actions{
-        display:flex;
+      /* 块信息 */
+      .block-info {
+        display: flex;
+        flex-direction: column;
         gap: 4px;
-        align-items:center;
+        min-width: 0;
+        flex: 1;
       }
       
-      .block-action{
-        width: 28px;
-        height: 28px;
-        border-radius:var(--cf-radius-sm);
-        display:flex;
-        align-items:center;
-        justify-content:center;
-        background:var(--cf-background);
-        border:1px solid var(--cf-border);
-        cursor:pointer;
-        color:var(--cf-text-secondary);
-        transition: all var(--cf-transition-fast);
+      .block-name {
+        font-size: 0.9em;
+        font-weight: 600;
+        color: var(--cf-text-primary);
+        line-height: 1.2;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+      
+      .block-details {
         font-size: 0.8em;
+        color: var(--cf-text-secondary);
+        line-height: 1.2;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+      
+      .block-entity {
+        background: rgba(var(--cf-rgb-primary), 0.1);
+        padding: 2px 6px;
+        border-radius: var(--cf-radius-sm);
+        font-size: 0.75em;
+      }
+      
+      /* 块操作 */
+      .block-actions {
+        display: flex;
+        gap: 4px;
+        align-items: center;
+      }
+      
+      .block-action {
+        width: 32px;
+        height: 32px;
+        border-radius: var(--cf-radius-sm);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: var(--cf-background);
+        border: 1px solid var(--cf-border);
+        cursor: pointer;
+        color: var(--cf-text-secondary);
+        transition: all var(--cf-transition-fast);
+        font-size: 0.9em;
       }
       
       .block-action:hover {
@@ -137,57 +125,53 @@ class BlockManagement extends LitElement {
         color: white;
       }
       
-      .block-action.hidden {
-        display: none;
-      }
-      
-      /* 编辑表单 - 更紧凑 */
-      .edit-form{
-        grid-column:1 / -1;
-        background:var(--cf-surface);
-        border:1px solid var(--cf-primary-color);
-        border-radius:var(--cf-radius-md);
-        padding: 12px;
-        margin-top: 6px;
-      }
-      
-      .form-grid{
-        display:grid;
-        grid-template-columns: 1fr;
-        gap: 12px;
-      }
-      
-      .form-field{
-        display:flex;
-        flex-direction: column;
-        gap: 6px;
-      }
-      
-      .form-label{
-        font-weight:500;
-        font-size:0.85em;
-        color:var(--cf-text-primary);
-      }
-      
-      .form-actions{
-        display:flex;
-        gap: 8px;
-        justify-content:flex-end;
+      /* 编辑表单 */
+      .edit-form {
+        grid-column: 1 / -1;
+        background: var(--cf-surface);
+        border: 1px solid var(--cf-primary-color);
+        border-radius: var(--cf-radius-md);
+        padding: 16px;
         margin-top: 12px;
-        padding-top: 8px;
-        border-top:1px solid var(--cf-border);
       }
       
-      .action-btn{
-        padding: 6px 12px;
-        border:1px solid var(--cf-border);
-        border-radius:var(--cf-radius-sm);
-        background:var(--cf-surface);
-        color:var(--cf-text-primary);
-        cursor:pointer;
-        font-size:0.8em;
-        font-weight:500;
-        min-width: 60px;
+      .form-grid {
+        display: grid;
+        grid-template-columns: 1fr;
+        gap: 16px;
+      }
+      
+      .form-field {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+      }
+      
+      .form-label {
+        font-weight: 500;
+        font-size: 0.85em;
+        color: var(--cf-text-primary);
+      }
+      
+      .form-actions {
+        display: flex;
+        gap: 8px;
+        justify-content: flex-end;
+        margin-top: 16px;
+        padding-top: 12px;
+        border-top: 1px solid var(--cf-border);
+      }
+      
+      .action-btn {
+        padding: 8px 16px;
+        border: 1px solid var(--cf-border);
+        border-radius: var(--cf-radius-sm);
+        background: var(--cf-surface);
+        color: var(--cf-text-primary);
+        cursor: pointer;
+        font-size: 0.85em;
+        font-weight: 500;
+        min-width: 70px;
         transition: all var(--cf-transition-fast);
       }
       
@@ -195,10 +179,10 @@ class BlockManagement extends LitElement {
         background: var(--cf-background);
       }
       
-      .action-btn.primary{
-        background:var(--cf-primary-color);
-        color:white;
-        border-color:var(--cf-primary-color);
+      .action-btn.primary {
+        background: var(--cf-primary-color);
+        color: white;
+        border-color: var(--cf-primary-color);
       }
       
       .action-btn.primary:hover {
@@ -206,22 +190,22 @@ class BlockManagement extends LitElement {
         opacity: 0.9;
       }
       
-      /* 添加块按钮 - 动态显示 */
-      .add-block-btn{
-        width:100%;
-        padding: 10px;
-        border:1px dashed var(--cf-border);
-        border-radius:var(--cf-radius-md);
-        background:transparent;
-        color:var(--cf-text-secondary);
-        cursor:pointer;
-        display:flex;
-        align-items:center;
-        justify-content:center;
-        gap: 6px;
-        font-size:0.9em;
-        font-weight:500;
-        margin-top: 8px;
+      /* 添加块按钮 */
+      .add-block-btn {
+        width: 100%;
+        padding: 12px;
+        border: 2px dashed var(--cf-border);
+        border-radius: var(--cf-radius-md);
+        background: transparent;
+        color: var(--cf-text-secondary);
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        font-size: 0.9em;
+        font-weight: 500;
+        margin-top: 12px;
         transition: all var(--cf-transition-fast);
       }
       
@@ -231,333 +215,319 @@ class BlockManagement extends LitElement {
         background: rgba(var(--cf-rgb-primary), 0.05);
       }
       
-      .add-block-btn.hidden {
-        display: none;
-      }
-      
-      /* 空状态 - 更紧凑 */
-      .empty-state{
-        text-align:center;
-        padding: 16px;
-        color:var(--cf-text-secondary);
-        border:1px dashed var(--cf-border);
-        border-radius:var(--cf-radius-md);
-        background:rgba(var(--cf-rgb-primary),0.02);
+      /* 空状态 */
+      .empty-state {
+        text-align: center;
+        padding: 32px 20px;
+        color: var(--cf-text-secondary);
+        border: 2px dashed var(--cf-border);
+        border-radius: var(--cf-radius-md);
+        background: rgba(var(--cf-rgb-primary), 0.02);
       }
       
       .empty-icon {
-        font-size: 1.5em;
+        font-size: 2em;
+        margin-bottom: 12px;
         opacity: 0.5;
+      }
+      
+      .empty-title {
+        font-size: 1em;
+        font-weight: 600;
         margin-bottom: 8px;
       }
-
+      
+      .empty-description {
+        font-size: 0.85em;
+        line-height: 1.4;
+        margin-bottom: 16px;
+      }
+      
+      /* 响应式 */
+      @media (max-width: 480px) {
+        .block-item {
+          grid-template-columns: 1fr;
+          gap: 8px;
+        }
+        
+        .block-icon-preview {
+          width: 32px;
+          height: 32px;
+        }
+        
+        .block-actions {
+          grid-column: 1 / -1;
+          justify-content: flex-end;
+        }
+      }
+      
       /* 下拉菜单样式优化 */
-      ha-select {
-        --ha-select-background: var(--cf-surface);
-        --ha-select-border-color: var(--cf-border);
-        --ha-select-color: var(--cf-text-primary);
+      ha-combo-box, ha-select, ha-textfield, ha-icon-picker {
+        width: 100%;
       }
-
-      ha-list-item {
-        --mdc-list-item-graphic-margin: 8px;
-      }
-
-      .area-option {
-        display: flex;
-        align-items: center;
-        gap: 8px;
-        padding: 8px 12px;
-      }
-
-      .area-badge-small {
-        width: 20px;
-        height: 20px;
-        border-radius: 50%;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        font-size: 0.7em;
-        font-weight: 700;
-        color: white;
-        flex-shrink: 0;
-      }
-
-      .area-badge-small.header { background: #2196F3; }
-      .area-badge-small.content { background: #4CAF50; }
-      .area-badge-small.footer { background: #FF9800; }
-    `,
+    `
   ];
 
   constructor() {
     super();
     this._editingBlockId = null;
+    this._availableEntities = [];
+    this._showEmptyState = true;
   }
 
   render() {
     const blocks = this._getAllBlocks();
-    const blockMode = this._getCardBlockMode();
     
-    // 无块模式不显示任何内容
-    if (blockMode === 'none') {
-      return this._renderEmptyState();
-    }
-    
-    // 根据块数量决定显示逻辑
     if (blocks.length === 0) {
       return this._renderEmptyState();
     }
     
     return html`
       <div class="block-management">
-        <div class="block-list">${blocks.map(b => this._renderBlock(b))}</div>
-        ${this._shouldShowAddButton() ? this._renderAddButton() : ''}
-      </div>`;
-  }
-
-  _renderBlock(block) {
-    const isEditing = this._editingBlockId === block.id;
-    const showDelete = this._shouldShowDeleteButton(block);
-    
-    return html`
-      <div class="block-item ${isEditing ? 'editing' : ''}">
-        <div class="area-badge">
-          <div class="area-letter ${block.area || 'content'}">
-            ${block.area === 'header' ? 'H' : block.area === 'footer' ? 'F' : 'C'}
-          </div>
+        <div class="block-list">
+          ${blocks.map(block => this._renderBlockItem(block))}
         </div>
-        <div class="block-icon">
-          <ha-icon .icon=${block.icon || this._defaultIcon(block)}></ha-icon>
-        </div>
-        <div class="block-info">
-          <div class="block-name">${this._blockName(block)}</div>
-          <div class="block-state">${this._blockState(block)}</div>
-        </div>
-        <div class="block-actions">
-          <div class="block-action" @click=${() => this._startEdit(block.id)}>
-            <ha-icon icon="mdi:pencil"></ha-icon>
-          </div>
-          <div class="block-action ${showDelete ? '' : 'hidden'}" 
-               @click=${(e) => this._deleteBlock(e, block.id)}>
-            <ha-icon icon="mdi:delete"></ha-icon>
-          </div>
-        </div>
-        ${isEditing ? this._editForm(block) : ''}
-      </div>`;
-  }
-
-  _editForm(block) {
-    return html`
-      <div class="edit-form">
-        <div class="form-grid">
-          <ha-select
-            .value=${block.area || 'content'}
-            naturalMenuWidth
-            fixedMenuPosition
-            fullwidth
-            @closed=${this._preventClose}
-            @change=${e => this._patchBlock(block.id, { area: e.target.value })}
-            label="区域"
-          >
-            ${this._renderAreaOptions()}
-          </ha-select>
-
-          ${this._renderEntityField(block)}
-
-          <ha-icon-picker
-            .value=${block.icon || ''}
-            @value-changed=${e => this._patchBlock(block.id, { icon: e.detail.value })}
-            label="图标"
-            fullwidth
-          ></ha-icon-picker>
-
-          <ha-textfield
-            .value=${block.name || ''}
-            @input=${e => this._patchBlock(block.id, { name: e.target.value })}
-            placeholder="输入块名称"
-            label="块名称"
-            fullwidth
-          ></ha-textfield>
-        </div>
-
-        <div class="form-actions">
-          <button class="action-btn" @click=${this._cancelEdit}>取消</button>
-          <button class="action-btn primary" @click=${this._saveEdit}>保存</button>
-        </div>
+        ${this._renderAddButton()}
       </div>
     `;
   }
 
-  _renderAreaOptions() {
-    const areas = [
-      { value: 'header', label: '标题区域', badge: 'H', color: 'header' },
-      { value: 'content', label: '内容区域', badge: 'C', color: 'content' },
-      { value: 'footer', label: '页脚区域', badge: 'F', color: 'footer' }
-    ];
-
-    return areas.map(area => html`
-      <ha-list-item .value=${area.value}>
-        <div class="area-option">
-          <div class="area-badge-small ${area.color}">${area.badge}</div>
-          <span>${area.label}</span>
+  _renderBlockItem(block) {
+    const isEditing = this._editingBlockId === block.id;
+    const entityInfo = this._getEntityInfo(block.entity);
+    
+    return html`
+      <div class="block-item ${isEditing ? 'editing' : ''}">
+        <div class="block-icon-preview">
+          <ha-icon .icon=${block.icon || this._getDefaultIcon(block)}></ha-icon>
         </div>
-      </ha-list-item>
-    `);
+        
+        <div class="block-info">
+          <div class="block-name">${this._getBlockName(block)}</div>
+          <div class="block-details">
+            ${block.entity ? html`
+              <span class="block-entity">${block.entity}</span>
+            ` : ''}
+            <span>${this._getBlockValue(block)}</span>
+          </div>
+        </div>
+        
+        <div class="block-actions">
+          <div class="block-action" @click=${() => this._startEdit(block.id)} title="编辑">
+            <ha-icon icon="mdi:pencil"></ha-icon>
+          </div>
+          <div class="block-action" @click=${(e) => this._deleteBlock(e, block.id)} title="删除">
+            <ha-icon icon="mdi:delete"></ha-icon>
+          </div>
+        </div>
+        
+        ${isEditing ? this._renderEditForm(block, entityInfo) : ''}
+      </div>
+    `;
   }
 
-  _renderEntityField(block) {
+  _renderEditForm(block, entityInfo) {
+    const currentEntity = block.entity || '';
+    
     return html`
-      ${this._entities.length > 0 ? html`
-        <ha-combo-box
-          .items=${this._entities}
-          .value=${block.entity || ''}
-          @value-changed=${e => this._handleEntityPick(block.id, e.detail.value)}
-          allow-custom-value
-          label="实体"
-          fullwidth
-        ></ha-combo-box>
-      ` : html`
-        <ha-textfield
-          .value=${block.entity || ''}
-          @input=${e => this._patchBlock(block.id, { entity: e.target.value })}
-          placeholder="输入实体ID"
-          label="实体"
-          fullwidth
-        ></ha-textfield>
-      `}
+      <div class="edit-form">
+        <div class="form-grid">
+          <!-- 实体选择 -->
+          <div class="form-field">
+            <div class="form-label">实体</div>
+            ${this._availableEntities.length > 0 ? html`
+              <ha-combo-box
+                .items=${this._availableEntities}
+                .value=${currentEntity}
+                @value-changed=${e => this._updateBlock(block.id, { entity: e.detail.value })}
+                allow-custom-value
+                label="选择实体或输入ID"
+                fullwidth
+              ></ha-combo-box>
+            ` : html`
+              <ha-textfield
+                .value=${currentEntity}
+                @input=${e => this._updateBlock(block.id, { entity: e.target.value })}
+                label="实体ID"
+                placeholder="例如: light.living_room"
+                fullwidth
+              ></ha-textfield>
+            `}
+            ${entityInfo ? html`
+              <div style="font-size: 0.8em; color: var(--cf-text-secondary); margin-top: 4px;">
+                当前状态: ${entityInfo.state} ${entityInfo.unit ? entityInfo.unit : ''}
+              </div>
+            ` : ''}
+          </div>
+          
+          <!-- 自定义名称 -->
+          <div class="form-field">
+            <div class="form-label">显示名称</div>
+            <ha-textfield
+              .value=${block.name || ''}
+              @input=${e => this._updateBlock(block.id, { name: e.target.value })}
+              label="块显示名称"
+              placeholder="如果不填，将使用实体友好名称"
+              fullwidth
+            ></ha-textfield>
+          </div>
+          
+          <!-- 自定义图标 -->
+          <div class="form-field">
+            <div class="form-label">图标</div>
+            <ha-icon-picker
+              .value=${block.icon || ''}
+              @value-changed=${e => this._updateBlock(block.id, { icon: e.detail.value })}
+              label="自定义图标"
+              fullwidth
+            ></ha-icon-picker>
+            <div style="font-size: 0.8em; color: var(--cf-text-secondary); margin-top: 4px;">
+              如果不填，将使用实体图标或默认图标
+            </div>
+          </div>
+          
+          <!-- 自定义值（覆盖实体值） -->
+          <div class="form-field">
+            <div class="form-label">自定义值（可选）</div>
+            <ha-textfield
+              .value=${block.value || ''}
+              @input=${e => this._updateBlock(block.id, { value: e.target.value })}
+              label="覆盖实体状态值"
+              placeholder="如果留空，将显示实体状态"
+              fullwidth
+            ></ha-textfield>
+          </div>
+        </div>
+        
+        <div class="form-actions">
+          <button class="action-btn" @click=${this._cancelEdit}>取消</button>
+          <button class="action-btn primary" @click=${this._finishEdit}>保存</button>
+        </div>
+      </div>
     `;
   }
 
   _renderAddButton() {
     return html`
       <button class="add-block-btn" @click=${this._addBlock}>
-        <ha-icon icon="mdi:plus"></ha-icon>添加新块
+        <ha-icon icon="mdi:plus-circle-outline"></ha-icon>
+        添加新块
       </button>
     `;
   }
 
   _renderEmptyState() {
-    const blockMode = this._getCardBlockMode();
-    
-    if (blockMode === 'none') {
-      return html`
-        <div class="empty-state">
-          <ha-icon class="empty-icon" icon="mdi:block-helper"></ha-icon>
-          <div class="cf-text-md cf-mb-sm">此卡片无需配置块</div>
-        </div>
-      `;
-    }
-    
-    const showAddButton = blockMode === 'custom';
     return html`
       <div class="empty-state">
-        <ha-icon class="empty-icon" icon="mdi:cube-outline"></ha-icon>
-        <div class="cf-text-md cf-mb-sm">还没有添加任何块</div>
-        ${showAddButton ? html`
-          <button class="add-block-btn" @click=${this._addBlock}>
-            <ha-icon icon="mdi:plus"></ha-icon>添加第一个块
-          </button>
-        ` : ''}
+        <div class="empty-icon">
+          <ha-icon icon="mdi:cube-outline"></ha-icon>
+        </div>
+        <div class="empty-title">还没有添加任何块</div>
+        <div class="empty-description">
+          块可以显示实体的状态值，也可以显示自定义内容
+        </div>
+        <button class="add-block-btn" @click=${this._addBlock}>
+          <ha-icon icon="mdi:plus"></ha-icon>
+          添加第一个块
+        </button>
       </div>
     `;
   }
 
   _getAllBlocks() {
-    return this.config.blocks
-      ? Object.entries(this.config.blocks).map(([id, c]) => ({ id, ...c }))
-      : [];
+    if (!this.config?.blocks) return [];
+    return Object.entries(this.config.blocks).map(([id, config]) => ({
+      id,
+      ...config
+    }));
   }
 
-  get _entities() {
-    if (!this.hass?.states) return [];
-    return Object.entries(this.hass.states)
-      .map(([id, st]) => ({
-        value: id,
-        label: `${st.attributes?.friendly_name || id} (${st.state})`
+  _getBlockName(block) {
+    // 优先使用自定义名称
+    if (block.name) return block.name;
+    
+    // 如果有实体，使用实体的友好名称
+    if (block.entity && this.hass?.states?.[block.entity]) {
+      const entity = this.hass.states[block.entity];
+      return entity.attributes?.friendly_name || block.entity;
+    }
+    
+    // 默认名称
+    return block.entity ? '实体块' : '自定义块';
+  }
+
+  _getBlockValue(block) {
+    // 优先使用自定义值
+    if (block.value !== undefined) {
+      return block.value.length > 30 ? block.value.substring(0, 30) + '…' : block.value;
+    }
+    
+    // 如果有实体，显示实体状态
+    if (block.entity && this.hass?.states?.[block.entity]) {
+      const entity = this.hass.states[block.entity];
+      const state = entity.state;
+      const unit = entity.attributes?.unit_of_measurement || '';
+      const value = unit ? `${state} ${unit}` : state;
+      return value.length > 30 ? value.substring(0, 30) + '…' : value;
+    }
+    
+    // 默认值
+    return '点击配置';
+  }
+
+  _getDefaultIcon(block) {
+    if (block.icon) return block.icon;
+    if (!block.entity) return 'mdi:cube-outline';
+    
+    const domain = block.entity.split('.')[0];
+    const iconMap = {
+      light: 'mdi:lightbulb',
+      switch: 'mdi:power',
+      sensor: 'mdi:gauge',
+      binary_sensor: 'mdi:toggle-switch',
+      climate: 'mdi:thermostat',
+      cover: 'mdi:blinds',
+      media_player: 'mdi:speaker',
+      vacuum: 'mdi:robot-vacuum'
+    };
+    return iconMap[domain] || 'mdi:cube';
+  }
+
+  _getEntityInfo(entityId) {
+    if (!entityId || !this.hass?.states?.[entityId]) return null;
+    
+    const entity = this.hass.states[entityId];
+    return {
+      state: entity.state,
+      unit: entity.attributes?.unit_of_measurement || '',
+      friendly_name: entity.attributes?.friendly_name || entityId
+    };
+  }
+
+  updated(changedProperties) {
+    if (changedProperties.has('hass') || changedProperties.has('config')) {
+      this._updateAvailableEntities();
+      this._updateEmptyState();
+    }
+  }
+
+  _updateAvailableEntities() {
+    if (!this.hass?.states) {
+      this._availableEntities = [];
+      return;
+    }
+    
+    this._availableEntities = Object.entries(this.hass.states)
+      .map(([entityId, state]) => ({
+        value: entityId,
+        label: `${state.attributes?.friendly_name || entityId} (${entityId})`
       }))
       .sort((a, b) => a.label.localeCompare(b.label));
   }
 
-  _getCardBlockMode() {
-    if (!this.config.card_type) return 'custom';
-    
-    try {
-      const card = cardRegistry.getCard(this.config.card_type);
-      return card?.manifest?.block_mode || 'custom';
-    } catch (error) {
-      console.warn('获取卡片块模式失败:', error);
-      return 'custom';
-    }
-  }
-
-  _blockName(b) {
-    // 优先使用用户自定义的名称
-    if (b.name) return b.name;
-    
-    // 其次使用实体友好名称
-    if (b.entity && this.hass?.states[b.entity]) {
-      return this.hass.states[b.entity].attributes?.friendly_name || this._getDefaultBlockName(b);
-    }
-    
-    // 最后使用默认名称
-    return this._getDefaultBlockName(b);
-  }
-
-  _getDefaultBlockName(block) {
-    // 优先使用块配置中的 name 属性
-    if (block.name) return block.name;
-    
-    // 其次使用实体友好名称
-    if (block.entity && this.hass?.states[block.entity]) {
-      return this.hass.states[block.entity].attributes?.friendly_name || '实体块';
-    }
-    
-    // 最后使用通用名称
-    return '内容块';
-  }
-
-  _blockState(b) {
-    // 优先显示实体状态
-    if (b.entity && this.hass?.states[b.entity]) {
-      const st = this.hass.states[b.entity];
-      const u = st.attributes?.unit_of_measurement || '';
-      return `${st.state}${u ? ' ' + u : ''}`;
-    }
-    
-    // 其次显示块配置的静态内容
-    if (b.content) {
-      const content = String(b.content);
-      return content.substring(0, 30) + (content.length > 30 ? '…' : '');
-    }
-    
-    return '点击配置';
-  }
-
-  _defaultIcon(b) {
-    if (b.icon) return b.icon; // 优先使用用户设置的图标
-    if (!b.entity) return 'mdi:text-box';
-    const domain = b.entity.split('.')[0];
-    const map = { light: 'mdi:lightbulb', switch: 'mdi:power', sensor: 'mdi:gauge', binary_sensor: 'mdi:checkbox-marked-circle-outline', climate: 'mdi:thermostat' };
-    return map[domain] || 'mdi:cube';
-  }
-
-  _shouldShowAddButton() {
-    const blockMode = this._getCardBlockMode();
-    return blockMode === 'custom';
-  }
-
-  _shouldShowDeleteButton(block) {
-    const blockMode = this._getCardBlockMode();
-    
-    if (blockMode === 'custom') {
-      // 自定义模式：所有块都可以删除
-      return true;
-    } else if (blockMode === 'preset') {
-      // 预设模式：只有用户添加的块可以删除
-      return block.id && block.id.startsWith('block_');
-    } else {
-      // 无块模式：不能删除任何块
-      return false;
-    }
+  _updateEmptyState() {
+    const blocks = this._getAllBlocks();
+    this._showEmptyState = blocks.length === 0;
   }
 
   _startEdit(blockId) {
@@ -568,77 +538,74 @@ class BlockManagement extends LitElement {
     this._editingBlockId = null;
   }
 
-  _saveEdit() {
+  _finishEdit() {
     this._editingBlockId = null;
   }
 
-  _patchBlock(blockId, delta) {
-    const newBlocks = { ...this.config.blocks, [blockId]: { ...this.config.blocks[blockId], ...delta } };
-    this._fireConfig({ ...this.config, blocks: newBlocks });
-  }
-
-  _handleEntityPick(blockId, entityId) {
-    if (!entityId) {
-      // 清空实体时，保留用户自定义的图标和名称
-      return this._patchBlock(blockId, { entity: '' });
+  _updateBlock(blockId, updates) {
+    const currentBlocks = this.config.blocks || {};
+    const currentBlock = currentBlocks[blockId] || {};
+    
+    // 如果选择了实体，自动填充图标和名称（如果未设置）
+    if (updates.entity && updates.entity !== currentBlock.entity) {
+      const entity = this.hass?.states?.[updates.entity];
+      if (entity) {
+        if (!currentBlock.name && !updates.name) {
+          updates.name = entity.attributes?.friendly_name || updates.entity;
+        }
+        if (!currentBlock.icon && !updates.icon) {
+          updates.icon = entity.attributes?.icon || this._getDefaultIcon({ entity: updates.entity });
+        }
+      }
     }
     
-    const st = this.hass.states[entityId];
-    if (!st) {
-      return this._patchBlock(blockId, { entity: entityId });
-    }
+    const newBlock = { ...currentBlock, ...updates };
+    const newBlocks = { ...currentBlocks, [blockId]: newBlock };
     
-    // 选择实体时自动填充图标和友好名称
-    const patch = { 
-      entity: entityId,
-      // 自动填充图标（总是使用实体图标）
-      icon: st.attributes?.icon || this._defaultIcon({ entity: entityId }),
-      // 自动填充块名称（使用友好名称）
-      name: st.attributes?.friendly_name || this._formatEntityId(entityId)
-    };
-    
-    this._patchBlock(blockId, patch);
-  }
-
-  _formatEntityId(entityId) {
-    // 将 entity_id 格式化为友好名称
-    return entityId
-      .split('.')[1]
-      ?.replace(/_/g, ' ')
-      .replace(/\b\w/g, l => l.toUpperCase()) || entityId;
+    this._fireConfigChange({ blocks: newBlocks });
   }
 
   _addBlock() {
-    const id = `block_${Date.now()}`;
-    const block = { 
-      area: 'content', 
-      entity: '', 
-      icon: 'mdi:text-box', 
+    const blockId = `block_${Date.now()}`;
+    const newBlock = {
+      entity: '',
       name: '新块',
-      content: ''
+      icon: 'mdi:cube-outline',
+      value: ''
     };
-    this._fireConfig({ ...this.config, blocks: { ...this.config.blocks, [id]: block } });
-    this._editingBlockId = id;
+    
+    const currentBlocks = this.config.blocks || {};
+    const newBlocks = { ...currentBlocks, [blockId]: newBlock };
+    
+    this._fireConfigChange({ blocks: newBlocks });
+    this._editingBlockId = blockId;
   }
 
   _deleteBlock(e, blockId) {
-    e.stopPropagation(); // 阻止事件冒泡
-    if (!confirm('确定要删除这个块吗？')) return;
-    const { [blockId]: _, ...rest } = this.config.blocks;
-    this._fireConfig({ ...this.config, blocks: rest });
-    if (this._editingBlockId === blockId) this._editingBlockId = null;
-  }
-
-  _preventClose(e) {
     e.stopPropagation();
+    
+    if (!confirm('确定要删除这个块吗？')) return;
+    
+    const currentBlocks = { ...this.config.blocks };
+    delete currentBlocks[blockId];
+    
+    this._fireConfigChange({ blocks: currentBlocks });
+    
+    if (this._editingBlockId === blockId) {
+      this._editingBlockId = null;
+    }
   }
 
-  _fireConfig(newConfig) {
-    this.dispatchEvent(new CustomEvent('config-changed', { detail: { config: newConfig } }));
+  _fireConfigChange(updates) {
+    const newConfig = { ...this.config, ...updates };
+    this.dispatchEvent(new CustomEvent('config-changed', {
+      detail: { config: newConfig }
+    }));
   }
 }
 
 if (!customElements.get('block-management')) {
   customElements.define('block-management', BlockManagement);
 }
+
 export { BlockManagement };
