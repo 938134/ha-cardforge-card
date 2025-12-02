@@ -1,5 +1,3 @@
-// src/themes/neon.js
-
 export const theme = {
   id: 'neon',
   name: '霓虹',
@@ -18,10 +16,13 @@ export const theme = {
   },
   
   styles: `
-    box-shadow: 0 0 20px rgba(0, 255, 255, 0.3),
-                0 0 40px rgba(0, 255, 255, 0.1),
-                inset 0 0 20px rgba(0, 255, 255, 0.1);
-    border: 1px solid rgba(0, 255, 255, 0.3);
+    .cardforge-container {
+      background: var(--cf-background);
+      box-shadow: 0 0 20px rgba(0, 255, 255, 0.3),
+                  0 0 40px rgba(0, 255, 255, 0.1),
+                  inset 0 0 20px rgba(0, 255, 255, 0.1);
+      border: 1px solid rgba(0, 255, 255, 0.3);
+    }
   `,
   
   preview: {
