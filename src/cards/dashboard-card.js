@@ -1,719 +1,247 @@
-// src/cards/dashboard-card.js
-import { BaseCard } from '../core/base-card.js';
+// src/cards/dashboard.js
+import { renderBlocks } from '../core/block-renderer.js';
 
-// 统一的配置定义
-const CARD_CONFIG = {
-  id: 'dashboard-card',
-  name: '仪表盘卡片',
-  description: '可配置的仪表盘布局，支持多种布局和对齐方式',
-  icon: '📊',
-  category: '信息',
-  version: '1.0.0',
-  author: 'CardForge',
-  block_mode: 'custom', // 完全自定义模式
-  config_schema: {
-    show_header: {
-      type: 'boolean',
-      label: '显示标题',
-      default: true
-    },
-    header_alignment: {
+export const card = {
+  id: 'dashboard',
+  meta: {
+    name: '仪表盘',
+    description: '可配置的仪表盘，支持多种布局',
+    icon: '📊',
+    category: '信息',
+    version: '2.0.0',
+    author: 'CardForge'
+  },
+  
+  schema: {
+    layout: {
       type: 'select',
-      label: '标题对齐',
+      label: '布局方式',
       options: [
-        { value: 'left', label: '左对齐' },
-        { value: 'center', label: '居中' },
-        { value: 'right', label: '右对齐' }
+        { value: 'grid', label: '网格布局' },
+        { value: 'list', label: '列表布局' },
+        { value: 'compact', label: '紧凑布局' }
       ],
-      default: 'center'
+      default: 'grid'
     },
-    show_footer: {
-      type: 'boolean',
-      label: '显示页脚',
-      default: true
-    },
-    footer_alignment: {
-      type: 'select',
-      label: '页脚对齐',
-      options: [
-        { value: 'left', label: '左对齐' },
-        { value: 'center', label: '居中' },
-        { value: 'right', label: '右对齐' }
-      ],
-      default: 'center'
-    },
-    content_layout: {
-      type: 'select',
-      label: '区域布局',
-      options: [
-        { value: 'single', label: '单列布局' },
-        { value: 'double', label: '双列布局' },
-        { value: 'triple', label: '三列布局' },
-        { value: 'quad', label: '四列布局' },
-        { value: 'grid-2x2', label: '2×2网格' },
-        { value: 'grid-3x3', label: '3×3网格' },
-        { value: 'custom', label: '自定义行列' }
-      ],
-      default: 'quad'
-    },
-    custom_rows: {
+    columns: {
       type: 'number',
-      label: '自定义行数',
-      default: 1,
+      label: '网格列数',
       min: 1,
-      max: 4
+      max: 6,
+      default: 3,
+      visibleWhen: (config) => config.layout === 'grid'
     },
-    custom_columns: {
-      type: 'number', 
-      label: '自定义列数',
-      default: 4,
-      min: 1,
-      max: 4
-    },
-    block_layout: {
+    gap: {
       type: 'select',
-      label: '块布局方向',
+      label: '间距大小',
       options: [
-        { value: 'vertical', label: '垂直布局' },
-        { value: 'horizontal', label: '水平布局' }
+        { value: 'small', label: '小' },
+        { value: 'medium', label: '中' },
+        { value: 'large', label: '大' }
       ],
-      default: 'vertical'
+      default: 'medium'
     },
-    block_alignment: {
-      type: 'select',
-      label: '块内容对齐',
-      options: [
-        { value: 'center', label: '居中对齐' },
-        { value: 'left', label: '左对齐' },
-        { value: 'right', label: '右对齐' }
-      ],
-      default: 'center'
-    },
-    icon_position: {
-      type: 'select',
-      label: '图标位置',
-      options: [
-        { value: 'top', label: '上方' },
-        { value: 'left', label: '左侧' },
-        { value: 'hidden', label: '隐藏' }
-      ],
-      default: 'top'
-    },
-    show_block_name: {
+    showBlockNames: {
       type: 'boolean',
       label: '显示块名称',
       default: true
+    },
+    cardTitle: {
+      type: 'text',
+      label: '卡片标题',
+      placeholder: '可选标题'
     }
-  }
-};
-
-export class DashboardCard extends BaseCard {
-  getDefaultConfig() {
-    // 从config_schema生成默认配置
-    const defaultConfig = {};
-    Object.entries(CARD_CONFIG.config_schema).forEach(([key, field]) => {
-      defaultConfig[key] = field.default !== undefined ? field.default : '';
-    });
-
-    return {
-      card_type: CARD_CONFIG.id,
-      theme: 'auto',
-      ...defaultConfig,
-      // 空配置，用户按需添加块
-      blocks: {}
-    };
-  }
-
-  getManifest() {
-    return CARD_CONFIG;
-  }
-
-  // 重写渲染方法
-  render(config, hass, entities) {
-    const safeConfig = this._getSafeConfig(config);
-    const themeStyles = ''; // 可以根据需要添加主题样式
+  },
+  
+  template: (config, data, context) => {
+    const blocks = config.blocks || {};
+    const blockCount = Object.keys(blocks).length;
     
-    return {
-      template: this._renderTemplate(safeConfig, hass, entities),
-      styles: this._renderStyles(safeConfig, themeStyles)
-    };
-  }
-
-  _renderTemplate(config, hass, entities) {
-    const headerContent = this._renderHeader(config, hass, entities);
-    const contentContent = this._renderContent(config, hass, entities);
-    const footerContent = this._renderFooter(config, hass, entities);
-
-    return `
-      <div class="cardforge-card ${CARD_CONFIG.id}">
-        ${headerContent}
-        ${contentContent}
-        ${footerContent}
-      </div>
-    `;
-  }
-
-  _renderHeader(config, hass, entities) {
-    if (!config.show_header) return '';
-
-    const headerBlocks = this._getBlocksByArea(config.blocks, 'header');
-    if (headerBlocks.length === 0) return '';
-
-    const alignmentClass = `header-${config.header_alignment || 'center'}`;
-    
-    // 渲染所有标题块
-    const headerContent = headerBlocks.map(blockId => {
-      const blockConfig = config.blocks[blockId];
-      const content = this._getBlockContent(blockConfig, hass, entities);
-      const icon = blockConfig.icon ? `<ha-icon icon="${blockConfig.icon}"></ha-icon>` : '';
-      
+    // 如果没有块，显示空状态
+    if (blockCount === 0) {
       return `
-        <div class="header-block" data-block-id="${blockId}">
-          ${icon}
-          <span class="header-text">${this._escapeHtml(content)}</span>
-        </div>
-      `;
-    }).join('');
-
-    return `
-      <div class="dashboard-header ${alignmentClass}">
-        ${headerContent}
-      </div>
-    `;
-  }
-
-  _renderContent(config, hass, entities) {
-    const contentBlocks = this._getBlocksByArea(config.blocks, 'content');
-    const layout = this._getContentLayout(config);
-
-    if (contentBlocks.length === 0) {
-      return `
-        <div class="dashboard-content">
-          <div class="empty-content">
-            <div class="empty-icon">📊</div>
-            <div class="empty-text">请添加内容块</div>
-          </div>
+        <div class="dashboard-card empty">
+          <div class="empty-icon">📊</div>
+          <div class="empty-text">暂无数据块</div>
+          <div class="empty-hint">请在编辑器中添加数据块</div>
         </div>
       `;
     }
-
-    const blocksHtml = contentBlocks.map(blockId => 
-      this._renderDashboardBlock(blockId, config.blocks[blockId], hass, entities, config)
-    ).join('');
-
+    
+    // 标题
+    const titleHtml = config.cardTitle ? 
+      `<div class="dashboard-title">${escapeHtml(config.cardTitle)}</div>` : '';
+    
+    // 使用统一的块渲染函数
+    const blocksHtml = context.renderBlocks(blocks);
+    
     return `
-      <div class="dashboard-content">
-        <div class="content-grid layout-${layout}">
+      <div class="dashboard-card layout-${config.layout} gap-${config.gap}">
+        ${titleHtml}
+        <div class="dashboard-content columns-${config.columns}">
           ${blocksHtml}
         </div>
       </div>
     `;
-  }
-
-  _renderDashboardBlock(blockId, blockConfig, hass, entities, config) {
-    const content = this._getBlockContent(blockConfig, hass, entities);
-    const style = blockConfig.style ? `style="${blockConfig.style}"` : '';
-    const blockName = blockConfig.name || '未命名';
-    const unit = blockConfig.unit || '';
     
-    // 根据配置决定布局
-    const layoutClass = `block-layout-${config.block_layout || 'vertical'}`;
-    const alignmentClass = `block-align-${config.block_alignment || 'center'}`;
-    const iconPositionClass = `icon-${config.icon_position || 'top'}`;
-    const showBlockName = config.show_block_name !== false;
-
-    const iconHtml = config.icon_position !== 'hidden' && blockConfig.icon ? `
-      <div class="block-icon">
-        <ha-icon icon="${blockConfig.icon}"></ha-icon>
-      </div>
-    ` : '';
-
-    const nameHtml = showBlockName ? `
-      <div class="block-name">${this._escapeHtml(blockName)}</div>
-    ` : '';
-
-    const contentHtml = `
-      <div class="block-content">${this._escapeHtml(content)}</div>
-    `;
-
-    const unitHtml = unit ? `
-      <div class="block-unit">${this._escapeHtml(unit)}</div>
-    ` : '';
-
-    // 根据布局方向组合内容
-    let contentAreaHtml = '';
-    if (config.block_layout === 'horizontal') {
-      contentAreaHtml = `
-        ${iconHtml}
-        <div class="block-text-area">
-          ${nameHtml}
-          <div class="block-value-area">
-            ${contentHtml}
-            ${unitHtml}
-          </div>
-        </div>
-      `;
-    } else {
-      contentAreaHtml = `
-        ${iconHtml}
-        ${nameHtml}
-        ${contentHtml}
-        ${unitHtml}
-      `;
+    function escapeHtml(text) {
+      return text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
     }
-
+  },
+  
+  styles: (config, theme) => {
+    // 间距映射
+    const gapMap = {
+      small: '8px',
+      medium: '12px',
+      large: '16px'
+    };
+    
+    const gap = gapMap[config.gap] || '12px';
+    
     return `
-      <div class="dashboard-block ${layoutClass} ${alignmentClass} ${iconPositionClass}" data-block-id="${blockId}" ${style}>
-        ${contentAreaHtml}
-      </div>
-    `;
-  }
-
-  _renderFooter(config, hass, entities) {
-    if (!config.show_footer) return '';
-
-    const footerBlocks = this._getBlocksByArea(config.blocks, 'footer');
-    if (footerBlocks.length === 0) return '';
-
-    const alignmentClass = `footer-${config.footer_alignment || 'center'}`;
-    
-    // 渲染所有页脚块
-    const footerContent = footerBlocks.map(blockId => {
-      const blockConfig = config.blocks[blockId];
-      const content = this._getBlockContent(blockConfig, hass, entities);
-      const icon = blockConfig.icon ? `<ha-icon icon="${blockConfig.icon}"></ha-icon>` : '';
-      
-      return `
-        <div class="footer-block" data-block-id="${blockId}">
-          ${icon}
-          <span class="footer-text">${this._escapeHtml(content)}</span>
-        </div>
-      `;
-    }).join('');
-
-    return `
-      <div class="dashboard-footer ${alignmentClass}">
-        ${footerContent}
-      </div>
-    `;
-  }
-
-  _getContentLayout(config) {
-    if (config.content_layout === 'custom') {
-      return `custom-${config.custom_rows || 1}x${config.custom_columns || 4}`;
-    }
-    return config.content_layout || 'quad';
-  }
-
-  _getBlocksByArea(blocks, area) {
-    if (!blocks) return [];
-    return Object.entries(blocks)
-      .filter(([_, block]) => block.area === area)
-      .map(([id]) => id);
-  }
-
-  _getBlockContent(blockConfig, hass, entities) {
-    // 优先从实体获取内容
-    if (blockConfig.entity && hass?.states?.[blockConfig.entity]) {
-      const entity = hass.states[blockConfig.entity];
-      return entity.state || '';
-    }
-    
-    // 从实体映射获取内容
-    if (entities && blockConfig.id && entities[blockConfig.id] && hass?.states[entities[blockConfig.id]]) {
-      const entity = hass.states[entities[blockConfig.id]];
-      return entity.state || entities[blockConfig.id];
-    }
-    
-    // 回退到静态内容
-    return blockConfig.content || '';
-  }
-
-  _escapeHtml(text) {
-    if (!text) return '';
-    return text
-      .replace(/&/g, '&amp;')
-      .replace(/</g, '&lt;')
-      .replace(/>/g, '&gt;')
-      .replace(/"/g, '&quot;')
-      .replace(/'/g, '&#x27;');
-  }
-
-  _renderStyles(config, themeStyles) {
-    const layout = this._getContentLayout(config);
-
-    return `
-      .cardforge-card {
-        ${themeStyles}
-      }
-      
-      /* 仪表盘整体样式 */
       .dashboard-card {
-        display: flex;
-        flex-direction: column;
-        min-height: 200px;
-      }
-      
-      /* 标题区域 - 无样式 */
-      .dashboard-header {
-        padding: var(--cf-spacing-sm) var(--cf-spacing-md);
-        display: flex;
-        align-items: center;
-        gap: var(--cf-spacing-sm);
-      }
-      
-      .header-block {
-        display: flex;
-        align-items: center;
-        gap: 8px;
-        font-size: 1em;
-        color: var(--cf-text-primary);
-      }
-      
-      .header-left { justify-content: flex-start; }
-      .header-center { justify-content: center; }
-      .header-right { justify-content: flex-end; }
-      
-      .header-text {
-        line-height: 1.3;
-      }
-      
-      /* 内容区域 */
-      .dashboard-content {
-        flex: 1;
-        padding: var(--cf-spacing-md);
-        min-height: 120px;
-      }
-      
-      .content-grid {
-        display: grid;
-        gap: 10px;
         height: 100%;
-        width: 100%;
+        min-height: 200px;
+        padding: ${gap};
       }
       
-      /* 布局定义 - 使用 auto-fit 和 minmax 实现弹性网格 */
-      .layout-single {
-        grid-template-columns: 1fr;
-      }
-      
-      .layout-double {
-        grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
-      }
-      
-      .layout-triple {
-        grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
-      }
-      
-      .layout-quad {
-        grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
-      }
-      
-      .layout-grid-2x2 {
-        grid-template-columns: repeat(2, minmax(120px, 1fr));
-        grid-template-rows: repeat(2, minmax(80px, 1fr));
-      }
-      
-      .layout-grid-3x3 {
-        grid-template-columns: repeat(3, minmax(100px, 1fr));
-        grid-template-rows: repeat(3, minmax(70px, 1fr));
-      }
-      
-      /* 自定义布局 */
-      .layout-custom-1x1 { grid-template-columns: 1fr; }
-      .layout-custom-1x2 { grid-template-columns: repeat(2, minmax(160px, 1fr)); }
-      .layout-custom-1x3 { grid-template-columns: repeat(3, minmax(140px, 1fr)); }
-      .layout-custom-1x4 { grid-template-columns: repeat(4, minmax(120px, 1fr)); }
-      .layout-custom-2x1 { grid-template-columns: 1fr; grid-template-rows: repeat(2, minmax(80px, 1fr)); }
-      .layout-custom-2x2 { grid-template-columns: repeat(2, minmax(120px, 1fr)); grid-template-rows: repeat(2, minmax(80px, 1fr)); }
-      .layout-custom-2x3 { grid-template-columns: repeat(3, minmax(100px, 1fr)); grid-template-rows: repeat(2, minmax(70px, 1fr)); }
-      .layout-custom-2x4 { grid-template-columns: repeat(4, minmax(90px, 1fr)); grid-template-rows: repeat(2, minmax(60px, 1fr)); }
-      .layout-custom-3x1 { grid-template-columns: 1fr; grid-template-rows: repeat(3, minmax(70px, 1fr)); }
-      .layout-custom-3x2 { grid-template-columns: repeat(2, minmax(100px, 1fr)); grid-template-rows: repeat(3, minmax(70px, 1fr)); }
-      .layout-custom-3x3 { grid-template-columns: repeat(3, minmax(90px, 1fr)); grid-template-rows: repeat(3, minmax(60px, 1fr)); }
-      .layout-custom-3x4 { grid-template-columns: repeat(4, minmax(80px, 1fr)); grid-template-rows: repeat(3, minmax(50px, 1fr)); }
-      .layout-custom-4x1 { grid-template-columns: 1fr; grid-template-rows: repeat(4, minmax(60px, 1fr)); }
-      .layout-custom-4x2 { grid-template-columns: repeat(2, minmax(90px, 1fr)); grid-template-rows: repeat(4, minmax(60px, 1fr)); }
-      .layout-custom-4x3 { grid-template-columns: repeat(3, minmax(80px, 1fr)); grid-template-rows: repeat(4, minmax(50px, 1fr)); }
-      .layout-custom-4x4 { grid-template-columns: repeat(4, minmax(70px, 1fr)); grid-template-rows: repeat(4, minmax(45px, 1fr)); }
-      
-      /* 仪表盘块基础样式 */
-      .dashboard-block {
-        display: flex;
-        background: var(--cf-surface);
-        border: 1px solid var(--cf-border);
-        border-radius: var(--cf-radius-md);
-        padding: 10px;
-        min-height: 70px;
-        transition: all var(--cf-transition-fast);
-        box-sizing: border-box;
-      }
-      
-      .dashboard-block:hover {
-        border-color: var(--cf-primary-color);
-        box-shadow: var(--cf-shadow-sm);
-      }
-      
-      /* 块布局方向 */
-      .block-layout-vertical {
-        flex-direction: column;
-        align-items: center;
-        text-align: center;
-      }
-      
-      .block-layout-horizontal {
-        flex-direction: row;
-        align-items: center;
-        text-align: left;
-        gap: 10px;
-      }
-      
-      /* 内容对齐 */
-      .block-align-center { justify-content: center; }
-      .block-align-left { justify-content: flex-start; }
-      .block-align-right { justify-content: flex-end; }
-      
-      .block-layout-vertical.block-align-left { align-items: flex-start; text-align: left; }
-      .block-layout-vertical.block-align-right { align-items: flex-end; text-align: right; }
-      
-      /* 图标位置 */
-      .block-layout-vertical.icon-top .block-icon {
-        margin-bottom: 6px;
-      }
-      
-      .block-layout-horizontal.icon-left .block-icon {
-        margin-right: 8px;
-        flex-shrink: 0;
-      }
-      
-      .block-icon {
-        font-size: 1.3em;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        flex-shrink: 0;
-      }
-      
-      /* 文本区域 */
-      .block-text-area {
-        display: flex;
-        flex-direction: column;
-        flex: 1;
-        min-width: 0;
-      }
-      
-      .block-value-area {
-        display: flex;
-        align-items: baseline;
-        gap: 4px;
-      }
-      
-      .block-name {
-        font-size: 0.85em;
-        font-weight: 500;
-        color: var(--cf-text-secondary);
-        line-height: 1.2;
-        margin-bottom: 4px;
-        overflow: hidden;
-        text-overflow: ellipsis;
-        white-space: nowrap;
-      }
-      
-      .block-content {
+      .dashboard-title {
         font-size: 1.1em;
         font-weight: 600;
         color: var(--cf-text-primary);
-        line-height: 1.3;
-        overflow: hidden;
-        text-overflow: ellipsis;
-        white-space: nowrap;
+        margin-bottom: ${gap};
+        padding-bottom: 8px;
+        border-bottom: 1px solid var(--cf-border);
       }
       
-      .block-unit {
+      .dashboard-content {
+        display: grid;
+        gap: ${gap};
+        height: calc(100% - 40px);
+      }
+      
+      /* 网格布局 */
+      .layout-grid .dashboard-content {
+        grid-template-columns: repeat(${config.columns}, 1fr);
+      }
+      
+      /* 列表布局 */
+      .layout-list .dashboard-content {
+        grid-template-columns: 1fr;
+      }
+      
+      /* 紧凑布局 */
+      .layout-compact .dashboard-content {
+        grid-template-columns: repeat(${config.columns}, 1fr);
+      }
+      
+      .layout-compact .cardforge-block {
+        padding: 8px;
+        min-height: 50px;
+      }
+      
+      .layout-compact .block-icon {
+        font-size: 1.2em;
+      }
+      
+      .layout-compact .block-name {
         font-size: 0.8em;
-        color: var(--cf-text-secondary);
-        line-height: 1.3;
-        flex-shrink: 0;
+        margin-bottom: 2px;
       }
       
-      /* 页脚区域 - 无样式 */
-      .dashboard-footer {
-        padding: var(--cf-spacing-sm) var(--cf-spacing-md);
-        display: flex;
-        align-items: center;
-        gap: var(--cf-spacing-sm);
-      }
-      
-      .footer-block {
-        display: flex;
-        align-items: center;
-        gap: 8px;
-        font-size: 0.85em;
-        color: var(--cf-text-secondary);
-      }
-      
-      .footer-left { justify-content: flex-start; }
-      .footer-center { justify-content: center; }
-      .footer-right { justify-content: flex-end; }
-      
-      .footer-text {
-        line-height: 1.3;
+      .layout-compact .block-value {
+        font-size: 1em;
       }
       
       /* 空状态 */
-      .empty-content {
+      .dashboard-card.empty {
         display: flex;
         flex-direction: column;
         align-items: center;
         justify-content: center;
-        height: 100%;
-        color: var(--cf-text-secondary);
         text-align: center;
+        color: var(--cf-text-secondary);
       }
       
       .empty-icon {
-        font-size: 1.8em;
-        margin-bottom: 8px;
+        font-size: 2.5em;
+        margin-bottom: 12px;
         opacity: 0.5;
       }
       
       .empty-text {
-        font-size: 0.9em;
+        font-size: 1.1em;
+        margin-bottom: 8px;
       }
       
-      /* 智能响应式设计 - 基于容器宽度 */
+      .empty-hint {
+        font-size: 0.9em;
+        opacity: 0.7;
+      }
+      
+      /* 响应式设计 */
       @container cardforge-container (max-width: 800px) {
-        .layout-quad,
-        .layout-custom-1x4 {
-          grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
-        }
-        
-        .layout-triple,
-        .layout-custom-1x3 {
-          grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
-        }
-        
-        .layout-grid-3x3 {
-          grid-template-columns: repeat(auto-fit, minmax(90px, 1fr));
-          grid-template-rows: auto;
+        .layout-grid .dashboard-content,
+        .layout-compact .dashboard-content {
+          grid-template-columns: repeat(3, 1fr);
         }
       }
       
       @container cardforge-container (max-width: 600px) {
-        .dashboard-content {
-          padding: var(--cf-spacing-sm);
-        }
-        
-        .layout-quad,
-        .layout-custom-1x4 {
-          grid-template-columns: repeat(auto-fit, minmax(80px, 1fr));
-        }
-        
-        .layout-triple,
-        .layout-custom-1x3 {
-          grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
-        }
-        
-        .layout-double,
-        .layout-custom-1x2 {
-          grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
-        }
-        
-        .content-grid {
-          gap: 8px;
-        }
-        
-        .dashboard-block {
-          padding: 8px;
-          min-height: 60px;
-        }
-        
-        .block-content {
-          font-size: 1em;
-        }
-        
-        .dashboard-header,
-        .dashboard-footer {
-          padding: var(--cf-spacing-sm);
+        .layout-grid .dashboard-content,
+        .layout-compact .dashboard-content {
+          grid-template-columns: repeat(2, 1fr);
         }
       }
       
       @container cardforge-container (max-width: 400px) {
-        .dashboard-content {
-          padding: 8px;
+        .dashboard-card {
+          padding: 12px;
         }
         
-        .content-grid {
-          gap: 6px;
-        }
-        
-        .dashboard-block {
-          min-height: 55px;
-          padding: 6px;
-        }
-        
-        .block-content {
-          font-size: 0.95em;
-        }
-        
-        .block-name {
-          font-size: 0.8em;
-        }
-        
-        .dashboard-header,
-        .dashboard-footer {
-          padding: 8px 10px;
-        }
-        
-        /* 在超小屏幕上强制单列 */
-        .layout-quad,
-        .layout-triple,
-        .layout-double,
-        .layout-custom-1x4,
-        .layout-custom-1x3,
-        .layout-custom-1x2 {
+        .layout-grid .dashboard-content,
+        .layout-list .dashboard-content,
+        .layout-compact .dashboard-content {
           grid-template-columns: 1fr;
         }
         
-        .layout-grid-2x2,
-        .layout-grid-3x3 {
-          grid-template-columns: 1fr;
-          grid-template-rows: auto;
+        .cardforge-block {
+          flex-direction: row;
+          text-align: left;
         }
       }
       
       @container cardforge-container (max-width: 300px) {
-        .dashboard-block {
-          min-height: 50px;
-          padding: 5px;
+        .dashboard-card {
+          padding: 8px;
+        }
+        
+        .cardforge-block {
+          padding: 10px;
         }
         
         .block-icon {
+          font-size: 1.3em;
+        }
+        
+        .block-name {
+          font-size: 0.85em;
+        }
+        
+        .block-value {
           font-size: 1.1em;
-        }
-        
-        .block-content {
-          font-size: 0.9em;
-        }
-        
-        .block-unit {
-          font-size: 0.75em;
-        }
-      }
-      
-      /* 确保块内容在小屏幕上也能正常显示 */
-      .block-layout-horizontal {
-        @container cardforge-container (max-width: 200px) {
-          flex-direction: column;
-          text-align: center;
-          gap: 4px;
         }
       }
     `;
+  },
+  
+  layout: {
+    type: 'grid',
+    recommendedSize: 4
   }
+};
+
+export class DashboardCard {
+  static card = card;
 }
-
-// 导出统一的manifest
-export const manifest = CARD_CONFIG;
-
-export default DashboardCard;
