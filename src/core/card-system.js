@@ -101,7 +101,6 @@ class CardSystem {
     const card = this.getCard(cardId);
     if (!card) {
       const availableCards = Array.from(this.cards.keys()).join(', ');
-      throw new Error(`卡片 "${cardId}" 未找到。可用卡片: ${availableCards}`);
     }
 
     // 合并配置（用户配置 + 默认值）
