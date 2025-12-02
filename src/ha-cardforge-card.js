@@ -240,28 +240,34 @@ class HaCardForgeCard extends LitElement {
     }
   }
 
-  updated(changedProperties) {
-    if (changedProperties.has('hass') || changedProperties.has('config')) {
-      this._updateCard();
-    }
+updated(changedProperties) {
+  if (changedProperties.has('hass') || changedProperties.has('config')) {
+    this._updateCard();
   }
+  
+  // 添加：监听主题变化
+  if (changedProperties.has('config') && 
+      changedProperties.get('config')?.theme !== this.config?.theme) {
+    this._updateCard();
+  }
+}
 
-  async _updateCard() {
-    if (!this.config?.card_type) return;
-    
-    try {
-      const themeVariables = themeSystem.getThemeVariables(this.config.theme || 'auto');
-      this._cardData = cardSystem.renderCard(
-        this.config.card_type,
-        this.config,
-        this.hass,
-        themeVariables
-      );
-      this.requestUpdate();
-    } catch (error) {
-      console.warn('更新卡片失败:', error);
-    }
+async _updateCard() {
+  if (!this.config?.card_type) return;
+  
+  try {
+    const themeVariables = themeSystem.getThemeVariables(this.config.theme || 'auto');
+    this._cardData = cardSystem.renderCard(
+      this.config.card_type,
+      this.config,
+      this.hass,
+      themeVariables
+    );
+    this.requestUpdate(); // 强制重新渲染
+  } catch (error) {
+    console.warn('更新卡片失败:', error);
   }
+}
 
   // 提供给 Home Assistant 编辑器使用的默认配置
   static getStubConfig() {
