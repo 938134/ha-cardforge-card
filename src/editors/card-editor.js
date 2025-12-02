@@ -1,12 +1,8 @@
 // src/editors/card-editor.js
 import { LitElement, html, css } from 'https://unpkg.com/lit@2.8.0/index.js?module';
-import { cardRegistry } from '../core/card-registry.js';
-import { themeManager } from '../core/theme-manager.js';
+import { cardSystem } from '../core/card-system.js';
+import { themeSystem } from '../core/theme-system.js';
 import { designSystem } from '../core/design-system.js';
-import './card-selector.js';
-import './theme-selector.js';
-import './block-management.js';
-import './form-builder.js';
 
 class CardEditor extends LitElement {
   static properties = {
@@ -15,9 +11,7 @@ class CardEditor extends LitElement {
     _cards: { state: true },
     _themes: { state: true },
     _selectedCard: { state: true },
-    _initialized: { state: true },
-    _availableEntities: { state: true },
-    _cardSchema: { state: true },
+    _initialized: { state: true }
   };
 
   static styles = [
@@ -27,37 +21,133 @@ class CardEditor extends LitElement {
         background: var(--cf-background);
         border-radius: var(--cf-radius-lg);
         border: 1px solid var(--cf-border);
-        box-shadow: var(--cf-shadow-sm);
         overflow: hidden;
-        min-height: 500px;
-        container-type: inline-size;
-        container-name: cardforge-editor;
       }
-      .editor-layout {
-        display: flex;
-        flex-direction: column;
-        gap: 0;
-      }
+      
       .editor-section {
-        background: var(--cf-surface);
         padding: var(--cf-spacing-lg);
         border-bottom: 1px solid var(--cf-border);
       }
+      
       .editor-section:last-child {
         border-bottom: none;
       }
+      
       .section-header {
         display: flex;
         align-items: center;
         gap: var(--cf-spacing-sm);
         margin-bottom: var(--cf-spacing-md);
       }
+      
       .section-title {
         font-size: 1em;
         font-weight: 600;
         color: var(--cf-text-primary);
       }
-    `,
+      
+      /* 卡片选择器样式 */
+      .card-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(80px, 1fr));
+        gap: var(--cf-spacing-sm);
+      }
+      
+      .card-item {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        padding: var(--cf-spacing-sm);
+        border: 1px solid var(--cf-border);
+        border-radius: var(--cf-radius-md);
+        cursor: pointer;
+        transition: all var(--cf-transition-fast);
+        background: var(--cf-surface);
+        text-align: center;
+      }
+      
+      .card-item:hover {
+        border-color: var(--cf-primary-color);
+      }
+      
+      .card-item.selected {
+        border-color: var(--cf-primary-color);
+        background: var(--cf-primary-color);
+        color: white;
+      }
+      
+      .card-icon {
+        font-size: 1.5em;
+        margin-bottom: 6px;
+      }
+      
+      .card-name {
+        font-size: 0.8em;
+        font-weight: 500;
+        line-height: 1.2;
+      }
+      
+      /* 主题选择器样式 */
+      .theme-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(80px, 1fr));
+        gap: var(--cf-spacing-sm);
+      }
+      
+      .theme-item {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        padding: var(--cf-spacing-sm);
+        border: 1px solid var(--cf-border);
+        border-radius: var(--cf-radius-md);
+        cursor: pointer;
+        transition: all var(--cf-transition-fast);
+        background: var(--cf-surface);
+        text-align: center;
+      }
+      
+      .theme-item:hover {
+        border-color: var(--cf-primary-color);
+      }
+      
+      .theme-item.selected {
+        border-color: var(--cf-primary-color);
+      }
+      
+      .theme-preview {
+        width: 100%;
+        height: 40px;
+        border-radius: var(--cf-radius-sm);
+        margin-bottom: 6px;
+        border: 2px solid transparent;
+      }
+      
+      .theme-item.selected .theme-preview {
+        border-color: var(--cf-primary-color);
+      }
+      
+      .theme-name {
+        font-size: 0.8em;
+        font-weight: 500;
+        line-height: 1.2;
+      }
+      
+      /* 空状态 */
+      .empty-state {
+        text-align: center;
+        padding: var(--cf-spacing-xl);
+        color: var(--cf-text-secondary);
+      }
+      
+      .empty-icon {
+        font-size: 2em;
+        margin-bottom: var(--cf-spacing-sm);
+        opacity: 0.5;
+      }
+    `
   ];
 
   constructor() {
@@ -65,54 +155,53 @@ class CardEditor extends LitElement {
     this.config = {
       type: 'custom:ha-cardforge-card',
       card_type: '',
-      theme: 'auto',
-      areas: {},
-      blocks: {},
+      theme: 'auto'
     };
     this._cards = [];
     this._themes = [];
     this._selectedCard = null;
     this._initialized = false;
-    this._availableEntities = [];
-    this._cardSchema = null;
   }
 
   async firstUpdated() {
-    await cardRegistry.initialize();
-    await themeManager.initialize();
-    this._cards = cardRegistry.getAllCards();
-    this._themes = themeManager.getAllThemes();
+    await cardSystem.initialize();
+    await themeSystem.initialize();
+    
+    this._cards = cardSystem.getAllCards();
+    this._themes = themeSystem.getAllThemes();
     this._initialized = true;
-    if (this.config.card_type) this._loadCardInstance();
+    
+    if (this.config.card_type) {
+      this._selectedCard = cardSystem.getCard(this.config.card_type);
+    }
   }
 
   setConfig(config) {
     this.config = { ...config };
-    this._loadCardInstance();
+    if (this._initialized && this.config.card_type) {
+      this._selectedCard = cardSystem.getCard(this.config.card_type);
+    }
   }
 
   render() {
-    if (!this._initialized) return this._renderLoading();
+    if (!this._initialized) {
+      return html`
+        <div class="editor-container">
+          <div class="editor-section">
+            <div class="empty-state">
+              <div class="empty-icon">⏳</div>
+              <div>初始化编辑器中...</div>
+            </div>
+          </div>
+        </div>
+      `;
+    }
 
     return html`
       <div class="editor-container">
-        <div class="editor-layout">
-          ${this._renderCardSelectionSection()}
-          ${this.config.card_type ? this._renderThemeSection() : ''}
-          ${this.config.card_type && this._cardSchema ? this._renderCardSettings() : ''}
-          ${this._shouldShowBlockManagement() ? this._renderBlockManagement() : ''}
-        </div>
-      </div>
-    `;
-  }
-
-  _renderLoading() {
-    return html`
-      <div class="editor-section">
-        <div class="cf-flex cf-flex-center cf-p-lg">
-          <ha-circular-progress indeterminate></ha-circular-progress>
-          <div class="cf-text-md cf-m-sm">初始化编辑器...</div>
-        </div>
+        ${this._renderCardSelectionSection()}
+        ${this.config.card_type ? this._renderThemeSelectionSection() : ''}
+        ${this.config.card_type && this._selectedCard?.schema ? this._renderCardSettings() : ''}
       </div>
     `;
   }
@@ -122,132 +211,180 @@ class CardEditor extends LitElement {
       <div class="editor-section">
         <div class="section-header">
           <ha-icon icon="mdi:palette"></ha-icon>
-          <span class="section-title">卡片类型</span>
+          <span class="section-title">选择卡片类型</span>
         </div>
-        <card-selector
-          .cards=${this._cards}
-          .selectedCard=${this.config.card_type}
-          @card-changed=${this._onCardChanged}
-        ></card-selector>
+        <div class="card-grid">
+          ${this._cards.map(card => html`
+            <div 
+              class="card-item ${this.config.card_type === card.id ? 'selected' : ''}"
+              @click=${() => this._selectCard(card.id)}
+              title="${card.description}"
+            >
+              <div class="card-icon">${card.icon}</div>
+              <div class="card-name">${card.name}</div>
+            </div>
+          `)}
+        </div>
       </div>
     `;
   }
 
-  _renderThemeSection() {
+  _renderThemeSelectionSection() {
     return html`
       <div class="editor-section">
         <div class="section-header">
           <ha-icon icon="mdi:format-paint"></ha-icon>
-          <span class="section-title">主题样式</span>
+          <span class="section-title">选择主题</span>
         </div>
-        <theme-selector
-          .themes=${this._themes}
-          .selectedTheme=${this.config.theme}
-          @theme-changed=${this._onThemeChanged}
-        ></theme-selector>
+        <div class="theme-grid">
+          ${this._themes.map(theme => {
+            const preview = themeSystem.getThemePreview(theme.id);
+            return html`
+              <div 
+                class="theme-item ${this.config.theme === theme.id ? 'selected' : ''}"
+                @click=${() => this._selectTheme(theme.id)}
+                title="${theme.description}"
+              >
+                <div class="theme-preview" style="
+                  background: ${preview.background};
+                  color: ${preview.color};
+                  border: ${preview.border};
+                "></div>
+                <div class="theme-name">${theme.name}</div>
+              </div>
+            `;
+          })}
+        </div>
       </div>
     `;
   }
 
   _renderCardSettings() {
+    const schema = this._selectedCard?.schema || {};
+    const schemaKeys = Object.keys(schema);
+    
+    if (schemaKeys.length === 0) {
+      return html`
+        <div class="editor-section">
+          <div class="empty-state">
+            <div class="empty-icon">✅</div>
+            <div>此卡片无需额外配置</div>
+          </div>
+        </div>
+      `;
+    }
+
+    // 简单的表单渲染（完整版可以使用 form-builder.js）
     return html`
       <div class="editor-section">
         <div class="section-header">
-          <ha-icon icon="mdi:tune"></ha-icon>
+          <ha-icon icon="mdi:cog"></ha-icon>
           <span class="section-title">卡片设置</span>
         </div>
-        <form-builder
-          .config=${this.config}
-          .schema=${this._cardSchema}
-          .hass=${this.hass}
-          .availableEntities=${this._availableEntities}
-          @config-changed=${this._onConfigChanged}
-        ></form-builder>
-      </div>
-    `;
-  }
-
-  _renderBlockManagement() {
-    return html`
-      <div class="editor-section">
-        <div class="section-header">
-          <ha-icon icon="mdi:cube"></ha-icon>
-          <span class="section-title">块管理</span>
+        <div style="display: flex; flex-direction: column; gap: var(--cf-spacing-md);">
+          ${schemaKeys.map(key => {
+            const field = schema[key];
+            return this._renderField(key, field);
+          })}
         </div>
-        <block-management
-          .config=${this.config}
-          .hass=${this.hass}
-          @config-changed=${this._onConfigChanged}
-        ></block-management>
       </div>
     `;
   }
 
-  _shouldShowBlockManagement() {
-    // 只有选择了卡片类型时才显示块管理
-    if (!this.config.card_type) return false;
+  _renderField(key, field) {
+    const value = this.config[key] !== undefined ? this.config[key] : field.default;
     
-    // 获取卡片块模式
-    const card = cardRegistry.getCard(this.config.card_type);
-    const blockMode = card?.manifest?.block_mode || 'custom';
+    switch (field.type) {
+      case 'boolean':
+        return html`
+          <div style="display: flex; align-items: center; gap: var(--cf-spacing-md);">
+            <ha-switch
+              .checked=${value}
+              @change=${e => this._updateConfig(key, e.target.checked)}
+            ></ha-switch>
+            <div style="font-size: 0.9em; font-weight: 500;">${field.label}</div>
+          </div>
+        `;
+        
+      case 'select':
+        return html`
+          <ha-select
+            .value=${value}
+            @closed=${e => e.stopPropagation()}
+            naturalMenuWidth
+            fixedMenuPosition
+            fullwidth
+            .label=${field.label}
+            @change=${e => this._updateConfig(key, e.target.value)}
+          >
+            ${field.options.map(opt => html`
+              <ha-list-item .value=${opt.value || opt}>
+                ${opt.label || opt}
+              </ha-list-item>
+            `)}
+          </ha-select>
+        `;
+        
+      case 'number':
+        return html`
+          <ha-textfield
+            type="number"
+            .value=${value}
+            @input=${e => this._updateConfig(key, parseInt(e.target.value) || 0)}
+            .label=${field.label}
+            fullwidth
+          ></ha-textfield>
+        `;
+        
+      default:
+        return html`
+          <ha-textfield
+            .value=${value || ''}
+            @input=${e => this._updateConfig(key, e.target.value)}
+            .label=${field.label}
+            .placeholder=${field.placeholder || ''}
+            fullwidth
+          ></ha-textfield>
+        `;
+    }
+  }
+
+  _selectCard(cardId) {
+    const card = cardSystem.getCard(cardId);
+    if (!card) return;
     
-    // 无块模式不显示块管理
-    if (blockMode === 'none') return false;
+    // 构建新配置
+    const newConfig = {
+      ...this.config,
+      card_type: cardId
+    };
     
-    // 其他模式根据块数量决定
-    const blockCount = Object.keys(this.config.blocks || {}).length;
-    return blockCount > 0 || blockMode === 'custom';
+    // 应用schema中的默认值
+    Object.entries(card.schema).forEach(([key, field]) => {
+      if (newConfig[key] === undefined && field.default !== undefined) {
+        newConfig[key] = field.default;
+      }
+    });
+    
+    this.config = newConfig;
+    this._selectedCard = card;
+    this._notifyConfigChange();
   }
 
-  _onCardChanged(e) {
-    const cardType = e.detail.cardId;
-    this.config = { ...this.config, card_type: cardType };
-    this._loadCardInstance();
-    const cardInstance = cardRegistry.createCardInstance(cardType);
-    if (cardInstance) {
-      const defaultConfig = cardInstance.getDefaultConfig();
-      this.config = { ...this.config, areas: defaultConfig.areas, blocks: defaultConfig.blocks };
-    }
-    this._notifyConfigUpdate();
+  _selectTheme(themeId) {
+    this.config = { ...this.config, theme: themeId };
+    this._notifyConfigChange();
   }
 
-  _onThemeChanged(e) {
-    this.config = { ...this.config, theme: e.detail.theme };
-    this._notifyConfigUpdate();
+  _updateConfig(key, value) {
+    this.config = { ...this.config, [key]: value };
+    this._notifyConfigChange();
   }
 
-  _onConfigChanged(e) {
-    this.config = { ...this.config, ...e.detail.config };
-    this._notifyConfigUpdate();
-  }
-
-  _notifyConfigUpdate() {
-    this.dispatchEvent(new CustomEvent('config-changed', { detail: { config: this.config } }));
-    this.requestUpdate();
-  }
-
-  _loadCardInstance() {
-    this._selectedCard = cardRegistry.getCard(this.config.card_type);
-    this._cardSchema = this._selectedCard?.manifest?.config_schema || null;
-  }
-
-  updated(changedProperties) {
-    if (changedProperties.has('hass')) {
-      this._updateAvailableEntities();
-    }
-  }
-
-  _updateAvailableEntities() {
-    if (!this.hass?.states) {
-      this._availableEntities = [];
-      return;
-    }
-    this._availableEntities = Object.entries(this.hass.states)
-      .map(([entityId, state]) => ({
-        value: entityId,
-        label: `${state.attributes?.friendly_name || entityId} (${entityId})`
-      }))
-      .sort((a, b) => a.label.localeCompare(b.label));
+  _notifyConfigChange() {
+    this.dispatchEvent(new CustomEvent('config-changed', {
+      detail: { config: this.config }
+    }));
   }
 
   getConfig() {
@@ -258,4 +395,5 @@ class CardEditor extends LitElement {
 if (!customElements.get('card-editor')) {
   customElements.define('card-editor', CardEditor);
 }
+
 export { CardEditor };
