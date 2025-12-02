@@ -1,8 +1,7 @@
-// src/main.js
+// src/main.js - 简化版
 import { HaCardForgeCard } from './ha-cardforge-card.js';
 import { CardEditor } from './editors/card-editor.js';
 
-// 注册自定义元素
 if (!customElements.get('ha-cardforge-card')) {
   customElements.define('ha-cardforge-card', HaCardForgeCard);
 }
@@ -11,7 +10,6 @@ if (!customElements.get('card-editor')) {
   customElements.define('card-editor', CardEditor);
 }
 
-// 注册到 Home Assistant 自定义卡片系统
 if (window.customCards) {
   window.customCards.push({
     type: 'ha-cardforge-card',
@@ -21,5 +19,3 @@ if (window.customCards) {
     documentationURL: 'https://github.com/938134/ha-cardforge-card'
   });
 }
-
-console.log('🎉 卡片工坊 2.0 初始化完成');

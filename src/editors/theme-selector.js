@@ -1,13 +1,12 @@
-// src/editors/theme-selector.js
-import { LitElement, html, css } from 'https://unpkg.com/lit@2.8.0/index.js?module';
+// src/editors/theme-selector.js - 优化版
+import { LitElement, html } from 'https://unpkg.com/lit@2.8.0/index.js?module';
 import { designSystem } from '../core/design-system.js';
+import { themeSystem } from '../core/theme-system.js';
 
 export class ThemeSelector extends LitElement {
   static properties = {
     themes: { type: Array },
-    selectedTheme: { type: String },
-    _filteredThemes: { state: true },
-    _selectedCategory: { state: true }
+    selectedTheme: { type: String }
   };
 
   static styles = [
@@ -17,7 +16,6 @@ export class ThemeSelector extends LitElement {
         width: 100%;
       }
       
-      /* 主题网格 */
       .theme-grid {
         display: grid;
         grid-template-columns: repeat(auto-fill, minmax(90px, 1fr));
@@ -85,17 +83,6 @@ export class ThemeSelector extends LitElement {
         border-color: var(--cf-primary-color);
       }
       
-      .theme-preview-content {
-        width: 100%;
-        height: 100%;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        font-size: 0.8em;
-        color: inherit;
-        font-weight: 500;
-      }
-      
       .theme-name {
         font-size: 0.8em;
         font-weight: 500;
@@ -106,7 +93,6 @@ export class ThemeSelector extends LitElement {
         white-space: nowrap;
       }
       
-      /* 空状态 */
       .empty-state {
         text-align: center;
         padding: 40px 20px;
@@ -119,7 +105,6 @@ export class ThemeSelector extends LitElement {
         opacity: 0.5;
       }
       
-      /* 响应式设计 */
       @media (max-width: 768px) {
         .theme-grid {
           grid-template-columns: repeat(auto-fill, minmax(80px, 1fr));
@@ -140,34 +125,8 @@ export class ThemeSelector extends LitElement {
           font-size: 0.75em;
         }
       }
-      
-      @media (max-width: 480px) {
-        .theme-grid {
-          grid-template-columns: repeat(auto-fill, minmax(70px, 1fr));
-          gap: 8px;
-        }
-        
-        .theme-item {
-          min-height: 80px;
-        }
-        
-        .theme-preview {
-          height: 40px;
-        }
-      }
     `
   ];
-
-  constructor() {
-    super();
-    this._filteredThemes = [];
-  }
-
-  willUpdate(changedProperties) {
-    if (changedProperties.has('themes')) {
-      this._filteredThemes = this.themes || [];
-    }
-  }
 
   render() {
     if (!this.themes || this.themes.length === 0) {
@@ -177,28 +136,27 @@ export class ThemeSelector extends LitElement {
     return html`
       <div class="theme-selector">
         <div class="theme-grid">
-          ${this._filteredThemes.map(theme => html`
-            <div 
-              class="theme-item ${this.selectedTheme === theme.id ? 'selected' : ''}"
-              @click=${() => this._selectTheme(theme)}
-              title="${theme.description || theme.name}"
-            >
+          ${this.themes.map(theme => {
+            const preview = themeSystem.getThemePreview(theme.id);
+            return html`
               <div 
-                class="theme-preview"
-                style="
-                  background: ${theme.preview?.background || 'var(--cf-background)'};
-                  color: ${theme.preview?.color || 'var(--cf-text-primary)'};
-                  border: ${theme.preview?.border || '1px solid var(--cf-border)'};
-                  ${theme.preview?.boxShadow ? `box-shadow: ${theme.preview.boxShadow};` : ''}
-                "
+                class="theme-item ${this.selectedTheme === theme.id ? 'selected' : ''}"
+                @click=${() => this._selectTheme(theme)}
+                title="${theme.description}"
               >
-                <div class="theme-preview-content">
-                  ${theme.icon || '🎨'}
-                </div>
+                <div 
+                  class="theme-preview"
+                  style="
+                    background: ${preview.background};
+                    color: ${preview.color};
+                    border: ${preview.border};
+                    ${preview.boxShadow ? `box-shadow: ${preview.boxShadow};` : ''}
+                  "
+                ></div>
+                <div class="theme-name">${theme.name}</div>
               </div>
-              <div class="theme-name">${theme.name}</div>
-            </div>
-          `)}
+            `;
+          })}
         </div>
       </div>
     `;
@@ -218,6 +176,8 @@ export class ThemeSelector extends LitElement {
   }
 
   _selectTheme(theme) {
+    if (this.selectedTheme === theme.id) return;
+    
     this.dispatchEvent(new CustomEvent('theme-changed', {
       detail: { theme: theme.id }
     }));

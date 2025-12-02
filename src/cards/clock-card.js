@@ -1,5 +1,4 @@
-// src/cards/clock.js
-
+// src/cards/clock-card.js
 export const card = {
   id: 'clock',
   meta: {
@@ -10,6 +9,8 @@ export const card = {
     version: '2.0.0',
     author: 'CardForge'
   },
+  
+  cardType: 'basic',
   
   schema: {
     use24Hour: {
@@ -34,10 +35,13 @@ export const card = {
     }
   },
   
+  blocks: {
+    mode: 'none'
+  },
+  
   template: (config, data, context) => {
     const now = new Date();
     
-    // 格式化时间
     let hours = now.getHours();
     const minutes = now.getMinutes().toString().padStart(2, '0');
     let seconds = '';
@@ -55,7 +59,6 @@ export const card = {
       timeHtml = `<div class="clock-time">${hours}:${minutes}${seconds} <span class="clock-ampm">${ampm}</span></div>`;
     }
     
-    // 格式化日期
     let dateHtml = '';
     if (config.showDate) {
       const year = now.getFullYear();
@@ -64,7 +67,6 @@ export const card = {
       dateHtml = `<div class="clock-date">${year}年${month}月${day}日</div>`;
     }
     
-    // 格式化星期
     let weekdayHtml = '';
     if (config.showWeekday) {
       const weekdays = ['星期日', '星期一', '星期二', '星期三', '星期四', '星期五', '星期六'];
@@ -142,7 +144,6 @@ export const card = {
   }
 };
 
-// 可选：导出类供编辑器使用
 export class ClockCard {
   static card = card;
 }
