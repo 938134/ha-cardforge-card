@@ -1,8 +1,14 @@
-// src/editors/card-editor.js - 重构版
+// src/editors/card-editor.js - 修正版
 import { LitElement, html, css } from 'https://unpkg.com/lit@2.8.0/index.js?module';
 import { cardSystem } from '../core/card-system.js';
 import { themeSystem } from '../core/theme-system.js';
 import { designSystem } from '../core/design-system.js';
+
+// 导入需要的UI组件
+import '../editors/card-selector.js';
+import '../editors/theme-selector.js';
+import '../editors/form-builder.js';
+import '../editors/block-management.js';
 
 class CardEditor extends LitElement {
   static properties = {
@@ -119,7 +125,7 @@ class CardEditor extends LitElement {
   }
 
   _processInitialConfig() {
-    // 如果配置中没有 card_type，设置为默认卡片
+    // 如果配置中没有 card_type，设置为第一个卡片
     if (!this.config.card_type && this._cards.length > 0) {
       const firstCard = this._cards[0];
       this.config = this._buildCardConfig(firstCard.id, {});
@@ -212,6 +218,10 @@ class CardEditor extends LitElement {
   _handleCardChange(e) {
     const cardId = e.detail.cardId;
     
+    if (this.config.card_type === cardId) {
+      return; // 已经是当前卡片，不重复触发
+    }
+    
     // 构建新配置
     const newConfig = this._buildCardConfig(cardId, {
       theme: this.config.theme || 'auto'
@@ -293,7 +303,7 @@ class CardEditor extends LitElement {
     };
     
     // 保留blocks配置（如果新卡片支持块）
-    if (cardDef.blocks && baseConfig.blocks) {
+    if ((cardDef.blocks || cardId === 'dashboard' || cardId === 'welcome' || cardId === 'poetry') && baseConfig.blocks) {
       cleanConfig.blocks = baseConfig.blocks;
     }
     
@@ -332,7 +342,7 @@ class CardEditor extends LitElement {
                           this.config.card_type === 'welcome' ||
                           this.config.card_type === 'poetry';
     
-    return supportsBlocks && this.config.blocks !== undefined;
+    return supportsBlocks;
   }
 
   _notifyConfigChange() {
