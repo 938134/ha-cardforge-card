@@ -1,5 +1,3 @@
-// src/themes/auto.js
-
 export const theme = {
   id: 'auto',
   name: '自动',
@@ -10,7 +8,7 @@ export const theme = {
     // 使用 Home Assistant 默认变量
     '--cf-primary-color': 'var(--primary-color, #03a9f4)',
     '--cf-accent-color': 'var(--accent-color, #ff4081)',
-    '--cf-background': 'var(--card-background-color, #ffffff)',
+    '--cf-background': 'var(--card-background-color, #ffffff)',  // 确保有背景色
     '--cf-surface': 'var(--card-background-color, #ffffff)',
     '--cf-border': 'var(--divider-color, #e0e0e0)',
     '--cf-text-primary': 'var(--primary-text-color, #212121)',
@@ -19,6 +17,10 @@ export const theme = {
   },
   
   styles: `
+    .cardforge-container {
+      background: var(--cf-background);
+    }
+    
     /* 深色模式适配 */
     @media (prefers-color-scheme: dark) {
       :host {
