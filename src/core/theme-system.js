@@ -94,28 +94,37 @@ class ThemeSystem {
   /**
    * 获取主题样式
    */
-  getThemeStyles(themeId) {
-    const theme = this.getTheme(themeId);
-    if (!theme) return '';
-    
-    let styles = '';
-    
-    // 添加CSS变量
-    const variables = theme.variables || {};
-    if (Object.keys(variables).length > 0) {
-      const varStyles = Object.entries(variables)
-        .map(([key, value]) => `${key}: ${value};`)
-        .join('');
-      styles += `:host { ${varStyles} }`;
-    }
-    
-    // 添加主题样式
-    if (theme.styles) {
-      styles += theme.styles;
-    }
-    
-    return styles;
+getThemeStyles(themeId) {
+  const theme = this.getTheme(themeId);
+  if (!theme) return '';
+  
+  let styles = '';
+  
+  // 添加CSS变量
+  const variables = theme.variables || {};
+  if (Object.keys(variables).length > 0) {
+    const varStyles = Object.entries(variables)
+      .map(([key, value]) => `${key}: ${value};`)
+      .join('');
+    styles += `:host { ${varStyles} }`;
   }
+  
+  // 添加主题样式（包含背景色）
+  if (theme.styles) {
+    styles += theme.styles;
+  }
+  
+  // 确保有背景色
+  if (!styles.includes('background') && !styles.includes('--cf-background')) {
+    styles += `
+      .cardforge-container {
+        background: var(--cf-background, var(--card-background-color, #ffffff));
+      }
+    `;
+  }
+  
+  return styles;
+}
 
   /**
    * 获取主题预览样式
