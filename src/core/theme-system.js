@@ -30,7 +30,7 @@ class ThemeSystem {
       () => import('../themes/glass-theme.js'),
       () => import('../themes/gradient-theme.js'),
       () => import('../themes/neon-theme.js'),
-      () => import('../themes/ink-wash-theme.js.js')
+      () => import('../themes/inkwash-theme.js')
     ];
 
     for (const importFn of themeModules) {
