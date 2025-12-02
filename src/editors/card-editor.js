@@ -12,7 +12,7 @@ class CardEditor extends LitElement {
     _themes: { state: true },
     _selectedCard: { state: true },
     _initialized: { state: true },
-    _lastConfig: { state: true }  // 添加：跟踪上次配置
+    _lastConfig: { state: true }
   };
 
   static styles = [
@@ -253,20 +253,22 @@ class CardEditor extends LitElement {
 
   constructor() {
     super();
-    // 初始配置使用 getStubConfig 的默认值
+    // 初始配置
     this.config = {
       type: 'custom:ha-cardforge-card',
-      card_type: '',  // 初始为空，等待选择
+      card_type: '',
       theme: 'auto'
     };
     this._cards = [];
     this._themes = [];
     this._selectedCard = null;
     this._initialized = false;
-    this._lastConfig = null; // 用于检测配置变化
+    this._lastConfig = null;
   }
 
   async firstUpdated() {
+    console.log('🔄 初始化编辑器...');
+    
     await cardSystem.initialize();
     await themeSystem.initialize();
     
@@ -274,42 +276,89 @@ class CardEditor extends LitElement {
     this._themes = themeSystem.getAllThemes();
     this._initialized = true;
     
+    console.log('📋 加载卡片:', this._cards.length, '个');
+    console.log('🎨 加载主题:', this._themes.length, '个');
+    
     // 如果配置中没有 card_type，设置为第一个卡片
     if (!this.config.card_type && this._cards.length > 0) {
       const firstCard = this._cards[0];
-      this.config = {
-        ...this.config,
-        card_type: firstCard.id
-      };
+      console.log('🎯 设置默认卡片:', firstCard.id);
+      
+      this.config = this._buildCardConfig(firstCard.id, {});
       this._selectedCard = cardSystem.getCard(firstCard.id);
-      this._applyCardDefaults(firstCard.id);
+      this._lastConfig = JSON.stringify(this.config);
+      
+      console.log('📤 发送初始配置');
       this._notifyConfigChange();
     } else if (this.config.card_type) {
       this._selectedCard = cardSystem.getCard(this.config.card_type);
+      console.log('📋 已有卡片:', this.config.card_type);
     }
-    
-    // 保存初始配置用于比较
-    this._lastConfig = JSON.stringify(this.config);
   }
 
   setConfig(config) {
-    if (!config || !config.card_type) {
-      // 如果没有有效配置，保持默认
+    console.log('📥 编辑器收到配置:', config);
+    
+    if (!config || typeof config !== 'object') {
+      console.log('⚠️ 无效配置，保持默认');
       return;
     }
     
-    const oldConfig = this.config;
-    this.config = { ...config };
+    // 处理传入的配置
+    let newConfig = { ...config };
     
-    if (this._initialized && this.config.card_type) {
-      this._selectedCard = cardSystem.getCard(this.config.card_type);
+    // 确保有 card_type
+    if (!newConfig.card_type) {
+      if (this._cards.length > 0) {
+        const firstCard = this._cards[0];
+        newConfig = this._buildCardConfig(firstCard.id, newConfig);
+        console.log('🎯 补充缺失的 card_type:', newConfig.card_type);
+      } else {
+        console.log('⚠️ 无可用卡片，使用时钟卡片');
+        newConfig.card_type = 'clock';
+      }
     }
     
-    // 检查配置是否真的有变化
-    const newConfigStr = JSON.stringify(this.config);
+    // 获取卡片定义并应用默认值
+    const cardDef = cardSystem.getCard(newConfig.card_type);
+    if (cardDef) {
+      this._selectedCard = cardDef;
+      
+      // 应用卡片默认值（仅对缺失的字段）
+      const defaultConfig = {};
+      const schema = cardDef.schema || {};
+      Object.entries(schema).forEach(([key, field]) => {
+        if (field.default !== undefined && newConfig[key] === undefined) {
+          defaultConfig[key] = field.default;
+        }
+      });
+      
+      if (Object.keys(defaultConfig).length > 0) {
+        console.log('⚙️ 补充默认值:', defaultConfig);
+        newConfig = { ...newConfig, ...defaultConfig };
+      }
+    }
+    
+    // 确保配置完整
+    newConfig = {
+      type: 'custom:ha-cardforge-card',
+      card_type: newConfig.card_type || 'clock',
+      theme: newConfig.theme || 'auto',
+      ...newConfig
+    };
+    
+    // 删除可能存在的旧字段
+    delete newConfig.cardType;
+    
+    // 检查配置是否变化
+    const newConfigStr = JSON.stringify(newConfig);
     if (newConfigStr !== this._lastConfig) {
+      console.log('🔄 配置更新:', newConfig);
+      this.config = newConfig;
       this._lastConfig = newConfigStr;
       this.requestUpdate();
+    } else {
+      console.log('⚡ 配置无变化，跳过更新');
     }
   }
 
@@ -578,50 +627,22 @@ class CardEditor extends LitElement {
 
   _selectCard(card) {
     if (this.config.card_type === card.id) {
+      console.log('⚡ 已是当前卡片，跳过');
       return; // 已经是当前卡片，不重复触发
     }
     
     console.log('🎯 选择卡片:', card.id);
     
-    // 保存当前配置中除卡片特定配置外的其他配置
-    const currentConfig = { ...this.config };
-    const currentCard = this._selectedCard;
-    
-    // 移除当前卡片的schema相关配置
-    if (currentCard?.schema) {
-      Object.keys(currentCard.schema).forEach(key => {
-        delete currentConfig[key];
-      });
-    }
-    
-    // 应用新卡片的默认配置
-    const newCard = cardSystem.getCard(card.id);
-    const defaultConfig = {};
-    if (newCard?.schema) {
-      Object.entries(newCard.schema).forEach(([key, field]) => {
-        if (field.default !== undefined) {
-          defaultConfig[key] = field.default;
-        }
-      });
-    }
-    
-    // 构建新配置
-    const newConfig = {
-      type: 'custom:ha-cardforge-card',
-      card_type: card.id,
-      theme: currentConfig.theme || 'auto',
-      ...defaultConfig,
-      ...currentConfig  // 保留其他配置
-    };
-    
-    // 删除可能存在的旧card_type字段
-    delete newConfig.cardType;
+    // 构建新卡片配置
+    const newConfig = this._buildCardConfig(card.id, {
+      theme: this.config.theme || 'auto'
+    });
     
     console.log('🔄 新配置:', newConfig);
     
     // 更新状态
     this.config = newConfig;
-    this._selectedCard = newCard;
+    this._selectedCard = cardSystem.getCard(card.id);
     this._lastConfig = JSON.stringify(newConfig);
     
     // 立即触发配置更新
@@ -631,24 +652,47 @@ class CardEditor extends LitElement {
     this.requestUpdate();
   }
 
-  _applyCardDefaults(cardId) {
-    const card = cardSystem.getCard(cardId);
-    if (!card?.schema) return;
+  _buildCardConfig(cardId, baseConfig = {}) {
+    const cardDef = cardSystem.getCard(cardId);
+    if (!cardDef) {
+      return {
+        type: 'custom:ha-cardforge-card',
+        card_type: cardId,
+        theme: baseConfig.theme || 'auto',
+        ...baseConfig
+      };
+    }
     
-    const updates = {};
-    Object.entries(card.schema).forEach(([key, field]) => {
-      if (field.default !== undefined && this.config[key] === undefined) {
-        updates[key] = field.default;
+    // 应用卡片默认值
+    const defaultConfig = {};
+    const schema = cardDef.schema || {};
+    Object.entries(schema).forEach(([key, field]) => {
+      if (field.default !== undefined) {
+        defaultConfig[key] = field.default;
       }
     });
     
-    if (Object.keys(updates).length > 0) {
-      this.config = { ...this.config, ...updates };
+    // 清理可能存在的其他卡片配置
+    const cleanConfig = {
+      type: 'custom:ha-cardforge-card',
+      card_type: cardId,
+      theme: baseConfig.theme || 'auto'
+    };
+    
+    // 保留blocks配置（如果新卡片是仪表盘）
+    if (cardId === 'dashboard' && baseConfig.blocks) {
+      cleanConfig.blocks = baseConfig.blocks;
     }
+    
+    return {
+      ...cleanConfig,
+      ...defaultConfig
+    };
   }
 
   _selectTheme(themeId) {
     if (this.config.theme === themeId) {
+      console.log('⚡ 已是当前主题，跳过');
       return; // 已经是当前主题，不重复触发
     }
     
@@ -696,7 +740,7 @@ class CardEditor extends LitElement {
     
     this.dispatchEvent(event);
     
-    // 强制触发 Home Assistant 的配置更新
+    // 额外触发事件确保 Home Assistant 收到
     setTimeout(() => {
       const haEvent = new Event('config-changed', {
         bubbles: true,
