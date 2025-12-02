@@ -1,53 +1,33 @@
-// src/themes/neon-theme.js
-export default {
+// src/themes/neon.js
+
+export const theme = {
   id: 'neon',
-  name: '霓虹光影',
-  description: '赛博朋克风格的霓虹灯效果',
+  name: '霓虹',
+  description: '霓虹灯光效果',
   icon: '💡',
-  category: 'effect',
-
+  
+  variables: {
+    '--cf-primary-color': '#00ffff',
+    '--cf-accent-color': '#ff00ff',
+    '--cf-background': '#1a1a2e',
+    '--cf-surface': '#16213e',
+    '--cf-border': 'rgba(0, 255, 255, 0.3)',
+    '--cf-text-primary': '#e6e6e6',
+    '--cf-text-secondary': '#a0a0a0',
+    '--cf-block-bg': 'rgba(0, 255, 255, 0.1)'
+  },
+  
+  styles: `
+    box-shadow: 0 0 20px rgba(0, 255, 255, 0.3),
+                0 0 40px rgba(0, 255, 255, 0.1),
+                inset 0 0 20px rgba(0, 255, 255, 0.1);
+    border: 1px solid rgba(0, 255, 255, 0.3);
+  `,
+  
   preview: {
-    background: '#1a1a1a',
-    color: '#00ff88',
-    border: '1px solid #00ff88',
-    boxShadow: '0 0 8px #00ff88'
-  },
-
-  getStyles(config = {}) {
-    const glowColor = config.glowColor || '#00ff88';
-    const intensity = config.glowIntensity || 1.0;
-    const speed = config.animationSpeed || 2;
-
-    return `
-      background: #1a1a1a;
-      color: ${glowColor};
-      border: 1px solid ${glowColor};
-      box-shadow: 
-        0 0 ${8 * intensity}px ${glowColor},
-        inset 0 0 ${15 * intensity}px ${glowColor}1a;
-      animation: neonPulse ${speed}s ease-in-out infinite;
-      
-      @keyframes neonPulse {
-        0%, 100% {
-          box-shadow: 
-            0 0 8px ${glowColor},
-            inset 0 0 15px rgba(0, 255, 136, 0.1);
-        }
-        50% {
-          box-shadow: 
-            0 0 20px ${glowColor},
-            0 0 35px rgba(0, 255, 136, 0.3),
-            inset 0 0 25px rgba(0, 255, 136, 0.2);
-        }
-      }
-    `;
-  },
-
-  applyTheme(element, config = {}) {
-    if (config.useMultipleColors) {
-      element.classList.add('multicolor');
-    } else {
-      element.classList.remove('multicolor');
-    }
+    background: '#1a1a2e',
+    color: '#00ffff',
+    border: '1px solid rgba(0, 255, 255, 0.3)',
+    boxShadow: '0 0 20px rgba(0, 255, 255, 0.3)'
   }
 };
