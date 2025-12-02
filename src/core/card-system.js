@@ -27,11 +27,11 @@ class CardSystem {
    */
   async _discoverCards() {
     const cardModules = [
-      () => import('../cards/clock.js'),
-      () => import('../cards/week.js'),
-      () => import('../cards/welcome.js'),
-      () => import('../cards/poetry.js'),
-      () => import('../cards/dashboard.js')
+      () => import('../cards/clock-card.js'),
+      () => import('../cards/week-card.js'),
+      () => import('../cards/welcome-card.js'),
+      () => import('../cards/poetry-card.js'),
+      () => import('../cards/dashboard-card.js')
     ];
 
     for (const importFn of cardModules) {
