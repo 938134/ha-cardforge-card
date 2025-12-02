@@ -1,9 +1,10 @@
-// src/editors/card-editor.js - 修复版
+// src/editors/card-editor.js - 修复样式和布局
 import { LitElement, html, css } from 'https://unpkg.com/lit@2.8.0/index.js?module';
 import { cardSystem } from '../core/card-system.js';
 import { themeSystem } from '../core/theme-system.js';
 import { designSystem } from '../core/design-system.js';
 
+// 确保组件已加载
 import './card-selector.js';
 import './theme-selector.js';
 import './form-builder.js';
@@ -22,16 +23,17 @@ class CardEditor extends LitElement {
     designSystem,
     css`
       .editor-container {
-        background: var(--cf-background);
-        border-radius: var(--cf-radius-lg);
-        border: 1px solid var(--cf-border);
+        background: var(--cf-background, #ffffff);
+        border-radius: var(--cf-radius-lg, 12px);
+        border: 1px solid var(--cf-border, #e0e0e0);
         overflow: hidden;
         min-width: 350px;
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
       }
       
       .editor-section {
-        padding: var(--cf-spacing-lg);
-        border-bottom: 1px solid var(--cf-border);
+        padding: var(--cf-spacing-lg, 16px);
+        border-bottom: 1px solid var(--cf-border, #e0e0e0);
       }
       
       .editor-section:last-child {
@@ -41,32 +43,42 @@ class CardEditor extends LitElement {
       .section-header {
         display: flex;
         align-items: center;
-        gap: var(--cf-spacing-sm);
-        margin-bottom: var(--cf-spacing-md);
+        gap: var(--cf-spacing-sm, 8px);
+        margin-bottom: var(--cf-spacing-md, 12px);
       }
       
       .section-title {
         font-size: 1em;
         font-weight: 600;
-        color: var(--cf-text-primary);
+        color: var(--cf-text-primary, #212121);
+        line-height: 1.2;
       }
       
-      .empty-state {
-        text-align: center;
-        padding: var(--cf-spacing-xl);
-        color: var(--cf-text-secondary);
-      }
-      
-      .empty-icon {
-        font-size: 2.5em;
-        margin-bottom: var(--cf-spacing-md);
-        opacity: 0.5;
+      /* 深色模式适配 */
+      @media (prefers-color-scheme: dark) {
+        .editor-container {
+          background: #1a1a1a;
+          border-color: #404040;
+        }
+        
+        .editor-section {
+          border-color: #404040;
+        }
+        
+        .section-title {
+          color: #e0e0e0;
+        }
       }
     `
   ];
 
   constructor() {
     super();
+    this.config = {
+      type: 'custom:ha-cardforge-card',
+      card_type: '',
+      theme: 'auto'
+    };
     this._cards = [];
     this._themes = [];
     this._selectedCard = null;
@@ -74,49 +86,75 @@ class CardEditor extends LitElement {
   }
 
   async firstUpdated() {
-    await cardSystem.initialize();
-    await themeSystem.initialize();
+    console.log('🔄 初始化卡片编辑器...');
     
-    this._cards = cardSystem.getAllCards();
-    this._themes = themeSystem.getAllThemes();
-    this._initialized = true;
-    
-    if (this.config?.card_type) {
-      this._selectedCard = cardSystem.getCard(this.config.card_type);
-    } else if (this._cards.length > 0) {
-      this._selectCard(this._cards[0].id);
+    try {
+      await cardSystem.initialize();
+      await themeSystem.initialize();
+      
+      this._cards = cardSystem.getAllCards();
+      this._themes = themeSystem.getAllThemes();
+      this._initialized = true;
+      
+      console.log('📋 加载卡片:', this._cards.length, '个');
+      console.log('🎨 加载主题:', this._themes.length, '个');
+      
+      // 如果配置中没有 card_type，设置为第一个卡片
+      if (!this.config.card_type && this._cards.length > 0) {
+        const firstCard = this._cards[0];
+        this.config = this._buildCardConfig(firstCard.id, {});
+        this._selectedCard = cardSystem.getCard(firstCard.id);
+        this._notifyConfigChange();
+      } else if (this.config.card_type) {
+        this._selectedCard = cardSystem.getCard(this.config.card_type);
+      }
+      
+      console.log('✅ 编辑器初始化完成');
+      
+    } catch (error) {
+      console.error('❌ 编辑器初始化失败:', error);
+      this._initialized = true; // 仍然标记为已初始化，显示错误
     }
   }
 
   setConfig(config) {
+    console.log('📥 编辑器收到配置:', config);
+    
     if (!config || typeof config !== 'object') {
-      this.config = this.constructor.getDefaultConfig();
+      console.log('⚠️ 无效配置，使用默认');
       return;
     }
     
-    const newConfig = { ...config };
+    // 处理传入的配置
+    let newConfig = { ...config };
     
+    // 确保有 card_type
     if (!newConfig.card_type) {
       if (this._cards.length > 0) {
-        newConfig.card_type = this._cards[0].id;
+        const firstCard = this._cards[0];
+        newConfig = this._buildCardConfig(firstCard.id, newConfig);
       } else {
         newConfig.card_type = 'clock';
       }
     }
     
-    delete newConfig.cardType;
-    
-    this.config = {
+    // 确保配置完整
+    newConfig = {
       type: 'custom:ha-cardforge-card',
       card_type: newConfig.card_type || 'clock',
       theme: newConfig.theme || 'auto',
       ...newConfig
     };
     
+    delete newConfig.cardType;
+    
+    this.config = newConfig;
+    
     if (this.config.card_type) {
       this._selectedCard = cardSystem.getCard(this.config.card_type);
     }
     
+    console.log('🔄 最终编辑器配置:', this.config);
     this.requestUpdate();
   }
 
@@ -125,9 +163,32 @@ class CardEditor extends LitElement {
       return html`
         <div class="editor-container">
           <div class="editor-section">
-            <div class="empty-state">
-              <div class="empty-icon">⏳</div>
+            <div style="text-align: center; padding: 32px; color: var(--cf-text-secondary, #757575);">
+              <div style="font-size: 2.5em; margin-bottom: 16px; opacity: 0.5;">⏳</div>
               <div>初始化编辑器中...</div>
+            </div>
+          </div>
+        </div>
+      `;
+    }
+
+    // 检查组件是否已注册
+    const hasCardSelector = customElements.get('card-selector');
+    const hasThemeSelector = customElements.get('theme-selector');
+    const hasFormBuilder = customElements.get('form-builder');
+
+    if (!hasCardSelector || !hasThemeSelector || !hasFormBuilder) {
+      return html`
+        <div class="editor-container">
+          <div class="editor-section">
+            <div style="text-align: center; padding: 32px; color: var(--cf-text-secondary, #757575);">
+              <div style="font-size: 2.5em; margin-bottom: 16px; opacity: 0.5;">⚠️</div>
+              <div>组件加载失败</div>
+              <div style="font-size: 0.9em; margin-top: 8px;">
+                card-selector: ${hasCardSelector ? '✓' : '✗'}<br>
+                theme-selector: ${hasThemeSelector ? '✓' : '✗'}<br>
+                form-builder: ${hasFormBuilder ? '✓' : '✗'}
+              </div>
             </div>
           </div>
         </div>
@@ -139,7 +200,7 @@ class CardEditor extends LitElement {
         <!-- 卡片选择器 -->
         <div class="editor-section">
           <div class="section-header">
-            <ha-icon icon="mdi:palette"></ha-icon>
+            <ha-icon icon="mdi:palette" style="color: var(--cf-primary-color, #03a9f4);"></ha-icon>
             <span class="section-title">选择卡片类型</span>
           </div>
           <card-selector
@@ -153,7 +214,7 @@ class CardEditor extends LitElement {
           <!-- 主题选择器 -->
           <div class="editor-section">
             <div class="section-header">
-              <ha-icon icon="mdi:format-paint"></ha-icon>
+              <ha-icon icon="mdi:format-paint" style="color: var(--cf-primary-color, #03a9f4);"></ha-icon>
               <span class="section-title">选择主题</span>
             </div>
             <theme-selector
@@ -168,7 +229,7 @@ class CardEditor extends LitElement {
         ${this.config.card_type && this._selectedCard?.schema ? html`
           <div class="editor-section">
             <div class="section-header">
-              <ha-icon icon="mdi:cog"></ha-icon>
+              <ha-icon icon="mdi:cog" style="color: var(--cf-primary-color, #03a9f4);"></ha-icon>
               <span class="section-title">卡片设置</span>
             </div>
             <form-builder
@@ -187,11 +248,16 @@ class CardEditor extends LitElement {
     const cardId = e.detail.cardId;
     if (this.config.card_type === cardId) return;
     
+    console.log('🎯 选择卡片:', cardId);
+    
     const cardDef = cardSystem.getCard(cardId);
     if (!cardDef) return;
     
-    const newConfig = this._buildCardConfig(cardId);
+    const newConfig = this._buildCardConfig(cardId, {
+      theme: this.config.theme || 'auto'
+    });
     
+    // 添加预设块（如果有）
     if (cardDef.blocks?.presets && !this.config.blocks) {
       const presetBlocks = {};
       Object.entries(cardDef.blocks.presets).forEach(([key, preset], index) => {
@@ -212,11 +278,14 @@ class CardEditor extends LitElement {
     this._selectedCard = cardDef;
     
     this._notifyConfigChange();
+    this.requestUpdate();
   }
 
   _handleThemeChange(e) {
     const themeId = e.detail.theme;
     if (this.config.theme === themeId) return;
+    
+    console.log('🎨 选择主题:', themeId);
     
     this.config = { ...this.config, theme: themeId };
     this._notifyConfigChange();
@@ -224,36 +293,60 @@ class CardEditor extends LitElement {
 
   _handleConfigChange(e) {
     const changedConfig = e.detail.config;
+    console.log('⚙️ 更新配置:', changedConfig);
+    
     this.config = { ...this.config, ...changedConfig };
     this._notifyConfigChange();
   }
 
-  _buildCardConfig(cardId) {
+  _buildCardConfig(cardId, baseConfig = {}) {
     const cardDef = cardSystem.getCard(cardId);
-    const defaultConfig = {};
+    if (!cardDef) {
+      return {
+        type: 'custom:ha-cardforge-card',
+        card_type: cardId,
+        theme: baseConfig.theme || 'auto',
+        ...baseConfig
+      };
+    }
     
-    if (cardDef?.schema) {
-      Object.entries(cardDef.schema).forEach(([key, field]) => {
-        if (field.default !== undefined) {
-          defaultConfig[key] = field.default;
-        }
-      });
+    // 应用卡片默认值
+    const defaultConfig = {};
+    const schema = cardDef.schema || {};
+    Object.entries(schema).forEach(([key, field]) => {
+      if (field.default !== undefined) {
+        defaultConfig[key] = field.default;
+      }
+    });
+    
+    // 清理可能存在的其他卡片配置
+    const cleanConfig = {
+      type: 'custom:ha-cardforge-card',
+      card_type: cardId,
+      theme: baseConfig.theme || 'auto'
+    };
+    
+    // 保留blocks配置（如果新卡片是仪表盘）
+    if (cardId === 'dashboard' && baseConfig.blocks) {
+      cleanConfig.blocks = baseConfig.blocks;
     }
     
     return {
-      type: 'custom:ha-cardforge-card',
-      card_type: cardId,
-      theme: this.config?.theme || 'auto',
+      ...cleanConfig,
       ...defaultConfig
     };
   }
 
   _notifyConfigChange() {
-    this.dispatchEvent(new CustomEvent('config-changed', {
+    console.log('📤 发送配置更新事件');
+    
+    const event = new CustomEvent('config-changed', {
       bubbles: true,
       composed: true,
       detail: { config: { ...this.config } }
-    }));
+    });
+    
+    this.dispatchEvent(event);
   }
 
   getConfig() {

@@ -504,5 +504,3 @@ class FormBuilder extends LitElement {
 if (!customElements.get('form-builder')) {
   customElements.define('form-builder', FormBuilder);
 }
-
-export { FormBuilder };
