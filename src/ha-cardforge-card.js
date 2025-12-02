@@ -11,8 +11,7 @@ class HaCardForgeCard extends LitElement {
     config: { type: Object },
     _cardData: { state: true },
     _error: { state: true },
-    _loading: { state: true },
-    _cardNotFound: { state: true }
+    _loading: { state: true }
   };
 
   static styles = [
@@ -30,63 +29,28 @@ class HaCardForgeCard extends LitElement {
         align-items: center;
         justify-content: center;
         height: 100%;
-        min-height: 120px;
+        min-height: 100px;
         text-align: center;
         color: var(--cf-text-secondary);
         padding: var(--cf-spacing-lg);
       }
       
       .error-icon {
-        font-size: 2.5em;
-        margin-bottom: 16px;
+        font-size: 2em;
+        margin-bottom: 12px;
         opacity: 0.5;
-      }
-      
-      .error-title {
-        font-size: 1.1em;
-        font-weight: 600;
-        color: var(--cf-text-primary);
-        margin-bottom: 8px;
       }
       
       .error-message {
         font-size: 0.9em;
         line-height: 1.4;
-        margin-bottom: 16px;
-        max-width: 80%;
       }
       
-      .error-actions {
-        display: flex;
-        gap: 8px;
-        margin-top: 12px;
-      }
-      
-      .error-btn {
-        padding: 8px 16px;
-        border: 1px solid var(--cf-border);
-        border-radius: var(--cf-radius-sm);
-        background: var(--cf-surface);
-        color: var(--cf-text-primary);
-        cursor: pointer;
-        font-size: 0.85em;
-        font-weight: 500;
-        transition: all var(--cf-transition-fast);
-      }
-      
-      .error-btn:hover {
-        background: var(--cf-background);
-      }
-      
-      .error-btn.primary {
-        background: var(--cf-primary-color);
-        color: white;
-        border-color: var(--cf-primary-color);
-      }
-      
-      .error-btn.primary:hover {
-        background: var(--cf-primary-color);
-        opacity: 0.9;
+      .error-hint {
+        font-size: 0.8em;
+        margin-top: 8px;
+        color: var(--cf-text-secondary);
+        opacity: 0.8;
       }
       
       .cardforge-loading {
@@ -95,73 +59,12 @@ class HaCardForgeCard extends LitElement {
         align-items: center;
         justify-content: center;
         height: 100%;
-        min-height: 120px;
+        min-height: 100px;
         color: var(--cf-text-secondary);
       }
       
       ha-circular-progress {
-        margin-bottom: 16px;
-      }
-      
-      .loading-text {
-        font-size: 0.9em;
-      }
-      
-      /* 卡片未找到样式 */
-      .card-not-found {
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        justify-content: center;
-        height: 100%;
-        min-height: 160px;
-        text-align: center;
-        padding: var(--cf-spacing-xl);
-      }
-      
-      .card-not-found-icon {
-        font-size: 3em;
-        margin-bottom: 20px;
-        opacity: 0.5;
-      }
-      
-      .card-not-found-title {
-        font-size: 1.2em;
-        font-weight: 600;
-        color: var(--cf-text-primary);
-        margin-bottom: 8px;
-      }
-      
-      .card-not-found-message {
-        font-size: 0.9em;
-        color: var(--cf-text-secondary);
-        line-height: 1.4;
-        margin-bottom: 20px;
-        max-width: 80%;
-      }
-      
-      .available-cards {
-        display: flex;
-        flex-wrap: wrap;
-        gap: 8px;
-        justify-content: center;
-        margin-top: 16px;
-      }
-      
-      .available-card {
-        padding: 6px 12px;
-        border: 1px solid var(--cf-border);
-        border-radius: var(--cf-radius-sm);
-        background: var(--cf-surface);
-        color: var(--cf-text-secondary);
-        font-size: 0.8em;
-        cursor: pointer;
-        transition: all var(--cf-transition-fast);
-      }
-      
-      .available-card:hover {
-        border-color: var(--cf-primary-color);
-        color: var(--cf-primary-color);
+        margin-bottom: 12px;
       }
       
       /* 确保卡片容器正确继承高度 */
@@ -177,14 +80,12 @@ class HaCardForgeCard extends LitElement {
     this._cardData = null;
     this._error = null;
     this._loading = false;
-    this._cardNotFound = false;
   }
 
   async setConfig(config) {
     try {
       this._loading = true;
       this._error = null;
-      this._cardNotFound = false;
       
       // 验证配置
       this.config = this._validateConfig(config);
@@ -192,14 +93,6 @@ class HaCardForgeCard extends LitElement {
       // 等待系统初始化
       await cardSystem.initialize();
       await themeSystem.initialize();
-      
-      // 检查卡片是否存在
-      const card = cardSystem.getCard(this.config.card_type);
-      if (!card) {
-        this._cardNotFound = true;
-        this._loading = false;
-        return;
-      }
       
       // 获取主题变量
       const themeVariables = themeSystem.getThemeVariables(this.config.theme || 'auto');
@@ -223,124 +116,99 @@ class HaCardForgeCard extends LitElement {
 
   _validateConfig(config) {
     if (!config) {
-      throw new Error('配置为空');
+      // 如果没有配置，使用默认配置
+      return this.constructor.getStubConfig();
     }
     
-    if (!config.card_type) {
-      throw new Error('必须指定 card_type 参数');
+    // 确保配置是对象
+    if (typeof config !== 'object') {
+      throw new Error('配置必须是对象格式');
+    }
+    
+    // 支持旧版本的 cardType 字段（兼容性）
+    let card_type = config.card_type;
+    if (!card_type && config.cardType) {
+      card_type = config.cardType;
+      delete config.cardType;
+    }
+    
+    // 如果还没有 card_type，抛出详细错误
+    if (!card_type) {
+      // 获取所有可用的卡片类型
+      const availableCards = this._getAvailableCardTypes();
+      const cardList = availableCards.map(card => `- ${card.id} (${card.name})`).join('\n');
+      
+      throw new Error(
+        '必须指定 card_type 参数。\n\n' +
+        '例如：\n' +
+        'type: custom:ha-cardforge-card\n' +
+        'card_type: clock\n\n' +
+        '支持的卡片类型：\n' +
+        cardList + '\n\n' +
+        '请通过卡片编辑器添加卡片，或手动添加 card_type 字段。'
+      );
+    }
+    
+    // 检查卡片是否存在
+    if (!cardSystem.getCard(card_type)) {
+      throw new Error(`卡片类型不存在: "${card_type}"。请检查拼写或使用有效的卡片类型。`);
     }
     
     return {
       type: 'custom:ha-cardforge-card',
-      card_type: '',
-      theme: 'auto',
+      card_type: card_type,
+      theme: config.theme || 'auto',
       ...config
     };
   }
 
+  _getAvailableCardTypes() {
+    try {
+      return cardSystem.getAllCards();
+    } catch (error) {
+      console.warn('获取卡片列表失败:', error);
+      return [
+        { id: 'clock', name: '时钟' },
+        { id: 'week', name: '星期' },
+        { id: 'welcome', name: '欢迎' },
+        { id: 'poetry', name: '诗词' },
+        { id: 'dashboard', name: '仪表盘' }
+      ];
+    }
+  }
+
   render() {
     if (this._error) {
-      return this._renderError(this._error);
-    }
-    
-    if (this._cardNotFound) {
-      return this._renderCardNotFound();
+      return html`
+        <ha-card>
+          <div class="cardforge-container">
+            <div class="cardforge-error">
+              <div class="error-icon">❌</div>
+              <div class="error-message">${this._error}</div>
+              ${this._error.includes('card_type') ? html`
+                <div class="error-hint">
+                  提示：请通过卡片编辑器重新添加此卡片
+                </div>
+              ` : ''}
+            </div>
+          </div>
+        </ha-card>
+      `;
     }
     
     if (this._loading || !this._cardData) {
-      return this._renderLoading();
+      return html`
+        <ha-card>
+          <div class="cardforge-container">
+            <div class="cardforge-loading">
+              <ha-circular-progress indeterminate></ha-circular-progress>
+              <div>加载中...</div>
+            </div>
+          </div>
+        </ha-card>
+      `;
     }
     
-    return this._renderCard();
-  }
-
-  _renderError(message) {
-    return html`
-      <ha-card>
-        <div class="cardforge-container">
-          <div class="cardforge-error">
-            <div class="error-icon">❌</div>
-            <div class="error-title">卡片加载失败</div>
-            <div class="error-message">${message}</div>
-            <div class="error-actions">
-              <button class="error-btn" @click=${this._reloadCard}>
-                重试
-              </button>
-              <button class="error-btn primary" @click=${this._openEditor}>
-                编辑配置
-              </button>
-            </div>
-          </div>
-        </div>
-      </ha-card>
-    `;
-  }
-
-  _renderCardNotFound() {
-    const availableCards = cardSystem.getAllCards();
-    
-    return html`
-      <ha-card>
-        <div class="cardforge-container">
-          <div class="card-not-found">
-            <div class="card-not-found-icon">🔍</div>
-            <div class="card-not-found-title">卡片未找到</div>
-            <div class="card-not-found-message">
-              卡片类型 "<strong>${this.config?.card_type}</strong>" 不存在。
-              请检查卡片类型是否正确，或从以下可用卡片中选择：
-            </div>
-            
-            ${availableCards.length > 0 ? html`
-              <div class="available-cards">
-                ${availableCards.slice(0, 8).map(card => html`
-                  <div 
-                    class="available-card"
-                    @click=${() => this._useCard(card.id)}
-                    title="${card.description || card.name}"
-                  >
-                    ${card.icon} ${card.name}
-                  </div>
-                `)}
-              </div>
-              
-              ${availableCards.length > 8 ? html`
-                <div style="font-size: 0.8em; color: var(--cf-text-secondary); margin-top: 8px;">
-                  还有 ${availableCards.length - 8} 张更多卡片...
-                </div>
-              ` : ''}
-            ` : html`
-              <div class="error-message">暂无可用卡片</div>
-            `}
-            
-            <div class="error-actions" style="margin-top: 24px;">
-              <button class="error-btn primary" @click=${this._openEditor}>
-                编辑配置
-              </button>
-            </div>
-          </div>
-        </div>
-      </ha-card>
-    `;
-  }
-
-  _renderLoading() {
-    return html`
-      <ha-card>
-        <div class="cardforge-container">
-          <div class="cardforge-loading">
-            <ha-circular-progress indeterminate></ha-circular-progress>
-            <div class="loading-text">
-              ${this.config?.card_type ? 
-                `加载卡片: ${this.config.card_type}` : 
-                '初始化卡片...'}
-            </div>
-          </div>
-        </div>
-      </ha-card>
-    `;
-  }
-
-  _renderCard() {
     try {
       const themeStyles = themeSystem.getThemeStyles(this.config.theme || 'auto');
       const cardStyles = this._cardData.styles || '';
@@ -359,7 +227,16 @@ class HaCardForgeCard extends LitElement {
       `;
     } catch (error) {
       console.error('❌ 卡片渲染失败:', error);
-      return this._renderError(`渲染错误: ${error.message}`);
+      return html`
+        <ha-card>
+          <div class="cardforge-container">
+            <div class="cardforge-error">
+              <div class="error-icon">⚠️</div>
+              <div class="error-message">渲染错误: ${error.message}</div>
+            </div>
+          </div>
+        </ha-card>
+      `;
     }
   }
 
@@ -373,12 +250,6 @@ class HaCardForgeCard extends LitElement {
     if (!this.config?.card_type) return;
     
     try {
-      const card = cardSystem.getCard(this.config.card_type);
-      if (!card) {
-        this._cardNotFound = true;
-        return;
-      }
-      
       const themeVariables = themeSystem.getThemeVariables(this.config.theme || 'auto');
       this._cardData = cardSystem.renderCard(
         this.config.card_type,
@@ -392,32 +263,26 @@ class HaCardForgeCard extends LitElement {
     }
   }
 
-  _reloadCard() {
-    this.setConfig(this.config);
+  // 提供给 Home Assistant 编辑器使用的默认配置
+  static getStubConfig() {
+    return {
+      type: 'custom:ha-cardforge-card',
+      card_type: 'clock',  // 默认显示时钟卡片
+      theme: 'auto',
+      showDate: true,
+      showWeekday: true
+    };
   }
 
-  _useCard(cardId) {
-    this.config = { ...this.config, card_type: cardId };
-    this.setConfig(this.config);
-  }
-
-  _openEditor() {
-    // 触发 Home Assistant 编辑器打开
-    const event = new Event('hass-more-info', { 
-      bubbles: true, 
-      composed: true 
-    });
-    event.detail = { entityId: null };
-    this.dispatchEvent(event);
-  }
-
+  // 获取卡片大小（用于布局）
   getCardSize() {
-    if (this._error || this._cardNotFound || this._loading) {
-      return 3;
-    }
-    
     const card = cardSystem.getCard(this.config?.card_type);
     return card?.layout?.recommendedSize || 3;
+  }
+
+  // 获取配置元素（编辑器）
+  static getConfigElement() {
+    return document.createElement('card-editor');
   }
 }
 
