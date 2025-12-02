@@ -6,25 +6,20 @@ class ThemeSystem {
     this._initialized = false;
   }
 
-  /**
-   * 初始化主题系统
-   */
   async initialize() {
     if (this._initialized) return;
     
     console.log('🎨 初始化主题系统...');
     
-    // 动态发现所有主题
+    // 恢复原有的动态发现方式
     await this._discoverThemes();
     
     this._initialized = true;
     console.log(`✅ 主题系统初始化完成，加载 ${this.themes.size} 个主题`);
   }
 
-  /**
-   * 动态发现主题
-   */
   async _discoverThemes() {
+    // 使用函数包装的导入，保持原有方式
     const themeModules = [
       () => import('../themes/auto.js'),
       () => import('../themes/glass.js'),
@@ -43,9 +38,6 @@ class ThemeSystem {
     }
   }
 
-  /**
-   * 注册主题模块
-   */
   _registerThemeModule(module) {
     if (!module.theme) {
       console.warn('主题缺少 theme 声明，跳过注册');
@@ -63,16 +55,10 @@ class ThemeSystem {
     console.log(`✅ 注册主题: ${themeId} (${module.theme.name})`);
   }
 
-  /**
-   * 获取主题
-   */
   getTheme(themeId) {
     return this.themes.get(themeId) || this.themes.get('auto');
   }
 
-  /**
-   * 获取所有主题列表
-   */
   getAllThemes() {
     return Array.from(this.themes.values()).map(theme => ({
       id: theme.id,
@@ -83,17 +69,11 @@ class ThemeSystem {
     }));
   }
 
-  /**
-   * 获取主题变量
-   */
   getThemeVariables(themeId) {
     const theme = this.getTheme(themeId);
     return theme?.variables || {};
   }
 
-  /**
-   * 获取主题样式
-   */
   getThemeStyles(themeId) {
     const theme = this.getTheme(themeId);
     if (!theme) return '';
@@ -117,9 +97,6 @@ class ThemeSystem {
     return styles;
   }
 
-  /**
-   * 获取主题预览样式
-   */
   getThemePreview(themeId) {
     const theme = this.getTheme(themeId);
     if (!theme) return this._getDefaultPreview();
@@ -135,9 +112,6 @@ class ThemeSystem {
     return this._getDefaultPreview();
   }
 
-  /**
-   * 获取默认预览
-   */
   _getDefaultPreview() {
     return {
       background: 'var(--cf-background)',
@@ -146,18 +120,12 @@ class ThemeSystem {
     };
   }
 
-  /**
-   * 获取默认背景
-   */
   _getDefaultBackground(themeId) {
     const hash = this._stringToHash(themeId);
     const hue = hash % 360;
     return `linear-gradient(135deg, hsl(${hue}, 70%, 50%) 0%, hsl(${(hue + 30) % 360}, 70%, 40%) 100%)`;
   }
 
-  /**
-   * 字符串哈希
-   */
   _stringToHash(str) {
     let hash = 0;
     for (let i = 0; i < str.length; i++) {
