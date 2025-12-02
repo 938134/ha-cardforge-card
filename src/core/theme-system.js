@@ -26,11 +26,11 @@ class ThemeSystem {
    */
   async _discoverThemes() {
     const themeModules = [
-      () => import('../themes/auto.js'),
-      () => import('../themes/glass.js'),
-      () => import('../themes/gradient.js'),
-      () => import('../themes/neon.js'),
-      () => import('../themes/inkwash.js')
+      () => import('../themes/auto-theme.js'),
+      () => import('../themes/glass-theme.js'),
+      () => import('../themes/gradient-theme.js'),
+      () => import('../themes/neon-theme.js'),
+      () => import('../themes/inkwash-theme.js')
     ];
 
     for (const importFn of themeModules) {
