@@ -31,7 +31,7 @@ class ThemeSystem {
         const module = await importFn();
         this._registerThemeModule(module);
       } catch (error) {
-        // 主题加载失败，静默处理
+        // 静默失败，不影响其他主题
       }
     }
   }
@@ -54,6 +54,24 @@ class ThemeSystem {
   // 获取主题
   getTheme(themeId) {
     return this.themes.get(themeId) || this.themes.get('auto');
+  }
+
+  // 获取默认主题
+  getDefaultTheme() {
+    return this.getTheme('auto');
+  }
+
+  // 按类型获取主题
+  getThemesByType(type) {
+    return Array.from(this.themes.values())
+      .filter(theme => theme.type === type)
+      .map(theme => ({
+        id: theme.id,
+        name: theme.name,
+        description: theme.description,
+        icon: theme.icon,
+        preview: theme.preview || {}
+      }));
   }
 
   // 获取所有主题列表
@@ -106,7 +124,7 @@ class ThemeSystem {
     return styles;
   }
 
-  // 获取主题预览样式
+  // 获取主题预览
   getThemePreview(themeId) {
     const theme = this.getTheme(themeId);
     if (!theme) return this._getDefaultPreview();

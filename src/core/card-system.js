@@ -32,7 +32,7 @@ class CardSystem {
         const module = await importFn();
         this._registerCardModule(module);
       } catch (error) {
-        // 卡片加载失败，静默处理
+        // 静默失败，不影响其他卡片
       }
     }
   }
@@ -67,6 +67,28 @@ class CardSystem {
     return this.cards.get(cardId)?.definition;
   }
 
+  // 获取默认卡片
+  getDefaultCard() {
+    const defaultCards = ['clock', 'welcome', 'dashboard'];
+    for (const cardId of defaultCards) {
+      if (this.cards.has(cardId)) {
+        return this.getCard(cardId);
+      }
+    }
+    return this.cards.values().next().value?.definition;
+  }
+
+  // 按分类获取卡片
+  getCardsByCategory(category) {
+    return Array.from(this.cards.values())
+      .filter(item => item.definition.meta.category === category)
+      .map(item => ({
+        id: item.id,
+        ...item.definition.meta,
+        schema: item.definition.schema
+      }));
+  }
+
   // 获取所有卡片列表
   getAllCards() {
     return Array.from(this.cards.values()).map(item => ({
@@ -76,11 +98,22 @@ class CardSystem {
     }));
   }
 
+  // 获取所有卡片分类
+  getAllCategories() {
+    const categories = new Set();
+    this.cards.forEach(item => {
+      if (item.definition.meta.category) {
+        categories.add(item.definition.meta.category);
+      }
+    });
+    return Array.from(categories);
+  }
+
   // 渲染卡片
   renderCard(cardId, userConfig = {}, hass = null, themeVariables = {}) {
     const card = this.getCard(cardId);
     if (!card) {
-      return this._renderErrorCard(`卡片不存在: ${cardId}`);
+      throw new Error(`卡片不存在: ${cardId}`);
     }
 
     // 合并配置（用户配置 + 默认值）
@@ -105,7 +138,7 @@ class CardSystem {
         config
       };
     } catch (error) {
-      return this._renderErrorCard(`卡片渲染失败: ${error.message}`);
+      throw new Error(`卡片渲染失败: ${error.message}`);
     }
   }
 
@@ -121,31 +154,6 @@ class CardSystem {
     });
     
     return config;
-  }
-
-  // 渲染错误卡片
-  _renderErrorCard(message) {
-    return {
-      template: `
-        <div class="cardforge-error">
-          <div class="error-icon">❌</div>
-          <div class="error-message">${message}</div>
-        </div>
-      `,
-      styles: `
-        .cardforge-error {
-          display: flex;
-          flex-direction: column;
-          align-items: center;
-          justify-content: center;
-          height: 100%;
-          text-align: center;
-          color: var(--cf-text-secondary);
-        }
-        .error-icon { font-size: 2em; margin-bottom: 12px; }
-        .error-message { font-size: 0.9em; }
-      `
-    };
   }
 }
 

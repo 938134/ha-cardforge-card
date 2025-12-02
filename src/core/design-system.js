@@ -1,4 +1,4 @@
-// src/core/design-system.js - 确保有完整的 CSS
+// src/core/design-system.js
 import { css } from 'https://unpkg.com/lit@2.8.0/index.js?module';
 
 export const designSystem = css`
@@ -11,10 +11,6 @@ export const designSystem = css`
     --cf-border: var(--divider-color, #e0e0e0);
     --cf-text-primary: var(--primary-text-color, #212121);
     --cf-text-secondary: var(--secondary-text-color, #757575);
-    
-    /* RGB 颜色用于透明度 */
-    --cf-rgb-primary: 3, 169, 244;
-    --cf-rgb-accent: 255, 64, 129;
     
     /* 块变量 */
     --cf-block-bg: rgba(0, 0, 0, 0.03);
@@ -34,15 +30,9 @@ export const designSystem = css`
     --cf-radius-md: 8px;
     --cf-radius-lg: 12px;
     
-    /* 阴影变量 */
-    --cf-shadow-sm: 0 2px 4px rgba(0, 0, 0, 0.1);
-    --cf-shadow-md: 0 4px 8px rgba(0, 0, 0, 0.12);
-    --cf-shadow-lg: 0 8px 16px rgba(0, 0, 0, 0.14);
-    
     /* 动画变量 */
     --cf-transition-fast: 0.15s ease;
     --cf-transition-normal: 0.25s ease;
-    --cf-transition-slow: 0.35s ease;
   }
   
   /* 深色模式适配 */
@@ -54,9 +44,6 @@ export const designSystem = css`
       --cf-text-primary: #e0e0e0;
       --cf-text-secondary: #a0a0a0;
       --cf-block-bg: rgba(255, 255, 255, 0.05);
-      --cf-shadow-sm: 0 2px 4px rgba(0, 0, 0, 0.3);
-      --cf-shadow-md: 0 4px 8px rgba(0, 0, 0, 0.35);
-      --cf-shadow-lg: 0 8px 16px rgba(0, 0, 0, 0.4);
     }
   }
   

@@ -1,8 +1,8 @@
-// src/editors/card-selector.js - 完整版
+// src/editors/card-selector.js
 import { LitElement, html, css } from 'https://unpkg.com/lit@2.8.0/index.js?module';
 import { designSystem } from '../core/design-system.js';
 
-class CardSelector extends LitElement {
+export class CardSelector extends LitElement {
   static properties = {
     cards: { type: Array },
     selectedCard: { type: String },
@@ -17,6 +17,7 @@ class CardSelector extends LitElement {
         width: 100%;
       }
       
+      /* 分类筛选器 */
       .category-filter {
         display: flex;
         flex-wrap: wrap;
@@ -49,6 +50,7 @@ class CardSelector extends LitElement {
         color: white;
       }
       
+      /* 卡片网格 */
       .card-grid {
         display: grid;
         grid-template-columns: repeat(auto-fill, minmax(90px, 1fr));
@@ -104,6 +106,7 @@ class CardSelector extends LitElement {
         color: white;
       }
       
+      /* 空状态 */
       .empty-state {
         text-align: center;
         padding: 40px 20px;
@@ -116,6 +119,7 @@ class CardSelector extends LitElement {
         opacity: 0.5;
       }
       
+      /* 响应式设计 */
       @media (max-width: 768px) {
         .card-grid {
           grid-template-columns: repeat(auto-fill, minmax(80px, 1fr));
@@ -134,6 +138,21 @@ class CardSelector extends LitElement {
         
         .card-name {
           font-size: 0.75em;
+        }
+      }
+      
+      @media (max-width: 480px) {
+        .card-grid {
+          grid-template-columns: repeat(auto-fill, minmax(70px, 1fr));
+          gap: 8px;
+        }
+        
+        .card-item {
+          min-height: 70px;
+        }
+        
+        .card-icon {
+          font-size: 1.5em;
         }
       }
     `
@@ -160,6 +179,7 @@ class CardSelector extends LitElement {
     
     return html`
       <div class="card-selector">
+        <!-- 分类筛选器 -->
         ${categories.length > 1 ? html`
           <div class="category-filter">
             <button 
@@ -179,6 +199,7 @@ class CardSelector extends LitElement {
           </div>
         ` : ''}
         
+        <!-- 卡片网格 -->
         <div class="card-grid">
           ${this._filteredCards.map(card => html`
             <div 
@@ -233,6 +254,7 @@ class CardSelector extends LitElement {
       this._filteredCards = this.cards.filter(card => card.category === this._selectedCategory);
     }
     
+    // 按名称排序
     this._filteredCards.sort((a, b) => a.name.localeCompare(b.name));
   }
 
@@ -251,5 +273,3 @@ class CardSelector extends LitElement {
 if (!customElements.get('card-selector')) {
   customElements.define('card-selector', CardSelector);
 }
-
-export { CardSelector }; 

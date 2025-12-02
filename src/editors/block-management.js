@@ -442,35 +442,34 @@ class BlockManagement extends LitElement {
     }));
   }
 
-// 在 block-management.js 中添加预设块识别
-_getBlockName(block) {
-  // 优先使用自定义名称
-  if (block.name) return block.name;
-  
-  // 如果是预设块类型，显示类型名称
-  if (block.type && block.type.includes('_')) {
-    const typeMap = {
-      'poetry_title': '诗词标题',
-      'poetry_dynasty': '朝代',
-      'poetry_author': '作者',
-      'poetry_content': '诗词内容',
-      'poetry_translation': '诗词译文',
-      'greeting_block': '问候语',
-      'time_block': '时间',
-      'quote_block': '每日一言'
-    };
-    return typeMap[block.type] || block.type;
+  _getBlockName(block) {
+    // 优先使用自定义名称
+    if (block.name) return block.name;
+    
+    // 如果是预设块类型，显示类型名称
+    if (block.type && block.type.includes('_')) {
+      const typeMap = {
+        'poetry_title': '诗词标题',
+        'poetry_dynasty': '朝代',
+        'poetry_author': '作者',
+        'poetry_content': '诗词内容',
+        'poetry_translation': '诗词译文',
+        'greeting_block': '问候语',
+        'time_block': '时间',
+        'quote_block': '每日一言'
+      };
+      return typeMap[block.type] || block.type;
+    }
+    
+    // 如果有实体，使用实体的友好名称
+    if (block.entity && this.hass?.states?.[block.entity]) {
+      const entity = this.hass.states[block.entity];
+      return entity.attributes?.friendly_name || block.entity;
+    }
+    
+    // 默认名称
+    return block.entity ? '实体块' : '自定义块';
   }
-  
-  // 如果有实体，使用实体的友好名称
-  if (block.entity && this.hass?.states?.[block.entity]) {
-    const entity = this.hass.states[block.entity];
-    return entity.attributes?.friendly_name || block.entity;
-  }
-  
-  // 默认名称
-  return block.entity ? '实体块' : '自定义块';
-}
 
   _getBlockValue(block) {
     // 优先使用自定义值

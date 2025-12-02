@@ -1,6 +1,8 @@
 // src/core/block-renderer.js
 
-// 根据实体域获取默认图标
+/**
+ * 根据实体域获取默认图标
+ */
 const getDefaultIcon = (entityId) => {
   if (!entityId) return 'mdi:cube';
   const domain = entityId.split('.')[0];
@@ -21,7 +23,9 @@ const getDefaultIcon = (entityId) => {
   return iconMap[domain] || 'mdi:cube';
 };
 
-// 安全HTML编码
+/**
+ * 安全HTML编码
+ */
 const escapeHtml = (text) => {
   if (!text) return '';
   return String(text)
@@ -32,7 +36,9 @@ const escapeHtml = (text) => {
     .replace(/'/g, '&#x27;');
 };
 
-// 获取块的显示名称
+/**
+ * 获取块的显示名称
+ */
 const getBlockName = (block, hass) => {
   // 优先使用自定义名称
   if (block.name) return block.name;
@@ -47,7 +53,9 @@ const getBlockName = (block, hass) => {
   return block.entity ? '实体块' : '自定义块';
 };
 
-// 获取块的显示值
+/**
+ * 获取块的显示值
+ */
 const getBlockValue = (block, hass) => {
   // 优先使用自定义值
   if (block.value !== undefined) return block.value;
@@ -64,7 +72,9 @@ const getBlockValue = (block, hass) => {
   return block.content || '';
 };
 
-// 获取块的图标
+/**
+ * 获取块的图标
+ */
 const getBlockIcon = (block, hass) => {
   // 优先使用自定义图标
   if (block.icon) return block.icon;
@@ -79,7 +89,9 @@ const getBlockIcon = (block, hass) => {
   return getDefaultIcon(block.entity);
 };
 
-// 渲染单个块
+/**
+ * 渲染单个块
+ */
 export const renderBlock = (block, hass) => {
   const icon = getBlockIcon(block, hass);
   const name = getBlockName(block, hass);
@@ -101,7 +113,9 @@ export const renderBlock = (block, hass) => {
   `;
 };
 
-// 批量渲染多个块
+/**
+ * 批量渲染多个块
+ */
 export const renderBlocks = (blocks, hass) => {
   if (!blocks || Object.keys(blocks).length === 0) return '';
   
