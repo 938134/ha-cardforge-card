@@ -1,8 +1,8 @@
-// src/editors/card-selector.js - 优化版
-import { LitElement, html } from 'https://unpkg.com/lit@2.8.0/index.js?module';
+// src/editors/card-selector.js - 完整版
+import { LitElement, html, css } from 'https://unpkg.com/lit@2.8.0/index.js?module';
 import { designSystem } from '../core/design-system.js';
 
-export class CardSelector extends LitElement {
+class CardSelector extends LitElement {
   static properties = {
     cards: { type: Array },
     selectedCard: { type: String },
@@ -251,3 +251,5 @@ export class CardSelector extends LitElement {
 if (!customElements.get('card-selector')) {
   customElements.define('card-selector', CardSelector);
 }
+
+export { CardSelector }; 
