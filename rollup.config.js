@@ -1,21 +1,17 @@
 // rollup.config.js
 import { nodeResolve } from '@rollup/plugin-node-resolve';
 
+// rollup.config.js
 export default {
-  input: 'src/main.js',  
+  input: 'src/main.js',
   output: {
-    file: 'ha-cardforge-card.js',
+    file: 'dist/ha-cardforge-card.js',
     format: 'es',
-    inlineDynamicImports: true, 
+    inlineDynamicImports: false,  // 关键：不要内联动态导入
+    sourcemap: false
   },
   external: [
-    /^lit/,
-    /^@lit/,
-    'lit-element',
-    'lit-html', 
-    'lit-html/is-server',
-  ],
-  plugins: [
-    nodeResolve({ preferBuiltins: false })
-  ],
+    'https://unpkg.com/lit@2.8.0/index.js?module',
+    'https://unpkg.com/lit-html/directives/unsafe-html.js?module'
+  ]
 };
