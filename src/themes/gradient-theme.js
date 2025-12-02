@@ -1,5 +1,3 @@
-// src/themes/gradient.js
-
 export const theme = {
   id: 'gradient',
   name: '渐变',
@@ -16,10 +14,12 @@ export const theme = {
   },
   
   styles: `
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    background-size: 200% 200%;
-    animation: gradient-shift 6s ease infinite;
-    border: none;
+    .cardforge-container {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      background-size: 200% 200%;
+      animation: gradient-shift 6s ease infinite;
+      border: none;
+    }
     
     @keyframes gradient-shift {
       0% { background-position: 0% 50%; }
