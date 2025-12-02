@@ -1,4 +1,4 @@
-// src/editors/card-editor.js
+// src/editors/card-editor.js - 完整修复版
 import { LitElement, html, css } from 'https://unpkg.com/lit@2.8.0/index.js?module';
 import { cardSystem } from '../core/card-system.js';
 import { themeSystem } from '../core/theme-system.js';
@@ -11,7 +11,8 @@ class CardEditor extends LitElement {
     _cards: { state: true },
     _themes: { state: true },
     _selectedCard: { state: true },
-    _initialized: { state: true }
+    _initialized: { state: true },
+    _lastConfig: { state: true }  // 添加：跟踪上次配置
   };
 
   static styles = [
@@ -22,6 +23,7 @@ class CardEditor extends LitElement {
         border-radius: var(--cf-radius-lg);
         border: 1px solid var(--cf-border);
         overflow: hidden;
+        min-width: 350px;
       }
       
       .editor-section {
@@ -78,6 +80,7 @@ class CardEditor extends LitElement {
         border-color: var(--cf-primary-color);
         background: var(--cf-primary-color);
         color: white;
+        box-shadow: var(--cf-shadow-md);
       }
       
       .card-icon {
@@ -126,6 +129,7 @@ class CardEditor extends LitElement {
       .theme-item.selected {
         border-color: var(--cf-primary-color);
         border-width: 2px;
+        transform: translateY(-2px);
       }
       
       .theme-preview {
@@ -134,6 +138,7 @@ class CardEditor extends LitElement {
         border-radius: var(--cf-radius-sm);
         margin-bottom: 10px;
         border: 2px solid transparent;
+        transition: all var(--cf-transition-fast);
       }
       
       .theme-item.selected .theme-preview {
@@ -165,6 +170,84 @@ class CardEditor extends LitElement {
         flex-direction: column;
         gap: var(--cf-spacing-lg);
       }
+      
+      /* 开关组 */
+      .switch-group {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+        gap: var(--cf-spacing-md);
+        margin-bottom: var(--cf-spacing-lg);
+      }
+      
+      .switch-item {
+        display: flex;
+        align-items: center;
+        gap: var(--cf-spacing-md);
+        padding: var(--cf-spacing-sm) var(--cf-spacing-md);
+        background: var(--cf-surface);
+        border: 1px solid var(--cf-border);
+        border-radius: var(--cf-radius-md);
+        cursor: pointer;
+        transition: all var(--cf-transition-fast);
+      }
+      
+      .switch-item:hover {
+        border-color: var(--cf-primary-color);
+      }
+      
+      .switch-label {
+        font-size: 0.9em;
+        font-weight: 500;
+        color: var(--cf-text-primary);
+        flex: 1;
+      }
+      
+      /* 表单字段 */
+      .form-field {
+        display: flex;
+        flex-direction: column;
+        gap: var(--cf-spacing-sm);
+      }
+      
+      .field-label {
+        font-size: 0.9em;
+        font-weight: 500;
+        color: var(--cf-text-primary);
+      }
+      
+      .field-description {
+        font-size: 0.8em;
+        color: var(--cf-text-secondary);
+        line-height: 1.3;
+      }
+      
+      /* 确保表单组件样式一致 */
+      ha-textfield, ha-select, ha-combo-box, ha-icon-picker {
+        width: 100%;
+      }
+      
+      /* 响应式 */
+      @media (max-width: 480px) {
+        .card-grid,
+        .theme-grid {
+          grid-template-columns: repeat(auto-fill, minmax(80px, 1fr));
+          gap: var(--cf-spacing-sm);
+        }
+        
+        .card-item,
+        .theme-item {
+          padding: var(--cf-spacing-sm);
+          min-height: 80px;
+        }
+        
+        .theme-preview {
+          height: 40px;
+        }
+        
+        .switch-group {
+          grid-template-columns: 1fr;
+        }
+      }
     `
   ];
 
@@ -180,6 +263,7 @@ class CardEditor extends LitElement {
     this._themes = [];
     this._selectedCard = null;
     this._initialized = false;
+    this._lastConfig = null; // 用于检测配置变化
   }
 
   async firstUpdated() {
@@ -193,12 +277,19 @@ class CardEditor extends LitElement {
     // 如果配置中没有 card_type，设置为第一个卡片
     if (!this.config.card_type && this._cards.length > 0) {
       const firstCard = this._cards[0];
-      this.config.card_type = firstCard.id;
+      this.config = {
+        ...this.config,
+        card_type: firstCard.id
+      };
       this._selectedCard = cardSystem.getCard(firstCard.id);
-      this._notifyConfigChange(); // 通知配置已更新
+      this._applyCardDefaults(firstCard.id);
+      this._notifyConfigChange();
     } else if (this.config.card_type) {
       this._selectedCard = cardSystem.getCard(this.config.card_type);
     }
+    
+    // 保存初始配置用于比较
+    this._lastConfig = JSON.stringify(this.config);
   }
 
   setConfig(config) {
@@ -207,9 +298,18 @@ class CardEditor extends LitElement {
       return;
     }
     
+    const oldConfig = this.config;
     this.config = { ...config };
+    
     if (this._initialized && this.config.card_type) {
       this._selectedCard = cardSystem.getCard(this.config.card_type);
+    }
+    
+    // 检查配置是否真的有变化
+    const newConfigStr = JSON.stringify(this.config);
+    if (newConfigStr !== this._lastConfig) {
+      this._lastConfig = newConfigStr;
+      this.requestUpdate();
     }
   }
 
@@ -305,24 +405,71 @@ class CardEditor extends LitElement {
       `;
     }
 
+    // 分离布尔字段和其他字段
+    const booleanFields = [];
+    const otherFields = [];
+    
+    schemaKeys.forEach(key => {
+      const field = schema[key];
+      // 检查字段是否应该显示
+      if (field.visibleWhen && typeof field.visibleWhen === 'function') {
+        if (!field.visibleWhen(this.config)) {
+          return; // 跳过这个字段
+        }
+      }
+      
+      if (field.type === 'boolean') {
+        booleanFields.push([key, field]);
+      } else {
+        otherFields.push([key, field]);
+      }
+    });
+
     return html`
       <div class="editor-section">
         <div class="section-header">
           <ha-icon icon="mdi:cog"></ha-icon>
           <span class="section-title">卡片设置</span>
         </div>
-        <div class="config-form">
-          ${schemaKeys.map(key => {
-            const field = schema[key];
-            // 检查字段是否应该显示
-            if (field.visibleWhen && typeof field.visibleWhen === 'function') {
-              if (!field.visibleWhen(this.config)) {
-                return '';
-              }
-            }
-            return this._renderField(key, field);
-          })}
-        </div>
+        
+        <!-- 布尔字段（开关组） -->
+        ${booleanFields.length > 0 ? html`
+          <div class="switch-group">
+            ${booleanFields.map(([key, field]) => this._renderBooleanField(key, field))}
+          </div>
+        ` : ''}
+        
+        <!-- 其他字段 -->
+        ${otherFields.length > 0 ? html`
+          <div class="config-form">
+            ${otherFields.map(([key, field]) => html`
+              <div class="form-field">
+                ${this._renderField(key, field)}
+                ${field.description ? html`
+                  <div class="field-description">${field.description}</div>
+                ` : ''}
+              </div>
+            `)}
+          </div>
+        ` : ''}
+      </div>
+    `;
+  }
+
+  _renderBooleanField(key, field) {
+    const value = this.config[key] !== undefined ? this.config[key] : field.default;
+    
+    return html`
+      <div 
+        class="switch-item"
+        @click=${() => this._updateConfig(key, !value)}
+      >
+        <ha-switch
+          .checked=${value}
+          @click=${e => e.stopPropagation()}
+          @change=${e => this._updateConfig(key, e.target.checked)}
+        ></ha-switch>
+        <div class="switch-label">${field.label}</div>
       </div>
     `;
   }
@@ -331,110 +478,236 @@ class CardEditor extends LitElement {
     const value = this.config[key] !== undefined ? this.config[key] : field.default;
     
     switch (field.type) {
-      case 'boolean':
-        return html`
-          <div style="display: flex; align-items: center; gap: var(--cf-spacing-md);">
-            <ha-switch
-              .checked=${value}
-              @change=${e => this._updateConfig(key, e.target.checked)}
-            ></ha-switch>
-            <div style="font-size: 0.9em; font-weight: 500;">${field.label}</div>
-          </div>
-        `;
-        
       case 'select':
-        return html`
-          <ha-select
-            .value=${value}
-            @closed=${e => e.stopPropagation()}
-            naturalMenuWidth
-            fixedMenuPosition
-            fullwidth
-            .label=${field.label}
-            @change=${e => this._updateConfig(key, e.target.value)}
-          >
-            ${field.options.map(opt => html`
-              <ha-list-item .value=${opt.value || opt}>
-                ${opt.label || opt}
-              </ha-list-item>
-            `)}
-          </ha-select>
-        `;
-        
+        return this._renderSelectField(key, field, value);
       case 'number':
-        return html`
-          <ha-textfield
-            type="number"
-            .value=${value}
-            @input=${e => this._updateConfig(key, parseInt(e.target.value) || 0)}
-            .label=${field.label}
-            .min=${field.min}
-            .max=${field.max}
-            .step=${field.step || 1}
-            fullwidth
-          ></ha-textfield>
-        `;
-        
+        return this._renderNumberField(key, field, value);
+      case 'entity':
+        return this._renderEntityField(key, field, value);
+      case 'icon':
+        return this._renderIconField(key, field, value);
       default:
-        return html`
-          <ha-textfield
-            .value=${value || ''}
-            @input=${e => this._updateConfig(key, e.target.value)}
-            .label=${field.label}
-            .placeholder=${field.placeholder || ''}
-            fullwidth
-          ></ha-textfield>
-        `;
+        return this._renderTextField(key, field, value);
     }
   }
 
-_selectCard(card) {
-  const currentConfig = { ...this.config };
-  
-  // 应用schema中的默认值
-  const defaultConfig = {};
-  Object.entries(card.schema).forEach(([key, field]) => {
-    if (field.default !== undefined) {
-      defaultConfig[key] = field.default;
+  _renderSelectField(key, field, value) {
+    const options = field.options || [];
+    
+    return html`
+      <ha-select
+        .value=${value || ''}
+        @closed=${e => e.stopPropagation()}
+        naturalMenuWidth
+        fixedMenuPosition
+        fullwidth
+        .label=${field.label}
+        @change=${e => this._updateConfig(key, e.target.value)}
+      >
+        ${options.map(opt => html`
+          <ha-list-item .value=${opt.value || opt}>
+            ${opt.label || opt}
+          </ha-list-item>
+        `)}
+      </ha-select>
+    `;
+  }
+
+  _renderNumberField(key, field, value) {
+    return html`
+      <ha-textfield
+        type="number"
+        .value=${value}
+        @input=${e => this._updateConfig(key, parseInt(e.target.value) || 0)}
+        .label=${field.label}
+        .min=${field.min}
+        .max=${field.max}
+        .step=${field.step || 1}
+        fullwidth
+      ></ha-textfield>
+    `;
+  }
+
+  _renderEntityField(key, field, value) {
+    const entities = this._getAvailableEntities();
+    
+    return html`
+      ${entities.length > 0 ? html`
+        <ha-combo-box
+          .items=${entities}
+          .value=${value || ''}
+          @value-changed=${e => this._updateConfig(key, e.detail.value)}
+          allow-custom-value
+          .label=${field.label}
+          fullwidth
+        ></ha-combo-box>
+      ` : html`
+        <ha-textfield
+          .value=${value || ''}
+          @input=${e => this._updateConfig(key, e.target.value)}
+          .label=${field.label}
+          .placeholder=${field.placeholder || '例如: light.living_room'}
+          fullwidth
+        ></ha-textfield>
+      `}
+    `;
+  }
+
+  _renderIconField(key, field, value) {
+    return html`
+      <ha-icon-picker
+        .value=${value || ''}
+        @value-changed=${e => this._updateConfig(key, e.detail.value)}
+        .label=${field.label}
+        fullwidth
+      ></ha-icon-picker>
+    `;
+  }
+
+  _renderTextField(key, field, value) {
+    return html`
+      <ha-textfield
+        .value=${value || ''}
+        @input=${e => this._updateConfig(key, e.target.value)}
+        .label=${field.label}
+        .placeholder=${field.placeholder || ''}
+        fullwidth
+      ></ha-textfield>
+    `;
+  }
+
+  _selectCard(card) {
+    if (this.config.card_type === card.id) {
+      return; // 已经是当前卡片，不重复触发
     }
-  });
-  
-  this.config = {
-    type: 'custom:ha-cardforge-card',
-    card_type: card.id,
-    theme: currentConfig.theme || 'auto',
-    ...defaultConfig,
-    ...currentConfig  // 用户已有的配置覆盖默认值
-  };
-  
-  this._selectedCard = cardSystem.getCard(card.id);
-  
-  // 添加：强制触发配置更新事件，确保预览更新
-  this._notifyConfigChange(true);
-}
+    
+    console.log('🎯 选择卡片:', card.id);
+    
+    // 保存当前配置中除卡片特定配置外的其他配置
+    const currentConfig = { ...this.config };
+    const currentCard = this._selectedCard;
+    
+    // 移除当前卡片的schema相关配置
+    if (currentCard?.schema) {
+      Object.keys(currentCard.schema).forEach(key => {
+        delete currentConfig[key];
+      });
+    }
+    
+    // 应用新卡片的默认配置
+    const newCard = cardSystem.getCard(card.id);
+    const defaultConfig = {};
+    if (newCard?.schema) {
+      Object.entries(newCard.schema).forEach(([key, field]) => {
+        if (field.default !== undefined) {
+          defaultConfig[key] = field.default;
+        }
+      });
+    }
+    
+    // 构建新配置
+    const newConfig = {
+      type: 'custom:ha-cardforge-card',
+      card_type: card.id,
+      theme: currentConfig.theme || 'auto',
+      ...defaultConfig,
+      ...currentConfig  // 保留其他配置
+    };
+    
+    // 删除可能存在的旧card_type字段
+    delete newConfig.cardType;
+    
+    console.log('🔄 新配置:', newConfig);
+    
+    // 更新状态
+    this.config = newConfig;
+    this._selectedCard = newCard;
+    this._lastConfig = JSON.stringify(newConfig);
+    
+    // 立即触发配置更新
+    this._notifyConfigChange();
+    
+    // 确保UI更新
+    this.requestUpdate();
+  }
+
+  _applyCardDefaults(cardId) {
+    const card = cardSystem.getCard(cardId);
+    if (!card?.schema) return;
+    
+    const updates = {};
+    Object.entries(card.schema).forEach(([key, field]) => {
+      if (field.default !== undefined && this.config[key] === undefined) {
+        updates[key] = field.default;
+      }
+    });
+    
+    if (Object.keys(updates).length > 0) {
+      this.config = { ...this.config, ...updates };
+    }
+  }
 
   _selectTheme(themeId) {
+    if (this.config.theme === themeId) {
+      return; // 已经是当前主题，不重复触发
+    }
+    
+    console.log('🎨 选择主题:', themeId);
+    
     this.config = { ...this.config, theme: themeId };
+    this._lastConfig = JSON.stringify(this.config);
     this._notifyConfigChange();
   }
 
   _updateConfig(key, value) {
+    // 检查值是否真的变化了
+    if (this.config[key] === value) {
+      return;
+    }
+    
+    console.log('⚙️ 更新配置:', key, '=', value);
+    
     this.config = { ...this.config, [key]: value };
+    this._lastConfig = JSON.stringify(this.config);
     this._notifyConfigChange();
   }
 
-_notifyConfigChange(forceUpdate = false) {
-  const event = new CustomEvent('config-changed', {
-    detail: { 
-      config: this.config,
-      forceUpdate: forceUpdate  // 添加这个标志
-    }
-  });
-  this.dispatchEvent(event);
-}
+  _getAvailableEntities() {
+    if (!this.hass?.states) return [];
+    
+    return Object.entries(this.hass.states)
+      .map(([entityId, state]) => ({
+        value: entityId,
+        label: `${state.attributes?.friendly_name || entityId} (${entityId})`
+      }))
+      .sort((a, b) => a.label.localeCompare(b.label));
+  }
+
+  _notifyConfigChange() {
+    console.log('📤 发送配置更新事件');
+    
+    const event = new CustomEvent('config-changed', {
+      bubbles: true,      // 冒泡，让父组件也能收到
+      composed: true,     // 跨越 Shadow DOM 边界
+      detail: { 
+        config: { ...this.config }  // 发送副本，确保是新对象
+      }
+    });
+    
+    this.dispatchEvent(event);
+    
+    // 强制触发 Home Assistant 的配置更新
+    setTimeout(() => {
+      const haEvent = new Event('config-changed', {
+        bubbles: true,
+        composed: true
+      });
+      this.dispatchEvent(haEvent);
+    }, 10);
+  }
 
   getConfig() {
-    return this.config;
+    return { ...this.config };
   }
 }
 
