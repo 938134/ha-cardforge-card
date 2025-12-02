@@ -7,7 +7,7 @@ class FormBuilder extends LitElement {
     config: { type: Object },
     schema: { type: Object },
     hass: { type: Object },
-    availableEntities: { type: Array }
+    _processedFields: { state: true }
   };
 
   static styles = [
@@ -17,10 +17,55 @@ class FormBuilder extends LitElement {
         width: 100%;
       }
       
-      /* 开关项组 - 水平排列 */
+      /* 表单字段网格 */
+      .form-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+        gap: 20px;
+      }
+      
+      /* 表单行（用于成组的字段） */
+      .form-row {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 20px;
+        width: 100%;
+      }
+      
+      .form-cell {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+        min-width: 0;
+      }
+      
+      /* 字段标签 */
+      .field-label {
+        font-size: 0.9em;
+        font-weight: 500;
+        color: var(--cf-text-primary);
+        display: flex;
+        align-items: center;
+        gap: 4px;
+      }
+      
+      .required-mark {
+        color: var(--cf-error-color);
+        margin-left: 2px;
+      }
+      
+      /* 字段描述 */
+      .field-description {
+        font-size: 0.8em;
+        color: var(--cf-text-secondary);
+        line-height: 1.3;
+        margin-top: 2px;
+      }
+      
+      /* 开关组（水平排列） */
       .boolean-group {
         display: grid;
-        grid-template-columns: 1fr 1fr;
+        grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
         gap: 16px;
         margin-bottom: 20px;
         padding-bottom: 16px;
@@ -35,63 +80,93 @@ class FormBuilder extends LitElement {
         background: var(--cf-surface);
         border: 1px solid var(--cf-border);
         border-radius: 8px;
+        cursor: pointer;
+        transition: all var(--cf-transition-fast);
       }
       
-      /* 其他字段组 - 2列网格 */
-      .fields-grid {
-        display: grid;
-        grid-template-columns: 1fr 1fr;
+      .boolean-item:hover {
+        border-color: var(--cf-primary-color);
+        background: var(--cf-surface);
+      }
+      
+      /* 滑块容器 */
+      .slider-container {
+        display: flex;
+        align-items: center;
         gap: 16px;
         width: 100%;
       }
       
-      .field-cell {
-        display: flex;
-        flex-direction: column;
-        gap: 8px;
-        min-width: 0;
-      }
-      
-      .field-description {
-        font-size: 0.8em;
+      .slider-value {
+        min-width: 50px;
+        text-align: center;
+        font-size: 0.9em;
         color: var(--cf-text-secondary);
-        line-height: 1.3;
+        font-weight: 500;
       }
       
       /* 颜色预览 */
       .color-preview {
-        width: 20px;
-        height: 20px;
+        width: 24px;
+        height: 24px;
         border-radius: 4px;
         border: 1px solid var(--cf-border);
+        flex-shrink: 0;
       }
       
       /* 空状态 */
       .empty-state {
         text-align: center;
-        padding: 20px;
+        padding: 32px 20px;
         color: var(--cf-text-secondary);
-        background: var(--cf-surface);
-        border-radius: 8px;
-        border: 2px dashed var(--cf-border);
       }
       
       .empty-icon {
-        font-size: 2em;
+        font-size: 2.5em;
+        margin-bottom: 16px;
         opacity: 0.5;
-        margin-bottom: 12px;
+      }
+      
+      .empty-text {
+        font-size: 1em;
+        line-height: 1.4;
+      }
+      
+      /* 条件显示逻辑 */
+      .conditional-field {
+        transition: all var(--cf-transition-normal);
+      }
+      
+      .conditional-field.hidden {
+        display: none;
       }
       
       /* 响应式设计 */
-      @media (max-width: 480px) {
-        .boolean-group {
+      @media (max-width: 768px) {
+        .form-grid {
           grid-template-columns: 1fr;
-          gap: 12px;
+          gap: 16px;
         }
         
-        .fields-grid {
+        .form-row {
           grid-template-columns: 1fr;
+          gap: 16px;
+        }
+        
+        .boolean-group {
+          grid-template-columns: 1fr;
+        }
+      }
+      
+      @media (max-width: 480px) {
+        .slider-container {
+          flex-direction: column;
           gap: 12px;
+          align-items: stretch;
+        }
+        
+        .slider-value {
+          text-align: center;
         }
       }
       
@@ -100,160 +175,187 @@ class FormBuilder extends LitElement {
         width: 100%;
       }
       
-      /* 滑块组件特殊布局 */
-      .slider-container {
-        display: flex;
-        align-items: center;
-        gap: 12px;
+      ha-slider {
         width: 100%;
-      }
-      
-      .slider-value {
-        min-width: 40px;
-        text-align: center;
-        font-size: 0.9em;
-        color: var(--cf-text-secondary);
       }
     `
   ];
+
+  constructor() {
+    super();
+    this._processedFields = [];
+  }
 
   render() {
     if (!this.schema || Object.keys(this.schema).length === 0) {
       return this._renderEmptyState();
     }
 
-    // 分离布尔字段和其他字段
-    const booleanFields = Object.entries(this.schema).filter(([, field]) => field.type === 'boolean');
-    const otherFields = Object.entries(this.schema).filter(([, field]) => field.type !== 'boolean');
+    // 处理字段，分离布尔字段和其他字段
+    const booleanFields = [];
+    const otherFields = [];
     
+    Object.entries(this.schema).forEach(([key, field]) => {
+      // 检查字段是否应该显示
+      if (field.visibleWhen && typeof field.visibleWhen === 'function') {
+        if (!field.visibleWhen(this.config)) {
+          return; // 跳过这个字段
+        }
+      }
+      
+      if (field.type === 'boolean') {
+        booleanFields.push([key, field]);
+      } else {
+        otherFields.push([key, field]);
+      }
+    });
+    
+    this._processedFields = [...booleanFields, ...otherFields];
+
     return html`
       <div class="form-builder">
-        <!-- 开关项组 -->
+        <!-- 布尔字段组 -->
         ${booleanFields.length > 0 ? html`
           <div class="boolean-group">
-            ${booleanFields.map(([key, field]) => html`
-              <div class="boolean-item">
-                <ha-switch
-                  .checked=${this.config?.[key] !== undefined ? this.config[key] : field.default}
-                  @change=${e => this._onFieldChange(key, e.target.checked)}
-                ></ha-switch>
-                <div style="font-size: 0.9em; font-weight: 500; color: var(--cf-text-primary);">
-                  ${field.label}
-                </div>
+            ${booleanFields.map(([key, field]) => this._renderBooleanField(key, field))}
+          </div>
+        ` : ''}
+        
+        <!-- 其他字段 -->
+        ${otherFields.length > 0 ? html`
+          <div class="form-grid">
+            ${otherFields.map(([key, field]) => html`
+              <div class="form-cell ${this._getConditionalClass(key, field)}">
+                ${this._renderField(key, field)}
+                ${field.description ? html`
+                  <div class="field-description">${field.description}</div>
+                ` : ''}
               </div>
             `)}
           </div>
         ` : ''}
-        
-        <!-- 其他字段组 -->
-        ${otherFields.length > 0 ? this._renderOtherFields(otherFields) : ''}
       </div>
     `;
   }
 
-  _renderOtherFields(fields) {
-    // 将其他字段分成每2个一组
-    const rows = [];
-    for (let i = 0; i < fields.length; i += 2) {
-      rows.push(fields.slice(i, i + 2));
-    }
+  _renderBooleanField(key, field) {
+    const value = this._getFieldValue(key, field);
     
     return html`
-      <div class="fields-grid">
-        ${rows.map(row => html`
-          ${row.map(([key, field]) => html`
-            <div class="field-cell">
-              ${this._renderField(key, field)}
-              ${field.description ? html`
-                <div class="field-description">${field.description}</div>
-              ` : ''}
-            </div>
-          `)}
-        `)}
+      <div 
+        class="boolean-item"
+        @click=${() => this._toggleBoolean(key, !value)}
+      >
+        <ha-switch
+          .checked=${value}
+          @click=${e => e.stopPropagation()}
+          @change=${e => this._updateField(key, e.target.checked)}
+        ></ha-switch>
+        <div class="field-label">
+          ${field.label}
+          ${field.required ? html`<span class="required-mark">*</span>` : ''}
+        </div>
       </div>
     `;
   }
 
   _renderField(key, field) {
-    const value = this.config?.[key] !== undefined ? this.config[key] : field.default;
-
+    const value = this._getFieldValue(key, field);
+    
     switch (field.type) {
-      case 'entity':
-        return this._renderEntityField(key, field, value);
-      case 'icon':
-        return this._renderIconField(key, field, value);
       case 'select':
         return this._renderSelectField(key, field, value);
+      case 'number':
+        return this._renderNumberField(key, field, value);
       case 'color':
         return this._renderColorField(key, field, value);
       case 'slider':
         return this._renderSliderField(key, field, value);
+      case 'entity':
+        return this._renderEntityField(key, field, value);
+      case 'icon':
+        return this._renderIconField(key, field, value);
       default:
         return this._renderTextField(key, field, value);
     }
   }
 
-  _renderEntityField(key, field, value) {
+  _renderSelectField(key, field, value) {
+    const options = field.options || [];
+    
     return html`
-      ${this.availableEntities ? html`
-        <ha-combo-box
-          .items=${this.availableEntities}
-          .value=${value || ''}
-          @value-changed=${e => this._onFieldChange(key, e.detail.value)}
-          allow-custom-value
-          .label=${field.label}
-          fullwidth
-        ></ha-combo-box>
-      ` : html`
-        <ha-textfield
-          .value=${value || ''}
-          @input=${e => this._onFieldChange(key, e.target.value)}
-          placeholder=${field.placeholder || ''}
-          .label=${field.label}
-          fullwidth
-        ></ha-textfield>
-      `}
+      <div class="field-label">
+        ${field.label}
+        ${field.required ? html`<span class="required-mark">*</span>` : ''}
+      </div>
+      <ha-select
+        .value=${value || ''}
+        @closed=${e => e.stopPropagation()}
+        naturalMenuWidth
+        fixedMenuPosition
+        fullwidth
+        .label=${field.label}
+        @change=${e => this._updateField(key, e.target.value)}
+      >
+        ${options.map(option => html`
+          <ha-list-item 
+            .value=${typeof option === 'object' ? option.value : option}
+          >
+            ${typeof option === 'object' ? option.label : option}
+          </ha-list-item>
+        `)}
+      </ha-select>
+    `;
+  }
+
+  _renderNumberField(key, field, value) {
+    return html`
+      <div class="field-label">
+        ${field.label}
+        ${field.required ? html`<span class="required-mark">*</span>` : ''}
+      </div>
+      <ha-textfield
+        type="number"
+        .value=${value}
+        @input=${e => this._updateField(key, parseInt(e.target.value) || field.min || 0)}
+        .label=${field.label}
+        .min=${field.min}
+        .max=${field.max}
+        .step=${field.step || 1}
+        fullwidth
+      ></ha-textfield>
     `;
   }
 
   _renderColorField(key, field, value) {
-    const colorOptions = field.options || [
-      { value: 'blue', label: '蓝色' },
-      { value: 'red', label: '红色' },
-      { value: 'green', label: '绿色' },
-      { value: 'yellow', label: '黄色' },
-      { value: 'purple', label: '紫色' }
+    const options = field.options || [
+      { value: 'blue', label: '蓝色', color: '#4285f4' },
+      { value: 'red', label: '红色', color: '#ea4335' },
+      { value: 'green', label: '绿色', color: '#34a853' },
+      { value: 'yellow', label: '黄色', color: '#fbbc05' },
+      { value: 'purple', label: '紫色', color: '#a142f4' }
     ];
 
-    const getColorPreview = (colorValue) => {
-      const colorMap = {
-        blue: '#4285f4',
-        red: '#ea4335',
-        green: '#34a853',
-        yellow: '#fbbc05',
-        purple: '#a142f4'
-      };
-      return colorMap[colorValue] || colorValue;
-    };
-
-    const currentColor = value || field.default || 'blue';
-
     return html`
+      <div class="field-label">
+        ${field.label}
+        ${field.required ? html`<span class="required-mark">*</span>` : ''}
+      </div>
       <ha-select
-        .value=${currentColor}
-        @closed=${this._preventClose}
+        .value=${value || field.default || 'blue'}
+        @closed=${e => e.stopPropagation()}
         naturalMenuWidth
         fixedMenuPosition
         fullwidth
         .label=${field.label}
       >
-        ${colorOptions.map(option => html`
+        ${options.map(option => html`
           <ha-list-item 
             .value=${option.value}
-            @click=${() => this._onFieldChange(key, option.value)}
+            @click=${() => this._updateField(key, option.value)}
           >
-            <div style="display: flex; align-items: center; gap: 8px;">
-              <div class="color-preview" style="background: ${getColorPreview(option.value)}"></div>
+            <div style="display: flex; align-items: center; gap: 12px;">
+              <div class="color-preview" style="background: ${option.color || option.value}"></div>
               <span>${option.label}</span>
             </div>
           </ha-list-item>
@@ -267,68 +369,83 @@ class FormBuilder extends LitElement {
     const min = field.min || 0;
     const max = field.max || 100;
     const step = field.step || 1;
+    const unit = field.unit || '';
 
     return html`
+      <div class="field-label">
+        ${field.label}
+        ${field.required ? html`<span class="required-mark">*</span>` : ''}
+      </div>
       <div class="slider-container">
         <ha-slider
           .value=${currentValue}
           .min=${min}
           .max=${max}
           .step=${step}
-          @change=${e => this._onFieldChange(key, parseInt(e.target.value))}
+          @change=${e => this._updateField(key, parseInt(e.target.value))}
           pin
           fullwidth
         ></ha-slider>
-        <div class="slider-value">${currentValue}${field.unit || ''}</div>
+        <div class="slider-value">${currentValue}${unit}</div>
       </div>
-      <div style="font-size: 0.9em; font-weight: 500; color: var(--cf-text-primary);">
+    `;
+  }
+
+  _renderEntityField(key, field, value) {
+    const entities = this._getAvailableEntities();
+    
+    return html`
+      <div class="field-label">
         ${field.label}
+        ${field.required ? html`<span class="required-mark">*</span>` : ''}
       </div>
+      ${entities.length > 0 ? html`
+        <ha-combo-box
+          .items=${entities}
+          .value=${value || ''}
+          @value-changed=${e => this._updateField(key, e.detail.value)}
+          allow-custom-value
+          .label=${field.label}
+          fullwidth
+        ></ha-combo-box>
+      ` : html`
+        <ha-textfield
+          .value=${value || ''}
+          @input=${e => this._updateField(key, e.target.value)}
+          .label=${field.label}
+          .placeholder=${field.placeholder || '例如: light.living_room'}
+          fullwidth
+        ></ha-textfield>
+      `}
     `;
   }
 
   _renderIconField(key, field, value) {
     return html`
+      <div class="field-label">
+        ${field.label}
+        ${field.required ? html`<span class="required-mark">*</span>` : ''}
+      </div>
       <ha-icon-picker
         .value=${value || ''}
-        @value-changed=${e => this._onFieldChange(key, e.detail.value)}
+        @value-changed=${e => this._updateField(key, e.detail.value)}
         .label=${field.label}
         fullwidth
       ></ha-icon-picker>
     `;
   }
 
-  _renderSelectField(key, field, value) {
-    const options = field.options || [];
-
-    return html`
-      <ha-select
-        .value=${value || ''}
-        @closed=${this._preventClose}
-        naturalMenuWidth
-        fixedMenuPosition
-        fullwidth
-        .label=${field.label}
-      >
-        ${options.map(option => html`
-          <ha-list-item 
-            .value=${option.value || option}
-            @click=${() => this._onFieldChange(key, option.value || option)}
-          >
-            ${option.label || option}
-          </ha-list-item>
-        `)}
-      </ha-select>
-    `;
-  }
-
   _renderTextField(key, field, value) {
     return html`
+      <div class="field-label">
+        ${field.label}
+        ${field.required ? html`<span class="required-mark">*</span>` : ''}
+      </div>
       <ha-textfield
         .value=${value || ''}
-        @input=${e => this._onFieldChange(key, e.target.value)}
-        placeholder=${field.placeholder || ''}
+        @input=${e => this._updateField(key, e.target.value)}
         .label=${field.label}
+        .placeholder=${field.placeholder || ''}
         fullwidth
       ></ha-textfield>
     `;
@@ -337,24 +454,55 @@ class FormBuilder extends LitElement {
   _renderEmptyState() {
     return html`
       <div class="empty-state">
-        <ha-icon class="empty-icon" icon="mdi:check-circle"></ha-icon>
-        <div class="cf-text-md">无需额外配置</div>
+        <div class="empty-icon">
+          <ha-icon icon="mdi:check-circle-outline"></ha-icon>
+        </div>
+        <div class="empty-text">此卡片无需额外配置</div>
       </div>
     `;
   }
 
-  _onFieldChange(key, value) {
+  _getFieldValue(key, field) {
+    // 优先使用配置中的值
+    if (this.config?.[key] !== undefined) {
+      return this.config[key];
+    }
+    
+    // 回退到默认值
+    return field.default !== undefined ? field.default : '';
+  }
+
+  _getAvailableEntities() {
+    if (!this.hass?.states) return [];
+    
+    return Object.entries(this.hass.states)
+      .map(([entityId, state]) => ({
+        value: entityId,
+        label: `${state.attributes?.friendly_name || entityId} (${entityId})`
+      }))
+      .sort((a, b) => a.label.localeCompare(b.label));
+  }
+
+  _getConditionalClass(key, field) {
+    if (!field.visibleWhen) return '';
+    
+    const shouldShow = field.visibleWhen(this.config);
+    return shouldShow ? '' : 'hidden';
+  }
+
+  _toggleBoolean(key, value) {
+    this._updateField(key, value);
+  }
+
+  _updateField(key, value) {
     this.dispatchEvent(new CustomEvent('config-changed', {
       detail: { config: { [key]: value } }
     }));
-  }
-
-  _preventClose(e) {
-    e.stopPropagation();
   }
 }
 
 if (!customElements.get('form-builder')) {
   customElements.define('form-builder', FormBuilder);
 }
+
 export { FormBuilder };
