@@ -4,6 +4,10 @@ import { cardSystem } from '../core/card-system.js';
 import { themeSystem } from '../core/theme-system.js';
 import { designSystem } from '../core/design-system.js';
 
+import './card-selector.js';
+import './theme-selector.js';
+import './form-builder.js';
+
 class CardEditor extends LitElement {
   static properties = {
     hass: { type: Object },

@@ -251,3 +251,5 @@ export class CardSelector extends LitElement {
 if (!customElements.get('card-selector')) {
   customElements.define('card-selector', CardSelector);
 }
+
+export { CardSelector };
