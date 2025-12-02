@@ -1,272 +1,260 @@
-// src/editors/card-editor.js - 修复版
+// src/editors/card-selector.js - 完整版
 import { LitElement, html, css } from 'https://unpkg.com/lit@2.8.0/index.js?module';
 import { cardSystem } from '../core/card-system.js';
 import { themeSystem } from '../core/theme-system.js';
 import { designSystem } from '../core/design-system.js';
+import './card-selector.js';  // 确保在同一目录
+import './theme-selector.js'; // 确保在同一目录
+import './form-builder.js';   // 确保在同一目录
 
-class CardEditor extends LitElement {
+class CardSelector extends LitElement {
   static properties = {
-    hass: { type: Object },
-    config: { type: Object },
-    _cards: { state: true },
-    _themes: { state: true },
-    _selectedCard: { state: true },
-    _initialized: { state: true }
+    cards: { type: Array },
+    selectedCard: { type: String },
+    _filteredCards: { state: true },
+    _selectedCategory: { state: true }
   };
 
   static styles = [
     designSystem,
     css`
-      .editor-container {
-        background: var(--cf-background);
-        border-radius: var(--cf-radius-lg);
-        border: 1px solid var(--cf-border);
-        overflow: hidden;
-        min-width: 350px;
+      .card-selector {
+        width: 100%;
       }
       
-      .editor-section {
-        padding: var(--cf-spacing-lg);
+      .category-filter {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        margin-bottom: 20px;
+        padding-bottom: 16px;
         border-bottom: 1px solid var(--cf-border);
       }
       
-      .editor-section:last-child {
-        border-bottom: none;
+      .category-btn {
+        padding: 6px 12px;
+        border: 1px solid var(--cf-border);
+        border-radius: 20px;
+        background: var(--cf-surface);
+        color: var(--cf-text-secondary);
+        cursor: pointer;
+        font-size: 0.85em;
+        font-weight: 500;
+        transition: all var(--cf-transition-fast);
       }
       
-      .section-header {
+      .category-btn:hover {
+        border-color: var(--cf-primary-color);
+        color: var(--cf-primary-color);
+      }
+      
+      .category-btn.active {
+        background: var(--cf-primary-color);
+        border-color: var(--cf-primary-color);
+        color: white;
+      }
+      
+      .card-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(90px, 1fr));
+        gap: 12px;
+      }
+      
+      .card-item {
         display: flex;
+        flex-direction: column;
         align-items: center;
-        gap: var(--cf-spacing-sm);
-        margin-bottom: var(--cf-spacing-md);
+        justify-content: center;
+        padding: 12px 8px;
+        border: 1px solid var(--cf-border);
+        border-radius: var(--cf-radius-md);
+        cursor: pointer;
+        transition: all var(--cf-transition-fast);
+        background: var(--cf-surface);
+        text-align: center;
+        min-height: 90px;
       }
       
-      .section-title {
-        font-size: 1em;
-        font-weight: 600;
-        color: var(--cf-text-primary);
+      .card-item:hover {
+        border-color: var(--cf-primary-color);
+        transform: translateY(-2px);
+        box-shadow: var(--cf-shadow-md);
+      }
+      
+      .card-item.selected {
+        border-color: var(--cf-primary-color);
+        background: var(--cf-primary-color);
+        color: white;
+        transform: translateY(-2px);
+        box-shadow: var(--cf-shadow-md);
+      }
+      
+      .card-icon {
+        font-size: 1.8em;
+        margin-bottom: 8px;
+        line-height: 1;
+      }
+      
+      .card-name {
+        font-size: 0.8em;
+        font-weight: 500;
+        line-height: 1.2;
+        max-width: 100%;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+      
+      .card-item.selected .card-name {
+        color: white;
       }
       
       .empty-state {
         text-align: center;
-        padding: var(--cf-spacing-xl);
+        padding: 40px 20px;
         color: var(--cf-text-secondary);
       }
       
       .empty-icon {
         font-size: 2.5em;
-        margin-bottom: var(--cf-spacing-md);
+        margin-bottom: 16px;
         opacity: 0.5;
+      }
+      
+      @media (max-width: 768px) {
+        .card-grid {
+          grid-template-columns: repeat(auto-fill, minmax(80px, 1fr));
+          gap: 10px;
+        }
+        
+        .card-item {
+          padding: 10px 6px;
+          min-height: 80px;
+        }
+        
+        .card-icon {
+          font-size: 1.6em;
+          margin-bottom: 6px;
+        }
+        
+        .card-name {
+          font-size: 0.75em;
+        }
       }
     `
   ];
 
   constructor() {
     super();
-    this._cards = [];
-    this._themes = [];
-    this._selectedCard = null;
-    this._initialized = false;
+    this._filteredCards = [];
+    this._selectedCategory = 'all';
   }
 
-  async firstUpdated() {
-    await cardSystem.initialize();
-    await themeSystem.initialize();
-    
-    this._cards = cardSystem.getAllCards();
-    this._themes = themeSystem.getAllThemes();
-    this._initialized = true;
-    
-    if (this.config?.card_type) {
-      this._selectedCard = cardSystem.getCard(this.config.card_type);
-    } else if (this._cards.length > 0) {
-      this._selectCard(this._cards[0].id);
+  willUpdate(changedProperties) {
+    if (changedProperties.has('cards')) {
+      this._filterCards();
     }
-  }
-
-  setConfig(config) {
-    if (!config || typeof config !== 'object') {
-      this.config = this.constructor.getDefaultConfig();
-      return;
-    }
-    
-    const newConfig = { ...config };
-    
-    if (!newConfig.card_type) {
-      if (this._cards.length > 0) {
-        newConfig.card_type = this._cards[0].id;
-      } else {
-        newConfig.card_type = 'clock';
-      }
-    }
-    
-    delete newConfig.cardType;
-    
-    this.config = {
-      type: 'custom:ha-cardforge-card',
-      card_type: newConfig.card_type || 'clock',
-      theme: newConfig.theme || 'auto',
-      ...newConfig
-    };
-    
-    if (this.config.card_type) {
-      this._selectedCard = cardSystem.getCard(this.config.card_type);
-    }
-    
-    this.requestUpdate();
   }
 
   render() {
-    if (!this._initialized) {
-      return html`
-        <div class="editor-container">
-          <div class="editor-section">
-            <div class="empty-state">
-              <div class="empty-icon">⏳</div>
-              <div>初始化编辑器中...</div>
-            </div>
-          </div>
-        </div>
-      `;
+    if (!this.cards || this.cards.length === 0) {
+      return this._renderEmptyState();
     }
 
+    const categories = this._getCategories();
+    
     return html`
-      <div class="editor-container">
-        <!-- 卡片选择器 -->
-        <div class="editor-section">
-          <div class="section-header">
-            <ha-icon icon="mdi:palette"></ha-icon>
-            <span class="section-title">选择卡片类型</span>
+      <div class="card-selector">
+        ${categories.length > 1 ? html`
+          <div class="category-filter">
+            <button 
+              class="category-btn ${this._selectedCategory === 'all' ? 'active' : ''}"
+              @click=${() => this._selectCategory('all')}
+            >
+              全部
+            </button>
+            ${categories.map(category => html`
+              <button 
+                class="category-btn ${this._selectedCategory === category ? 'active' : ''}"
+                @click=${() => this._selectCategory(category)}
+              >
+                ${category}
+              </button>
+            `)}
           </div>
-          <card-selector
-            .cards=${this._cards}
-            .selectedCard=${this.config.card_type}
-            @card-changed=${this._handleCardChange}
-          ></card-selector>
+        ` : ''}
+        
+        <div class="card-grid">
+          ${this._filteredCards.map(card => html`
+            <div 
+              class="card-item ${this.selectedCard === card.id ? 'selected' : ''}"
+              @click=${() => this._selectCard(card)}
+              title="${card.description || card.name}"
+            >
+              <div class="card-icon">${card.icon}</div>
+              <div class="card-name">${card.name}</div>
+            </div>
+          `)}
         </div>
-        
-        ${this.config.card_type ? html`
-          <!-- 主题选择器 -->
-          <div class="editor-section">
-            <div class="section-header">
-              <ha-icon icon="mdi:format-paint"></ha-icon>
-              <span class="section-title">选择主题</span>
-            </div>
-            <theme-selector
-              .themes=${this._themes}
-              .selectedTheme=${this.config.theme || 'auto'}
-              @theme-changed=${this._handleThemeChange}
-            ></theme-selector>
-          </div>
-        ` : ''}
-        
-        <!-- 卡片设置表单 -->
-        ${this.config.card_type && this._selectedCard?.schema ? html`
-          <div class="editor-section">
-            <div class="section-header">
-              <ha-icon icon="mdi:cog"></ha-icon>
-              <span class="section-title">卡片设置</span>
-            </div>
-            <form-builder
-              .config=${this.config}
-              .schema=${this._selectedCard.schema}
-              .hass=${this.hass}
-              @config-changed=${this._handleConfigChange}
-            ></form-builder>
-          </div>
-        ` : ''}
       </div>
     `;
   }
 
-  _handleCardChange(e) {
-    const cardId = e.detail.cardId;
-    if (this.config.card_type === cardId) return;
+  _renderEmptyState() {
+    return html`
+      <div class="card-selector">
+        <div class="empty-state">
+          <div class="empty-icon">
+            <ha-icon icon="mdi:package-variant-closed"></ha-icon>
+          </div>
+          <div>暂无可用卡片</div>
+        </div>
+      </div>
+    `;
+  }
+
+  _getCategories() {
+    if (!this.cards) return [];
     
-    const cardDef = cardSystem.getCard(cardId);
-    if (!cardDef) return;
-    
-    const newConfig = this._buildCardConfig(cardId);
-    
-    if (cardDef.blocks?.presets && !this.config.blocks) {
-      const presetBlocks = {};
-      Object.entries(cardDef.blocks.presets).forEach(([key, preset], index) => {
-        const blockId = `block_${key}_${Date.now()}_${index}`;
-        presetBlocks[blockId] = {
-          ...preset,
-          name: preset.name || key,
-          content: preset.content || ''
-        };
-      });
-      
-      if (Object.keys(presetBlocks).length > 0) {
-        newConfig.blocks = presetBlocks;
+    const categories = new Set();
+    this.cards.forEach(card => {
+      if (card.category) {
+        categories.add(card.category);
       }
+    });
+    
+    return Array.from(categories).sort();
+  }
+
+  _filterCards() {
+    if (!this.cards) {
+      this._filteredCards = [];
+      return;
     }
     
-    this.config = newConfig;
-    this._selectedCard = cardDef;
-    
-    this._notifyConfigChange();
-  }
-
-  _handleThemeChange(e) {
-    const themeId = e.detail.theme;
-    if (this.config.theme === themeId) return;
-    
-    this.config = { ...this.config, theme: themeId };
-    this._notifyConfigChange();
-  }
-
-  _handleConfigChange(e) {
-    const changedConfig = e.detail.config;
-    this.config = { ...this.config, ...changedConfig };
-    this._notifyConfigChange();
-  }
-
-  _buildCardConfig(cardId) {
-    const cardDef = cardSystem.getCard(cardId);
-    const defaultConfig = {};
-    
-    if (cardDef?.schema) {
-      Object.entries(cardDef.schema).forEach(([key, field]) => {
-        if (field.default !== undefined) {
-          defaultConfig[key] = field.default;
-        }
-      });
+    if (this._selectedCategory === 'all') {
+      this._filteredCards = [...this.cards];
+    } else {
+      this._filteredCards = this.cards.filter(card => card.category === this._selectedCategory);
     }
     
-    return {
-      type: 'custom:ha-cardforge-card',
-      card_type: cardId,
-      theme: this.config?.theme || 'auto',
-      ...defaultConfig
-    };
+    this._filteredCards.sort((a, b) => a.name.localeCompare(b.name));
   }
 
-  _notifyConfigChange() {
-    this.dispatchEvent(new CustomEvent('config-changed', {
-      bubbles: true,
-      composed: true,
-      detail: { config: { ...this.config } }
+  _selectCategory(category) {
+    this._selectedCategory = category;
+    this._filterCards();
+  }
+
+  _selectCard(card) {
+    this.dispatchEvent(new CustomEvent('card-changed', {
+      detail: { cardId: card.id }
     }));
   }
-
-  getConfig() {
-    return { ...this.config };
-  }
-
-  static getDefaultConfig() {
-    return {
-      type: 'custom:ha-cardforge-card',
-      card_type: 'clock',
-      theme: 'auto'
-    };
-  }
 }
 
-if (!customElements.get('card-editor')) {
-  customElements.define('card-editor', CardEditor);
+if (!customElements.get('card-selector')) {
+  customElements.define('card-selector', CardSelector);
 }
 
-export { CardEditor };
+export { CardSelector };

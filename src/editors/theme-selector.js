@@ -1,9 +1,9 @@
-// src/editors/theme-selector.js - 优化版
-import { LitElement, html } from 'https://unpkg.com/lit@2.8.0/index.js?module';
+// src/editors/theme-selector.js - 完整版
+import { LitElement, html, css } from 'https://unpkg.com/lit@2.8.0/index.js?module';
 import { designSystem } from '../core/design-system.js';
 import { themeSystem } from '../core/theme-system.js';
 
-export class ThemeSelector extends LitElement {
+class ThemeSelector extends LitElement {
   static properties = {
     themes: { type: Array },
     selectedTheme: { type: String }
@@ -81,6 +81,17 @@ export class ThemeSelector extends LitElement {
       
       .theme-item.selected .theme-preview {
         border-color: var(--cf-primary-color);
+      }
+      
+      .theme-preview-content {
+        width: 100%;
+        height: 100%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 0.8em;
+        color: inherit;
+        font-weight: 500;
       }
       
       .theme-name {
@@ -187,3 +198,5 @@ export class ThemeSelector extends LitElement {
 if (!customElements.get('theme-selector')) {
   customElements.define('theme-selector', ThemeSelector);
 }
+
+export { ThemeSelector };

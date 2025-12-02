@@ -1,4 +1,4 @@
-// src/editors/form-builder.js
+// src/editors/form-builder.js - 完整版
 import { LitElement, html, css } from 'https://unpkg.com/lit@2.8.0/index.js?module';
 import { designSystem } from '../core/design-system.js';
 
@@ -17,14 +17,12 @@ class FormBuilder extends LitElement {
         width: 100%;
       }
       
-      /* 表单字段网格 */
       .form-grid {
         display: grid;
         grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
         gap: 20px;
       }
       
-      /* 表单行（用于成组的字段） */
       .form-row {
         display: grid;
         grid-template-columns: repeat(2, 1fr);
@@ -39,7 +37,6 @@ class FormBuilder extends LitElement {
         min-width: 0;
       }
       
-      /* 字段标签 */
       .field-label {
         font-size: 0.9em;
         font-weight: 500;
@@ -54,7 +51,6 @@ class FormBuilder extends LitElement {
         margin-left: 2px;
       }
       
-      /* 字段描述 */
       .field-description {
         font-size: 0.8em;
         color: var(--cf-text-secondary);
@@ -62,7 +58,6 @@ class FormBuilder extends LitElement {
         margin-top: 2px;
       }
       
-      /* 开关组（水平排列） */
       .boolean-group {
         display: grid;
         grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
@@ -89,7 +84,6 @@ class FormBuilder extends LitElement {
         background: var(--cf-surface);
       }
       
-      /* 滑块容器 */
       .slider-container {
         display: flex;
         align-items: center;
@@ -105,7 +99,6 @@ class FormBuilder extends LitElement {
         font-weight: 500;
       }
       
-      /* 颜色预览 */
       .color-preview {
         width: 24px;
         height: 24px;
@@ -114,7 +107,6 @@ class FormBuilder extends LitElement {
         flex-shrink: 0;
       }
       
-      /* 空状态 */
       .empty-state {
         text-align: center;
         padding: 32px 20px;
@@ -132,7 +124,6 @@ class FormBuilder extends LitElement {
         line-height: 1.4;
       }
       
-      /* 条件显示逻辑 */
       .conditional-field {
         transition: all var(--cf-transition-normal);
       }
@@ -141,7 +132,6 @@ class FormBuilder extends LitElement {
         display: none;
       }
       
-      /* 响应式设计 */
       @media (max-width: 768px) {
         .form-grid {
           grid-template-columns: 1fr;
@@ -170,7 +160,6 @@ class FormBuilder extends LitElement {
         }
       }
       
-      /* 确保表单组件样式一致 */
       ha-textfield, ha-select, ha-combo-box, ha-icon-picker {
         width: 100%;
       }
@@ -191,15 +180,13 @@ class FormBuilder extends LitElement {
       return this._renderEmptyState();
     }
 
-    // 处理字段，分离布尔字段和其他字段
     const booleanFields = [];
     const otherFields = [];
     
     Object.entries(this.schema).forEach(([key, field]) => {
-      // 检查字段是否应该显示
       if (field.visibleWhen && typeof field.visibleWhen === 'function') {
         if (!field.visibleWhen(this.config)) {
-          return; // 跳过这个字段
+          return;
         }
       }
       
@@ -214,14 +201,12 @@ class FormBuilder extends LitElement {
 
     return html`
       <div class="form-builder">
-        <!-- 布尔字段组 -->
         ${booleanFields.length > 0 ? html`
           <div class="boolean-group">
             ${booleanFields.map(([key, field]) => this._renderBooleanField(key, field))}
           </div>
         ` : ''}
         
-        <!-- 其他字段 -->
         ${otherFields.length > 0 ? html`
           <div class="form-grid">
             ${otherFields.map(([key, field]) => html`
@@ -463,12 +448,10 @@ class FormBuilder extends LitElement {
   }
 
   _getFieldValue(key, field) {
-    // 优先使用配置中的值
     if (this.config?.[key] !== undefined) {
       return this.config[key];
     }
     
-    // 回退到默认值
     return field.default !== undefined ? field.default : '';
   }
 
@@ -504,3 +487,5 @@ class FormBuilder extends LitElement {
 if (!customElements.get('form-builder')) {
   customElements.define('form-builder', FormBuilder);
 }
+
+export { FormBuilder };
