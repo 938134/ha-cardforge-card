@@ -625,32 +625,53 @@ class CardEditor extends LitElement {
     `;
   }
 
-  _selectCard(card) {
-    if (this.config.card_type === card.id) {
-      console.log('⚡ 已是当前卡片，跳过');
-      return; // 已经是当前卡片，不重复触发
-    }
-    
-    console.log('🎯 选择卡片:', card.id);
-    
-    // 构建新卡片配置
-    const newConfig = this._buildCardConfig(card.id, {
-      theme: this.config.theme || 'auto'
+// 在 card-editor.js 的 _selectCard 方法中添加预设块处理
+_selectCard(card) {
+  if (this.config.card_type === card.id) {
+    console.log('⚡ 已是当前卡片，跳过');
+    return;
+  }
+  
+  console.log('🎯 选择卡片:', card.id);
+  
+  // 获取卡片定义
+  const cardDef = cardSystem.getCard(card.id);
+  if (!cardDef) return;
+  
+  // 构建新配置
+  const newConfig = this._buildCardConfig(card.id, {
+    theme: this.config.theme || 'auto'
+  });
+  
+  // 添加预设块（如果有）
+  if (cardDef.blocks?.presets && !this.config.blocks) {
+    const presetBlocks = {};
+    Object.entries(cardDef.blocks.presets).forEach(([key, preset], index) => {
+      const blockId = `block_${key}_${Date.now()}_${index}`;
+      presetBlocks[blockId] = {
+        ...preset,
+        name: preset.name || key,
+        content: preset.content || ''
+      };
     });
     
-    console.log('🔄 新配置:', newConfig);
-    
-    // 更新状态
-    this.config = newConfig;
-    this._selectedCard = cardSystem.getCard(card.id);
-    this._lastConfig = JSON.stringify(newConfig);
-    
-    // 立即触发配置更新
-    this._notifyConfigChange();
-    
-    // 确保UI更新
-    this.requestUpdate();
+    if (Object.keys(presetBlocks).length > 0) {
+      newConfig.blocks = presetBlocks;
+      console.log('📦 添加预设块:', Object.keys(presetBlocks));
+    }
   }
+  
+  console.log('🔄 新配置:', newConfig);
+  
+  // 更新状态
+  this.config = newConfig;
+  this._selectedCard = cardDef;
+  this._lastConfig = JSON.stringify(newConfig);
+  
+  // 立即触发配置更新
+  this._notifyConfigChange();
+  this.requestUpdate();
+}
 
   _buildCardConfig(cardId, baseConfig = {}) {
     const cardDef = cardSystem.getCard(cardId);
