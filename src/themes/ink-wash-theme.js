@@ -1,148 +1,32 @@
-// src/themes/ink-wash-theme.js
-export default {
-  id: 'ink-wash',
-  name: '水墨丹青',
-  description: '中国传统水墨画风格，淡雅意境',
-  icon: '🖌️',
-  category: 'art',
+// src/themes/inkwash.js
 
-  getStyles(config = {}) {
-    const inkColor = config.inkColor || '#2c3e50';
-    const paperColor = config.paperColor || '#f8f9fa';
-    const brushStroke = config.brushStroke || 2;
-    
-    return `
-      background: 
-        linear-gradient(135deg, ${inkColor} 0%, #34495e 50%, #7f8c8d 100%),
-        radial-gradient(circle at 20% 80%, rgba(255,255,255,0.1) 0%, transparent 50%),
-        radial-gradient(circle at 80% 20%, rgba(255,255,255,0.05) 0%, transparent 50%);
-      background-blend-mode: overlay, screen, screen;
-      color: ${paperColor};
-      border: ${brushStroke}px solid rgba(124, 124, 124, 0.3);
-      box-shadow: 
-        0 4px 20px rgba(0, 0, 0, 0.3),
-        inset 0 1px 0 rgba(255, 255, 255, 0.1);
-      position: relative;
-      overflow: hidden;
-      
-      /* 水墨纹理效果 */
-      &::before {
-        content: '';
-        position: absolute;
-        top: 0;
-        left: 0;
-        right: 0;
-        bottom: 0;
-        background: 
-          radial-gradient(circle at 30% 30%, rgba(255,255,255,0.1) 0%, transparent 50%),
-          radial-gradient(circle at 70% 70%, rgba(255,255,255,0.05) 0%, transparent 50%),
-          linear-gradient(45deg, transparent 40%, rgba(255,255,255,0.03) 50%, transparent 60%);
-        pointer-events: none;
-        opacity: 0.6;
-      }
-      
-      /* 边缘晕染效果 */
-      &::after {
-        content: '';
-        position: absolute;
-        top: -10%;
-        left: -10%;
-        right: -10%;
-        bottom: -10%;
-        background: 
-          radial-gradient(ellipse at 20% 20%, rgba(52, 73, 94, 0.4) 0%, transparent 50%),
-          radial-gradient(ellipse at 80% 80%, rgba(44, 62, 80, 0.3) 0%, transparent 50%);
-        pointer-events: none;
-        opacity: 0.4;
-        z-index: 0;
-      }
-    `;
+export const theme = {
+  id: 'inkwash',
+  name: '水墨',
+  description: '中国风水墨画效果',
+  icon: '🎑',
+  
+  variables: {
+    '--cf-primary-color': '#2c3e50',
+    '--cf-accent-color': '#8e44ad',
+    '--cf-background': '#f5f5f5',
+    '--cf-surface': '#ffffff',
+    '--cf-border': '#dcdcdc',
+    '--cf-text-primary': '#2c3e50',
+    '--cf-text-secondary': '#7f8c8d',
+    '--cf-block-bg': 'rgba(44, 62, 80, 0.05)',
+    '--cf-radius-md': '4px'
   },
-
-  applyTheme(element, config = {}) {
-    // 添加水墨动画效果
-    if (!element.querySelector('.ink-wash-animation')) {
-      const animation = document.createElement('div');
-      animation.className = 'ink-wash-animation';
-      animation.innerHTML = `
-        <style>
-          .ink-wash-animation {
-            position: absolute;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            pointer-events: none;
-            opacity: 0.1;
-            background: 
-              radial-gradient(circle at 20% 80%, rgba(255,255,255,0.3) 0%, transparent 50%),
-              radial-gradient(circle at 80% 20%, rgba(255,255,255,0.2) 0%, transparent 50%);
-            animation: inkFlow 15s ease-in-out infinite;
-            z-index: 0;
-          }
-          
-          @keyframes inkFlow {
-            0%, 100% {
-              opacity: 0.1;
-              transform: scale(1) rotate(0deg);
-            }
-            25% {
-              opacity: 0.15;
-              transform: scale(1.02) rotate(1deg);
-            }
-            50% {
-              opacity: 0.1;
-              transform: scale(1) rotate(0deg);
-            }
-            75% {
-              opacity: 0.12;
-              transform: scale(0.98) rotate(-1deg);
-            }
-          }
-        </style>
-      `;
-      element.appendChild(animation);
-    }
-
-    // 根据配置调整效果
-    if (config.useCalligraphyFont) {
-      element.style.fontFamily = "'Ma Shan Zheng', 'ZCOOL XiaoWei', 'Noto Serif SC', serif";
-    }
-    
-    if (config.enhancedInkEffect) {
-      element.style.backgroundBlendMode = 'overlay, multiply, screen';
-    }
-  },
-
-  getConfigSchema() {
-    return {
-      inkColor: {
-        type: 'string',
-        label: '墨色',
-        default: '#2c3e50'
-      },
-      paperColor: {
-        type: 'string',
-        label: '纸色',
-        default: '#f8f9fa'
-      },
-      brushStroke: {
-        type: 'number',
-        label: '笔触宽度',
-        min: 1,
-        max: 4,
-        default: 2
-      },
-      useCalligraphyFont: {
-        type: 'boolean',
-        label: '书法字体',
-        default: false
-      },
-      enhancedInkEffect: {
-        type: 'boolean',
-        label: '增强墨韵',
-        default: true
-      }
-    };
+  
+  styles: `
+    background: linear-gradient(135deg, #f5f7fa 0%, #e4e8f0 100%);
+    font-family: 'Noto Serif SC', 'SimSun', serif;
+    border: 1px solid rgba(220, 220, 220, 0.8);
+  `,
+  
+  preview: {
+    background: 'linear-gradient(135deg, #f5f7fa 0%, #e4e8f0 100%)',
+    color: '#2c3e50',
+    border: '1px solid rgba(220, 220, 220, 0.8)'
   }
 };
