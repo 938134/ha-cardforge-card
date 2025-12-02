@@ -1,4 +1,4 @@
-// src/ha-cardforge-card.js
+// src/ha-cardforge-card.js - 完整修复版
 import { LitElement, html, css } from 'https://unpkg.com/lit@2.8.0/index.js?module';
 import { unsafeHTML } from 'https://unpkg.com/lit-html/directives/unsafe-html.js?module';
 import { cardSystem } from './core/card-system.js';
@@ -87,8 +87,11 @@ class HaCardForgeCard extends LitElement {
       this._loading = true;
       this._error = null;
       
-      // 验证配置
-      this.config = this._validateConfig(config);
+      console.log('📥 收到配置:', config);
+      
+      // 验证配置并应用卡片默认值
+      this.config = await this._validateAndMergeConfig(config);
+      console.log('✅ 处理后配置:', this.config);
       
       // 等待系统初始化
       await cardSystem.initialize();
@@ -105,6 +108,7 @@ class HaCardForgeCard extends LitElement {
         themeVariables
       );
       
+      console.log('🎨 卡片渲染完成');
       this._loading = false;
       
     } catch (error) {
@@ -114,27 +118,22 @@ class HaCardForgeCard extends LitElement {
     }
   }
 
-  _validateConfig(config) {
-    if (!config) {
-      // 如果没有配置，使用默认配置
+  async _validateAndMergeConfig(userConfig) {
+    if (!userConfig) {
+      console.log('⚠️ 配置为空，使用默认配置');
       return this.constructor.getStubConfig();
     }
     
-    // 确保配置是对象
-    if (typeof config !== 'object') {
-      throw new Error('配置必须是对象格式');
+    // 支持旧版本的 cardType 字段
+    let card_type = userConfig.card_type;
+    if (!card_type && userConfig.cardType) {
+      card_type = userConfig.cardType;
+      delete userConfig.cardType;
+      console.log('🔄 转换 cardType -> card_type:', card_type);
     }
     
-    // 支持旧版本的 cardType 字段（兼容性）
-    let card_type = config.card_type;
-    if (!card_type && config.cardType) {
-      card_type = config.cardType;
-      delete config.cardType;
-    }
-    
-    // 如果还没有 card_type，抛出详细错误
+    // 必须有 card_type
     if (!card_type) {
-      // 获取所有可用的卡片类型
       const availableCards = this._getAvailableCardTypes();
       const cardList = availableCards.map(card => `- ${card.id} (${card.name})`).join('\n');
       
@@ -149,17 +148,42 @@ class HaCardForgeCard extends LitElement {
       );
     }
     
-    // 检查卡片是否存在
-    if (!cardSystem.getCard(card_type)) {
-      throw new Error(`卡片类型不存在: "${card_type}"。请检查拼写或使用有效的卡片类型。`);
+    // 确保卡片系统已初始化
+    await cardSystem.initialize();
+    
+    // 获取卡片定义
+    const card = cardSystem.getCard(card_type);
+    if (!card) {
+      throw new Error(`卡片类型不存在: "${card_type}"`);
     }
     
-    return {
+    console.log('📋 卡片定义找到:', card.id);
+    
+    // 应用卡片schema中的默认值
+    const defaultConfig = {};
+    const schema = card.schema || {};
+    Object.entries(schema).forEach(([key, field]) => {
+      if (field.default !== undefined) {
+        defaultConfig[key] = field.default;
+      }
+    });
+    
+    console.log('⚙️ 卡片默认配置:', defaultConfig);
+    
+    // 合并配置：默认值 + 用户配置（用户配置覆盖默认值）
+    const mergedConfig = {
       type: 'custom:ha-cardforge-card',
       card_type: card_type,
-      theme: config.theme || 'auto',
-      ...config
+      theme: userConfig.theme || 'auto',
+      ...defaultConfig,
+      ...userConfig  // 用户配置最后，覆盖默认值
     };
+    
+    // 删除可能存在的旧字段
+    delete mergedConfig.cardType;
+    
+    console.log('🔄 最终合并配置:', mergedConfig);
+    return mergedConfig;
   }
 
   _getAvailableCardTypes() {
@@ -240,34 +264,40 @@ class HaCardForgeCard extends LitElement {
     }
   }
 
-updated(changedProperties) {
-  if (changedProperties.has('hass') || changedProperties.has('config')) {
-    this._updateCard();
+  updated(changedProperties) {
+    if (changedProperties.has('hass') || changedProperties.has('config')) {
+      this._updateCard();
+    }
+    
+    // 监听主题变化
+    if (changedProperties.has('config') && 
+        changedProperties.get('config')?.theme !== this.config?.theme) {
+      console.log('🎨 主题变化，重新渲染');
+      this._updateCard();
+    }
   }
-  
-  // 添加：监听主题变化
-  if (changedProperties.has('config') && 
-      changedProperties.get('config')?.theme !== this.config?.theme) {
-    this._updateCard();
-  }
-}
 
-async _updateCard() {
-  if (!this.config?.card_type) return;
-  
-  try {
-    const themeVariables = themeSystem.getThemeVariables(this.config.theme || 'auto');
-    this._cardData = cardSystem.renderCard(
-      this.config.card_type,
-      this.config,
-      this.hass,
-      themeVariables
-    );
-    this.requestUpdate(); // 强制重新渲染
-  } catch (error) {
-    console.warn('更新卡片失败:', error);
+  async _updateCard() {
+    if (!this.config?.card_type) {
+      console.log('⚠️ 更新卡片: 无 card_type');
+      return;
+    }
+    
+    console.log('🔄 更新卡片渲染');
+    
+    try {
+      const themeVariables = themeSystem.getThemeVariables(this.config.theme || 'auto');
+      this._cardData = cardSystem.renderCard(
+        this.config.card_type,
+        this.config,
+        this.hass,
+        themeVariables
+      );
+      this.requestUpdate(); // 强制重新渲染
+    } catch (error) {
+      console.warn('更新卡片失败:', error);
+    }
   }
-}
 
   // 提供给 Home Assistant 编辑器使用的默认配置
   static getStubConfig() {
