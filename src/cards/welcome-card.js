@@ -40,17 +40,9 @@ export const card = {
     daily_quote: {
       defaultName: '每日一言',
       defaultIcon: 'mdi:format-quote-close',
-      area: 'content',
       required: false,
       description: '关联一个文本传感器实体显示每日名言'
     }
-  },
-  
-  layout: {
-    areas: [
-      { id: 'header', label: '问候区', maxBlocks: 1 },
-      { id: 'content', label: '名言区', maxBlocks: 1 }
-    ]
   },
   
   template: (config, data, context) => {
@@ -91,6 +83,9 @@ export const card = {
       
       // 查找每日一言块
       let quoteBlock = null;
+      let quoteContent = '';
+      let quoteIcon = 'mdi:format-quote-close';
+      
       Object.values(blocks).forEach(block => {
         if (block.presetKey === 'daily_quote' || 
             block.name?.includes('每日一言') || 
@@ -99,20 +94,23 @@ export const card = {
         }
       });
       
-      let quoteContent = '';
-      
       if (quoteBlock?.entity && data.hass?.states?.[quoteBlock.entity]) {
         // 从实体获取名言
         const entity = data.hass.states[quoteBlock.entity];
         quoteContent = entity.state;
+        quoteIcon = quoteBlock.icon || 'mdi:format-quote-close';
       } else {
         // 使用默认名言
         quoteContent = getDefaultQuote(now);
       }
       
       if (quoteContent) {
+        // 紧凑模式：图标 + 垂直分隔线 + 名言
         quoteHtml = `
-          <div class="quote-section">
+          <div class="quote-container">
+            <div class="quote-icon">
+              ${renderIcon(quoteIcon)}
+            </div>
             <div class="quote-divider"></div>
             <div class="quote-content">${escapeHtml(quoteContent)}</div>
           </div>
@@ -137,6 +135,14 @@ export const card = {
         .replace(/"/g, '&quot;');
     }
     
+    function renderIcon(icon) {
+      if (icon.startsWith('mdi:')) {
+        return `<ha-icon icon="${icon}"></ha-icon>`;
+      } else {
+        return `<span class="emoji-icon">${icon}</span>`;
+      }
+    }
+    
     function getDefaultQuote(date) {
       const dayOfYear = Math.floor((date - new Date(date.getFullYear(), 0, 0)) / 1000 / 60 / 60 / 24);
       const quotes = [
@@ -144,27 +150,7 @@ export const card = {
         "成功的秘诀在于对目标的坚持。",
         "时间就像海绵里的水，只要愿挤，总还是有的。",
         "知识就是力量。",
-        "走自己的路，让别人说去吧。",
-        "生命不止，奋斗不息。",
-        "今天能做的事，绝不拖到明天。",
-        "静以修身，俭以养德。",
-        "天生我材必有用。",
-        "勿以恶小而为之，勿以善小而不为。",
-        "学而不思则罔，思而不学则殆。",
-        "千里之行，始于足下。",
-        "己所不欲，勿施于人。",
-        "知之为知之，不知为不知，是知也。",
-        "天行健，君子以自强不息。",
-        "君子坦荡荡，小人长戚戚。",
-        "三人行，必有我师焉。",
-        "温故而知新，可以为师矣。",
-        "工欲善其事，必先利其器。",
-        "敏而好学，不耻下问。",
-        "学而时习之，不亦说乎？",
-        "知之者不如好之者，好之者不如乐之者。",
-        "逝者如斯夫，不舍昼夜。",
-        "志当存高远。",
-        "业精于勤，荒于嬉；行成于思，毁于随。"
+        "走自己的路，让别人说去吧。"
       ];
       
       return quotes[dayOfYear % quotes.length];
@@ -200,66 +186,57 @@ export const card = {
         font-weight: 300;
         color: ${primaryColor};
         letter-spacing: 1px;
-        margin-bottom: 16px;
+        margin-bottom: 20px;
         font-family: 'Segoe UI', 'Roboto', sans-serif;
       }
       
-      .quote-section {
-        margin-top: 8px;
+      /* 名言容器 - 紧凑模式：图标 + 垂直分隔线 + 名言 */
+      .quote-container {
+        display: flex;
+        align-items: flex-start;
+        gap: 16px;
         max-width: 90%;
         width: 100%;
+        margin-top: 8px;
+        text-align: left;
+      }
+      
+      .quote-icon {
+        flex-shrink: 0;
+        font-size: 1.8em;
+        color: ${accentColor};
+        display: flex;
+        align-items: flex-start;
+        padding-top: 4px;
       }
       
       .quote-divider {
-        width: 60px;
-        height: 1px;
+        width: 2px;
+        height: 100%;
+        min-height: 40px;
         background: var(--cf-border);
-        margin: 0 auto 16px auto;
         opacity: 0.6;
+        margin: 0;
       }
       
       .quote-content {
+        flex: 1;
         font-size: 1.1em;
         color: var(--cf-text-secondary);
         line-height: 1.6;
         font-style: italic;
-        padding: 0 10px;
         font-family: 'Georgia', 'Times New Roman', serif;
+        word-break: break-word;
       }
       
-      /* 块模式样式 */
-      .welcome-card .card-area {
-        width: 100%;
+      /* 图标样式 */
+      .emoji-icon {
+        font-size: 1.2em;
+        line-height: 1;
       }
       
-      .welcome-card .area-header {
-        display: none; /* 隐藏区域标题 */
-      }
-      
-      .welcome-card .area-content .block-base {
-        background: transparent;
-        border: none;
-        padding: 0;
-        min-height: auto;
-        justify-content: center;
-      }
-      
-      .welcome-card .area-content .block-icon {
-        display: none; /* 隐藏图标 */
-      }
-      
-      .welcome-card .area-content .block-name {
-        display: none; /* 隐藏块名称 */
-      }
-      
-      .welcome-card .area-content .block-value {
-        font-size: 1.1em;
-        font-weight: 400;
-        color: var(--cf-text-secondary);
-        font-style: italic;
-        line-height: 1.6;
-        text-align: center;
-        font-family: 'Georgia', 'Times New Roman', serif;
+      ha-icon {
+        color: inherit;
       }
       
       /* 响应式设计 */
@@ -276,7 +253,16 @@ export const card = {
         
         .time {
           font-size: 2.2em;
-          margin-bottom: 14px;
+          margin-bottom: 16px;
+        }
+        
+        .quote-container {
+          max-width: 95%;
+          gap: 12px;
+        }
+        
+        .quote-icon {
+          font-size: 1.5em;
         }
         
         .quote-content {
@@ -296,34 +282,30 @@ export const card = {
         
         .time {
           font-size: 1.8em;
+          margin-bottom: 14px;
+        }
+        
+        .quote-container {
+          flex-direction: column;
+          align-items: flex-start;
+          gap: 8px;
         }
         
         .quote-divider {
-          margin-bottom: 12px;
-        }
-        
-        .quote-content {
-          font-size: 0.95em;
-          line-height: 1.5;
+          width: 100%;
+          height: 1px;
+          min-height: 1px;
+          margin: 4px 0;
         }
       }
       
       /* 深色模式优化 */
       @media (prefers-color-scheme: dark) {
-        .welcome-card {
-          background: linear-gradient(135deg, rgba(0, 0, 0, 0.1) 0%, rgba(0, 0, 0, 0.05) 100%);
-        }
-        
-        .time {
-          text-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+        .quote-divider {
+          background: rgba(255, 255, 255, 0.2);
         }
       }
     `;
-  },
-  
-  layout: {
-    type: 'single',
-    recommendedSize: 3
   }
 };
 
