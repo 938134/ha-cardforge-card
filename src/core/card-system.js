@@ -1,354 +1,272 @@
-// src/editors/card-editor.js
-import { LitElement, html, css } from 'https://unpkg.com/lit@2.8.0/index.js?module';
-import { cardSystem } from '../core/card-system.js';
-import { themeSystem } from '../core/theme-system.js';
-import { designSystem } from '../core/design-system.js';
+// src/core/card-system.js
+import { renderBlock, renderBlocks } from './block-renderer.js';
 
-import '../editors/card-selector.js';
-import '../editors/theme-selector.js';
-import '../editors/form-builder.js';
-import '../editors/block-management.js';
-
-class CardEditor extends LitElement {
-  static properties = {
-    hass: { type: Object },
-    config: { type: Object },
-    _cards: { state: true },
-    _themes: { state: true },
-    _selectedCard: { state: true },
-    _initialized: { state: true },
-    _lastConfig: { state: true }
-  };
-
-  static styles = [
-    designSystem,
-    css`
-      .editor-container {
-        background: var(--cf-background);
-        border-radius: var(--cf-radius-lg);
-        border: 1px solid var(--cf-border);
-        overflow: hidden;
-        min-width: 350px;
-      }
-      
-      .editor-section {
-        padding: var(--cf-spacing-lg);
-        border-bottom: 1px solid var(--cf-border);
-      }
-      
-      .editor-section:last-child {
-        border-bottom: none;
-      }
-      
-      .section-header {
-        display: flex;
-        align-items: center;
-        gap: var(--cf-spacing-sm);
-        margin-bottom: var(--cf-spacing-md);
-      }
-      
-      .section-title {
-        font-size: 1em;
-        font-weight: 600;
-        color: var(--cf-text-primary);
-      }
-      
-      .empty-state {
-        text-align: center;
-        padding: var(--cf-spacing-xl);
-        color: var(--cf-text-secondary);
-      }
-      
-      .empty-icon {
-        font-size: 2.5em;
-        margin-bottom: var(--cf-spacing-md);
-        opacity: 0.5;
-      }
-      
-      @media (max-width: 480px) {
-        .editor-container {
-          min-width: 300px;
-        }
-      }
-    `
-  ];
-
+class CardSystem {
   constructor() {
-    super();
-    this._cards = [];
-    this._themes = [];
-    this._selectedCard = null;
+    this.cards = new Map();
     this._initialized = false;
-    this._lastConfig = null;
   }
 
-  async firstUpdated() {
-    await cardSystem.initialize();
-    await themeSystem.initialize();
+  // 初始化卡片系统
+  async initialize() {
+    if (this._initialized) return;
     
-    this._cards = cardSystem.getAllCards();
-    this._themes = themeSystem.getAllThemes();
+    await this._discoverCards();
+    
     this._initialized = true;
-    
-    this._processInitialConfig();
   }
 
-  setConfig(config) {
-    if (!config || typeof config !== 'object') {
+  // 动态发现卡片
+  async _discoverCards() {
+    const cardModules = [
+      () => import('../cards/clock-card.js'),
+      () => import('../cards/week-card.js'),
+      () => import('../cards/welcome-card.js'),
+      () => import('../cards/poetry-card.js'),
+      () => import('../cards/dashboard-card.js')
+    ];
+
+    for (const importFn of cardModules) {
+      try {
+        const module = await importFn();
+        this._registerCardModule(module);
+      } catch (error) {
+        // 静默失败
+      }
+    }
+  }
+
+  // 注册卡片模块
+  _registerCardModule(module) {
+    if (!module.card) return;
+    
+    const cardId = module.card.id;
+    if (!cardId) return;
+
+    // 验证必需字段
+    if (!module.card.meta || !module.card.template || !module.card.styles) {
       return;
     }
-    
-    let newConfig = { ...config };
-    
-    if (!newConfig.card_type && newConfig.cardType) {
-      newConfig.card_type = newConfig.cardType;
-      delete newConfig.cardType;
+
+    // 注册卡片
+    this.cards.set(cardId, {
+      id: cardId,
+      definition: module.card,
+      CardClass: module.CardClass || null
+    });
+  }
+
+  // 获取卡片定义
+  getCard(cardId) {
+    const cardData = this.cards.get(cardId);
+    return cardData?.definition || null;
+  }
+
+  // 获取默认卡片
+  getDefaultCard() {
+    const defaultCards = ['clock', 'welcome', 'dashboard'];
+    for (const cardId of defaultCards) {
+      if (this.cards.has(cardId)) {
+        return this.getCard(cardId);
+      }
     }
+    return this.cards.values().next().value?.definition;
+  }
+
+  // 获取所有卡片列表
+  getAllCards() {
+    return Array.from(this.cards.values()).map(item => ({
+      id: item.id,
+      ...item.definition.meta,
+      schema: item.definition.schema || {},
+      blockType: item.definition.blockType || 'none',
+      layout: item.definition.layout || {},
+      presetBlocks: item.definition.presetBlocks || null
+    }));
+  }
+
+  // 获取所有卡片分类
+  getAllCategories() {
+    const categories = new Set();
+    this.cards.forEach(item => {
+      if (item.definition.meta.category) {
+        categories.add(item.definition.meta.category);
+      }
+    });
+    return Array.from(categories);
+  }
+
+  // 渲染卡片
+  renderCard(cardId, userConfig = {}, hass = null, themeVariables = {}) {
+    const card = this.getCard(cardId);
+    if (!card) {
+      throw new Error(`卡片不存在: ${cardId}`);
+    }
+
+    // 合并配置
+    const config = this._mergeConfig(card.schema || {}, userConfig);
     
-    newConfig = this._ensureDefaultConfig(newConfig);
-    
-    const newConfigStr = JSON.stringify(newConfig);
-    if (newConfigStr !== this._lastConfig) {
-      this.config = newConfig;
-      this._lastConfig = newConfigStr;
-      this.requestUpdate();
+    // 准备数据上下文
+    const data = { hass };
+    const context = { 
+      theme: themeVariables,
+      renderBlock: (block) => renderBlock(block, hass),
+      renderBlocks: (blocks) => renderBlocks(blocks, hass),
+      renderBlocksByArea: (blocks) => this._renderBlocksByArea(blocks, hass, card.layout)
+    };
+
+    try {
+      const template = card.template(config, data, context);
+      const styles = card.styles(config, themeVariables);
+      
+      return {
+        template,
+        styles,
+        config
+      };
+    } catch (error) {
+      throw new Error(`卡片渲染失败: ${error.message}`);
     }
   }
 
-  _processInitialConfig() {
-    if (!this.config.card_type && this._cards.length > 0) {
-      const firstCard = this._cards[0];
-      this.config = this._buildCardConfig(firstCard.id, {});
-      this._selectedCard = cardSystem.getCard(firstCard.id);
-      this._lastConfig = JSON.stringify(this.config);
-      this._initializePresetBlocks();
-      this._notifyConfigChange();
-    } else if (this.config.card_type) {
-      this._selectedCard = cardSystem.getCard(this.config.card_type);
-      this._initializePresetBlocks();
-    }
-  }
-
-  render() {
-    if (!this._initialized) {
-      return html`
-        <div class="editor-container">
-          <div class="editor-section">
-            <div class="empty-state">
-              <div class="empty-icon">⏳</div>
-              <div>初始化编辑器中...</div>
-            </div>
-          </div>
-        </div>
-      `;
-    }
-
-    const selectedCardDef = this._selectedCard;
-    const blockType = selectedCardDef?.blockType || 'none';
-    const hasPresetBlocks = blockType === 'preset' && selectedCardDef?.presetBlocks;
+  // 按区域渲染块
+  _renderBlocksByArea(blocks, hass, layout = {}) {
+    if (!blocks || Object.keys(blocks).length === 0) return '';
     
-    return html`
-      <div class="editor-container">
-        <!-- 卡片选择部分 -->
-        <div class="editor-section">
-          <div class="section-header">
-            <ha-icon icon="mdi:palette"></ha-icon>
-            <span class="section-title">选择卡片类型</span>
-          </div>
-          <card-selector 
-            .cards=${this._cards}
-            .selectedCard=${this.config.card_type}
-            @card-changed=${this._handleCardChange}
-          ></card-selector>
-        </div>
-        
-        <!-- 主题选择部分 -->
-        ${this.config.card_type ? html`
-          <div class="editor-section">
-            <div class="section-header">
-              <ha-icon icon="mdi:format-paint"></ha-icon>
-              <span class="section-title">选择主题</span>
-            </div>
-            <theme-selector
-              .themes=${this._themes}
-              .selectedTheme=${this.config.theme}
-              @theme-changed=${this._handleThemeChange}
-            ></theme-selector>
-          </div>
-        ` : ''}
-        
-        <!-- 卡片配置部分 -->
-        ${this.config.card_type && selectedCardDef?.schema ? html`
-          <div class="editor-section">
-            <div class="section-header">
-              <ha-icon icon="mdi:cog"></ha-icon>
-              <span class="section-title">卡片设置</span>
-            </div>
-            <form-builder
-              .schema=${selectedCardDef.schema}
-              .config=${this.config}
-              .hass=${this.hass}
-              @config-changed=${this._handleConfigChange}
-            ></form-builder>
-          </div>
-        ` : ''}
-        
-        <!-- 块管理部分 -->
-        ${blockType !== 'none' ? html`
-          <div class="editor-section">
-            <div class="section-header">
-              <ha-icon icon="mdi:cube-outline"></ha-icon>
-              <span class="section-title">
-                块管理
-                ${blockType === 'preset' ? html`
-                  <span style="font-size:0.8em;color:var(--cf-text-secondary);margin-left:8px;">
-                    (预设结构${hasPresetBlocks ? `，共${Object.keys(selectedCardDef.presetBlocks).length}个预设块` : ''})
-                  </span>
-                ` : ''}
-              </span>
-            </div>
-            <block-management
-              .config=${this.config}
-              .hass=${this.hass}
-              .permissionType=${blockType}
-              .cardDefinition=${selectedCardDef}
-              @config-changed=${this._handleConfigChange}
-            ></block-management>
-          </div>
-        ` : ''}
-      </div>
-    `;
-  }
-
-  _handleCardChange(e) {
-    const cardId = e.detail.cardId;
+    const areas = layout.areas || [{ id: 'content' }];
+    const blocksByArea = {};
     
-    if (this.config.card_type === cardId) {
-      return;
-    }
-    
-    const newConfig = this._buildCardConfig(cardId, {
-      theme: this.config.theme || 'auto'
+    // 初始化区域分组
+    areas.forEach(area => {
+      blocksByArea[area.id] = [];
     });
     
-    this._selectedCard = cardSystem.getCard(cardId);
-    this._initializePresetBlocks(newConfig);
+    // 按区域分组
+    Object.entries(blocks).forEach(([id, block]) => {
+      const area = block.area || 'content';
+      if (!blocksByArea[area]) {
+        blocksByArea[area] = [];
+      }
+      blocksByArea[area].push([id, block]);
+    });
     
-    this.config = newConfig;
-    this._lastConfig = JSON.stringify(newConfig);
-    this._notifyConfigChange();
-  }
-
-  _handleThemeChange(e) {
-    if (this.config.theme === e.detail.theme) {
-      return;
+    // 渲染每个区域
+    let html = '';
+    areas.forEach(area => {
+      const areaBlocks = blocksByArea[area.id];
+      if (areaBlocks && areaBlocks.length > 0) {
+        html += `<div class="card-area area-${area.id}">`;
+        html += areaBlocks.map(([id, block]) => renderBlock(block, hass)).join('');
+        html += '</div>';
+      }
+    });
+    
+    // 渲染未指定区域的块
+    const unassignedBlocks = blocksByArea['content'] || [];
+    if (unassignedBlocks.length > 0) {
+      if (!areas.some(area => area.id === 'content')) {
+        html += `<div class="card-area area-content">`;
+        html += unassignedBlocks.map(([id, block]) => renderBlock(block, hass)).join('');
+        html += '</div>';
+      }
     }
     
-    this.config = { ...this.config, theme: e.detail.theme };
-    this._lastConfig = JSON.stringify(this.config);
-    this._notifyConfigChange();
+    return html;
   }
 
-  _handleConfigChange(e) {
-    this.config = { ...this.config, ...e.detail.config };
-    this._lastConfig = JSON.stringify(this.config);
-    this._notifyConfigChange();
-  }
-
-  _ensureDefaultConfig(userConfig) {
-    const defaultConfig = {
-      type: 'custom:ha-cardforge-card',
-      card_type: userConfig.card_type || cardSystem.getDefaultCard()?.id || 'clock',
-      theme: userConfig.theme || 'auto'
-    };
+  // 合并配置（用户配置 + 默认值）
+  _mergeConfig(schema, userConfig) {
+    const config = { ...userConfig };
     
-    const card = cardSystem.getCard(defaultConfig.card_type);
-    if (card?.schema) {
-      Object.entries(card.schema).forEach(([key, field]) => {
-        if (field.default !== undefined && userConfig[key] === undefined) {
-          defaultConfig[key] = field.default;
+    // 应用schema中的默认值
+    if (schema) {
+      Object.entries(schema).forEach(([key, field]) => {
+        if (config[key] === undefined && field.default !== undefined) {
+          config[key] = field.default;
         }
       });
     }
     
-    return { ...defaultConfig, ...userConfig };
+    // 确保有blocks字段
+    if (config.blocks === undefined) {
+      config.blocks = {};
+    }
+    
+    return config;
   }
 
-  _buildCardConfig(cardId, baseConfig = {}) {
-    const cardDef = cardSystem.getCard(cardId);
-    if (!cardDef) {
-      return {
-        type: 'custom:ha-cardforge-card',
-        card_type: cardId,
-        theme: baseConfig.theme || 'auto',
-        ...baseConfig
-      };
-    }
+  // 验证块配置是否合法
+  validateBlock(block, cardId) {
+    if (!block) return false;
     
-    const defaultConfig = {};
-    const schema = cardDef.schema || {};
-    Object.entries(schema).forEach(([key, field]) => {
-      if (field.default !== undefined) {
-        defaultConfig[key] = field.default;
-      }
+    // 所有块都必须有entity字段
+    if (!block.entity) return false;
+    
+    return true;
+  }
+
+  // 获取卡片支持的区域配置
+  getCardAreas(cardId) {
+    const card = this.getCard(cardId);
+    if (!card) return [];
+    
+    return card.layout?.areas || [{ id: 'content', label: '内容区' }];
+  }
+
+  // 获取卡片预设块定义
+  getPresetBlocks(cardId) {
+    const card = this.getCard(cardId);
+    if (!card || card.blockType !== 'preset') return null;
+    
+    return card.presetBlocks || {};
+  }
+
+  // 生成预设块的初始配置
+  generatePresetBlocks(cardId) {
+    const card = this.getCard(cardId);
+    if (!card || card.blockType !== 'preset') return {};
+    
+    const presetBlocks = {};
+    const presetDefs = card.presetBlocks || {};
+    
+    Object.entries(presetDefs).forEach(([key, preset]) => {
+      const blockId = `preset_${key}_${Date.now()}`;
+      presetBlocks[blockId] = {
+        entity: '',
+        name: preset.defaultName || key,
+        icon: preset.defaultIcon || 'mdi:cube-outline',
+        area: preset.area || 'content',
+        presetKey: key,
+        required: preset.required || false
+      };
     });
     
-    const cleanConfig = {
-      type: 'custom:ha-cardforge-card',
-      card_type: cardId,
-      theme: baseConfig.theme || 'auto'
-    };
+    return presetBlocks;
+  }
+
+  // 清理配置中的无效块
+  cleanupBlocks(config, hass) {
+    if (!config?.blocks) return config;
     
-    const blockType = cardDef.blockType || 'none';
-    if ((blockType === 'custom' || blockType === 'preset') && baseConfig.blocks) {
-      cleanConfig.blocks = baseConfig.blocks;
-    }
+    const validBlocks = {};
+    
+    Object.entries(config.blocks).forEach(([id, block]) => {
+      if (this.validateBlock(block, config.card_type)) {
+        validBlocks[id] = block;
+      }
+    });
     
     return {
-      ...cleanConfig,
-      ...defaultConfig
+      ...config,
+      blocks: validBlocks
     };
   }
-
-  _initializePresetBlocks(config = this.config) {
-    if (!config.card_type) return;
-    
-    const cardDef = cardSystem.getCard(config.card_type);
-    if (cardDef?.blockType !== 'preset') {
-      return;
-    }
-    
-    if (config.blocks && Object.keys(config.blocks).length > 0) {
-      return;
-    }
-    
-    const presetBlocks = cardSystem.generatePresetBlocks(config.card_type);
-    if (Object.keys(presetBlocks).length > 0) {
-      config.blocks = presetBlocks;
-      this._lastConfig = JSON.stringify(config);
-      this._notifyConfigChange();
-    }
-  }
-
-  _notifyConfigChange() {
-    const event = new CustomEvent('config-changed', {
-      bubbles: true,
-      composed: true,
-      detail: { 
-        config: { ...this.config }
-      }
-    });
-    
-    this.dispatchEvent(event);
-  }
-
-  getConfig() {
-    return { ...this.config };
-  }
 }
 
-if (!customElements.get('card-editor')) {
-  customElements.define('card-editor', CardEditor);
-}
+// 创建全局实例
+const cardSystem = new CardSystem();
 
-export { CardEditor };
+// 自动初始化
+cardSystem.initialize();
+
+export { cardSystem, CardSystem };
