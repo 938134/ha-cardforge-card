@@ -1,4 +1,6 @@
-// src/cards/welcome.js - 添加块支持
+// src/cards/welcome-card.js
+import { renderBlocks } from '../core/block-renderer.js';
+
 export const card = {
   id: 'welcome',
   meta: {
@@ -8,6 +10,27 @@ export const card = {
     category: '信息',
     version: '2.0.0',
     author: 'CardForge'
+  },
+  
+  // 预设块类型
+  blockType: 'preset',
+  
+  // 预设块定义 - 只保留每日一言
+  presetBlocks: {
+    daily_quote: {
+      defaultName: '每日一言',
+      defaultIcon: 'mdi:format-quote-close',
+      area: 'content',
+      required: true,
+      description: '显示每日名言警句'
+    }
+  },
+  
+  // 区域配置
+  layout: {
+    areas: [
+      { id: 'content', label: '内容区', maxBlocks: 3 }
+    ]
   },
   
   schema: {
@@ -25,41 +48,6 @@ export const card = {
       type: 'boolean',
       label: '显示时间',
       default: true
-    },
-    showQuote: {
-      type: 'boolean',
-      label: '显示每日一言',
-      default: true
-    },
-    // 添加块相关配置
-    useBlocks: {
-      type: 'boolean',
-      label: '使用自定义块',
-      default: false
-    }
-  },
-  
-  // 添加预设块配置
-  blocks: {
-    presets: {
-      greeting_block: {
-        type: 'text',
-        name: '问候语',
-        content: '',
-        icon: 'mdi:hand-wave'
-      },
-      time_block: {
-        type: 'text',
-        name: '时间',
-        content: '',
-        icon: 'mdi:clock'
-      },
-      quote_block: {
-        type: 'text',
-        name: '每日一言',
-        content: '',
-        icon: 'mdi:format-quote-close'
-      }
     }
   },
   
@@ -67,21 +55,21 @@ export const card = {
     const now = new Date();
     const hour = now.getHours();
     const userName = data.hass?.user?.name || '朋友';
-    
-    // 检查是否使用块模式
-    const useBlocks = config.useBlocks || false;
     const blocks = config.blocks || {};
     
-    if (useBlocks && Object.keys(blocks).length > 0) {
-      // 块模式：从块中获取内容
-      return this._renderBlockMode(config, blocks, data, context);
-    } else {
-      // 传统模式：从配置中获取内容
-      return this._renderTraditionalMode(config, now, hour, userName);
+    // 如果没有块，显示空状态
+    if (Object.keys(blocks).length === 0) {
+      return `
+        <div class="welcome-card">
+          <div class="welcome-empty">
+            <div class="empty-icon">👋</div>
+            <div class="empty-text">欢迎卡片需要配置内容</div>
+            <div class="empty-hint">请在编辑器中为预设块关联实体</div>
+          </div>
+        </div>
+      `;
     }
-  },
-  
-  _renderTraditionalMode(config, now, hour, userName) {
+    
     // 问候语
     let greeting = '';
     if (config.showGreeting) {
@@ -102,64 +90,33 @@ export const card = {
     const timeStr = config.showTime ? 
       `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}` : '';
     
-    // 每日一言
-    let quoteHtml = '';
-    if (config.showQuote) {
-      const quote = this._getDailyQuote(now);
-      quoteHtml = `
-        <div class="quote-section">
-          <div class="quote-divider"></div>
-          <div class="quote-content">${this._escapeHtml(quote)}</div>
-        </div>
-      `;
+    // 使用区域渲染器渲染块
+    let blocksHtml = '';
+    if (context.renderBlocksByArea) {
+      blocksHtml = context.renderBlocksByArea(blocks);
+    } else if (context.renderBlocks) {
+      blocksHtml = context.renderBlocks(blocks);
     }
     
     return `
       <div class="welcome-card">
         <div class="welcome-content">
-          ${greeting ? `<div class="greeting">${this._escapeHtml(greeting)}</div>` : ''}
+          ${greeting ? `<div class="greeting">${escapeHtml(greeting)}</div>` : ''}
           ${timeStr ? `<div class="time">${timeStr}</div>` : ''}
-          ${quoteHtml}
+          ${blocksHtml}
         </div>
       </div>
     `;
-  },
-  
-  _renderBlockMode(config, blocks, data, context) {
-    // 使用块渲染器渲染所有块
-    if (context.renderBlocks) {
-      const blocksHtml = context.renderBlocks(blocks);
-      return `
-        <div class="welcome-card block-mode">
-          <div class="welcome-content">
-            ${blocksHtml}
-          </div>
-        </div>
-      `;
-    }
     
-    // 如果渲染器不可用，显示空状态
-    return `
-      <div class="welcome-card block-mode">
-        <div class="welcome-empty">
-          <div class="empty-icon">👋</div>
-          <div class="empty-text">欢迎卡片（块模式）</div>
-        </div>
-      </div>
-    `;
-  },
-  
-  _getDailyQuote(date) {
-    // ... 每日一言逻辑保持不变 ...
-  },
-  
-  _escapeHtml(text) {
-    if (!text) return '';
-    return text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+    function escapeHtml(text) {
+      if (!text) return '';
+      return text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+    }
   },
   
   styles: (config, theme) => {
-    // ... 样式代码保持不变，添加块模式样式 ...
+    const primaryColor = theme['--cf-primary-color'] || '#03a9f4';
+    
     return `
       .welcome-card {
         display: flex;
@@ -168,10 +125,6 @@ export const card = {
         height: 100%;
         min-height: 140px;
         padding: 20px;
-      }
-      
-      .welcome-card.block-mode {
-        padding: 16px;
       }
       
       .welcome-content {
@@ -214,27 +167,33 @@ export const card = {
       .time {
         font-size: 2.2em;
         font-weight: 300;
-        color: var(--cf-primary-color);
+        color: ${primaryColor};
         letter-spacing: 1px;
       }
       
-      .quote-section {
-        margin-top: 8px;
-        max-width: 90%;
+      /* 块样式定制 */
+      .welcome-card .cardforge-block {
+        background: transparent;
+        border: none;
+        padding: 8px;
+        min-height: 50px;
       }
       
-      .quote-divider {
-        width: 60px;
-        height: 1px;
-        background: var(--cf-border);
-        margin: 0 auto 12px auto;
-        opacity: 0.6;
-      }
-      
-      .quote-content {
-        font-size: 0.95em;
+      .welcome-card .block-icon {
+        font-size: 1.2em;
         color: var(--cf-text-secondary);
-        line-height: 1.5;
+      }
+      
+      .welcome-card .block-name {
+        font-size: 0.9em;
+        color: var(--cf-text-secondary);
+        margin-bottom: 4px;
+      }
+      
+      .welcome-card .block-value {
+        font-size: 1.1em;
+        font-weight: 400;
+        color: var(--cf-text-primary);
         font-style: italic;
       }
       
@@ -251,31 +210,9 @@ export const card = {
           font-size: 1.8em;
         }
         
-        .quote-content {
-          font-size: 0.85em;
+        .welcome-card .block-value {
+          font-size: 0.95em;
         }
-      }
-      
-      /* 块模式下的特殊样式 */
-      .welcome-card.block-mode .cardforge-block {
-        background: transparent;
-        border: none;
-        padding: 8px;
-        min-height: 50px;
-      }
-      
-      .welcome-card.block-mode .block-icon {
-        font-size: 1.2em;
-        color: var(--cf-primary-color);
-      }
-      
-      .welcome-card.block-mode .block-name {
-        display: none;
-      }
-      
-      .welcome-card.block-mode .block-value {
-        font-size: 1.1em;
-        font-weight: 400;
       }
     `;
   },
