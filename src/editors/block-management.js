@@ -1,7 +1,7 @@
 // src/editors/block-management.js
 import { LitElement, html, css } from 'https://unpkg.com/lit@2.8.0/index.js?module';
 import { designSystem } from '../core/design-system.js';
-import { BlockBase } from '../core/block-base.js';
+import '../core/block-base.js';
 import './block-edit-form.js';
 
 class BlockManagement extends LitElement {
@@ -62,6 +62,11 @@ class BlockManagement extends LitElement {
         position: relative;
       }
       
+      .block-item-wrapper {
+        position: relative;
+        width: 100%;
+      }
+      
       /* 块操作 */
       .block-actions {
         position: absolute;
@@ -71,6 +76,11 @@ class BlockManagement extends LitElement {
         gap: 4px;
         opacity: 0;
         transition: opacity var(--cf-transition-fast);
+        z-index: 10;
+        background: rgba(var(--cf-background, 255, 255, 255), 0.9);
+        padding: 4px;
+        border-radius: var(--cf-radius-sm);
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
       }
       
       .block-item-container:hover .block-actions {
@@ -167,6 +177,11 @@ class BlockManagement extends LitElement {
         margin-top: 12px;
       }
       
+      /* 块预览 */
+      .block-preview {
+        pointer-events: none;
+      }
+      
       /* 响应式 */
       @media (max-width: 480px) {
         .block-actions {
@@ -176,6 +191,9 @@ class BlockManagement extends LitElement {
           opacity: 1;
           margin-top: 8px;
           justify-content: flex-end;
+          background: transparent;
+          box-shadow: none;
+          padding: 0;
         }
         
         .block-action {
@@ -188,12 +206,15 @@ class BlockManagement extends LitElement {
 
   constructor() {
     super();
+    this.config = {};
+    this.hass = null;
+    this.permissionType = 'custom';
+    this.cardDefinition = {};
     this._editingBlockId = null;
     this._showEmptyState = true;
     this._areas = [];
     this._presetBlocks = {};
     this._blocksByArea = {};
-    this.permissionType = 'custom';
   }
 
   render() {
@@ -253,13 +274,26 @@ class BlockManagement extends LitElement {
     const isPreset = block.presetKey || this.permissionType === 'preset';
     const presetDef = isPreset ? this._presetBlocks[block.presetKey] : null;
     
+    // 准备传递给block-base的属性
+    const blockData = {
+      entity: block.entity || '',
+      name: block.name || '',
+      icon: block.icon || '',
+      area: block.area || 'content',
+      presetKey: block.presetKey || '',
+      required: block.required || false
+    };
+    
     return html`
       <div class="block-item-container">
-        <block-base
-          .block=${block}
-          .hass=${this.hass}
-          .compact=${true}
-        >
+        <div class="block-item-wrapper">
+          <block-base
+            .block=${blockData}
+            .hass=${this.hass}
+            .compact=${true}
+            class="block-preview"
+          ></block-base>
+          
           <div class="block-actions">
             <div 
               class="block-action ${this._canEditBlock(block) ? '' : 'disabled'}"
@@ -276,7 +310,7 @@ class BlockManagement extends LitElement {
               <ha-icon icon="mdi:delete"></ha-icon>
             </div>
           </div>
-        </block-base>
+        </div>
         
         ${isEditing ? html`
           <div class="edit-form-container">
@@ -391,7 +425,7 @@ class BlockManagement extends LitElement {
     if (this._isAreaFull()) {
       const defaultArea = this._areas[0].id;
       const areaDef = this._areas.find(a => a.id === defaultArea);
-      return `${areaDef?.label || defaultArea}已满`;
+      return `${areaDef?.label || defaultArea}已满（最多 ${areaDef.maxBlocks} 个块）`;
     }
     return '';
   }
@@ -456,6 +490,34 @@ class BlockManagement extends LitElement {
   _updateBlock(blockId, updates) {
     const currentBlocks = this.config.blocks || {};
     const currentBlock = currentBlocks[blockId] || {};
+    
+    // 如果实体改变，自动填充名称和图标（如果未设置且不是预设块）
+    if (updates.entity && updates.entity !== currentBlock.entity) {
+      const entity = this.hass?.states?.[updates.entity];
+      if (entity && !currentBlock.presetKey) {
+        if (!currentBlock.name && !updates.name) {
+          updates.name = entity.attributes?.friendly_name || updates.entity;
+        }
+        if (!currentBlock.icon && !updates.icon) {
+          const domain = updates.entity.split('.')[0];
+          const iconMap = {
+            light: 'mdi:lightbulb',
+            switch: 'mdi:power',
+            sensor: 'mdi:gauge',
+            binary_sensor: 'mdi:toggle-switch',
+            climate: 'mdi:thermostat',
+            cover: 'mdi:blinds',
+            media_player: 'mdi:speaker',
+            vacuum: 'mdi:robot-vacuum',
+            text_sensor: 'mdi:text-box',
+            person: 'mdi:account'
+          };
+          const suggestedIcon = entity.attributes?.icon || iconMap[domain] || 'mdi:cube';
+          updates.icon = suggestedIcon;
+        }
+      }
+    }
+    
     const newBlock = { ...currentBlock, ...updates };
     const newBlocks = { ...currentBlocks, [blockId]: newBlock };
     
@@ -509,6 +571,8 @@ class BlockManagement extends LitElement {
   _fireConfigChange(updates) {
     const newConfig = { ...this.config, ...updates };
     this.dispatchEvent(new CustomEvent('config-changed', {
+      bubbles: true,
+      composed: true,
       detail: { config: newConfig }
     }));
   }
