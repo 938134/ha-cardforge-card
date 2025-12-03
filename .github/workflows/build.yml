@@ -2,8 +2,8 @@ name: 构建并发布
 
 on:
   workflow_dispatch:
-  push:
-   branches: [ main ]
+  ##push:
+   #branches: [ main ]
 
 jobs:
   build:
