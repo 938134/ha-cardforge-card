@@ -39,7 +39,7 @@ export const card = {
   presetBlocks: {
     daily_quote: {
       defaultName: '每日一言',
-      defaultIcon: '💬',
+      defaultIcon: 'mdi:format-quote-close',
       required: false,
       description: '关联一个文本传感器实体显示每日名言'
     }
@@ -84,7 +84,7 @@ export const card = {
       // 查找每日一言块
       let quoteBlock = null;
       let quoteContent = '';
-      let quoteIcon = '💬';
+      let quoteIcon = 'mdi:format-quote-close';
       
       Object.values(blocks).forEach(block => {
         if (block.presetKey === 'daily_quote' || 
@@ -98,16 +98,21 @@ export const card = {
         // 从实体获取名言
         const entity = data.hass.states[quoteBlock.entity];
         quoteContent = entity.state;
-        quoteIcon = quoteBlock.icon || '💬';
+        quoteIcon = quoteBlock.icon || 'mdi:format-quote-close';
       } else {
         // 使用默认名言
         quoteContent = getDefaultQuote(now);
       }
       
       if (quoteContent) {
+        // 正确渲染图标
+        const iconHtml = quoteIcon.startsWith('mdi:') 
+          ? `<ha-icon icon="${quoteIcon}"></ha-icon>`
+          : `<span class="emoji-icon">${quoteIcon}</span>`;
+        
         quoteHtml = `
           <div class="quote-container">
-            <div class="quote-icon">${quoteIcon}</div>
+            <div class="quote-icon">${iconHtml}</div>
             <div class="quote-content">${escapeHtml(quoteContent)}</div>
           </div>
         `;
@@ -195,12 +200,32 @@ export const card = {
       
       .quote-icon {
         flex-shrink: 0;
+        display: flex;
+        align-items: flex-start;
+        justify-content: center;
+        width: 40px;
+        height: 40px;
+        margin-top: 2px;
+      }
+      
+      .quote-icon ha-icon {
+        font-size: 1.8em;
+        color: var(--cf-text-secondary);
+        width: 100%;
+        height: 100%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+      
+      .emoji-icon {
         font-size: 1.8em;
         line-height: 1;
         display: flex;
         align-items: center;
+        justify-content: center;
+        width: 100%;
         height: 100%;
-        min-height: 40px;
       }
       
       .quote-content {
@@ -236,6 +261,12 @@ export const card = {
         }
         
         .quote-icon {
+          width: 36px;
+          height: 36px;
+        }
+        
+        .quote-icon ha-icon,
+        .emoji-icon {
           font-size: 1.6em;
         }
         
@@ -260,6 +291,12 @@ export const card = {
         }
         
         .quote-icon {
+          width: 32px;
+          height: 32px;
+        }
+        
+        .quote-icon ha-icon,
+        .emoji-icon {
           font-size: 1.4em;
         }
         
@@ -277,6 +314,10 @@ export const card = {
         
         .quote-content {
           color: rgba(255, 255, 255, 0.8);
+        }
+        
+        .quote-icon ha-icon {
+          color: rgba(255, 255, 255, 0.7);
         }
       }
     `;
