@@ -1,4 +1,4 @@
-// src/cards/poetry.js - 添加预设块配置
+// src/cards/poetry-card.js
 export const card = {
   id: 'poetry',
   meta: {
@@ -8,6 +8,57 @@ export const card = {
     category: '文化',
     version: '2.0.0',
     author: 'CardForge'
+  },
+  
+  // 预设块类型
+  blockType: 'preset',
+  
+  // 5个预设块定义
+  presetBlocks: {
+    poetry_title: {
+      defaultName: '诗词标题',
+      defaultIcon: 'mdi:format-title',
+      area: 'header',
+      required: true,
+      description: '诗词标题，如《静夜思》'
+    },
+    poetry_dynasty: {
+      defaultName: '朝代',
+      defaultIcon: 'mdi:calendar-clock',
+      area: 'content',
+      required: false,
+      description: '诗词创作朝代，如"唐"'
+    },
+    poetry_author: {
+      defaultName: '作者',
+      defaultIcon: 'mdi:account',
+      area: 'content',
+      required: false,
+      description: '诗词作者，如"李白"'
+    },
+    poetry_content: {
+      defaultName: '诗词内容',
+      defaultIcon: 'mdi:format-quote-close',
+      area: 'content',
+      required: true,
+      description: '诗词正文内容'
+    },
+    poetry_translation: {
+      defaultName: '诗词译文',
+      defaultIcon: 'mdi:translate',
+      area: 'footer',
+      required: false,
+      description: '诗词翻译为现代文'
+    }
+  },
+  
+  // 区域配置
+  layout: {
+    areas: [
+      { id: 'header', label: '标题区', maxBlocks: 1 },
+      { id: 'content', label: '内容区', maxBlocks: 5 },
+      { id: 'footer', label: '译文区', maxBlocks: 1 }
+    ]
   },
   
   schema: {
@@ -28,137 +79,251 @@ export const card = {
     }
   },
   
-  // 添加预设块配置
-  blocks: {
-    presets: {
-      poetry_title: {
-        type: 'text',
-        name: '诗词标题',
-        content: '静夜思',
-        icon: 'mdi:format-title'
-      },
-      poetry_dynasty: {
-        type: 'text',
-        name: '朝代',
-        content: '唐',
-        icon: 'mdi:calendar-clock'
-      },
-      poetry_author: {
-        type: 'text', 
-        name: '作者',
-        content: '李白',
-        icon: 'mdi:account'
-      },
-      poetry_content: {
-        type: 'text',
-        name: '诗词内容',
-        content: '床前明月光，疑是地上霜。举头望明月，低头思故乡。',
-        icon: 'mdi:format-quote-close'
-      },
-      poetry_translation: {
-        type: 'text',
-        name: '诗词译文',
-        content: '明亮的月光洒在窗户纸上，好像地上泛起了一层霜。我禁不住抬起头来，看那天窗外空中的一轮明月，不由得低头沉思，想起远方的家乡。',
-        icon: 'mdi:translate'
-      }
-    }
-  },
-  
   template: (config, data, context) => {
-    // 获取块配置
     const blocks = config.blocks || {};
     
-    // 如果没有块，使用预设块
-    if (Object.keys(blocks).length === 0 && this.blocks?.presets) {
-      // 在编辑器模式下显示提示
+    // 如果没有块，显示空状态
+    if (Object.keys(blocks).length === 0) {
       return `
         <div class="poetry-card">
           <div class="poetry-empty">
             <div class="empty-icon">📜</div>
             <div class="empty-text">诗词卡片需要配置内容</div>
-            <div class="empty-hint">请在编辑器中添加诗词块</div>
+            <div class="empty-hint">请在编辑器中为预设块关联实体</div>
           </div>
         </div>
       `;
     }
     
     // 提取块内容
-    const title = this._getBlockContent(blocks, 'poetry_title', '静夜思');
-    const dynasty = this._getBlockContent(blocks, 'poetry_dynasty', '唐');
-    const author = this._getBlockContent(blocks, 'poetry_author', '李白');
-    const content = this._getBlockContent(blocks, 'poetry_content', '床前明月光，疑是地上霜。举头望明月，低头思故乡。');
+    const title = _getBlockContent(blocks, 'poetry_title', '');
+    const dynasty = _getBlockContent(blocks, 'poetry_dynasty', '');
+    const author = _getBlockContent(blocks, 'poetry_author', '');
+    const content = _getBlockContent(blocks, 'poetry_content', '');
     const translation = config.showTranslation 
-      ? this._getBlockContent(blocks, 'poetry_translation', '明亮的月光洒在窗户纸上，好像地上泛起了一层霜。我禁不住抬起头来，看那天窗外空中的一轮明月，不由得低头沉思，想起远方的家乡。')
+      ? _getBlockContent(blocks, 'poetry_translation', '')
       : '';
     
-    // 根据字体大小设置类名
-    const fontSizeClass = `font-${config.fontSize}`;
+    // 格式化诗词内容
+    const formattedContent = _formatPoetryContent(content);
     
     return `
-      <div class="poetry-card ${fontSizeClass}">
-        ${title ? `<div class="poetry-title">${this._escapeHtml(title)}</div>` : ''}
+      <div class="poetry-card font-${config.fontSize}">
+        ${title ? `<div class="poetry-title">${_escapeHtml(title)}</div>` : ''}
         ${(dynasty || author) ? `
           <div class="poetry-meta">
-            ${dynasty ? `<span class="dynasty">${this._escapeHtml(dynasty)}</span>` : ''}
+            ${dynasty ? `<span class="dynasty">${_escapeHtml(dynasty)}</span>` : ''}
             ${dynasty && author ? `<span class="separator">·</span>` : ''}
-            ${author ? `<span class="author">${this._escapeHtml(author)}</span>` : ''}
+            ${author ? `<span class="author">${_escapeHtml(author)}</span>` : ''}
           </div>
         ` : ''}
-        ${content ? `<div class="poetry-content">${this._formatPoetryContent(content)}</div>` : ''}
+        ${content ? `<div class="poetry-content">${formattedContent}</div>` : ''}
         ${translation ? `
           <div class="translation-section">
             <div class="translation-divider"></div>
-            <div class="translation-content">${this._escapeHtml(translation)}</div>
+            <div class="translation-content">${_escapeHtml(translation)}</div>
           </div>
         ` : ''}
       </div>
     `;
-  },
-  
-  // 辅助方法
-  _getBlockContent(blocks, blockId, defaultValue = '') {
-    // 查找指定类型的块
-    const blockEntry = Object.entries(blocks).find(([id, block]) => 
-      block.type === blockId || id.includes(blockId)
-    );
     
-    if (blockEntry) {
-      const [_, block] = blockEntry;
-      return block.content || block.value || defaultValue;
-    }
-    
-    // 查找块名称为指定ID的块
-    for (const block of Object.values(blocks)) {
-      if (block.name?.includes(blockId.replace('_', '')) || 
-          block.name?.includes(blockId.replace('poetry_', ''))) {
-        return block.content || block.value || defaultValue;
+    // 辅助函数
+    function _getBlockContent(blocks, blockId, defaultValue = '') {
+      // 查找指定类型的块
+      const blockEntry = Object.entries(blocks).find(([id, block]) => 
+        block.presetKey === blockId || block.name?.includes(blockId.replace('poetry_', ''))
+      );
+      
+      if (blockEntry) {
+        const [_, block] = blockEntry;
+        // 如果有实体，从实体获取值
+        if (block.entity && data.hass?.states?.[block.entity]) {
+          const entity = data.hass.states[block.entity];
+          return entity.state || defaultValue;
+        }
+        // 否则使用默认值
+        return defaultValue;
       }
+      
+      return defaultValue;
     }
     
-    return defaultValue;
-  },
-  
-  _formatPoetryContent(content) {
-    if (!content) return '';
-    // 将诗词按句分割
-    const sentences = content.split(/[。，；]/).filter(s => s.trim());
-    return sentences.map(sentence => 
-      `<div class="poetry-line">${this._escapeHtml(sentence.trim())}</div>`
-    ).join('');
-  },
-  
-  _escapeHtml(text) {
-    if (!text) return '';
-    return text
-      .replace(/&/g, '&amp;')
-      .replace(/</g, '&lt;')
-      .replace(/>/g, '&gt;')
-      .replace(/"/g, '&quot;')
-      .replace(/'/g, '&#x27;');
+    function _formatPoetryContent(content) {
+      if (!content) return '';
+      // 将诗词按句分割
+      const sentences = content.split(/[。，；]/).filter(s => s.trim());
+      return sentences.map(sentence => 
+        `<div class="poetry-line">${_escapeHtml(sentence.trim())}</div>`
+      ).join('');
+    }
+    
+    function _escapeHtml(text) {
+      if (!text) return '';
+      return text
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#x27;');
+    }
   },
   
   styles: (config, theme) => {
-    // ... 样式代码保持不变 ...
+    const primaryColor = theme['--cf-primary-color'] || '#03a9f4';
+    const accentColor = theme['--cf-accent-color'] || '#ff4081';
+    
+    return `
+      .poetry-card {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        height: 100%;
+        min-height: 200px;
+        padding: 20px;
+        text-align: center;
+      }
+      
+      .poetry-empty {
+        text-align: center;
+        color: var(--cf-text-secondary);
+      }
+      
+      .empty-icon {
+        font-size: 2em;
+        margin-bottom: 12px;
+        opacity: 0.5;
+      }
+      
+      .empty-text {
+        font-size: 1em;
+      }
+      
+      .empty-hint {
+        font-size: 0.85em;
+        opacity: 0.7;
+        margin-top: 8px;
+      }
+      
+      /* 字体大小控制 */
+      .poetry-card.font-small {
+        font-size: 0.9em;
+      }
+      
+      .poetry-card.font-medium {
+        font-size: 1em;
+      }
+      
+      .poetry-card.font-large {
+        font-size: 1.1em;
+      }
+      
+      /* 标题样式 */
+      .poetry-title {
+        font-size: 1.8em;
+        font-weight: 600;
+        color: ${primaryColor};
+        margin-bottom: 8px;
+        line-height: 1.2;
+      }
+      
+      /* 元信息样式 */
+      .poetry-meta {
+        font-size: 0.9em;
+        color: var(--cf-text-secondary);
+        margin-bottom: 16px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+      }
+      
+      .dynasty, .author {
+        font-style: italic;
+      }
+      
+      .separator {
+        opacity: 0.5;
+      }
+      
+      /* 诗词内容样式 */
+      .poetry-content {
+        width: 100%;
+        max-width: 600px;
+        margin-bottom: 16px;
+      }
+      
+      .poetry-line {
+        font-size: 1.1em;
+        line-height: 1.8;
+        color: var(--cf-text-primary);
+        margin-bottom: 8px;
+        font-family: '楷体', 'KaiTi', serif;
+      }
+      
+      /* 译文区域样式 */
+      .translation-section {
+        width: 100%;
+        max-width: 600px;
+        margin-top: 20px;
+        padding-top: 16px;
+        border-top: 1px solid var(--cf-border);
+      }
+      
+      .translation-divider {
+        width: 60px;
+        height: 2px;
+        background: ${accentColor};
+        margin: 0 auto 16px auto;
+        opacity: 0.7;
+      }
+      
+      .translation-content {
+        font-size: 0.95em;
+        line-height: 1.6;
+        color: var(--cf-text-secondary);
+        text-align: left;
+        padding: 0 10px;
+      }
+      
+      @container cardforge-container (max-width: 400px) {
+        .poetry-card {
+          padding: 16px;
+        }
+        
+        .poetry-title {
+          font-size: 1.5em;
+        }
+        
+        .poetry-line {
+          font-size: 1em;
+          line-height: 1.6;
+        }
+        
+        .translation-content {
+          font-size: 0.9em;
+        }
+      }
+      
+      @container cardforge-container (max-width: 300px) {
+        .poetry-card {
+          padding: 12px;
+        }
+        
+        .poetry-title {
+          font-size: 1.3em;
+        }
+        
+        .poetry-meta {
+          flex-direction: column;
+          gap: 4px;
+        }
+        
+        .separator {
+          display: none;
+        }
+      }
+    `;
   },
   
   layout: {
