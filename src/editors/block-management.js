@@ -6,12 +6,13 @@ class BlockManagement extends LitElement {
   static properties = {
     config: { type: Object },
     hass: { type: Object },
-    permissionType: { type: String }, // 'custom', 'preset', 'none'
+    permissionType: { type: String },
     cardDefinition: { type: Object },
     _editingBlockId: { state: true },
     _availableEntities: { state: true },
     _showEmptyState: { state: true },
-    _areas: { state: true }
+    _areas: { state: true },
+    _presetBlocks: { state: true }
   };
 
   static styles = [
@@ -91,6 +92,15 @@ class BlockManagement extends LitElement {
         margin-left: 8px;
       }
       
+      .required-badge {
+        background: rgba(244, 67, 54, 0.1);
+        color: #f44336;
+        font-size: 0.7em;
+        padding: 2px 6px;
+        border-radius: var(--cf-radius-sm);
+        margin-left: 4px;
+      }
+      
       /* 块图标 */
       .block-icon-preview {
         width: 40px;
@@ -129,6 +139,7 @@ class BlockManagement extends LitElement {
         display: flex;
         align-items: center;
         gap: 8px;
+        flex-wrap: wrap;
       }
       
       .block-entity {
@@ -136,6 +147,10 @@ class BlockManagement extends LitElement {
         padding: 2px 6px;
         border-radius: var(--cf-radius-sm);
         font-size: 0.75em;
+        max-width: 180px;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
       }
       
       .block-area {
@@ -168,13 +183,12 @@ class BlockManagement extends LitElement {
         font-size: 0.9em;
       }
       
-      .block-action:hover {
+      .block-action:hover:not(.disabled) {
         background: var(--cf-primary-color);
         border-color: var(--cf-primary-color);
         color: white;
       }
       
-      .block-action:disabled,
       .block-action.disabled {
         opacity: 0.5;
         cursor: not-allowed;
@@ -213,7 +227,7 @@ class BlockManagement extends LitElement {
       }
       
       .required-mark {
-        color: var(--cf-error-color);
+        color: #f44336;
         margin-left: 2px;
       }
       
@@ -239,7 +253,7 @@ class BlockManagement extends LitElement {
         transition: all var(--cf-transition-fast);
       }
       
-      .action-btn:hover {
+      .action-btn:hover:not(:disabled) {
         background: var(--cf-background);
       }
       
@@ -249,7 +263,7 @@ class BlockManagement extends LitElement {
         border-color: var(--cf-primary-color);
       }
       
-      .action-btn.primary:hover {
+      .action-btn.primary:hover:not(:disabled) {
         background: var(--cf-primary-color);
         opacity: 0.9;
       }
@@ -333,6 +347,12 @@ class BlockManagement extends LitElement {
           grid-column: 1 / -1;
           justify-content: flex-end;
         }
+        
+        .block-details {
+          flex-direction: column;
+          align-items: flex-start;
+          gap: 4px;
+        }
       }
       
       ha-combo-box, ha-select, ha-textfield, ha-icon-picker {
@@ -347,6 +367,7 @@ class BlockManagement extends LitElement {
     this._availableEntities = [];
     this._showEmptyState = true;
     this._areas = [];
+    this._presetBlocks = {};
     this.permissionType = 'custom';
   }
 
@@ -366,11 +387,18 @@ class BlockManagement extends LitElement {
           ${this._areas.map(area => html`
             <div class="area-section">
               <div class="area-header">
-                <ha-icon icon="${this._getAreaIcon(area)}"></ha-icon>
-                <span class="area-title">${this._getAreaLabel(area)}</span>
+                <ha-icon icon="${this._getAreaIcon(area.id)}"></ha-icon>
+                <div>
+                  <div class="area-title">${area.label || area.id}</div>
+                  ${area.maxBlocks ? html`
+                    <div class="area-description">
+                      最多 ${area.maxBlocks} 个块
+                    </div>
+                  ` : ''}
+                </div>
               </div>
               <div class="block-list">
-                ${blocksByArea[area]?.map(block => this._renderBlockItem(block)) || ''}
+                ${blocksByArea[area.id]?.map(block => this._renderBlockItem(block)) || ''}
               </div>
             </div>
           `)}
@@ -389,6 +417,8 @@ class BlockManagement extends LitElement {
     const isEditing = this._editingBlockId === block.id;
     const isPreset = block.presetKey || this.permissionType === 'preset';
     const entityInfo = this._getEntityInfo(block.entity);
+    const presetDef = isPreset ? this._presetBlocks[block.presetKey] : null;
+    const isRequired = presetDef?.required || false;
     
     return html`
       <div class="block-item ${isEditing ? 'editing' : ''} ${isPreset ? 'preset-block' : ''}">
@@ -400,13 +430,16 @@ class BlockManagement extends LitElement {
           <div class="block-name">
             ${this._getBlockName(block)}
             ${isPreset ? html`<span class="preset-badge">预设</span>` : ''}
+            ${isRequired ? html`<span class="required-badge">必需</span>` : ''}
           </div>
           <div class="block-details">
             ${block.entity ? html`
               <span class="block-entity" title="${block.entity}">
                 ${this._truncateText(block.entity, 20)}
               </span>
-            ` : ''}
+            ` : html`
+              <span style="color: #f44336; font-style: italic;">未配置实体</span>
+            `}
             ${this._areas.length > 1 && block.area ? html`
               <span class="block-area">${this._getAreaLabel(block.area)}</span>
             ` : ''}
@@ -433,14 +466,14 @@ class BlockManagement extends LitElement {
           </div>
         </div>
         
-        ${isEditing ? this._renderEditForm(block, entityInfo) : ''}
+        ${isEditing ? this._renderEditForm(block, entityInfo, presetDef) : ''}
       </div>
     `;
   }
 
-  _renderEditForm(block, entityInfo) {
+  _renderEditForm(block, entityInfo, presetDef) {
     const isPreset = block.presetKey || this.permissionType === 'preset';
-    const presetDef = isPreset ? this._getPresetDefinition(block.presetKey) : null;
+    const isRequired = presetDef?.required || false;
     
     return html`
       <div class="edit-form">
@@ -449,7 +482,7 @@ class BlockManagement extends LitElement {
           <div class="form-field">
             <div class="form-label">
               实体
-              ${presetDef?.required ? html`<span class="required-mark">*</span>` : ''}
+              ${isRequired ? html`<span class="required-mark">*</span>` : ''}
             </div>
             ${this._availableEntities.length > 0 ? html`
               <ha-combo-box
@@ -466,9 +499,10 @@ class BlockManagement extends LitElement {
                 .value=${block.entity || ''}
                 @input=${e => this._updateBlock(block.id, { entity: e.target.value })}
                 label="实体ID"
-                placeholder="例如: sensor.poetry_title"
+                placeholder="例如: sensor.example"
                 fullwidth
                 ?disabled=${presetDef?.entityType === 'fixed'}
+                ?required=${isRequired}
               ></ha-textfield>
             `}
             ${entityInfo ? html`
@@ -476,9 +510,9 @@ class BlockManagement extends LitElement {
                 当前状态: ${entityInfo.state} ${entityInfo.unit ? entityInfo.unit : ''}
               </div>
             ` : ''}
-            ${presetDef?.entityType === 'fixed' ? html`
+            ${isPreset && presetDef?.description ? html`
               <div style="font-size: 0.8em; color: var(--cf-text-secondary); margin-top: 4px;">
-                此预设块需要固定类型的实体
+                ${presetDef.description}
               </div>
             ` : ''}
           </div>
@@ -518,9 +552,9 @@ class BlockManagement extends LitElement {
                 fullwidth
               >
                 ${this._areas.map(area => html`
-                  <ha-list-item .value=${area}>
-                    <ha-icon icon="${this._getAreaIcon(area)}" slot="itemIcon"></ha-icon>
-                    ${this._getAreaLabel(area)}
+                  <ha-list-item .value=${area.id}>
+                    <ha-icon icon="${this._getAreaIcon(area.id)}" slot="itemIcon"></ha-icon>
+                    ${area.label || area.id}
                   </ha-list-item>
                 `)}
               </ha-select>
@@ -538,27 +572,52 @@ class BlockManagement extends LitElement {
 
   _renderAddButton() {
     const canAdd = this.permissionType === 'custom';
+    const currentBlocks = this._getAllBlocks();
+    const totalBlocks = currentBlocks.length;
+    
+    // 检查区域限制
+    let isDisabled = !canAdd;
+    let disableReason = '';
+    
+    if (canAdd && this._areas.length > 0) {
+      // 如果有区域限制，检查是否达到上限
+      const areaLimits = this._areas.reduce((acc, area) => {
+        acc[area.id] = area.maxBlocks || Infinity;
+        return acc;
+      }, {});
+      
+      // 默认区域
+      const defaultArea = this._areas[0]?.id || 'content';
+      const blocksInArea = currentBlocks.filter(b => (b.area || 'content') === defaultArea).length;
+      const maxForArea = areaLimits[defaultArea];
+      
+      if (blocksInArea >= maxForArea) {
+        isDisabled = true;
+        disableReason = `${this._getAreaLabel(defaultArea)}已满（最多 ${maxForArea} 个块）`;
+      }
+    }
     
     return html`
       <button 
         class="add-block-btn" 
         @click=${this._addBlock}
-        ?disabled=${!canAdd}
-        title="${canAdd ? '添加新块' : '此卡片不支持添加块'}"
+        ?disabled=${isDisabled}
+        title="${disableReason || (canAdd ? '添加新块' : '此卡片不支持添加块')}"
       >
         <ha-icon icon="mdi:plus-circle-outline"></ha-icon>
         添加新块
+        ${disableReason ? html`<span style="font-size:0.8em;margin-left:8px;">(${disableReason})</span>` : ''}
       </button>
     `;
   }
 
   _renderEmptyState() {
     const message = this.permissionType === 'preset' 
-      ? '此卡片使用预设块结构，请配置对应的实体'
+      ? '此卡片使用预设块结构'
       : '还没有添加任何块';
     
     const description = this.permissionType === 'preset'
-      ? '块结构已预设，您需要为每个块关联对应的实体'
+      ? '请为每个预设块配置对应的实体'
       : '块可以显示实体的状态值';
     
     return html`
@@ -591,7 +650,7 @@ class BlockManagement extends LitElement {
   _groupBlocksByArea(blocks) {
     const groups = {};
     this._areas.forEach(area => {
-      groups[area] = blocks.filter(block => block.area === area);
+      groups[area.id] = blocks.filter(block => (block.area || 'content') === area.id);
     });
     return groups;
   }
@@ -604,8 +663,8 @@ class BlockManagement extends LitElement {
       return entity.attributes?.friendly_name || block.entity;
     }
     
-    if (block.presetKey && this.cardDefinition?.presetBlocks?.[block.presetKey]?.defaultName) {
-      return this.cardDefinition.presetBlocks[block.presetKey].defaultName;
+    if (block.presetKey && this._presetBlocks[block.presetKey]?.defaultName) {
+      return this._presetBlocks[block.presetKey].defaultName;
     }
     
     return block.entity ? '实体块' : '自定义块';
@@ -625,8 +684,8 @@ class BlockManagement extends LitElement {
   _getDefaultIcon(block) {
     if (block.icon) return block.icon;
     
-    if (block.presetKey && this.cardDefinition?.presetBlocks?.[block.presetKey]?.defaultIcon) {
-      return this.cardDefinition.presetBlocks[block.presetKey].defaultIcon;
+    if (block.presetKey && this._presetBlocks[block.presetKey]?.defaultIcon) {
+      return this._presetBlocks[block.presetKey].defaultIcon;
     }
     
     if (!block.entity) return 'mdi:cube-outline';
@@ -641,7 +700,8 @@ class BlockManagement extends LitElement {
       cover: 'mdi:blinds',
       media_player: 'mdi:speaker',
       vacuum: 'mdi:robot-vacuum',
-      text_sensor: 'mdi:text-box'
+      text_sensor: 'mdi:text-box',
+      person: 'mdi:account'
     };
     return iconMap[domain] || 'mdi:cube';
   }
@@ -657,14 +717,10 @@ class BlockManagement extends LitElement {
     };
   }
 
-  _getPresetDefinition(presetKey) {
-    return this.cardDefinition?.presetBlocks?.[presetKey] || null;
-  }
-
   _canEditBlock(block) {
     if (this.permissionType === 'none') return false;
     
-    const presetDef = block.presetKey ? this._getPresetDefinition(block.presetKey) : null;
+    const presetDef = block.presetKey ? this._presetBlocks[block.presetKey] : null;
     if (presetDef?.fixed) return false;
     
     return true;
@@ -673,7 +729,7 @@ class BlockManagement extends LitElement {
   _canDeleteBlock(block) {
     if (this.permissionType !== 'custom') return false;
     
-    const presetDef = block.presetKey ? this._getPresetDefinition(block.presetKey) : null;
+    const presetDef = block.presetKey ? this._presetBlocks[block.presetKey] : null;
     if (presetDef?.required) return false;
     
     return true;
@@ -688,6 +744,7 @@ class BlockManagement extends LitElement {
         changedProperties.has('cardDefinition') || changedProperties.has('permissionType')) {
       this._updateAvailableEntities();
       this._updateAreas();
+      this._updatePresetBlocks();
       this._updateEmptyState();
     }
   }
@@ -708,11 +765,20 @@ class BlockManagement extends LitElement {
 
   _updateAreas() {
     if (!this.cardDefinition?.layout?.areas) {
-      this._areas = ['content']; // 默认区域
+      this._areas = [{ id: 'content', label: '内容区' }];
       return;
     }
     
-    this._areas = this.cardDefinition.layout.areas.map(area => area.id);
+    this._areas = this.cardDefinition.layout.areas;
+  }
+
+  _updatePresetBlocks() {
+    if (!this.cardDefinition?.presetBlocks) {
+      this._presetBlocks = {};
+      return;
+    }
+    
+    this._presetBlocks = this.cardDefinition.presetBlocks;
   }
 
   _updateEmptyState() {
@@ -721,17 +787,16 @@ class BlockManagement extends LitElement {
   }
 
   _getAreaLabel(areaId) {
-    if (!this.cardDefinition?.layout?.areas) return areaId;
-    
-    const areaDef = this.cardDefinition.layout.areas.find(a => a.id === areaId);
-    return areaDef?.label || areaId;
+    const area = this._areas.find(a => a.id === areaId);
+    return area?.label || areaId;
   }
 
   _getAreaIcon(areaId) {
     const iconMap = {
       header: 'mdi:format-header-1',
       content: 'mdi:view-grid',
-      footer: 'mdi:page-layout-footer'
+      footer: 'mdi:page-layout-footer',
+      sidebar: 'mdi:page-layout-sidebar-left'
     };
     return iconMap[areaId] || 'mdi:view-grid';
   }
@@ -780,11 +845,13 @@ class BlockManagement extends LitElement {
     if (this.permissionType !== 'custom') return;
     
     const blockId = `block_${Date.now()}`;
+    const defaultArea = this._areas[0]?.id || 'content';
+    
     const newBlock = {
       entity: '',
       name: '新块',
       icon: 'mdi:cube-outline',
-      area: this._areas[0] || 'content'
+      area: defaultArea
     };
     
     const currentBlocks = this.config.blocks || {};
@@ -799,7 +866,7 @@ class BlockManagement extends LitElement {
     
     const block = (this.config.blocks || {})[blockId];
     if (block?.presetKey) {
-      const presetDef = this._getPresetDefinition(block.presetKey);
+      const presetDef = this._presetBlocks[block.presetKey];
       if (presetDef?.required) {
         alert('此预设块是必需的，不能删除');
         return;
