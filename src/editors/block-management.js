@@ -431,11 +431,17 @@ class BlockManagement extends LitElement {
   }
 
   updated(changedProperties) {
-    if (changedProperties.has('hass') || changedProperties.has('config') || 
-        changedProperties.has('cardDefinition') || changedProperties.has('permissionType')) {
-      this._updateAreas();
-      this._updatePresetBlocks();
-      this._updateEmptyState();
+    if (changedProperties.has('cardDefinition')) {
+      // 使用卡片定义的区域，如果没有则使用默认
+      if (this.cardDefinition?.layout?.areas) {
+        this._areas = this.cardDefinition.layout.areas;
+      } else {
+        this._areas = [
+          { id: 'header', label: '标题区域', maxBlocks: 5 },
+          { id: 'content', label: '内容区域', maxBlocks: 20 },
+          { id: 'footer', label: '页脚区域', maxBlocks: 5 }
+        ];
+      }
     }
   }
 
