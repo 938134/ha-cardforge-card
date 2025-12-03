@@ -1,4 +1,4 @@
-// src/cards/welcome-card.js
+// src/cards/welcome-card.js - 字体修复版
 export const card = {
   id: 'welcome',
   meta: {
@@ -177,14 +177,14 @@ export const card = {
       
       .time {
         font-size: 3.5em;
-        font-weight: 300;
+        font-weight: 700;
         color: ${primaryColor};
         letter-spacing: 1px;
-        font-family: 'Segoe UI', 'Roboto', sans-serif;
         line-height: 1.2;
         margin-bottom: 24px;
         text-align: center;
         width: 100%;
+        font-family: inherit; /* 使用继承的字体 */
       }
       
       /* 名言容器 - 水平左对齐布局 */
@@ -234,9 +234,9 @@ export const card = {
         color: var(--cf-text-secondary);
         line-height: 1.6;
         font-style: italic;
-        font-family: 'Georgia', 'Times New Roman', serif;
         word-break: break-word;
         text-align: left;
+        font-family: inherit; /* 使用继承的字体 */
       }
       
       /* 响应式设计 */

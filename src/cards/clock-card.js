@@ -109,7 +109,7 @@ export const card = {
         color: ${primaryColor};
         line-height: 1.2;
         letter-spacing: 1px;
-        font-family: 'Segoe UI', 'Roboto', -apple-system, sans-serif;
+        font-family: inherit;
       }
       
       .clock-ampm {
