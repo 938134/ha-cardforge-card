@@ -1,5 +1,4 @@
-// src/cards/week.js
-
+// src/cards/week-card.js
 export const card = {
   id: 'week',
   meta: {
@@ -47,7 +46,7 @@ export const card = {
                     transform="rotate(-90 30 30)"/>
           </svg>
           <div class="year-info">
-            <div class="year-percent">${Math.round(yearProgress)}%</div>
+            <div class="year-percent">${Math.round(yearProgress)}</div>
             <div class="week-number">第 ${weekNumber} 周</div>
           </div>
         </div>
@@ -121,17 +120,29 @@ export const card = {
       .year-info {
         display: flex;
         flex-direction: column;
+        align-items: center;
       }
       
       .year-percent {
-        font-size: 1.4em;
-        font-weight: 600;
+        font-size: 1.8em;
+        font-weight: 700;
         color: ${primaryColor};
+        line-height: 1.2;
+      }
+      
+      .year-percent::after {
+        content: "%";
+        font-size: 0.6em;
+        font-weight: 400;
+        margin-left: 2px;
+        opacity: 0.7;
+        vertical-align: super;
       }
       
       .week-number {
         font-size: 0.9em;
         color: var(--cf-text-secondary);
+        margin-top: 2px;
       }
       
       .week-progress {
@@ -188,16 +199,15 @@ export const card = {
           gap: 12px;
         }
         
+        .year-percent {
+          font-size: 1.6em;
+        }
+        
         .progress-bars {
           height: 10px;
         }
       }
     `;
-  },
-  
-  layout: {
-    type: 'single',
-    recommendedSize: 2
   }
 };
 

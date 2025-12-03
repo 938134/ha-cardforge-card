@@ -230,7 +230,7 @@ export const card = {
       
       .quote-content {
         flex: 1;
-        font-size: 1.4em;
+        font-size: 1.2em;
         color: var(--cf-text-secondary);
         line-height: 1.6;
         font-style: italic;
