@@ -8,6 +8,7 @@ import '../editors/card-selector.js';
 import '../editors/theme-selector.js';
 import '../editors/form-builder.js';
 import '../editors/block-management.js';
+import '../editors/block-management.js';
 
 class CardEditor extends LitElement {
   static properties = {
