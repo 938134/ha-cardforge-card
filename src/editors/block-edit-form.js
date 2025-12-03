@@ -401,5 +401,3 @@ export class BlockEditForm extends LitElement {
 if (!customElements.get('block-edit-form')) {
   customElements.define('block-edit-form', BlockEditForm);
 }
-
-export { BlockEditForm };
