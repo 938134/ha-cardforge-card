@@ -1,4 +1,4 @@
-// src/editors/card-editor.js
+// src/editors/card-editor.js - 修复版
 import { LitElement, html, css } from 'https://unpkg.com/lit@2.8.0/index.js?module';
 import { cardSystem } from '../core/card-system.js';
 import { themeSystem } from '../core/theme-system.js';
@@ -95,11 +95,13 @@ class CardEditor extends LitElement {
 
   setConfig(config) {
     if (!config || typeof config !== 'object') {
+      console.error('CardEditor: 无效的配置', config);
       return;
     }
     
     let newConfig = { ...config };
     
+    // 处理旧版配置字段
     if (!newConfig.card_type && newConfig.cardType) {
       newConfig.card_type = newConfig.cardType;
       delete newConfig.cardType;
@@ -111,6 +113,7 @@ class CardEditor extends LitElement {
     if (newConfigStr !== this._lastConfig) {
       this.config = newConfig;
       this._lastConfig = newConfigStr;
+      this._selectedCard = cardSystem.getCard(this.config.card_type);
       this.requestUpdate();
     }
   }
@@ -145,6 +148,7 @@ class CardEditor extends LitElement {
 
     const selectedCardDef = this._selectedCard;
     const blockType = selectedCardDef?.blockType || 'none';
+    const hasPresetBlocks = blockType === 'preset' && selectedCardDef?.presetBlocks;
     
     return html`
       <div class="editor-container">
@@ -199,7 +203,11 @@ class CardEditor extends LitElement {
               <ha-icon icon="mdi:cube-outline"></ha-icon>
               <span class="section-title">
                 块管理
-                ${blockType === 'preset' ? html`<span style="font-size:0.8em;color:var(--cf-text-secondary);margin-left:8px;">(预设结构)</span>` : ''}
+                ${blockType === 'preset' ? html`
+                  <span style="font-size:0.8em;color:var(--cf-text-secondary);margin-left:8px;">
+                    (预设结构${hasPresetBlocks ? `，共${Object.keys(selectedCardDef.presetBlocks).length}个预设块` : ''})
+                  </span>
+                ` : ''}
               </span>
             </div>
             <block-management
@@ -294,7 +302,8 @@ class CardEditor extends LitElement {
       theme: baseConfig.theme || 'auto'
     };
     
-    if ((cardDef.blockType === 'custom' || cardDef.blockType === 'preset') && baseConfig.blocks) {
+    const blockType = cardDef.blockType || 'none';
+    if ((blockType === 'custom' || blockType === 'preset') && baseConfig.blocks) {
       cleanConfig.blocks = baseConfig.blocks;
     }
     
@@ -308,27 +317,15 @@ class CardEditor extends LitElement {
     if (!config.card_type) return;
     
     const cardDef = cardSystem.getCard(config.card_type);
-    if (cardDef?.blockType !== 'preset' || !cardDef.presetBlocks) {
+    if (cardDef?.blockType !== 'preset') {
       return;
     }
     
     if (config.blocks && Object.keys(config.blocks).length > 0) {
-      return; // 已有块配置，不重复初始化
+      return;
     }
     
-    const presetBlocks = {};
-    Object.entries(cardDef.presetBlocks).forEach(([blockKey, preset]) => {
-      const blockId = `preset_${blockKey}`;
-      presetBlocks[blockId] = {
-        entity: preset.defaultEntity || '',
-        name: preset.defaultName || blockKey,
-        icon: preset.defaultIcon || 'mdi:cube-outline',
-        area: preset.area || 'content',
-        presetKey: blockKey,
-        required: preset.required || false
-      };
-    });
-    
+    const presetBlocks = cardSystem.generatePresetBlocks(config.card_type);
     if (Object.keys(presetBlocks).length > 0) {
       config.blocks = presetBlocks;
       this._lastConfig = JSON.stringify(config);
@@ -350,6 +347,15 @@ class CardEditor extends LitElement {
 
   getConfig() {
     return { ...this.config };
+  }
+
+  // Home Assistant 编辑器需要的静态方法
+  static getStubConfig() {
+    return {
+      type: 'custom:ha-cardforge-card',
+      card_type: 'clock',
+      theme: 'auto'
+    };
   }
 }
 
