@@ -1,5 +1,4 @@
-// src/cards/clock.js
-
+// src/cards/clock-card.js
 export const card = {
   id: 'clock',
   meta: {
@@ -105,44 +104,59 @@ export const card = {
       }
       
       .clock-time {
-        font-size: 2.2em;
-        font-weight: 300;
+        font-size: 3.5em;
+        font-weight: 700;
         color: ${primaryColor};
         line-height: 1.2;
+        letter-spacing: 1px;
+        font-family: 'Segoe UI', 'Roboto', -apple-system, sans-serif;
       }
       
       .clock-ampm {
-        font-size: 0.5em;
-        font-weight: 400;
+        font-size: 0.4em;
+        font-weight: 600;
         margin-left: 4px;
         opacity: 0.8;
+        vertical-align: super;
       }
       
       .clock-date, .clock-weekday {
-        font-size: 1em;
+        font-size: 1.1em;
         color: var(--cf-text-secondary);
         line-height: 1.3;
+        font-weight: 500;
       }
       
       @container cardforge-container (max-width: 400px) {
         .clock-time {
-          font-size: 1.8em;
+          font-size: 2.8em;
+        }
+        
+        .clock-date, .clock-weekday {
+          font-size: 1em;
+        }
+      }
+      
+      @container cardforge-container (max-width: 300px) {
+        .clock-time {
+          font-size: 2.2em;
         }
         
         .clock-date, .clock-weekday {
           font-size: 0.9em;
         }
       }
+      
+      /* 深色模式优化 */
+      @media (prefers-color-scheme: dark) {
+        .clock-time {
+          text-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+        }
+      }
     `;
-  },
-  
-  layout: {
-    type: 'single',
-    recommendedSize: 2
   }
 };
 
-// 可选：导出类供编辑器使用
 export class ClockCard {
   static card = card;
 }
