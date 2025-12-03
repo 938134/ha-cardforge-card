@@ -6,9 +6,12 @@ class BlockManagement extends LitElement {
   static properties = {
     config: { type: Object },
     hass: { type: Object },
+    permissionType: { type: String }, // 'custom', 'preset', 'none'
+    cardDefinition: { type: Object },
     _editingBlockId: { state: true },
     _availableEntities: { state: true },
-    _showEmptyState: { state: true }
+    _showEmptyState: { state: true },
+    _areas: { state: true }
   };
 
   static styles = [
@@ -16,6 +19,32 @@ class BlockManagement extends LitElement {
     css`
       .block-management {
         width: 100%;
+      }
+      
+      /* 区域标签 */
+      .area-section {
+        margin-bottom: var(--cf-spacing-lg);
+      }
+      
+      .area-header {
+        display: flex;
+        align-items: center;
+        gap: var(--cf-spacing-sm);
+        margin-bottom: var(--cf-spacing-md);
+        padding-bottom: var(--cf-spacing-xs);
+        border-bottom: 1px solid var(--cf-border);
+      }
+      
+      .area-title {
+        font-size: 0.9em;
+        font-weight: 600;
+        color: var(--cf-text-primary);
+      }
+      
+      .area-description {
+        font-size: 0.8em;
+        color: var(--cf-text-secondary);
+        margin-top: 2px;
       }
       
       /* 块列表 */
@@ -49,6 +78,19 @@ class BlockManagement extends LitElement {
         background: var(--cf-surface);
       }
       
+      .block-item.preset-block {
+        border-left: 3px solid var(--cf-primary-color);
+      }
+      
+      .preset-badge {
+        background: rgba(var(--cf-rgb-primary), 0.1);
+        color: var(--cf-primary-color);
+        font-size: 0.7em;
+        padding: 2px 6px;
+        border-radius: var(--cf-radius-sm);
+        margin-left: 8px;
+      }
+      
       /* 块图标 */
       .block-icon-preview {
         width: 40px;
@@ -76,9 +118,8 @@ class BlockManagement extends LitElement {
         font-weight: 600;
         color: var(--cf-text-primary);
         line-height: 1.2;
-        overflow: hidden;
-        text-overflow: ellipsis;
-        white-space: nowrap;
+        display: flex;
+        align-items: center;
       }
       
       .block-details {
@@ -95,6 +136,14 @@ class BlockManagement extends LitElement {
         padding: 2px 6px;
         border-radius: var(--cf-radius-sm);
         font-size: 0.75em;
+      }
+      
+      .block-area {
+        font-size: 0.7em;
+        color: var(--cf-text-secondary);
+        background: var(--cf-surface);
+        padding: 2px 6px;
+        border-radius: var(--cf-radius-sm);
       }
       
       /* 块操作 */
@@ -125,6 +174,13 @@ class BlockManagement extends LitElement {
         color: white;
       }
       
+      .block-action:disabled,
+      .block-action.disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+        pointer-events: none;
+      }
+      
       /* 编辑表单 */
       .edit-form {
         grid-column: 1 / -1;
@@ -151,6 +207,14 @@ class BlockManagement extends LitElement {
         font-weight: 500;
         font-size: 0.85em;
         color: var(--cf-text-primary);
+        display: flex;
+        align-items: center;
+        gap: 4px;
+      }
+      
+      .required-mark {
+        color: var(--cf-error-color);
+        margin-left: 2px;
       }
       
       .form-actions {
@@ -190,6 +254,11 @@ class BlockManagement extends LitElement {
         opacity: 0.9;
       }
       
+      .action-btn:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+      }
+      
       /* 添加块按钮 */
       .add-block-btn {
         width: 100%;
@@ -209,10 +278,15 @@ class BlockManagement extends LitElement {
         transition: all var(--cf-transition-fast);
       }
       
-      .add-block-btn:hover {
+      .add-block-btn:hover:not(:disabled) {
         border-color: var(--cf-primary-color);
         color: var(--cf-primary-color);
         background: rgba(var(--cf-rgb-primary), 0.05);
+      }
+      
+      .add-block-btn:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
       }
       
       /* 空状态 */
@@ -261,7 +335,6 @@ class BlockManagement extends LitElement {
         }
       }
       
-      /* 下拉菜单样式优化 */
       ha-combo-box, ha-select, ha-textfield, ha-icon-picker {
         width: 100%;
       }
@@ -273,50 +346,89 @@ class BlockManagement extends LitElement {
     this._editingBlockId = null;
     this._availableEntities = [];
     this._showEmptyState = true;
+    this._areas = [];
+    this.permissionType = 'custom';
   }
 
   render() {
     const blocks = this._getAllBlocks();
     
-    if (blocks.length === 0) {
+    if (blocks.length === 0 && this.permissionType !== 'preset') {
       return this._renderEmptyState();
     }
     
+    const blocksByArea = this._groupBlocksByArea(blocks);
+    const hasMultipleAreas = this._areas.length > 1;
+    
     return html`
       <div class="block-management">
-        <div class="block-list">
-          ${blocks.map(block => this._renderBlockItem(block))}
-        </div>
-        ${this._renderAddButton()}
+        ${hasMultipleAreas ? html`
+          ${this._areas.map(area => html`
+            <div class="area-section">
+              <div class="area-header">
+                <ha-icon icon="${this._getAreaIcon(area)}"></ha-icon>
+                <span class="area-title">${this._getAreaLabel(area)}</span>
+              </div>
+              <div class="block-list">
+                ${blocksByArea[area]?.map(block => this._renderBlockItem(block)) || ''}
+              </div>
+            </div>
+          `)}
+        ` : html`
+          <div class="block-list">
+            ${blocks.map(block => this._renderBlockItem(block))}
+          </div>
+        `}
+        
+        ${this._shouldShowAddButton() ? this._renderAddButton() : ''}
       </div>
     `;
   }
 
   _renderBlockItem(block) {
     const isEditing = this._editingBlockId === block.id;
+    const isPreset = block.presetKey || this.permissionType === 'preset';
     const entityInfo = this._getEntityInfo(block.entity);
     
     return html`
-      <div class="block-item ${isEditing ? 'editing' : ''}">
+      <div class="block-item ${isEditing ? 'editing' : ''} ${isPreset ? 'preset-block' : ''}">
         <div class="block-icon-preview">
           <ha-icon .icon=${block.icon || this._getDefaultIcon(block)}></ha-icon>
         </div>
         
         <div class="block-info">
-          <div class="block-name">${this._getBlockName(block)}</div>
+          <div class="block-name">
+            ${this._getBlockName(block)}
+            ${isPreset ? html`<span class="preset-badge">预设</span>` : ''}
+          </div>
           <div class="block-details">
             ${block.entity ? html`
-              <span class="block-entity">${block.entity}</span>
+              <span class="block-entity" title="${block.entity}">
+                ${this._truncateText(block.entity, 20)}
+              </span>
             ` : ''}
-            <span>${this._getBlockValue(block)}</span>
+            ${this._areas.length > 1 && block.area ? html`
+              <span class="block-area">${this._getAreaLabel(block.area)}</span>
+            ` : ''}
+            <span title="${this._getBlockValue(block)}">
+              ${this._truncateText(this._getBlockValue(block), 30)}
+            </span>
           </div>
         </div>
         
         <div class="block-actions">
-          <div class="block-action" @click=${() => this._startEdit(block.id)} title="编辑">
+          <div 
+            class="block-action ${this._canEditBlock(block) ? '' : 'disabled'}"
+            @click=${() => this._canEditBlock(block) && this._startEdit(block.id)}
+            title="${this._canEditBlock(block) ? '编辑' : '此块不可编辑'}"
+          >
             <ha-icon icon="mdi:pencil"></ha-icon>
           </div>
-          <div class="block-action" @click=${(e) => this._deleteBlock(e, block.id)} title="删除">
+          <div 
+            class="block-action ${this._canDeleteBlock(block) ? '' : 'disabled'}"
+            @click=${(e) => this._canDeleteBlock(block) && this._deleteBlock(e, block.id)}
+            title="${this._canDeleteBlock(block) ? '删除' : '此块不可删除'}"
+          >
             <ha-icon icon="mdi:delete"></ha-icon>
           </div>
         </div>
@@ -327,30 +439,36 @@ class BlockManagement extends LitElement {
   }
 
   _renderEditForm(block, entityInfo) {
-    const currentEntity = block.entity || '';
+    const isPreset = block.presetKey || this.permissionType === 'preset';
+    const presetDef = isPreset ? this._getPresetDefinition(block.presetKey) : null;
     
     return html`
       <div class="edit-form">
         <div class="form-grid">
           <!-- 实体选择 -->
           <div class="form-field">
-            <div class="form-label">实体</div>
+            <div class="form-label">
+              实体
+              ${presetDef?.required ? html`<span class="required-mark">*</span>` : ''}
+            </div>
             ${this._availableEntities.length > 0 ? html`
               <ha-combo-box
                 .items=${this._availableEntities}
-                .value=${currentEntity}
+                .value=${block.entity || ''}
                 @value-changed=${e => this._updateBlock(block.id, { entity: e.detail.value })}
                 allow-custom-value
                 label="选择实体或输入ID"
                 fullwidth
+                ?disabled=${presetDef?.entityType === 'fixed'}
               ></ha-combo-box>
             ` : html`
               <ha-textfield
-                .value=${currentEntity}
+                .value=${block.entity || ''}
                 @input=${e => this._updateBlock(block.id, { entity: e.target.value })}
                 label="实体ID"
-                placeholder="例如: light.living_room"
+                placeholder="例如: sensor.poetry_title"
                 fullwidth
+                ?disabled=${presetDef?.entityType === 'fixed'}
               ></ha-textfield>
             `}
             ${entityInfo ? html`
@@ -358,9 +476,14 @@ class BlockManagement extends LitElement {
                 当前状态: ${entityInfo.state} ${entityInfo.unit ? entityInfo.unit : ''}
               </div>
             ` : ''}
+            ${presetDef?.entityType === 'fixed' ? html`
+              <div style="font-size: 0.8em; color: var(--cf-text-secondary); margin-top: 4px;">
+                此预设块需要固定类型的实体
+              </div>
+            ` : ''}
           </div>
           
-          <!-- 自定义名称 -->
+          <!-- 显示名称 -->
           <div class="form-field">
             <div class="form-label">显示名称</div>
             <ha-textfield
@@ -369,10 +492,11 @@ class BlockManagement extends LitElement {
               label="块显示名称"
               placeholder="如果不填，将使用实体友好名称"
               fullwidth
+              ?disabled=${presetDef?.fixedName}
             ></ha-textfield>
           </div>
           
-          <!-- 自定义图标 -->
+          <!-- 图标 -->
           <div class="form-field">
             <div class="form-label">图标</div>
             <ha-icon-picker
@@ -381,22 +505,27 @@ class BlockManagement extends LitElement {
               label="自定义图标"
               fullwidth
             ></ha-icon-picker>
-            <div style="font-size: 0.8em; color: var(--cf-text-secondary); margin-top: 4px;">
-              如果不填，将使用实体图标或默认图标
-            </div>
           </div>
           
-          <!-- 自定义值（覆盖实体值） -->
-          <div class="form-field">
-            <div class="form-label">自定义值（可选）</div>
-            <ha-textfield
-              .value=${block.value || ''}
-              @input=${e => this._updateBlock(block.id, { value: e.target.value })}
-              label="覆盖实体状态值"
-              placeholder="如果留空，将显示实体状态"
-              fullwidth
-            ></ha-textfield>
-          </div>
+          <!-- 区域选择 (仅custom权限且支持多区域) -->
+          ${this.permissionType === 'custom' && this._areas.length > 1 ? html`
+            <div class="form-field">
+              <div class="form-label">区域</div>
+              <ha-select
+                .value=${block.area || 'content'}
+                @change=${e => this._updateBlock(block.id, { area: e.target.value })}
+                label="选择区域"
+                fullwidth
+              >
+                ${this._areas.map(area => html`
+                  <ha-list-item .value=${area}>
+                    <ha-icon icon="${this._getAreaIcon(area)}" slot="itemIcon"></ha-icon>
+                    ${this._getAreaLabel(area)}
+                  </ha-list-item>
+                `)}
+              </ha-select>
+            </div>
+          ` : ''}
         </div>
         
         <div class="form-actions">
@@ -408,8 +537,15 @@ class BlockManagement extends LitElement {
   }
 
   _renderAddButton() {
+    const canAdd = this.permissionType === 'custom';
+    
     return html`
-      <button class="add-block-btn" @click=${this._addBlock}>
+      <button 
+        class="add-block-btn" 
+        @click=${this._addBlock}
+        ?disabled=${!canAdd}
+        title="${canAdd ? '添加新块' : '此卡片不支持添加块'}"
+      >
         <ha-icon icon="mdi:plus-circle-outline"></ha-icon>
         添加新块
       </button>
@@ -417,19 +553,29 @@ class BlockManagement extends LitElement {
   }
 
   _renderEmptyState() {
+    const message = this.permissionType === 'preset' 
+      ? '此卡片使用预设块结构，请配置对应的实体'
+      : '还没有添加任何块';
+    
+    const description = this.permissionType === 'preset'
+      ? '块结构已预设，您需要为每个块关联对应的实体'
+      : '块可以显示实体的状态值';
+    
     return html`
       <div class="empty-state">
         <div class="empty-icon">
           <ha-icon icon="mdi:cube-outline"></ha-icon>
         </div>
-        <div class="empty-title">还没有添加任何块</div>
+        <div class="empty-title">${message}</div>
         <div class="empty-description">
-          块可以显示实体的状态值，也可以显示自定义内容
+          ${description}
         </div>
-        <button class="add-block-btn" @click=${this._addBlock}>
-          <ha-icon icon="mdi:plus"></ha-icon>
-          添加第一个块
-        </button>
+        ${this._shouldShowAddButton() ? html`
+          <button class="add-block-btn" @click=${this._addBlock}>
+            <ha-icon icon="mdi:plus"></ha-icon>
+            添加第一个块
+          </button>
+        ` : ''}
       </div>
     `;
   }
@@ -442,56 +588,47 @@ class BlockManagement extends LitElement {
     }));
   }
 
+  _groupBlocksByArea(blocks) {
+    const groups = {};
+    this._areas.forEach(area => {
+      groups[area] = blocks.filter(block => block.area === area);
+    });
+    return groups;
+  }
+
   _getBlockName(block) {
-    // 优先使用自定义名称
     if (block.name) return block.name;
     
-    // 如果是预设块类型，显示类型名称
-    if (block.type && block.type.includes('_')) {
-      const typeMap = {
-        'poetry_title': '诗词标题',
-        'poetry_dynasty': '朝代',
-        'poetry_author': '作者',
-        'poetry_content': '诗词内容',
-        'poetry_translation': '诗词译文',
-        'greeting_block': '问候语',
-        'time_block': '时间',
-        'quote_block': '每日一言'
-      };
-      return typeMap[block.type] || block.type;
-    }
-    
-    // 如果有实体，使用实体的友好名称
     if (block.entity && this.hass?.states?.[block.entity]) {
       const entity = this.hass.states[block.entity];
       return entity.attributes?.friendly_name || block.entity;
     }
     
-    // 默认名称
+    if (block.presetKey && this.cardDefinition?.presetBlocks?.[block.presetKey]?.defaultName) {
+      return this.cardDefinition.presetBlocks[block.presetKey].defaultName;
+    }
+    
     return block.entity ? '实体块' : '自定义块';
   }
 
   _getBlockValue(block) {
-    // 优先使用自定义值
-    if (block.value !== undefined) {
-      return block.value.length > 30 ? block.value.substring(0, 30) + '…' : block.value;
-    }
-    
-    // 如果有实体，显示实体状态
     if (block.entity && this.hass?.states?.[block.entity]) {
       const entity = this.hass.states[block.entity];
       const state = entity.state;
       const unit = entity.attributes?.unit_of_measurement || '';
-      const value = unit ? `${state} ${unit}` : state;
-      return value.length > 30 ? value.substring(0, 30) + '…' : value;
+      return unit ? `${state} ${unit}` : state;
     }
     
-    // 默认值
-    return '点击配置';
+    return '未配置实体';
   }
 
   _getDefaultIcon(block) {
     if (block.icon) return block.icon;
+    
+    if (block.presetKey && this.cardDefinition?.presetBlocks?.[block.presetKey]?.defaultIcon) {
+      return this.cardDefinition.presetBlocks[block.presetKey].defaultIcon;
+    }
+    
     if (!block.entity) return 'mdi:cube-outline';
     
     const domain = block.entity.split('.')[0];
@@ -503,7 +640,8 @@ class BlockManagement extends LitElement {
       climate: 'mdi:thermostat',
       cover: 'mdi:blinds',
       media_player: 'mdi:speaker',
-      vacuum: 'mdi:robot-vacuum'
+      vacuum: 'mdi:robot-vacuum',
+      text_sensor: 'mdi:text-box'
     };
     return iconMap[domain] || 'mdi:cube';
   }
@@ -519,9 +657,37 @@ class BlockManagement extends LitElement {
     };
   }
 
+  _getPresetDefinition(presetKey) {
+    return this.cardDefinition?.presetBlocks?.[presetKey] || null;
+  }
+
+  _canEditBlock(block) {
+    if (this.permissionType === 'none') return false;
+    
+    const presetDef = block.presetKey ? this._getPresetDefinition(block.presetKey) : null;
+    if (presetDef?.fixed) return false;
+    
+    return true;
+  }
+
+  _canDeleteBlock(block) {
+    if (this.permissionType !== 'custom') return false;
+    
+    const presetDef = block.presetKey ? this._getPresetDefinition(block.presetKey) : null;
+    if (presetDef?.required) return false;
+    
+    return true;
+  }
+
+  _shouldShowAddButton() {
+    return this.permissionType === 'custom';
+  }
+
   updated(changedProperties) {
-    if (changedProperties.has('hass') || changedProperties.has('config')) {
+    if (changedProperties.has('hass') || changedProperties.has('config') || 
+        changedProperties.has('cardDefinition') || changedProperties.has('permissionType')) {
       this._updateAvailableEntities();
+      this._updateAreas();
       this._updateEmptyState();
     }
   }
@@ -540,9 +706,40 @@ class BlockManagement extends LitElement {
       .sort((a, b) => a.label.localeCompare(b.label));
   }
 
+  _updateAreas() {
+    if (!this.cardDefinition?.layout?.areas) {
+      this._areas = ['content']; // 默认区域
+      return;
+    }
+    
+    this._areas = this.cardDefinition.layout.areas.map(area => area.id);
+  }
+
   _updateEmptyState() {
     const blocks = this._getAllBlocks();
-    this._showEmptyState = blocks.length === 0;
+    this._showEmptyState = blocks.length === 0 && this.permissionType !== 'preset';
+  }
+
+  _getAreaLabel(areaId) {
+    if (!this.cardDefinition?.layout?.areas) return areaId;
+    
+    const areaDef = this.cardDefinition.layout.areas.find(a => a.id === areaId);
+    return areaDef?.label || areaId;
+  }
+
+  _getAreaIcon(areaId) {
+    const iconMap = {
+      header: 'mdi:format-header-1',
+      content: 'mdi:view-grid',
+      footer: 'mdi:page-layout-footer'
+    };
+    return iconMap[areaId] || 'mdi:view-grid';
+  }
+
+  _truncateText(text, maxLength) {
+    if (!text) return '';
+    if (text.length <= maxLength) return text;
+    return text.substring(0, maxLength) + '…';
   }
 
   _startEdit(blockId) {
@@ -561,14 +758,13 @@ class BlockManagement extends LitElement {
     const currentBlocks = this.config.blocks || {};
     const currentBlock = currentBlocks[blockId] || {};
     
-    // 如果选择了实体，自动填充图标和名称（如果未设置）
     if (updates.entity && updates.entity !== currentBlock.entity) {
       const entity = this.hass?.states?.[updates.entity];
       if (entity) {
-        if (!currentBlock.name && !updates.name) {
+        if (!currentBlock.name && !updates.name && !currentBlock.presetKey) {
           updates.name = entity.attributes?.friendly_name || updates.entity;
         }
-        if (!currentBlock.icon && !updates.icon) {
+        if (!currentBlock.icon && !updates.icon && !currentBlock.presetKey) {
           updates.icon = entity.attributes?.icon || this._getDefaultIcon({ entity: updates.entity });
         }
       }
@@ -581,12 +777,14 @@ class BlockManagement extends LitElement {
   }
 
   _addBlock() {
+    if (this.permissionType !== 'custom') return;
+    
     const blockId = `block_${Date.now()}`;
     const newBlock = {
       entity: '',
       name: '新块',
       icon: 'mdi:cube-outline',
-      value: ''
+      area: this._areas[0] || 'content'
     };
     
     const currentBlocks = this.config.blocks || {};
@@ -598,6 +796,15 @@ class BlockManagement extends LitElement {
 
   _deleteBlock(e, blockId) {
     e.stopPropagation();
+    
+    const block = (this.config.blocks || {})[blockId];
+    if (block?.presetKey) {
+      const presetDef = this._getPresetDefinition(block.presetKey);
+      if (presetDef?.required) {
+        alert('此预设块是必需的，不能删除');
+        return;
+      }
+    }
     
     if (!confirm('确定要删除这个块吗？')) return;
     
