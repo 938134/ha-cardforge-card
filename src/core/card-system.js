@@ -11,7 +11,6 @@ class CardSystem {
   async initialize() {
     if (this._initialized) return;
     
-    // 动态发现所有卡片
     await this._discoverCards();
     
     this._initialized = true;
@@ -32,25 +31,20 @@ class CardSystem {
         const module = await importFn();
         this._registerCardModule(module);
       } catch (error) {
-        // 静默失败，不影响其他卡片
+        // 静默失败
       }
     }
   }
 
   // 注册卡片模块
   _registerCardModule(module) {
-    if (!module.card) {
-      return;
-    }
-
+    if (!module.card) return;
+    
     const cardId = module.card.id;
-    if (!cardId) {
-      return;
-    }
+    if (!cardId) return;
 
     // 验证必需字段
-    if (!module.card.meta || !module.card.schema || 
-        !module.card.template || !module.card.styles) {
+    if (!module.card.meta || !module.card.template || !module.card.styles) {
       return;
     }
 
@@ -64,7 +58,8 @@ class CardSystem {
 
   // 获取卡片定义
   getCard(cardId) {
-    return this.cards.get(cardId)?.definition;
+    const cardData = this.cards.get(cardId);
+    return cardData?.definition || null;
   }
 
   // 获取默认卡片
@@ -78,23 +73,15 @@ class CardSystem {
     return this.cards.values().next().value?.definition;
   }
 
-  // 按分类获取卡片
-  getCardsByCategory(category) {
-    return Array.from(this.cards.values())
-      .filter(item => item.definition.meta.category === category)
-      .map(item => ({
-        id: item.id,
-        ...item.definition.meta,
-        schema: item.definition.schema
-      }));
-  }
-
   // 获取所有卡片列表
   getAllCards() {
     return Array.from(this.cards.values()).map(item => ({
       id: item.id,
       ...item.definition.meta,
-      schema: item.definition.schema
+      schema: item.definition.schema || {},
+      blockType: item.definition.blockType || 'none',
+      layout: item.definition.layout || {},
+      presetBlocks: item.definition.presetBlocks || null
     }));
   }
 
@@ -116,18 +103,19 @@ class CardSystem {
       throw new Error(`卡片不存在: ${cardId}`);
     }
 
-    // 合并配置（用户配置 + 默认值）
-    const config = this._mergeConfig(card.schema, userConfig);
+    // 合并配置
+    const config = this._mergeConfig(card.schema || {}, userConfig);
     
     // 准备数据上下文
     const data = { hass };
     const context = { 
       theme: themeVariables,
       renderBlock: (block) => renderBlock(block, hass),
-      renderBlocks: (blocks) => renderBlocks(blocks, hass)
+      renderBlocks: (blocks) => renderBlocks(blocks, hass),
+      // 区域渲染支持
+      renderBlocksByArea: (blocks) => this._renderBlocksByArea(blocks, hass, card.layout)
     };
 
-    // 调用卡片的模板和样式函数
     try {
       const template = card.template(config, data, context);
       const styles = card.styles(config, themeVariables);
@@ -142,18 +130,147 @@ class CardSystem {
     }
   }
 
+  // 按区域渲染块
+  _renderBlocksByArea(blocks, hass, layout = {}) {
+    if (!blocks || Object.keys(blocks).length === 0) return '';
+    
+    const areas = layout.areas || [{ id: 'content' }];
+    const blocksByArea = {};
+    
+    // 初始化区域分组
+    areas.forEach(area => {
+      blocksByArea[area.id] = [];
+    });
+    
+    // 按区域分组
+    Object.entries(blocks).forEach(([id, block]) => {
+      const area = block.area || 'content';
+      if (!blocksByArea[area]) {
+        blocksByArea[area] = [];
+      }
+      blocksByArea[area].push([id, block]);
+    });
+    
+    // 渲染每个区域
+    let html = '';
+    areas.forEach(area => {
+      const areaBlocks = blocksByArea[area.id];
+      if (areaBlocks && areaBlocks.length > 0) {
+        html += `<div class="card-area area-${area.id}">`;
+        html += areaBlocks.map(([id, block]) => renderBlock(block, hass)).join('');
+        html += '</div>';
+      }
+    });
+    
+    // 渲染未指定区域的块
+    const unassignedBlocks = blocksByArea['content'] || [];
+    if (unassignedBlocks.length > 0) {
+      if (!areas.some(area => area.id === 'content')) {
+        html += `<div class="card-area area-content">`;
+        html += unassignedBlocks.map(([id, block]) => renderBlock(block, hass)).join('');
+        html += '</div>';
+      }
+    }
+    
+    return html;
+  }
+
   // 合并配置（用户配置 + 默认值）
   _mergeConfig(schema, userConfig) {
     const config = { ...userConfig };
     
     // 应用schema中的默认值
-    Object.entries(schema).forEach(([key, field]) => {
-      if (config[key] === undefined && field.default !== undefined) {
-        config[key] = field.default;
+    if (schema) {
+      Object.entries(schema).forEach(([key, field]) => {
+        if (config[key] === undefined && field.default !== undefined) {
+          config[key] = field.default;
+        }
+      });
+    }
+    
+    // 确保有blocks字段
+    if (config.blocks === undefined) {
+      config.blocks = {};
+    }
+    
+    return config;
+  }
+
+  // 验证块配置是否合法
+  validateBlock(block, cardId) {
+    if (!block) return false;
+    
+    // 所有块都必须有entity字段
+    if (!block.entity) return false;
+    
+    // 预设块验证
+    const card = this.getCard(cardId);
+    if (card?.blockType === 'preset' && block.presetKey) {
+      const presetDef = card.presetBlocks?.[block.presetKey];
+      if (presetDef?.required && !block.entity) {
+        return false;
+      }
+    }
+    
+    return true;
+  }
+
+  // 获取卡片支持的区域配置
+  getCardAreas(cardId) {
+    const card = this.getCard(cardId);
+    if (!card) return [];
+    
+    return card.layout?.areas || [{ id: 'content', label: '内容区' }];
+  }
+
+  // 获取卡片预设块定义
+  getPresetBlocks(cardId) {
+    const card = this.getCard(cardId);
+    if (!card || card.blockType !== 'preset') return null;
+    
+    return card.presetBlocks || {};
+  }
+
+  // 清理配置中的无效块
+  cleanupBlocks(config, hass) {
+    if (!config?.blocks) return config;
+    
+    const validBlocks = {};
+    
+    Object.entries(config.blocks).forEach(([id, block]) => {
+      // 检查块是否合法
+      if (this.validateBlock(block, config.card_type)) {
+        validBlocks[id] = block;
       }
     });
     
-    return config;
+    return {
+      ...config,
+      blocks: validBlocks
+    };
+  }
+
+  // 生成预设块的初始配置
+  generatePresetBlocks(cardId) {
+    const card = this.getCard(cardId);
+    if (!card || card.blockType !== 'preset') return {};
+    
+    const presetBlocks = {};
+    const presetDefs = card.presetBlocks || {};
+    
+    Object.entries(presetDefs).forEach(([key, preset]) => {
+      const blockId = `preset_${key}_${Date.now()}`;
+      presetBlocks[blockId] = {
+        entity: '',
+        name: preset.defaultName || key,
+        icon: preset.defaultIcon || 'mdi:cube-outline',
+        area: preset.area || 'content',
+        presetKey: key,
+        required: preset.required || false
+      };
+    });
+    
+    return presetBlocks;
   }
 }
 
