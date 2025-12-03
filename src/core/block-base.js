@@ -328,5 +328,3 @@ export class BlockBase extends LitElement {
 if (!customElements.get('block-base')) {
   customElements.define('block-base', BlockBase);
 }
-
-export { BlockBase };
