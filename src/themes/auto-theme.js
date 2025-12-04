@@ -1,4 +1,4 @@
-// 自动主题
+// 自动主题 - 更新preview样式
 export const theme = {
   id: 'auto',
   name: '自动',
@@ -32,8 +32,8 @@ export const theme = {
   `,
   
   preview: {
-    background: 'var(--card-background-color)',
-    color: 'var(--primary-text-color)',
-    border: '1px solid var(--divider-color)'
+    background: 'var(--card-background-color, #ffffff)',
+    color: 'var(--primary-text-color, #212121)',
+    border: '1px solid var(--divider-color, #e0e0e0)'
   }
 };

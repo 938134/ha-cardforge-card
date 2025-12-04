@@ -1,4 +1,4 @@
-// 毛玻璃主题
+// 毛玻璃主题 - 更新preview样式
 export const theme = {
   id: 'glass',
   name: '毛玻璃',
@@ -28,6 +28,7 @@ export const theme = {
   preview: {
     background: 'linear-gradient(135deg, rgba(124, 58, 237, 0.6) 0%, rgba(236, 72, 153, 0.4) 50%, rgba(239, 68, 68, 0.3) 100%)',
     color: '#ffffff',
-    border: '1px solid rgba(255, 255, 255, 0.3)'
+    border: '1px solid rgba(255, 255, 255, 0.3)',
+    borderColor: 'rgba(255, 255, 255, 0.3)'
   }
 };

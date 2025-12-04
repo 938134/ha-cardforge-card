@@ -1,4 +1,4 @@
-// 霓虹主题
+// 霓虹主题 - 更新preview样式
 export const theme = {
   id: 'neon',
   name: '霓虹',
@@ -28,6 +28,8 @@ export const theme = {
   preview: {
     background: '#1a1a2e',
     color: '#00ffff',
-    border: '1px solid rgba(0, 255, 255, 0.3)'
+    border: '1px solid rgba(0, 255, 255, 0.3)',
+    borderColor: 'rgba(0, 255, 255, 0.3)',
+    boxShadow: '0 0 8px rgba(0, 255, 255, 0.4)'
   }
 };
