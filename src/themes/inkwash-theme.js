@@ -1,3 +1,4 @@
+// 水墨主题
 export const theme = {
   id: 'inkwash',
   name: '水墨',
@@ -11,9 +12,7 @@ export const theme = {
     '--cf-surface': '#ffffff',
     '--cf-border': '#dcdcdc',
     '--cf-text-primary': '#2c3e50',
-    '--cf-text-secondary': '#7f8c8d',
-    '--cf-block-bg': 'rgba(44, 62, 80, 0.05)',
-    '--cf-radius-md': '4px'
+    '--cf-text-secondary': '#7f8c8d'
   },
   
   styles: `
