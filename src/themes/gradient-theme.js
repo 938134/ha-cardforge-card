@@ -1,3 +1,4 @@
+// 渐变主题
 export const theme = {
   id: 'gradient',
   name: '渐变',
@@ -9,7 +10,6 @@ export const theme = {
     '--cf-accent-color': '#ffffff',
     '--cf-text-primary': '#ffffff',
     '--cf-text-secondary': 'rgba(255, 255, 255, 0.8)',
-    '--cf-block-bg': 'rgba(255, 255, 255, 0.15)',
     '--cf-border': 'rgba(255, 255, 255, 0.2)'
   },
   
