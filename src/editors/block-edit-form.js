@@ -1,4 +1,4 @@
-// src/editors/block-edit-form.js
+// src/editors/block-edit-form.js - 完整代码
 import { LitElement, html, css } from 'https://unpkg.com/lit@2.8.0/index.js?module';
 import { designSystem } from '../core/design-system.js';
 
@@ -67,6 +67,64 @@ export class BlockEditForm extends LitElement {
         border-radius: var(--cf-radius-sm);
       }
       
+      /* 区域选择器样式 */
+      .area-selector {
+        margin-top: 4px;
+      }
+      
+      .area-options {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        margin-top: 8px;
+      }
+      
+      .area-option {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 8px 12px;
+        border: 1px solid var(--cf-border);
+        border-radius: var(--cf-radius-sm);
+        cursor: pointer;
+        transition: all var(--cf-transition-fast);
+        flex: 1;
+        min-width: 100px;
+      }
+      
+      .area-option:hover {
+        border-color: var(--cf-primary-color);
+        background: rgba(var(--cf-rgb-primary), 0.05);
+      }
+      
+      .area-option.selected {
+        border-color: var(--cf-primary-color);
+        background: var(--cf-primary-color);
+        color: white;
+      }
+      
+      .area-option.selected ha-icon {
+        color: white;
+      }
+      
+      .area-option ha-icon {
+        font-size: 1.2em;
+      }
+      
+      .area-info {
+        flex: 1;
+      }
+      
+      .area-name {
+        font-size: 0.85em;
+        font-weight: 500;
+      }
+      
+      .area-description {
+        font-size: 0.75em;
+        opacity: 0.8;
+      }
+      
       .form-actions {
         display: flex;
         gap: 8px;
@@ -115,6 +173,14 @@ export class BlockEditForm extends LitElement {
         
         .form-grid {
           gap: 12px;
+        }
+        
+        .area-options {
+          flex-direction: column;
+        }
+        
+        .area-option {
+          min-width: 100%;
         }
         
         .form-actions {
@@ -224,23 +290,32 @@ export class BlockEditForm extends LitElement {
             </div>
           </div>
           
-          <!-- 区域选择 (如果有多个区域) -->
-          ${this.areas.length > 1 ? html`
+          <!-- 区域选择 -->
+          ${this.areas.length > 0 ? html`
             <div class="form-field">
-              <div class="form-label">区域</div>
-              <ha-select
-                .value=${this.block.area || 'content'}
-                @change=${this._handleAreaChange}
-                label="选择区域"
-                fullwidth
-              >
-                ${this.areas.map(area => html`
-                  <ha-list-item .value=${area.id}>
-                    <ha-icon icon="${this._getAreaIcon(area.id)}" slot="itemIcon"></ha-icon>
-                    ${area.label || area.id}
-                  </ha-list-item>
-                `)}
-              </ha-select>
+              <div class="form-label">所属区域</div>
+              <div class="area-options">
+                ${this.areas.map(area => {
+                  const isSelected = this.block.area === area.id || (!this.block.area && area.id === 'content');
+                  return html`
+                    <div 
+                      class="area-option ${isSelected ? 'selected' : ''}"
+                      @click=${() => this._handleAreaChange(area.id)}
+                    >
+                      <ha-icon icon="${this._getAreaIcon(area.id)}"></ha-icon>
+                      <div class="area-info">
+                        <div class="area-name">${area.label || area.id}</div>
+                        ${area.maxBlocks ? html`
+                          <div class="area-description">最多 ${area.maxBlocks} 个块</div>
+                        ` : ''}
+                      </div>
+                    </div>
+                  `;
+                })}
+              </div>
+              <div class="form-hint">
+                选择块显示的区域位置
+              </div>
             </div>
           ` : ''}
         </div>
@@ -347,9 +422,9 @@ export class BlockEditForm extends LitElement {
     }));
   }
 
-  _handleAreaChange(e) {
+  _handleAreaChange(areaId) {
     this.dispatchEvent(new CustomEvent('field-change', {
-      detail: { field: 'area', value: e.target.value }
+      detail: { field: 'area', value: areaId }
     }));
   }
 
