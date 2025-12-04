@@ -1,3 +1,4 @@
+// 霓虹主题
 export const theme = {
   id: 'neon',
   name: '霓虹',
@@ -11,8 +12,7 @@ export const theme = {
     '--cf-surface': '#16213e',
     '--cf-border': 'rgba(0, 255, 255, 0.3)',
     '--cf-text-primary': '#e6e6e6',
-    '--cf-text-secondary': '#a0a0a0',
-    '--cf-block-bg': 'rgba(0, 255, 255, 0.1)'
+    '--cf-text-secondary': '#a0a0a0'
   },
   
   styles: `
@@ -28,7 +28,6 @@ export const theme = {
   preview: {
     background: '#1a1a2e',
     color: '#00ffff',
-    border: '1px solid rgba(0, 255, 255, 0.3)',
-    boxShadow: '0 0 20px rgba(0, 255, 255, 0.3)'
+    border: '1px solid rgba(0, 255, 255, 0.3)'
   }
 };
