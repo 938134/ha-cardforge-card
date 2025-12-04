@@ -1,3 +1,4 @@
+// 毛玻璃主题
 export const theme = {
   id: 'glass',
   name: '毛玻璃',
@@ -11,9 +12,7 @@ export const theme = {
     '--cf-surface': 'rgba(255, 255, 255, 0.1)',
     '--cf-border': 'rgba(255, 255, 255, 0.2)',
     '--cf-text-primary': '#ffffff',
-    '--cf-text-secondary': 'rgba(255, 255, 255, 0.8)',
-    '--cf-block-bg': 'rgba(255, 255, 255, 0.1)',
-    '--cf-radius-md': '12px'
+    '--cf-text-secondary': 'rgba(255, 255, 255, 0.8)'
   },
   
   styles: `
@@ -22,7 +21,6 @@ export const theme = {
         rgba(255, 255, 255, 0.1) 0%, 
         rgba(255, 255, 255, 0.05) 100%);
       backdrop-filter: blur(20px) saturate(180%);
-      -webkit-backdrop-filter: blur(20px) saturate(180%);
       border: 1px solid rgba(255, 255, 255, 0.2);
     }
   `,
@@ -30,7 +28,6 @@ export const theme = {
   preview: {
     background: 'linear-gradient(135deg, rgba(124, 58, 237, 0.6) 0%, rgba(236, 72, 153, 0.4) 50%, rgba(239, 68, 68, 0.3) 100%)',
     color: '#ffffff',
-    border: '1px solid rgba(255, 255, 255, 0.3)',
-    boxShadow: '0 8px 32px rgba(0, 0, 0, 0.1)'
+    border: '1px solid rgba(255, 255, 255, 0.3)'
   }
 };
