@@ -3,10 +3,10 @@ export const card = {
   id: 'dashboard',
   meta: {
     name: '仪表盘',
-    description: '三段式自由布局仪表盘',
+    description: '三段式自由布局仪表盘，支持Header/Content/Footer分区',
     icon: '📊',
     category: '信息',
-    version: '2.0.0',
+    version: '2.1.0',
     author: 'CardForge'
   },
   
@@ -44,9 +44,8 @@ export const card = {
       label: '标题区域对齐方式',
       options: [
         { value: 'left', label: '左对齐' },
-        { value: 'center', label: '居中' },
-        { value: 'right', label: '右对齐' },
-        { value: 'space-between', label: '两端对齐' }
+        { value: 'center', label: '居中对齐' },
+        { value: 'right', label: '右对齐' }
       ],
       default: 'left',
       visibleWhen: (config) => config.showHeader
@@ -56,40 +55,21 @@ export const card = {
       label: '页脚区域对齐方式',
       options: [
         { value: 'left', label: '左对齐' },
-        { value: 'center', label: '居中' },
-        { value: 'right', label: '右对齐' },
-        { value: 'space-between', label: '两端对齐' }
+        { value: 'center', label: '居中对齐' },
+        { value: 'right', label: '右对齐' }
       ],
-      default: 'space-between',
+      default: 'left',
       visibleWhen: (config) => config.showFooter
     }
   },
   
-  // 块配置：支持自定义块，可指定区域
   blockType: 'custom',
   
-  // 支持的区域定义
   layout: {
-    recommendedSize: 4,
     areas: [
-      { 
-        id: 'header', 
-        label: '标题区域', 
-        maxBlocks: 5,
-        icon: 'mdi:format-header-1'
-      },
-      { 
-        id: 'content', 
-        label: '内容区域', 
-        maxBlocks: 20,
-        icon: 'mdi:view-grid'
-      },
-      { 
-        id: 'footer', 
-        label: '页脚区域', 
-        maxBlocks: 5,
-        icon: 'mdi:page-layout-footer'
-      }
+      { id: 'header', label: '标题区域', maxBlocks: 5 },
+      { id: 'content', label: '内容区域', maxBlocks: 20 },
+      { id: 'footer', label: '页脚区域', maxBlocks: 5 }
     ]
   },
   
@@ -125,7 +105,7 @@ export const card = {
         <div class="dashboard-header align-${config.headerAlign}">
           <div class="header-blocks">
             ${blocksByArea.header.map(([id, block]) => 
-              context.renderBlock({ ...block, id, compact: true })
+              context.renderBlock({ ...block, id })
             ).join('')}
           </div>
         </div>
@@ -149,7 +129,7 @@ export const card = {
         <div class="dashboard-footer align-${config.footerAlign}">
           <div class="footer-blocks">
             ${blocksByArea.footer.map(([id, block]) => 
-              context.renderBlock({ ...block, id, compact: true })
+              context.renderBlock({ ...block, id })
             ).join('')}
           </div>
         </div>
@@ -162,32 +142,27 @@ export const card = {
   
   styles: (config, theme) => {
     const primaryColor = theme['--cf-primary-color'] || '#03a9f4';
+    const accentColor = theme['--cf-accent-color'] || '#ff4081';
     
     return `
       .dashboard-card {
         height: 100%;
         min-height: 200px;
+        padding: 8px;
         display: flex;
         flex-direction: column;
-        gap: 8px; /* 固定小间距 */
-      }
-      
-      /* === 标题区域样式 === */
-      .dashboard-header {
-        padding: 8px 12px;
-        background: linear-gradient(135deg, rgba(var(--cf-rgb-primary, 3, 169, 244), 0.05) 0%, transparent 100%);
-        border-bottom: 2px solid rgba(var(--cf-rgb-primary, 3, 169, 244), 0.3);
-        border-radius: 8px 8px 0 0;
-      }
-      
-      .header-blocks {
-        display: flex;
-        flex-wrap: wrap;
         gap: 8px;
-        align-items: center;
       }
       
-      /* 标题区域对齐方式 */
+      /* 标题区域样式 */
+      .dashboard-header {
+        padding: 6px 8px;
+        background: linear-gradient(135deg, rgba(var(--cf-rgb-primary, 3, 169, 244), 0.08) 0%, transparent 100%);
+        border-left: 3px solid ${primaryColor};
+        border-radius: var(--cf-radius-sm);
+        margin-bottom: 4px;
+      }
+      
       .dashboard-header.align-left .header-blocks {
         justify-content: flex-start;
       }
@@ -200,40 +175,44 @@ export const card = {
         justify-content: flex-end;
       }
       
-      .dashboard-header.align-space-between .header-blocks {
-        justify-content: space-between;
+      .header-blocks {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px;
+        align-items: center;
       }
       
       /* 标题区域块特殊样式 */
-      .dashboard-header .cardforge-block {
+      .header-blocks .cardforge-block {
         background: transparent;
-        min-height: auto;
+        min-height: 40px;
         padding: 4px 8px;
-        border: 1px solid rgba(var(--cf-rgb-primary, 3, 169, 244), 0.2);
-        border-radius: 6px;
+        border: 1px solid rgba(var(--cf-rgb-primary, 3, 169, 244), 0.3);
+        border-radius: var(--cf-radius-sm);
+        flex-shrink: 0;
       }
       
-      .dashboard-header .block-icon {
+      .header-blocks .block-icon {
         font-size: 1.2em;
-        color: var(--cf-primary-color);
-        opacity: 0.8;
+        color: ${primaryColor};
       }
       
-      .dashboard-header .block-name {
-        font-size: 0.85em;
-        font-weight: 500;
+      .header-blocks .block-name {
+        font-size: 0.8em;
+        color: var(--cf-text-secondary);
       }
       
-      .dashboard-header .block-value {
-        font-size: 0.95em;
+      .header-blocks .block-value {
+        font-size: 0.9em;
         font-weight: 600;
+        color: var(--cf-text-primary);
       }
       
-      /* === 内容区域样式 === */
+      /* 内容区域 */
       .dashboard-content {
         flex: 1;
         overflow: auto;
-        padding: 8px 0;
+        padding: 4px;
       }
       
       /* 流式布局 */
@@ -245,8 +224,9 @@ export const card = {
       }
       
       .layout-flow .cardforge-block {
-        min-width: 120px;
+        min-width: 140px;
         flex: 0 1 auto;
+        max-width: calc(50% - 4px);
       }
       
       /* 网格布局 */
@@ -255,6 +235,10 @@ export const card = {
         grid-template-columns: repeat(${config.gridColumns}, 1fr);
         gap: 8px;
         align-content: start;
+      }
+      
+      .layout-grid .cardforge-block {
+        width: 100%;
       }
       
       /* 列表布局 */
@@ -268,34 +252,15 @@ export const card = {
         width: 100%;
       }
       
-      /* 内容区域块标准样式 */
-      .dashboard-content .cardforge-block {
-        background: var(--cf-block-bg, rgba(0, 0, 0, 0.03));
-        border: 1px solid var(--cf-border);
-        transition: all var(--cf-transition-fast);
-      }
-      
-      .dashboard-content .cardforge-block:hover {
-        background: rgba(var(--cf-rgb-primary, 3, 169, 244), 0.05);
-        border-color: var(--cf-primary-color);
-      }
-      
-      /* === 页脚区域样式 === */
+      /* 页脚区域样式 */
       .dashboard-footer {
-        padding: 8px 12px;
-        background: linear-gradient(135deg, transparent 0%, rgba(var(--cf-rgb-primary, 3, 169, 244), 0.03) 100%);
+        padding: 6px 8px;
+        background: linear-gradient(135deg, transparent 0%, rgba(var(--cf-rgb-primary, 3, 169, 244), 0.05) 100%);
         border-top: 1px solid var(--cf-border);
-        border-radius: 0 0 8px 8px;
+        border-radius: var(--cf-radius-sm);
+        margin-top: 4px;
       }
       
-      .footer-blocks {
-        display: flex;
-        flex-wrap: wrap;
-        gap: 8px;
-        align-items: center;
-      }
-      
-      /* 页脚区域对齐方式 */
       .dashboard-footer.align-left .footer-blocks {
         justify-content: flex-start;
       }
@@ -308,35 +273,39 @@ export const card = {
         justify-content: flex-end;
       }
       
-      .dashboard-footer.align-space-between .footer-blocks {
-        justify-content: space-between;
+      .footer-blocks {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px;
+        align-items: center;
       }
       
       /* 页脚区域块特殊样式 */
-      .dashboard-footer .cardforge-block {
-        background: transparent;
-        min-height: auto;
-        padding: 4px 8px;
+      .footer-blocks .cardforge-block {
+        background: rgba(var(--cf-rgb-primary, 3, 169, 244), 0.05);
+        min-height: 36px;
+        padding: 3px 6px;
         border: none;
-        border-radius: 4px;
+        border-radius: var(--cf-radius-sm);
+        flex-shrink: 0;
       }
       
-      .dashboard-footer .block-icon {
-        font-size: 1.1em;
+      .footer-blocks .block-icon {
+        font-size: 1em;
         color: var(--cf-text-secondary);
       }
       
-      .dashboard-footer .block-name {
-        font-size: 0.8em;
+      .footer-blocks .block-name {
+        font-size: 0.75em;
         color: var(--cf-text-secondary);
       }
       
-      .dashboard-footer .block-value {
-        font-size: 0.9em;
+      .footer-blocks .block-value {
+        font-size: 0.85em;
         color: var(--cf-text-primary);
       }
       
-      /* 空状态样式 */
+      /* 空状态 */
       .dashboard-card.empty {
         display: flex;
         flex-direction: column;
@@ -344,36 +313,40 @@ export const card = {
         justify-content: center;
         text-align: center;
         color: var(--cf-text-secondary);
-        gap: 16px;
-        padding: 32px;
+        gap: 12px;
+        padding: 24px;
       }
       
       .empty-icon {
-        font-size: 3em;
+        font-size: 2.2em;
         opacity: 0.5;
       }
       
       .empty-text {
-        font-size: 1.2em;
-        font-weight: 500;
+        font-size: 1em;
       }
       
       .empty-hint {
-        font-size: 0.9em;
+        font-size: 0.85em;
         opacity: 0.7;
-        max-width: 300px;
-        line-height: 1.4;
+        max-width: 200px;
+        line-height: 1.3;
       }
       
-      /* === 响应式设计 === */
+      /* 响应式设计 */
       @container cardforge-container (max-width: 800px) {
         .layout-grid .dashboard-content {
           grid-template-columns: repeat(3, 1fr);
+        }
+        
+        .layout-flow .cardforge-block {
+          max-width: calc(33.33% - 6px);
         }
       }
       
       @container cardforge-container (max-width: 600px) {
         .dashboard-card {
+          padding: 6px;
           gap: 6px;
         }
         
@@ -381,78 +354,92 @@ export const card = {
           grid-template-columns: repeat(2, 1fr);
         }
         
+        .layout-flow .cardforge-block {
+          min-width: 120px;
+          max-width: calc(50% - 4px);
+        }
+        
+        .header-blocks,
+        .footer-blocks {
+          flex-direction: row;
+          justify-content: flex-start;
+        }
+        
         .dashboard-header,
         .dashboard-footer {
-          padding: 6px 8px;
-        }
-        
-        .header-blocks,
-        .footer-blocks {
-          justify-content: center !important; /* 小屏强制居中 */
-        }
-        
-        .header-blocks,
-        .footer-blocks {
-          flex-direction: column;
-          align-items: stretch;
-          gap: 6px;
-        }
-        
-        .dashboard-header .cardforge-block,
-        .dashboard-footer .cardforge-block {
-          width: 100%;
-          text-align: center;
+          padding: 4px 6px;
         }
       }
       
       @container cardforge-container (max-width: 400px) {
         .layout-grid .dashboard-content,
+        .layout-list .dashboard-content {
+          grid-template-columns: 1fr;
+        }
+        
         .layout-flow .dashboard-content {
-          display: flex;
           flex-direction: column;
-          gap: 6px;
         }
         
-        .layout-grid .cardforge-block,
         .layout-flow .cardforge-block {
-          width: 100%;
+          min-width: 100%;
+          max-width: 100%;
         }
         
-        .dashboard-content {
-          padding: 6px 0;
+        .dashboard-header.align-left,
+        .dashboard-header.align-center,
+        .dashboard-header.align-right,
+        .dashboard-footer.align-left,
+        .dashboard-footer.align-center,
+        .dashboard-footer.align-right {
+          text-align: center;
         }
         
-        .dashboard-header .block-name,
-        .dashboard-footer .block-name {
-          font-size: 0.75em;
-        }
-        
-        .dashboard-header .block-value,
-        .dashboard-footer .block-value {
-          font-size: 0.85em;
+        .header-blocks,
+        .footer-blocks {
+          justify-content: center;
         }
       }
       
-      /* 深色模式适配 */
+      /* 区域标识的视觉提示 */
+      .area-header .cardforge-block::before {
+        content: "标题区";
+        position: absolute;
+        top: -8px;
+        left: 8px;
+        font-size: 0.6em;
+        color: ${primaryColor};
+        background: white;
+        padding: 1px 4px;
+        border-radius: 2px;
+        border: 1px solid ${primaryColor};
+        opacity: 0.8;
+      }
+      
+      .area-footer .cardforge-block::before {
+        content: "页脚区";
+        position: absolute;
+        top: -8px;
+        left: 8px;
+        font-size: 0.6em;
+        color: var(--cf-text-secondary);
+        background: white;
+        padding: 1px 4px;
+        border-radius: 2px;
+        border: 1px solid var(--cf-text-secondary);
+        opacity: 0.8;
+      }
+      
       @media (prefers-color-scheme: dark) {
-        .dashboard-header {
-          background: linear-gradient(135deg, rgba(var(--cf-rgb-primary, 3, 169, 244), 0.1) 0%, transparent 100%);
-          border-bottom-color: rgba(var(--cf-rgb-primary, 3, 169, 244), 0.5);
-        }
-        
-        .dashboard-footer {
-          background: linear-gradient(135deg, transparent 0%, rgba(var(--cf-rgb-primary, 3, 169, 244), 0.05) 100%);
-        }
-        
-        .dashboard-header .cardforge-block {
-          background: rgba(255, 255, 255, 0.05);
-          border-color: rgba(255, 255, 255, 0.1);
-        }
-        
-        .dashboard-content .cardforge-block:hover {
-          background: rgba(var(--cf-rgb-primary, 3, 169, 244), 0.1);
+        .area-header .cardforge-block::before,
+        .area-footer .cardforge-block::before {
+          background: var(--cf-surface);
         }
       }
     `;
   }
 };
+
+export class DashboardCard {
+  static card = card;
+}
