@@ -1,4 +1,4 @@
-// 表单构建器
+// 表单构建器 - 优化标签显示
 import { LitElement, html, css } from 'https://unpkg.com/lit@2.8.0/index.js?module';
 import { designSystem } from '../core/design-system.js';
 
@@ -24,15 +24,11 @@ class FormBuilder extends LitElement {
         gap: 8px;
       }
       
-      .field-label {
-        font-size: 0.9em;
-        font-weight: 500;
-        color: var(--cf-text-primary);
-      }
-      
       .field-description {
         font-size: 0.8em;
         color: var(--cf-text-secondary);
+        margin-top: 4px;
+        line-height: 1.4;
       }
       
       .boolean-group {
@@ -59,6 +55,44 @@ class FormBuilder extends LitElement {
       
       ha-textfield, ha-select, ha-combo-box, ha-icon-picker {
         width: 100%;
+      }
+      
+      /* 必填字段标记 */
+      .required-field::part(label) {
+        position: relative;
+      }
+      
+      .required-field::part(label)::after {
+        content: "*";
+        color: #f44336;
+        margin-left: 4px;
+      }
+      
+      /* 优化表单控件间距 */
+      .form-grid > .form-field {
+        margin-bottom: 4px;
+      }
+      
+      /* 响应式调整 */
+      @media (max-width: 768px) {
+        .form-grid {
+          grid-template-columns: 1fr;
+          gap: 16px;
+        }
+        
+        .boolean-group {
+          grid-template-columns: 1fr;
+        }
+      }
+      
+      @media (max-width: 480px) {
+        .form-grid {
+          gap: 14px;
+        }
+        
+        .boolean-item {
+          padding: 6px 10px;
+        }
       }
     `
   ];
@@ -98,7 +132,7 @@ class FormBuilder extends LitElement {
         ${otherFields.length > 0 ? html`
           <div class="form-grid">
             ${otherFields.map(([key, field]) => html`
-              <div class="form-field">
+              <div class="form-field ${field.required ? 'required-field' : ''}">
                 ${this._renderField(key, field)}
                 ${field.description ? html`
                   <div class="field-description">${field.description}</div>
@@ -124,7 +158,7 @@ class FormBuilder extends LitElement {
           @click=${e => e.stopPropagation()}
           @change=${e => this._updateField(key, e.target.checked)}
         ></ha-switch>
-        <div class="field-label">${field.label}</div>
+        <div>${field.label}${field.required ? ' *' : ''}</div>
       </div>
     `;
   }
@@ -150,12 +184,11 @@ class FormBuilder extends LitElement {
     const options = field.options || [];
     
     return html`
-      <div class="field-label">${field.label}</div>
       <ha-select
         .value=${value}
         @closed=${e => e.stopPropagation()}
         fullwidth
-        .label=${field.label}
+        .label=${field.label + (field.required ? ' *' : '')}
         @change=${e => this._updateField(key, e.target.value)}
       >
         ${options.map(option => html`
@@ -169,12 +202,11 @@ class FormBuilder extends LitElement {
 
   _renderNumberField(key, field, value) {
     return html`
-      <div class="field-label">${field.label}</div>
       <ha-textfield
         type="number"
         .value=${value}
         @input=${e => this._updateField(key, parseInt(e.target.value) || field.min || 0)}
-        .label=${field.label}
+        .label=${field.label + (field.required ? ' *' : '')}
         .min=${field.min}
         .max=${field.max}
         .step=${field.step || 1}
@@ -187,21 +219,20 @@ class FormBuilder extends LitElement {
     const entities = this._getAvailableEntities();
     
     return html`
-      <div class="field-label">${field.label}</div>
       ${entities.length > 0 ? html`
         <ha-combo-box
           .items=${entities}
           .value=${value}
           @value-changed=${e => this._updateField(key, e.detail.value)}
           allow-custom-value
-          .label=${field.label}
+          .label=${field.label + (field.required ? ' *' : '')}
           fullwidth
         ></ha-combo-box>
       ` : html`
         <ha-textfield
           .value=${value}
           @input=${e => this._updateField(key, e.target.value)}
-          .label=${field.label}
+          .label=${field.label + (field.required ? ' *' : '')}
           fullwidth
         ></ha-textfield>
       `}
@@ -210,11 +241,10 @@ class FormBuilder extends LitElement {
 
   _renderIconField(key, field, value) {
     return html`
-      <div class="field-label">${field.label}</div>
       <ha-icon-picker
         .value=${value}
         @value-changed=${e => this._updateField(key, e.detail.value)}
-        .label=${field.label}
+        .label=${field.label + (field.required ? ' *' : '')}
         fullwidth
       ></ha-icon-picker>
     `;
@@ -222,11 +252,11 @@ class FormBuilder extends LitElement {
 
   _renderTextField(key, field, value) {
     return html`
-      <div class="field-label">${field.label}</div>
       <ha-textfield
         .value=${value}
         @input=${e => this._updateField(key, e.target.value)}
-        .label=${field.label}
+        .label=${field.label + (field.required ? ' *' : '')}
+        .placeholder=${field.placeholder || ''}
         fullwidth
       ></ha-textfield>
     `;
