@@ -1,4 +1,4 @@
-// src/cards/week-card.js - 优化版：垂直对齐 + 颜色系统化
+// src/cards/week-card.js - 完全通用增强版
 export const card = {
   id: 'week',
   meta: {
@@ -6,7 +6,7 @@ export const card = {
     description: '显示年进度和周进度',
     icon: '📅',
     category: '时间',
-    version: '2.1.0',
+    version: '2.2.0',
     author: 'CardForge'
   },
   
@@ -110,9 +110,24 @@ export const card = {
     const primaryColor = theme['--cf-primary-color'] || '#03a9f4';
     const accentColor = theme['--cf-accent-color'] || '#ff4081';
     const borderColor = theme['--cf-border'] || '#e0e0e0';
-    const surfaceSecondary = 'rgba(var(--cf-rgb-primary, 3, 169, 244), 0.1)';
+    const backgroundColor = theme['--cf-background'] || '#ffffff';
     const textPrimary = theme['--cf-text-primary'] || '#212121';
     const textSecondary = theme['--cf-text-secondary'] || '#757575';
+    
+    // 使用CSS原生颜色混合函数
+    // color-mix() 支持所有现代浏览器
+    const getContrastColor = (color) => {
+      // 使用更智能的对比度计算
+      // 如果主题色是浅色，则混合黑色增加对比度
+      // 如果主题色是深色，则混合白色增加对比度
+      // 使用20%的混合比例确保足够对比度
+      return `color-mix(in srgb, ${color}, ${textPrimary} 20%)`;
+    };
+    
+    const getBackgroundContrast = () => {
+      // 进度条背景：使用背景色和边框色的混合
+      return `color-mix(in srgb, ${backgroundColor}, ${borderColor} 15%)`;
+    };
     
     return `
       .week-card {
@@ -128,7 +143,7 @@ export const card = {
       
       .year-progress-container {
         display: flex;
-        align-items: center; /* 关键：垂直居中 */
+        align-items: center;
         justify-content: center;
         gap: 32px;
         width: 100%;
@@ -147,7 +162,7 @@ export const card = {
         font-family: inherit;
       }
       
-      /* 进度环颜色系统化 */
+      /* 进度环使用原生颜色混合确保对比度 */
       .progress-bg {
         stroke: ${borderColor};
         stroke-width: 4;
@@ -155,22 +170,22 @@ export const card = {
       }
       
       .progress-fill {
-        stroke: ${primaryColor};
+        stroke: ${getContrastColor(primaryColor)};
         stroke-width: 4;
         fill: none;
         stroke-linecap: round;
       }
       
       .progress-text {
-        fill: ${primaryColor};
+        fill: ${getContrastColor(primaryColor)};
       }
       
-      /* 年信息区域 - 垂直居中 */
+      /* 年信息区域 */
       .year-info {
         display: flex;
         flex-direction: column;
-        justify-content: center; /* 关键：垂直居中 */
-        height: 80px; /* 与进度环高度匹配 */
+        justify-content: center;
+        height: 80px;
         min-width: 100px;
       }
       
@@ -191,56 +206,134 @@ export const card = {
         white-space: nowrap;
       }
       
+      /* ========== 通用周进度条增强 ========== */
       .week-progress {
         width: 100%;
-        max-width: 300px;
+        max-width: 320px;
       }
       
+      /* 进度条容器 - 通用增强 */
       .progress-bars {
         display: flex;
         width: 100%;
-        height: 16px;
-        background: ${surfaceSecondary};
-        border-radius: 8px;
+        height: 18px;
+        background: ${getBackgroundContrast()};
+        border-radius: 9px;
         overflow: hidden;
-        margin-bottom: 12px;
+        margin-bottom: 14px;
+        border: 1px solid ${borderColor};
+        
+        /* 通用内阴影，无论深浅背景都适用 */
+        box-shadow: 
+          inset 0 1px 3px 
+            color-mix(in srgb, ${textPrimary} 10%, transparent),
+          0 1px 0 
+            color-mix(in srgb, ${backgroundColor} 90%, white 10%);
       }
       
       .week-bar {
         flex: 1;
         height: 100%;
-        transition: all 0.3s ease;
-      }
-      
-      .week-bar.active {
-        background: ${primaryColor};
-        opacity: 0.9;
-      }
-      
-      .week-bar.current {
-        background: ${accentColor};
         position: relative;
-        z-index: 1;
-        box-shadow: 0 0 4px ${accentColor}; /* 增强对比度 */
-      }
-      
-      .week-bar.current::after {
-        content: '';
-        position: absolute;
-        top: -3px;
-        left: 0;
-        right: 0;
-        height: 3px;
-        background: ${accentColor};
-        border-radius: 1.5px;
-      }
-      
-      .week-bar.future {
-        background: ${surfaceSecondary};
-        border: 1px solid ${borderColor};
+        
+        /* 分隔线使用背景色混合边框色 */
+        border-right: 1px solid 
+          color-mix(in srgb, ${backgroundColor}, ${borderColor} 30%);
         box-sizing: border-box;
       }
       
+      .week-bar:last-child {
+        border-right: none;
+      }
+      
+      /* 已完成状态 - 通用增强 */
+      .week-bar.active {
+        background: ${getContrastColor(primaryColor)};
+        position: relative;
+      }
+      
+      /* 通用斜纹纹理 - 使用半透明白色/黑色确保任何背景都可见 */
+      .week-bar.active::after {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: repeating-linear-gradient(
+          45deg,
+          transparent,
+          transparent 4px,
+          rgba(255, 255, 255, 0.2) 4px,
+          rgba(255, 255, 255, 0.2) 8px
+        );
+        mix-blend-mode: overlay; /* 使用混合模式适应背景 */
+        pointer-events: none;
+        opacity: 0.6;
+      }
+      
+      /* 当前日状态 - 通用特别强化 */
+      .week-bar.current {
+        background: ${getContrastColor(accentColor)};
+        position: relative;
+        z-index: 2;
+      }
+      
+      /* 当前日的立体效果 - 使用渐变确保可见性 */
+      .week-bar.current::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: linear-gradient(
+          to bottom,
+          rgba(255, 255, 255, 0.3) 0%,
+          rgba(255, 255, 255, 0.1) 40%,
+          transparent 70%,
+          rgba(0, 0, 0, 0.1) 100%
+        );
+        border-radius: inherit;
+        pointer-events: none;
+      }
+      
+      /* 当前日的边框和阴影 - 通用方案 */
+      .week-bar.current {
+        border: 1px solid 
+          color-mix(in srgb, ${accentColor}, ${textPrimary} 30%);
+        box-shadow: 
+          0 1px 3px 
+            color-mix(in srgb, ${textPrimary} 15%, transparent),
+          inset 0 1px 0 rgba(255, 255, 255, 0.3);
+        margin: -1px; /* 补偿边框宽度 */
+      }
+      
+      /* 未完成状态 - 通用 */
+      .week-bar.future {
+        background: ${getBackgroundContrast()};
+      }
+      
+      /* 未完成状态的微纹理 - 通用 */
+      .week-bar.future::after {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: repeating-linear-gradient(
+          90deg,
+          transparent,
+          transparent 3px,
+          color-mix(in srgb, ${textPrimary} 5%, transparent) 3px,
+          color-mix(in srgb, ${textPrimary} 5%, transparent) 6px
+        );
+        pointer-events: none;
+        opacity: 0.5;
+      }
+      
+      /* 日标签 */
       .day-labels {
         display: flex;
         justify-content: space-between;
@@ -255,7 +348,7 @@ export const card = {
       }
       
       .day-label.weekend {
-        color: ${accentColor};
+        color: ${getContrastColor(accentColor)};
         font-weight: 600;
       }
       
@@ -285,7 +378,8 @@ export const card = {
         }
         
         .progress-bars {
-          height: 14px;
+          height: 16px;
+          margin-bottom: 12px;
         }
         
         .week-progress {
@@ -302,12 +396,12 @@ export const card = {
         .year-progress-container {
           gap: 20px;
           max-width: 260px;
-          flex-direction: column; /* 移动端改为垂直布局 */
+          flex-direction: column;
           text-align: center;
         }
         
         .year-info {
-          align-items: center; /* 移动端居中对齐 */
+          align-items: center;
           height: auto;
           min-width: auto;
           padding: 8px 0;
@@ -328,7 +422,7 @@ export const card = {
         }
         
         .progress-bars {
-          height: 12px;
+          height: 14px;
           margin-bottom: 10px;
         }
         
@@ -367,8 +461,8 @@ export const card = {
         }
         
         .progress-bars {
-          height: 10px;
-          border-radius: 5px;
+          height: 12px;
+          border-radius: 6px;
         }
         
         .week-progress {
@@ -380,39 +474,58 @@ export const card = {
         }
       }
       
-      /* 深色模式优化 */
-      @media (prefers-color-scheme: dark) {
-        .progress-bg {
-          stroke: rgba(255, 255, 255, 0.2);
+      /* 通用对比度检测增强 */
+      /* 使用CSS滤镜提高低对比度情况下的可见性 */
+      @media (prefers-contrast: more) {
+        .week-bar.active {
+          filter: brightness(1.1) saturate(1.2);
+        }
+        
+        .week-bar.current {
+          filter: brightness(1.15) saturate(1.3);
+          border-width: 2px;
         }
         
         .progress-bars {
-          background: rgba(255, 255, 255, 0.1);
+          border-width: 2px;
         }
-        
-        .week-bar.future {
-          background: rgba(255, 255, 255, 0.05);
-          border-color: rgba(255, 255, 255, 0.15);
-        }
-        
+      }
+      
+      /* 强制高对比度模式 */
+      @media (prefers-contrast: high) {
         .week-bar.active {
-          opacity: 1; /* 深色模式下提高不透明度 */
+          background: ${textPrimary};
+        }
+        
+        .week-bar.current {
+          background: ${accentColor};
+          border: 2px solid ${textPrimary};
+        }
+        
+        .week-bar.active::after,
+        .week-bar.future::after {
+          display: none; /* 高对比度模式下移除纹理 */
         }
       }
       
-      /* 高对比度主题优化 */
-      .week-card.high-contrast .week-bar.current {
-        box-shadow: 0 0 8px ${accentColor}, 0 0 16px rgba(255, 64, 129, 0.3);
+      /* 使用CSS变量提供主题自适应的回退方案 */
+      /* 如果浏览器不支持color-mix，使用这些回退 */
+      .progress-bars {
+        --week-progress-bg: ${backgroundColor};
+        --week-progress-border: ${borderColor};
       }
       
-      .week-card.high-contrast .week-bar.active {
-        background: ${primaryColor};
-        opacity: 1;
+      @supports not (color: color-mix(in srgb, #000, #fff)) {
+        .progress-bars {
+          background: var(--week-progress-bg);
+          box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.1);
+        }
+        
+        .week-bar.current {
+          border: 2px solid ${accentColor};
+          box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+        }
       }
     `;
   }
 };
-
-export class WeekCard {
-  static card = card;
-}
