@@ -1,4 +1,4 @@
-// 欢迎卡片 - 精简版
+// 欢迎卡片 - 每日一言优化（无底色图标，内容垂直居中）
 export const card = {
   id: 'welcome',
   meta: {
@@ -180,7 +180,7 @@ export const card = {
         text-shadow: 0 2px 8px rgba(${primaryColorRgb}, 0.2);
       }
       
-      /* 每日一言容器 - 图标左，内容右，同一行 */
+      /* 每日一言容器 - 图标左，内容右，同一行，内容垂直居中 */
       .quote-container {
         width: 100%;
         max-width: 500px;
@@ -190,13 +190,13 @@ export const card = {
         border: 1px solid ${borderColor};
         border-radius: var(--cf-radius-lg);
         display: flex;
-        align-items: flex-start;  /* 图标和内容顶部对齐 */
+        align-items: center; /* 修改这里：图标和内容垂直居中对齐 */
         gap: var(--cf-spacing-md);
         transition: all var(--cf-transition-fast);
         box-shadow: var(--cf-shadow-sm);
       }
       
-      /* 图标区域 - 固定在左侧 */
+      /* 图标区域 - 无底色，透明背景 */
       .quote-icon {
         flex-shrink: 0;
         width: 48px;
@@ -205,18 +205,18 @@ export const card = {
         align-items: center;
         justify-content: center;
         border-radius: var(--cf-radius-md);
-        background: rgba(${primaryColorRgb}, 0.1);
-        color: ${primaryColor};
+        background: transparent; /* 移除底色，改为透明 */
+        color: ${textSecondary}; /* 使用文字次要颜色 */
         font-size: 1.5em;
         transition: all var(--cf-transition-fast);
       }
       
+      /* 关联实体时图标颜色 */
       .quote-container.has-entity .quote-icon {
-        background: rgba(${primaryColorRgb}, 0.15);
-        color: ${accentColor};
+        color: ${accentColor}; /* 使用强调色 */
       }
       
-      /* 内容区域 - 在右侧，自动换行 */
+      /* 内容区域 - 在右侧，自动换行，垂直居中 */
       .quote-content {
         flex: 1;
         min-width: 0;
@@ -231,6 +231,9 @@ export const card = {
         text-align: left;
         margin: 0;
         padding: 0;
+        /* 确保内容垂直居中 */
+        display: flex;
+        align-items: center;
       }
       
       /* 交互效果 */
@@ -243,7 +246,11 @@ export const card = {
       
       .quote-container:hover .quote-icon {
         transform: scale(1.05);
-        background: rgba(${primaryColorRgb}, 0.2);
+        color: ${primaryColor}; /* 悬停时使用主色 */
+      }
+      
+      .quote-container:hover .quote-content {
+        color: ${textPrimary}; /* 悬停时文字加深 */
       }
       
       /* 深色模式优化 */
@@ -258,15 +265,23 @@ export const card = {
         }
         
         .quote-icon {
-          background: rgba(${primaryColorRgb}, 0.2);
+          color: ${textTertiary}; /* 深色模式使用第三级文字颜色 */
         }
         
         .quote-container.has-entity .quote-icon {
-          background: rgba(${primaryColorRgb}, 0.25);
+          color: ${accentColor};
         }
         
         .quote-content {
           color: ${textTertiary};
+        }
+        
+        .quote-container:hover .quote-icon {
+          color: ${primaryColor};
+        }
+        
+        .quote-container:hover .quote-content {
+          color: ${textSecondary};
         }
       }
       
@@ -280,6 +295,7 @@ export const card = {
           max-width: 450px;
           padding: var(--cf-spacing-sm);
           gap: var(--cf-spacing-sm);
+          align-items: flex-start; /* 小屏时恢复顶部对齐，保证阅读体验 */
         }
         
         .greeting {
@@ -298,6 +314,7 @@ export const card = {
         
         .quote-content {
           font-size: 1em;
+          align-items: flex-start; /* 小屏时内容也顶部对齐 */
         }
       }
       
@@ -340,6 +357,7 @@ export const card = {
         
         .quote-container {
           padding: var(--cf-spacing-xs) var(--cf-spacing-sm);
+          gap: var(--cf-spacing-sm);
         }
         
         .greeting {
@@ -348,6 +366,16 @@ export const card = {
         
         .time {
           font-size: 2.2em;
+        }
+        
+        .quote-icon {
+          width: 32px;
+          height: 32px;
+          font-size: 1.1em;
+        }
+        
+        .quote-content {
+          font-size: 0.9em;
         }
       }
     `;
