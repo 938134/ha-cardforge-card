@@ -1,4 +1,4 @@
-// 表单构建器 - 优化标签显示
+// 表单构建器 - 智能多列布局
 import { LitElement, html, css } from 'https://unpkg.com/lit@2.8.0/index.js?module';
 import { designSystem } from '../core/design-system.js';
 
@@ -12,29 +12,54 @@ class FormBuilder extends LitElement {
   static styles = [
     designSystem,
     css`
-      .form-grid {
+      .form-container {
+        display: flex;
+        flex-direction: column;
+        gap: 16px;
+      }
+      
+      /* 字段网格布局 - 智能多列 */
+      .field-grid {
         display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-        gap: 20px;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 16px 12px;
+        align-items: start;
       }
       
       .form-field {
         display: flex;
         flex-direction: column;
-        gap: 8px;
+        gap: 4px;
+        min-width: 0; /* 防止内容溢出 */
+      }
+      
+      /* 字段宽度类别 */
+      .field-wide {
+        grid-column: 1 / -1; /* 占满整行 */
+      }
+      
+      .field-medium {
+        /* 默认宽度，由grid控制 */
+      }
+      
+      .field-narrow {
+        min-width: 150px;
       }
       
       .field-description {
         font-size: 0.8em;
         color: var(--cf-text-secondary);
-        margin-top: 4px;
+        margin-top: 2px;
         line-height: 1.4;
+        grid-column: 1 / -1; /* 描述文字占满整行 */
       }
       
+      /* 布尔字段组保持原有布局 */
       .boolean-group {
         display: grid;
         grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
-        gap: 16px;
+        gap: 12px;
+        margin-bottom: 8px;
       }
       
       .boolean-item {
@@ -51,48 +76,54 @@ class FormBuilder extends LitElement {
       
       .boolean-item:hover {
         border-color: var(--cf-primary-color);
+        background: rgba(var(--cf-rgb-primary), 0.03);
       }
       
+      /* 表单控件样式 */
       ha-textfield, ha-select, ha-combo-box, ha-icon-picker {
         width: 100%;
       }
       
       /* 必填字段标记 */
-      .required-field::part(label) {
-        position: relative;
-      }
-      
-      .required-field::part(label)::after {
-        content: "*";
+      ha-textfield[required]::part(label)::after,
+      ha-select[required]::part(label)::after,
+      ha-combo-box[required]::part(label)::after,
+      ha-icon-picker[required]::part(label)::after {
+        content: " *";
         color: #f44336;
-        margin-left: 4px;
-      }
-      
-      /* 优化表单控件间距 */
-      .form-grid > .form-field {
-        margin-bottom: 4px;
       }
       
       /* 响应式调整 */
       @media (max-width: 768px) {
-        .form-grid {
+        .field-grid {
           grid-template-columns: 1fr;
-          gap: 16px;
+          gap: 14px;
         }
         
         .boolean-group {
           grid-template-columns: 1fr;
         }
+        
+        .field-narrow {
+          min-width: auto;
+        }
       }
       
       @media (max-width: 480px) {
-        .form-grid {
-          gap: 14px;
+        .field-grid {
+          gap: 12px;
         }
         
         .boolean-item {
           padding: 6px 10px;
         }
+      }
+      
+      /* 空状态 */
+      .empty-state {
+        text-align: center;
+        padding: 32px 20px;
+        color: var(--cf-text-secondary);
       }
     `
   ];
@@ -100,14 +131,14 @@ class FormBuilder extends LitElement {
   render() {
     if (!this.schema || Object.keys(this.schema).length === 0) {
       return html`
-        <div style="text-align:center;padding:32px 20px;color:var(--cf-text-secondary)">
+        <div class="empty-state">
           <ha-icon icon="mdi:check-circle-outline"></ha-icon>
           <div>此卡片无需额外配置</div>
         </div>
       `;
     }
 
-    // 处理字段
+    // 分离布尔字段和其他字段
     const booleanFields = [];
     const otherFields = [];
     
@@ -120,7 +151,7 @@ class FormBuilder extends LitElement {
     });
 
     return html`
-      <div class="form-builder">
+      <div class="form-container">
         <!-- 布尔字段组 -->
         ${booleanFields.length > 0 ? html`
           <div class="boolean-group">
@@ -128,21 +159,54 @@ class FormBuilder extends LitElement {
           </div>
         ` : ''}
         
-        <!-- 其他字段 -->
+        <!-- 其他字段 - 智能网格布局 -->
         ${otherFields.length > 0 ? html`
-          <div class="form-grid">
-            ${otherFields.map(([key, field]) => html`
-              <div class="form-field ${field.required ? 'required-field' : ''}">
-                ${this._renderField(key, field)}
-                ${field.description ? html`
-                  <div class="field-description">${field.description}</div>
+          <div class="field-grid">
+            ${otherFields.map(([key, field]) => {
+              const widthClass = this._getFieldWidthClass(field);
+              const hasDescription = field.description;
+              
+              return html`
+                <div class="form-field ${widthClass}">
+                  ${this._renderField(key, field)}
+                </div>
+                ${hasDescription ? html`
+                  <div class="field-description">
+                    ${field.description}
+                  </div>
                 ` : ''}
-              </div>
-            `)}
+              `;
+            })}
           </div>
         ` : ''}
       </div>
     `;
+  }
+
+  // 判断字段宽度类别
+  _getFieldWidthClass(field) {
+    switch (field.type) {
+      case 'entity':
+      case 'text':
+        // 实体选择和文本输入通常需要较宽
+        return 'field-wide';
+        
+      case 'select':
+        // 选择器根据选项数量判断
+        const options = field.options || [];
+        if (options.length <= 3) {
+          return 'field-narrow';
+        }
+        return 'field-medium';
+        
+      case 'number':
+      case 'icon':
+        // 数字和图标选择器通常较窄
+        return 'field-narrow';
+        
+      default:
+        return 'field-medium';
+    }
   }
 
   _renderBooleanField(key, field) {
@@ -188,7 +252,8 @@ class FormBuilder extends LitElement {
         .value=${value}
         @closed=${e => e.stopPropagation()}
         fullwidth
-        .label=${field.label + (field.required ? ' *' : '')}
+        .label=${field.label}
+        ?required=${field.required}
         @change=${e => this._updateField(key, e.target.value)}
       >
         ${options.map(option => html`
@@ -206,7 +271,8 @@ class FormBuilder extends LitElement {
         type="number"
         .value=${value}
         @input=${e => this._updateField(key, parseInt(e.target.value) || field.min || 0)}
-        .label=${field.label + (field.required ? ' *' : '')}
+        .label=${field.label}
+        ?required=${field.required}
         .min=${field.min}
         .max=${field.max}
         .step=${field.step || 1}
@@ -225,14 +291,16 @@ class FormBuilder extends LitElement {
           .value=${value}
           @value-changed=${e => this._updateField(key, e.detail.value)}
           allow-custom-value
-          .label=${field.label + (field.required ? ' *' : '')}
+          .label=${field.label}
+          ?required=${field.required}
           fullwidth
         ></ha-combo-box>
       ` : html`
         <ha-textfield
           .value=${value}
           @input=${e => this._updateField(key, e.target.value)}
-          .label=${field.label + (field.required ? ' *' : '')}
+          .label=${field.label}
+          ?required=${field.required}
           fullwidth
         ></ha-textfield>
       `}
@@ -244,7 +312,8 @@ class FormBuilder extends LitElement {
       <ha-icon-picker
         .value=${value}
         @value-changed=${e => this._updateField(key, e.detail.value)}
-        .label=${field.label + (field.required ? ' *' : '')}
+        .label=${field.label}
+        ?required=${field.required}
         fullwidth
       ></ha-icon-picker>
     `;
@@ -255,7 +324,8 @@ class FormBuilder extends LitElement {
       <ha-textfield
         .value=${value}
         @input=${e => this._updateField(key, e.target.value)}
-        .label=${field.label + (field.required ? ' *' : '')}
+        .label=${field.label}
+        ?required=${field.required}
         .placeholder=${field.placeholder || ''}
         fullwidth
       ></ha-textfield>
