@@ -1,4 +1,4 @@
-// 块管理界面
+// 块管理界面 - 基于blockType控制权限
 import { LitElement, html, css } from 'https://unpkg.com/lit@2.8.0/index.js?module';
 import { designSystem } from '../core/design-system.js';
 import { BlockBase } from './block-base.js';
@@ -9,9 +9,8 @@ export class BlockManagement extends LitElement {
   static properties = {
     config: { type: Object },
     hass: { type: Object },
-    cardType: { type: String },
-    _editingBlockId: { state: true },
-    _areas: { state: true }
+    cardDefinition: { type: Object },
+    _editingBlockId: { state: true }
   };
 
   static styles = [
@@ -41,6 +40,10 @@ export class BlockManagement extends LitElement {
         border-color: var(--cf-primary-color);
       }
       
+      .preset-block {
+        background: rgba(var(--cf-rgb-primary), 0.03);
+      }
+      
       .area-indicator {
         width: 100px;
         min-width: 100px;
@@ -55,9 +58,13 @@ export class BlockManagement extends LitElement {
         transition: all var(--cf-transition-fast);
       }
       
-      .area-indicator:hover {
-        background: rgba(var(--cf-rgb-primary), 0.08);
-        cursor: pointer;
+      .preset-block .area-indicator {
+        background: rgba(0, 0, 0, 0.03);
+        border-left-color: #cccccc;
+      }
+      
+      .preset-block .area-indicator ha-icon {
+        color: #999999;
       }
       
       .area-label {
@@ -94,10 +101,15 @@ export class BlockManagement extends LitElement {
         transition: all var(--cf-transition-fast);
       }
       
-      .block-action:hover {
+      .block-action:hover:not(.disabled) {
         background: var(--cf-primary-color);
         border-color: var(--cf-primary-color);
         color: white;
+      }
+      
+      .block-action.disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
       }
       
       .add-block-btn {
@@ -118,9 +130,15 @@ export class BlockManagement extends LitElement {
         transition: all var(--cf-transition-fast);
       }
       
-      .add-block-btn:hover {
+      .add-block-btn:hover:not(:disabled) {
         border-color: var(--cf-primary-color);
         color: var(--cf-primary-color);
+        background: rgba(var(--cf-rgb-primary), 0.05);
+      }
+      
+      .add-block-btn:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
       }
       
       .empty-state {
@@ -136,6 +154,18 @@ export class BlockManagement extends LitElement {
         margin-bottom: 12px;
         opacity: 0.5;
       }
+      
+      .preset-notice {
+        background: rgba(33, 150, 243, 0.1);
+        border-left: 3px solid #2196f3;
+        padding: 8px 12px;
+        border-radius: 4px;
+        margin-bottom: 16px;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        font-size: 0.9em;
+      }
     `
   ];
 
@@ -143,19 +173,14 @@ export class BlockManagement extends LitElement {
     super();
     this.config = {};
     this.hass = null;
-    this.cardType = '';
+    this.cardDefinition = {};
     this._editingBlockId = null;
-    this._areas = [];
-  }
-
-  willUpdate(changedProperties) {
-    if (changedProperties.has('cardType')) {
-      this._updateAreas();
-    }
   }
 
   render() {
     const blocks = this._getAllBlocks();
+    const blockType = this.cardDefinition?.blockType || 'none';
+    const isPresetCard = blockType === 'preset';
     
     if (blocks.length === 0) {
       return this._renderEmptyState();
@@ -163,9 +188,17 @@ export class BlockManagement extends LitElement {
     
     return html`
       <div class="block-management">
+        ${isPresetCard ? html`
+          <div class="preset-notice">
+            <ha-icon icon="mdi:information-outline"></ha-icon>
+            <span>此卡片使用预设块结构，只能配置实体，不能删除或更改区域</span>
+          </div>
+        ` : ''}
+        
         <div class="block-list">
           ${blocks.map(block => this._renderBlockItem(block))}
         </div>
+        
         ${this._renderAddButton()}
       </div>
     `;
@@ -173,17 +206,26 @@ export class BlockManagement extends LitElement {
 
   _renderBlockItem(block) {
     const isEditing = this._editingBlockId === block.id;
-    const area = block.area || 'content';
+    const isPresetBlock = block.presetKey;
+    const blockType = this.cardDefinition?.blockType || 'none';
+    const isPresetCard = blockType === 'preset';
+    
+    // 区域处理：预设卡片强制使用 content 区域
+    const area = isPresetCard ? 'content' : (block.area || 'content');
     const areaInfo = AREAS[area] || AREAS.content;
-    const areaColor = this._getAreaColor(area);
+    
+    // 权限判断
+    const canDelete = blockType === 'custom' && !isPresetBlock;
+    const canEdit = true; // 始终可以编辑
     
     return html`
-      <div class="block-item">
+      <div class="block-item ${isPresetBlock ? 'preset-block' : ''}">
         <!-- 区域标识 -->
-        <div class="area-indicator" style="border-left-color: ${areaColor}" 
-             @click=${() => this._startEdit(block.id)}>
+        <div class="area-indicator" style="border-left-color: ${this._getAreaColor(area)}">
           <ha-icon icon="${this._getAreaIcon(area)}"></ha-icon>
-          <span class="area-label">${areaInfo.label}</span>
+          <span class="area-label">
+            ${isPresetCard ? '内容区域（固定）' : areaInfo.label}
+          </span>
         </div>
         
         <!-- 块预览 -->
@@ -200,9 +242,16 @@ export class BlockManagement extends LitElement {
           <div class="block-action" @click=${() => this._startEdit(block.id)} title="编辑">
             <ha-icon icon="mdi:pencil"></ha-icon>
           </div>
-          <div class="block-action" @click=${(e) => this._deleteBlock(e, block.id)} title="删除">
-            <ha-icon icon="mdi:delete"></ha-icon>
-          </div>
+          
+          ${canDelete ? html`
+            <div class="block-action" @click=${(e) => this._deleteBlock(e, block.id)} title="删除">
+              <ha-icon icon="mdi:delete"></ha-icon>
+            </div>
+          ` : html`
+            <div class="block-action disabled" title="预设块不能删除">
+              <ha-icon icon="mdi:delete-outline"></ha-icon>
+            </div>
+          `}
         </div>
       </div>
       
@@ -211,6 +260,7 @@ export class BlockManagement extends LitElement {
           <block-edit-form
             .block=${block}
             .hass=${this.hass}
+            .cardDefinition=${this.cardDefinition}
             @field-change=${(e) => this._handleFieldChange(block.id, e.detail)}
             @cancel=${this._cancelEdit}
             @save=${this._finishEdit}
@@ -221,6 +271,11 @@ export class BlockManagement extends LitElement {
   }
 
   _renderAddButton() {
+    const blockType = this.cardDefinition?.blockType || 'none';
+    const canAddNew = blockType === 'custom';
+    
+    if (!canAddNew) return '';
+    
     return html`
       <button class="add-block-btn" @click=${this._addBlock}>
         <ha-icon icon="mdi:plus-circle-outline"></ha-icon>
@@ -230,16 +285,25 @@ export class BlockManagement extends LitElement {
   }
 
   _renderEmptyState() {
+    const blockType = this.cardDefinition?.blockType || 'none';
+    const isPresetCard = blockType === 'preset';
+    
+    const message = isPresetCard 
+      ? '此卡片使用预设块结构'
+      : '还没有添加任何块';
+    
+    const description = isPresetCard
+      ? '请为每个预设块配置对应的实体'
+      : '块可以显示实体的状态值';
+    
     return html`
       <div class="empty-state">
         <div class="empty-icon">
           <ha-icon icon="mdi:cube-outline"></ha-icon>
         </div>
-        <div>还没有添加任何块</div>
-        <button class="add-block-btn" @click=${this._addBlock}>
-          <ha-icon icon="mdi:plus"></ha-icon>
-          添加第一个块
-        </button>
+        <div style="font-weight: 600; margin-bottom: 8px;">${message}</div>
+        <div style="font-size: 0.9em; margin-bottom: 16px;">${description}</div>
+        ${this._renderAddButton()}
       </div>
     `;
   }
@@ -250,15 +314,6 @@ export class BlockManagement extends LitElement {
       id,
       ...config
     }));
-  }
-
-  _updateAreas() {
-    // 仪表盘卡片支持区域，其他卡片只有内容区域
-    if (this.cardType === 'dashboard') {
-      this._areas = Object.values(AREAS);
-    } else {
-      this._areas = [AREAS.content];
-    }
   }
 
   _getAreaColor(areaId) {
@@ -282,6 +337,13 @@ export class BlockManagement extends LitElement {
   _handleFieldChange(blockId, { field, value }) {
     const currentBlocks = this.config.blocks || {};
     const currentBlock = currentBlocks[blockId] || {};
+    
+    // 如果是预设卡片，强制区域为 content
+    const blockType = this.cardDefinition?.blockType || 'none';
+    if (blockType === 'preset' && field === 'area') {
+      value = 'content';
+    }
+    
     const newBlock = { ...currentBlock, [field]: value };
     const newBlocks = { ...currentBlocks, [blockId]: newBlock };
     
@@ -301,14 +363,19 @@ export class BlockManagement extends LitElement {
   }
 
   _addBlock() {
+    const blockType = this.cardDefinition?.blockType || 'none';
+    if (blockType !== 'custom') {
+      alert('此卡片不支持添加新块');
+      return;
+    }
+    
     const blockId = `block_${Date.now()}`;
-    const defaultArea = this._areas[0]?.id || 'content';
     
     const newBlock = {
       entity: '',
       name: '新块',
       icon: 'mdi:cube-outline',
-      area: defaultArea
+      area: 'content'
     };
     
     const currentBlocks = this.config.blocks || {};
@@ -320,6 +387,15 @@ export class BlockManagement extends LitElement {
 
   _deleteBlock(e, blockId) {
     e.stopPropagation();
+    
+    const blockType = this.cardDefinition?.blockType || 'none';
+    const block = (this.config.blocks || {})[blockId];
+    
+    // 检查权限
+    if (blockType !== 'custom' || block?.presetKey) {
+      alert('此块不能删除');
+      return;
+    }
     
     if (!confirm('确定要删除这个块吗？')) return;
     
