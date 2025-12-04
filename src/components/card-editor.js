@@ -1,4 +1,4 @@
-// 卡片编辑器
+// 卡片编辑器 - 标题文字优化
 import { LitElement, html, css } from 'https://unpkg.com/lit@2.8.0/index.js?module';
 import { cardSystem } from '../core/card-system.js';
 import { themeSystem } from '../core/theme-system.js';
@@ -61,6 +61,12 @@ class CardEditor extends LitElement {
         margin-bottom: 16px;
         opacity: 0.5;
       }
+      
+      @media (max-width: 480px) {
+        .editor-container {
+          min-width: 300px;
+        }
+      }
     `
   ];
 
@@ -120,11 +126,11 @@ class CardEditor extends LitElement {
     
     return html`
       <div class="editor-container">
-        <!-- 卡片选择 -->
+        <!-- 卡片类型 -->
         <div class="editor-section">
           <div class="section-header">
             <ha-icon icon="mdi:palette"></ha-icon>
-            <span class="section-title">选择卡片类型</span>
+            <span class="section-title">卡片类型</span>
           </div>
           <card-selector 
             .cards=${this._cards}
@@ -133,12 +139,12 @@ class CardEditor extends LitElement {
           ></card-selector>
         </div>
         
-        <!-- 主题选择 -->
+        <!-- 主题样式 -->
         ${this.config.card_type ? html`
           <div class="editor-section">
             <div class="section-header">
               <ha-icon icon="mdi:format-paint"></ha-icon>
-              <span class="section-title">选择主题</span>
+              <span class="section-title">主题样式</span>
             </div>
             <theme-selector
               .themes=${this._themes}
@@ -148,7 +154,7 @@ class CardEditor extends LitElement {
           </div>
         ` : ''}
         
-        <!-- 卡片配置 -->
+        <!-- 卡片设置 -->
         ${this.config.card_type && selectedCardDef?.schema ? html`
           <div class="editor-section">
             <div class="section-header">
@@ -174,7 +180,7 @@ class CardEditor extends LitElement {
             <block-management
               .config=${this.config}
               .hass=${this.hass}
-              .cardDefinition=${selectedCardDef}  <!-- 关键：传递卡片定义 -->
+              .cardDefinition=${selectedCardDef}
               @config-changed=${this._handleConfigChange}
             ></block-management>
           </div>
@@ -253,7 +259,6 @@ class CardEditor extends LitElement {
       theme: baseConfig.theme || 'auto'
     };
     
-    // 如果卡片有预设块，生成初始块配置
     if (cardDef.blockType === 'preset' && cardDef.presetBlocks) {
       const presetBlocks = {};
       Object.entries(cardDef.presetBlocks).forEach(([key, preset]) => {
@@ -262,7 +267,7 @@ class CardEditor extends LitElement {
           entity: '',
           name: preset.defaultName || key,
           icon: preset.defaultIcon || 'mdi:cube-outline',
-          area: 'content', // 预设块固定为内容区域
+          area: 'content',
           presetKey: key,
           required: preset.required || false
         };
