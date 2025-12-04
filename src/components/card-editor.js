@@ -49,6 +49,18 @@ class CardEditor extends LitElement {
         font-weight: 600;
         color: var(--cf-text-primary);
       }
+      
+      .empty-state {
+        text-align: center;
+        padding: 32px 20px;
+        color: var(--cf-text-secondary);
+      }
+      
+      .empty-icon {
+        font-size: 2.5em;
+        margin-bottom: 16px;
+        opacity: 0.5;
+      }
     `
   ];
 
@@ -92,6 +104,19 @@ class CardEditor extends LitElement {
 
   render() {
     const selectedCardDef = this._selectedCard;
+    
+    if (!this._cards.length) {
+      return html`
+        <div class="editor-container">
+          <div class="empty-state">
+            <div class="empty-icon">
+              <ha-icon icon="mdi:package-variant-closed"></ha-icon>
+            </div>
+            <div>初始化卡片系统中...</div>
+          </div>
+        </div>
+      `;
+    }
     
     return html`
       <div class="editor-container">
@@ -149,7 +174,7 @@ class CardEditor extends LitElement {
             <block-management
               .config=${this.config}
               .hass=${this.hass}
-              .cardType=${this.config.card_type}
+              .cardDefinition=${selectedCardDef}  <!-- 关键：传递卡片定义 -->
               @config-changed=${this._handleConfigChange}
             ></block-management>
           </div>
@@ -228,6 +253,23 @@ class CardEditor extends LitElement {
       theme: baseConfig.theme || 'auto'
     };
     
+    // 如果卡片有预设块，生成初始块配置
+    if (cardDef.blockType === 'preset' && cardDef.presetBlocks) {
+      const presetBlocks = {};
+      Object.entries(cardDef.presetBlocks).forEach(([key, preset]) => {
+        const blockId = `preset_${key}_${Date.now()}`;
+        presetBlocks[blockId] = {
+          entity: '',
+          name: preset.defaultName || key,
+          icon: preset.defaultIcon || 'mdi:cube-outline',
+          area: 'content', // 预设块固定为内容区域
+          presetKey: key,
+          required: preset.required || false
+        };
+      });
+      cleanConfig.blocks = presetBlocks;
+    }
+    
     return {
       ...cleanConfig,
       ...defaultConfig
@@ -236,6 +278,8 @@ class CardEditor extends LitElement {
 
   _notifyConfigChange() {
     const event = new CustomEvent('config-changed', {
+      bubbles: true,
+      composed: true,
       detail: { config: { ...this.config } }
     });
     this.dispatchEvent(event);
