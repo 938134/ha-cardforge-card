@@ -1,6 +1,8 @@
-// src/main.js
-import { HaCardForgeCard } from './ha-cardforge-card.js';
-import { CardEditor } from './editors/card-editor.js';
+// 主入口文件
+import { HaCardForgeCard } from './components/ha-cardforge-card.js';
+import { CardEditor } from './components/card-editor.js';
+import { cardSystem } from './core/card-system.js';
+import { themeSystem } from './core/theme-system.js';
 
 // 注册自定义元素
 if (!customElements.get('ha-cardforge-card')) {
@@ -11,7 +13,7 @@ if (!customElements.get('card-editor')) {
   customElements.define('card-editor', CardEditor);
 }
 
-// 注册到 Home Assistant 自定义卡片系统
+// 注册到 Home Assistant
 if (window.customCards) {
   window.customCards.push({
     type: 'ha-cardforge-card',
