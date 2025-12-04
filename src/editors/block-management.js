@@ -1,4 +1,4 @@
-// src/editors/block-management.js
+// src/editors/block-management.js - 完整代码
 import { LitElement, html, css } from 'https://unpkg.com/lit@2.8.0/index.js?module';
 import { designSystem } from '../core/design-system.js';
 import '../core/block-base.js';
@@ -24,30 +24,52 @@ class BlockManagement extends LitElement {
         width: 100%;
       }
       
-      /* 区域标签 */
-      .area-section {
+      /* 块列表容器 */
+      .block-list-container {
         margin-bottom: var(--cf-spacing-lg);
+      }
+      
+      /* 区域标题 */
+      .area-section {
+        margin-bottom: 24px;
+        border: 1px solid var(--cf-border);
+        border-radius: var(--cf-radius-md);
+        overflow: hidden;
       }
       
       .area-header {
         display: flex;
         align-items: center;
         gap: var(--cf-spacing-sm);
-        margin-bottom: var(--cf-spacing-md);
-        padding-bottom: var(--cf-spacing-xs);
+        padding: 12px 16px;
+        background: linear-gradient(135deg, rgba(var(--cf-rgb-primary, 3, 169, 244), 0.08) 0%, transparent 100%);
         border-bottom: 1px solid var(--cf-border);
       }
       
       .area-title {
-        font-size: 0.9em;
+        font-size: 0.95em;
         font-weight: 600;
         color: var(--cf-text-primary);
+        display: flex;
+        align-items: center;
+        gap: 8px;
       }
       
-      .area-description {
+      .area-icon {
+        font-size: 1.1em;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 24px;
+        height: 24px;
+        border-radius: 50%;
+      }
+      
+      .area-count {
         font-size: 0.8em;
         color: var(--cf-text-secondary);
-        margin-top: 2px;
+        margin-left: 8px;
+        font-weight: normal;
       }
       
       /* 块列表 */
@@ -55,46 +77,91 @@ class BlockManagement extends LitElement {
         display: flex;
         flex-direction: column;
         gap: 8px;
+        padding: 12px;
       }
       
       /* 块项容器 */
       .block-item-container {
         position: relative;
+        margin-bottom: 8px;
       }
       
       .block-item-wrapper {
         position: relative;
         width: 100%;
+        display: flex;
+        align-items: center;
+        background: var(--cf-surface);
+        border: 1px solid var(--cf-border);
+        border-radius: var(--cf-radius-md);
+        overflow: hidden;
+        transition: all var(--cf-transition-fast);
+      }
+      
+      .block-item-wrapper:hover {
+        border-color: var(--cf-primary-color);
+        box-shadow: 0 2px 8px rgba(var(--cf-rgb-primary, 3, 169, 244), 0.1);
+      }
+      
+      /* 区域标识列 */
+      .block-area-indicator {
+        width: 100px;
+        min-width: 100px;
+        height: 100%;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 6px;
+        padding: 12px;
+        border-right: 1px solid var(--cf-border);
+        background: rgba(var(--cf-rgb-primary, 3, 169, 244), 0.03);
+        transition: all var(--cf-transition-fast);
+      }
+      
+      .block-area-indicator:hover {
+        background: rgba(var(--cf-rgb-primary, 3, 169, 244), 0.08);
+        cursor: pointer;
+      }
+      
+      .block-area-indicator ha-icon {
+        font-size: 1.4em;
+      }
+      
+      .area-label {
+        font-size: 0.75em;
+        font-weight: 600;
+        text-align: center;
+        line-height: 1.1;
+        max-width: 100%;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+      
+      /* 块内容区域 */
+      .block-content-wrapper {
+        flex: 1;
+        min-width: 0;
+        padding: 12px;
       }
       
       /* 块操作 */
       .block-actions {
-        position: absolute;
-        top: 8px;
-        right: 8px;
         display: flex;
         gap: 4px;
-        opacity: 0;
-        transition: opacity var(--cf-transition-fast);
-        z-index: 10;
-        background: rgba(var(--cf-background, 255, 255, 255), 0.9);
-        padding: 4px;
-        border-radius: var(--cf-radius-sm);
-        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-      }
-      
-      .block-item-container:hover .block-actions {
-        opacity: 1;
+        padding: 12px;
+        border-left: 1px solid var(--cf-border);
       }
       
       .block-action {
-        width: 28px;
-        height: 28px;
+        width: 32px;
+        height: 32px;
         border-radius: var(--cf-radius-sm);
         display: flex;
         align-items: center;
         justify-content: center;
-        background: var(--cf-background);
+        background: var(--cf-surface);
         border: 1px solid var(--cf-border);
         cursor: pointer;
         color: var(--cf-text-secondary);
@@ -117,7 +184,7 @@ class BlockManagement extends LitElement {
       /* 添加块按钮 */
       .add-block-btn {
         width: 100%;
-        padding: 12px;
+        padding: 12px 16px;
         border: 2px dashed var(--cf-border);
         border-radius: var(--cf-radius-md);
         background: transparent;
@@ -136,7 +203,7 @@ class BlockManagement extends LitElement {
       .add-block-btn:hover:not(:disabled) {
         border-color: var(--cf-primary-color);
         color: var(--cf-primary-color);
-        background: rgba(var(--cf-rgb-primary), 0.05);
+        background: rgba(var(--cf-rgb-primary, 3, 169, 244), 0.05);
       }
       
       .add-block-btn:disabled {
@@ -151,7 +218,7 @@ class BlockManagement extends LitElement {
         color: var(--cf-text-secondary);
         border: 2px dashed var(--cf-border);
         border-radius: var(--cf-radius-md);
-        background: rgba(var(--cf-rgb-primary), 0.02);
+        background: rgba(var(--cf-rgb-primary, 3, 169, 244), 0.02);
       }
       
       .empty-icon {
@@ -175,30 +242,101 @@ class BlockManagement extends LitElement {
       /* 编辑表单容器 */
       .edit-form-container {
         margin-top: 12px;
+        padding: 12px;
+        background: var(--cf-surface);
+        border: 1px solid var(--cf-primary-color);
+        border-radius: var(--cf-radius-md);
       }
       
-      /* 块预览 */
-      .block-preview {
-        pointer-events: none;
+      /* 区域颜色定义 */
+      .area-header-indicator {
+        background: rgba(33, 150, 243, 0.08);
+      }
+      
+      .area-header-indicator ha-icon {
+        color: #2196f3;
+      }
+      
+      .area-header-indicator .area-label {
+        color: #2196f3;
+      }
+      
+      .area-content-indicator {
+        background: rgba(76, 175, 80, 0.08);
+      }
+      
+      .area-content-indicator ha-icon {
+        color: #4caf50;
+      }
+      
+      .area-content-indicator .area-label {
+        color: #4caf50;
+      }
+      
+      .area-footer-indicator {
+        background: rgba(255, 152, 0, 0.08);
+      }
+      
+      .area-footer-indicator ha-icon {
+        color: #ff9800;
+      }
+      
+      .area-footer-indicator .area-label {
+        color: #ff9800;
       }
       
       /* 响应式 */
-      @media (max-width: 480px) {
+      @media (max-width: 768px) {
+        .block-area-indicator {
+          width: 80px;
+          min-width: 80px;
+          padding: 8px;
+        }
+        
+        .area-label {
+          font-size: 0.7em;
+        }
+        
+        .block-content-wrapper {
+          padding: 8px;
+        }
+        
         .block-actions {
-          position: relative;
-          top: 0;
-          right: 0;
-          opacity: 1;
-          margin-top: 8px;
-          justify-content: flex-end;
-          background: transparent;
-          box-shadow: none;
-          padding: 0;
+          padding: 8px;
         }
         
         .block-action {
-          width: 32px;
-          height: 32px;
+          width: 28px;
+          height: 28px;
+        }
+      }
+      
+      @media (max-width: 480px) {
+        .block-item-wrapper {
+          flex-direction: column;
+        }
+        
+        .block-area-indicator {
+          width: 100%;
+          min-width: 100%;
+          height: auto;
+          flex-direction: row;
+          justify-content: flex-start;
+          gap: 8px;
+          padding: 8px 12px;
+          border-right: none;
+          border-bottom: 1px solid var(--cf-border);
+        }
+        
+        .block-content-wrapper {
+          width: 100%;
+        }
+        
+        .block-actions {
+          width: 100%;
+          justify-content: flex-end;
+          border-left: none;
+          border-top: 1px solid var(--cf-border);
         }
       }
     `
@@ -239,17 +377,15 @@ class BlockManagement extends LitElement {
     return html`
       ${this._areas.map(area => {
         const areaBlocks = this._blocksByArea[area.id] || [];
+        if (areaBlocks.length === 0 && area.id !== 'content') return '';
+        
         return html`
           <div class="area-section">
             <div class="area-header">
               <ha-icon icon="${this._getAreaIcon(area.id)}"></ha-icon>
-              <div>
-                <div class="area-title">${area.label || area.id}</div>
-                ${area.maxBlocks ? html`
-                  <div class="area-description">
-                    ${areaBlocks.length} / ${area.maxBlocks} 个块
-                  </div>
-                ` : ''}
+              <div class="area-title">
+                ${area.label || area.id}
+                <span class="area-count">(${areaBlocks.length}${area.maxBlocks ? `/${area.maxBlocks}` : ''})</span>
               </div>
             </div>
             <div class="block-list">
@@ -274,12 +410,18 @@ class BlockManagement extends LitElement {
     const isPreset = block.presetKey || this.permissionType === 'preset';
     const presetDef = isPreset ? this._presetBlocks[block.presetKey] : null;
     
+    // 获取区域信息
+    const area = block.area || 'content';
+    const areaInfo = this._areas.find(a => a.id === area) || { id: area, label: '内容区域' };
+    const areaIcon = this._getAreaIcon(area);
+    const areaClass = `area-${area}-indicator`;
+    
     // 准备传递给block-base的属性
     const blockData = {
       entity: block.entity || '',
       name: block.name || '',
       icon: block.icon || '',
-      area: block.area || 'content',
+      area: area,
       presetKey: block.presetKey || '',
       required: block.required || false
     };
@@ -287,13 +429,22 @@ class BlockManagement extends LitElement {
     return html`
       <div class="block-item-container">
         <div class="block-item-wrapper">
-          <block-base
-            .block=${blockData}
-            .hass=${this.hass}
-            .compact=${true}
-            class="block-preview"
-          ></block-base>
+          <!-- 区域标识列 -->
+          <div class="block-area-indicator ${areaClass}" @click=${() => this._canEditBlock(block) && this._startEdit(block.id)}>
+            <ha-icon icon="${areaIcon}"></ha-icon>
+            <span class="area-label">${areaInfo.label}</span>
+          </div>
           
+          <!-- 块预览 -->
+          <div class="block-content-wrapper">
+            <block-base
+              .block=${blockData}
+              .hass=${this.hass}
+              .compact=${true}
+            ></block-base>
+          </div>
+          
+          <!-- 操作按钮 -->
           <div class="block-actions">
             <div 
               class="block-action ${this._canEditBlock(block) ? '' : 'disabled'}"
@@ -431,23 +582,26 @@ class BlockManagement extends LitElement {
   }
 
   updated(changedProperties) {
-    if (changedProperties.has('cardDefinition')) {
-      // 使用卡片定义的区域，如果没有则使用默认
-      if (this.cardDefinition?.layout?.areas) {
-        this._areas = this.cardDefinition.layout.areas;
-      } else {
-        this._areas = [
-          { id: 'header', label: '标题区域', maxBlocks: 5 },
-          { id: 'content', label: '内容区域', maxBlocks: 20 },
-          { id: 'footer', label: '页脚区域', maxBlocks: 5 }
-        ];
-      }
+    if (changedProperties.has('hass') || changedProperties.has('config') || 
+        changedProperties.has('cardDefinition') || changedProperties.has('permissionType')) {
+      this._updateAreas();
+      this._updatePresetBlocks();
+      this._updateEmptyState();
     }
   }
 
   _updateAreas() {
     if (!this.cardDefinition?.layout?.areas) {
-      this._areas = [{ id: 'content', label: '内容区' }];
+      // 仪表盘卡片有固定区域
+      if (this.config?.card_type === 'dashboard') {
+        this._areas = [
+          { id: 'header', label: '标题区域', maxBlocks: 5 },
+          { id: 'content', label: '内容区域', maxBlocks: 20 },
+          { id: 'footer', label: '页脚区域', maxBlocks: 5 }
+        ];
+      } else {
+        this._areas = [{ id: 'content', label: '内容区' }];
+      }
       return;
     }
     
@@ -472,7 +626,8 @@ class BlockManagement extends LitElement {
     const iconMap = {
       header: 'mdi:format-header-1',
       content: 'mdi:view-grid',
-      footer: 'mdi:page-layout-footer'
+      footer: 'mdi:page-layout-footer',
+      sidebar: 'mdi:page-layout-sidebar-left'
     };
     return iconMap[areaId] || 'mdi:view-grid';
   }
