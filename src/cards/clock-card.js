@@ -1,13 +1,11 @@
-// src/cards/clock-card.js
+// 时钟卡片
 export const card = {
   id: 'clock',
   meta: {
     name: '时钟',
     description: '显示当前时间和日期',
     icon: '⏰',
-    category: '时间',
-    version: '2.0.0',
-    author: 'CardForge'
+    category: '时间'
   },
   
   schema: {
@@ -25,33 +23,23 @@ export const card = {
       type: 'boolean',
       label: '显示星期',
       default: true
-    },
-    showSeconds: {
-      type: 'boolean',
-      label: '显示秒数',
-      default: false
     }
   },
   
-  template: (config, data, context) => {
+  template: (config, data) => {
     const now = new Date();
     
     // 格式化时间
     let hours = now.getHours();
     const minutes = now.getMinutes().toString().padStart(2, '0');
-    let seconds = '';
-    
-    if (config.showSeconds) {
-      seconds = ':' + now.getSeconds().toString().padStart(2, '0');
-    }
     
     let timeHtml = '';
     if (config.use24Hour) {
-      timeHtml = `<div class="clock-time">${hours.toString().padStart(2, '0')}:${minutes}${seconds}</div>`;
+      timeHtml = `<div class="clock-time">${hours.toString().padStart(2, '0')}:${minutes}</div>`;
     } else {
       const ampm = hours >= 12 ? 'PM' : 'AM';
       hours = hours % 12 || 12;
-      timeHtml = `<div class="clock-time">${hours}:${minutes}${seconds} <span class="clock-ampm">${ampm}</span></div>`;
+      timeHtml = `<div class="clock-time">${hours}:${minutes} <span class="clock-ampm">${ampm}</span></div>`;
     }
     
     // 格式化日期
@@ -109,7 +97,6 @@ export const card = {
         color: ${primaryColor};
         line-height: 1.2;
         letter-spacing: 1px;
-        font-family: inherit;
       }
       
       .clock-ampm {
@@ -117,7 +104,6 @@ export const card = {
         font-weight: 600;
         margin-left: 4px;
         opacity: 0.8;
-        vertical-align: super;
       }
       
       .clock-date, .clock-weekday {
@@ -126,37 +112,6 @@ export const card = {
         line-height: 1.3;
         font-weight: 500;
       }
-      
-      @container cardforge-container (max-width: 400px) {
-        .clock-time {
-          font-size: 2.8em;
-        }
-        
-        .clock-date, .clock-weekday {
-          font-size: 1em;
-        }
-      }
-      
-      @container cardforge-container (max-width: 300px) {
-        .clock-time {
-          font-size: 2.2em;
-        }
-        
-        .clock-date, .clock-weekday {
-          font-size: 0.9em;
-        }
-      }
-      
-      /* 深色模式优化 */
-      @media (prefers-color-scheme: dark) {
-        .clock-time {
-          text-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
-        }
-      }
     `;
   }
 };
-
-export class ClockCard {
-  static card = card;
-}
