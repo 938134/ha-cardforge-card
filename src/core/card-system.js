@@ -1,4 +1,4 @@
-// src/core/card-system.js
+// src/core/card-system.js - 完整代码
 import { renderBlock, renderBlocks } from './block-renderer.js';
 
 class CardSystem {
@@ -110,9 +110,9 @@ class CardSystem {
     const data = { hass };
     const context = { 
       theme: themeVariables,
-      renderBlock: (block) => renderBlock(block, hass),
-      renderBlocks: (blocks) => renderBlocks(blocks, hass),
-      renderBlocksByArea: (blocks) => this._renderBlocksByArea(blocks, hass, card.layout)
+      renderBlock: (block) => this._renderBlockWithArea(block, hass, card),
+      renderBlocks: (blocks) => this._renderBlocksWithAreas(blocks, hass, card),
+      cardAreas: card.layout?.areas || []
     };
 
     try {
@@ -129,7 +129,43 @@ class CardSystem {
     }
   }
 
-  // 按区域渲染块
+  // 渲染带区域信息的块
+  _renderBlockWithArea(block, hass, card) {
+    // 添加区域类名
+    const area = block.area || 'content';
+    const areaClass = `area-${area}`;
+    
+    // 获取区域特定的样式
+    const areaStyle = this._getAreaStyle(area, card);
+    
+    return `
+      <div class="${areaClass}" style="${areaStyle}">
+        ${renderBlock(block, hass)}
+      </div>
+    `;
+  }
+
+  // 批量渲染带区域信息的块
+  _renderBlocksWithAreas(blocks, hass, card) {
+    if (!blocks || Object.keys(blocks).length === 0) return '';
+    
+    return Object.entries(blocks)
+      .map(([id, block]) => this._renderBlockWithArea({ id, ...block }, hass, card))
+      .join('');
+  }
+
+  // 获取区域样式
+  _getAreaStyle(areaId, card) {
+    if (!card.layout?.areas) return '';
+    
+    const areaDef = card.layout.areas.find(a => a.id === areaId);
+    if (!areaDef) return '';
+    
+    // 可以根据区域定义返回特定的CSS变量
+    return '';
+  }
+
+  // 按区域渲染块（用于支持区域的卡片）
   _renderBlocksByArea(blocks, hass, layout = {}) {
     if (!blocks || Object.keys(blocks).length === 0) return '';
     
@@ -156,7 +192,7 @@ class CardSystem {
       const areaBlocks = blocksByArea[area.id];
       if (areaBlocks && areaBlocks.length > 0) {
         html += `<div class="card-area area-${area.id}">`;
-        html += areaBlocks.map(([id, block]) => renderBlock(block, hass)).join('');
+        html += areaBlocks.map(([id, block]) => this._renderBlockWithArea(block, hass, { layout })).join('');
         html += '</div>';
       }
     });
@@ -166,7 +202,7 @@ class CardSystem {
     if (unassignedBlocks.length > 0) {
       if (!areas.some(area => area.id === 'content')) {
         html += `<div class="card-area area-content">`;
-        html += unassignedBlocks.map(([id, block]) => renderBlock(block, hass)).join('');
+        html += unassignedBlocks.map(([id, block]) => this._renderBlockWithArea(block, hass, { layout })).join('');
         html += '</div>';
       }
     }
@@ -260,6 +296,22 @@ class CardSystem {
       ...config,
       blocks: validBlocks
     };
+  }
+
+  // 获取卡片布局信息
+  getCardLayout(cardId) {
+    const card = this.getCard(cardId);
+    if (!card) return null;
+    
+    return card.layout || null;
+  }
+
+  // 判断卡片是否支持区域
+  supportsAreas(cardId) {
+    const card = this.getCard(cardId);
+    if (!card) return false;
+    
+    return !!card.layout?.areas && card.layout.areas.length > 0;
   }
 }
 
