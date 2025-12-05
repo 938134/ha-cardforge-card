@@ -1,13 +1,5 @@
 // 欢迎卡片 - 完全使用设计系统变量
-import { 
-  getGreetingByHour, 
-  formatTime, 
-  getDisplayName,
-  escapeHtml,
-  getDefaultQuote,
-  getEntityState,
-  getEntityIcon
-} from '../core/utilities.js';
+import { getGreetingByHour, formatTime, getDisplayName,escapeHtml,getDefaultQuote, getEntityState, getEntityIcon } from '../core/utilities.js';
 
 export const card = {
   id: 'welcome',
