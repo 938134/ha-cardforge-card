@@ -1,7 +1,7 @@
-// 基础块组件 - 支持3种布局
+// 基础块组件 - 优化紧凑模式显示
 import { LitElement, html, css } from 'https://unpkg.com/lit@2.8.0/index.js?module';
 import { designSystem } from '../core/design-system.js';
-import { AREAS, ENTITY_ICONS, BLOCK_LAYOUTS } from './block-config.js';
+import { AREAS, ENTITY_ICONS } from './block-config.js';
 
 export class BlockBase extends LitElement {
   static properties = {
@@ -10,7 +10,6 @@ export class BlockBase extends LitElement {
     showName: { type: Boolean },
     showValue: { type: Boolean },
     compact: { type: Boolean },
-    layout: { type: String }, // 'horizontal' | 'compact' | 'vertical'
     _displayName: { state: true },
     _displayValue: { state: true },
     _icon: { state: true }
@@ -21,147 +20,53 @@ export class BlockBase extends LitElement {
     css`
       :host { display: block; }
       
-      /* 基础块容器 */
+      /* 基础块容器 - 使用紧凑网格布局（图标在左，名称在上，状态值在下） */
       .block-base {
         width: 100%;
         transition: all var(--cf-transition-duration-fast) var(--cf-easing-standard);
-      }
-      
-      /* 布局1：水平布局（默认） */
-      .layout-horizontal {
-        display: flex;
-        align-items: center;
-        gap: var(--cf-spacing-md);
-        text-align: left;
-        min-height: 60px;
-      }
-      
-      .compact.layout-horizontal {
-        min-height: 50px;
-        gap: var(--cf-spacing-sm);
-      }
-      
-      /* 布局2：紧凑网格布局 */
-      .layout-compact {
         display: grid;
         grid-template-columns: auto 1fr;
         grid-template-rows: auto auto;
-        gap: 4px 8px;
+        gap: 2px 8px;
         align-items: center;
         min-height: 60px;
+        padding: 8px;
       }
       
-      .compact.layout-compact {
+      .compact.block-base {
         min-height: 50px;
         grid-template-columns: 32px 1fr;
-        gap: 2px 6px;
+        gap: 1px 6px;
+        padding: 6px;
       }
       
-      /* 布局3：垂直布局 */
-      .layout-vertical {
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        gap: var(--cf-spacing-sm);
-        text-align: center;
-        min-height: 80px;
-        justify-content: center;
-      }
-      
-      .compact.layout-vertical {
-        min-height: 70px;
-        gap: var(--cf-spacing-xs);
-      }
-      
-      /* 块图标 - 通用样式 */
+      /* 块图标 */
       .block-icon {
-        flex-shrink: 0;
+        grid-column: 1;
+        grid-row: 1 / span 2;
+        width: 40px;
+        height: 40px;
         display: flex;
         align-items: center;
         justify-content: center;
         border-radius: var(--cf-radius-md);
         background: rgba(var(--cf-primary-color-rgb), 0.1);
         color: var(--cf-text-secondary);
-        transition: all var(--cf-transition-duration-fast) var(--cf-easing-standard);
-      }
-      
-      /* 水平布局的图标 */
-      .layout-horizontal .block-icon {
-        width: 48px;
-        height: 48px;
-        font-size: 1.5em;
-      }
-      
-      .compact.layout-horizontal .block-icon {
-        width: 36px;
-        height: 36px;
-        font-size: 1.2em;
-      }
-      
-      /* 紧凑布局的图标 */
-      .layout-compact .block-icon {
-        grid-column: 1;
-        grid-row: 1 / span 2;
-        width: 40px;
-        height: 40px;
         font-size: 1.3em;
+        transition: all var(--cf-transition-duration-fast) var(--cf-easing-standard);
         align-self: center;
       }
       
-      .compact.layout-compact .block-icon {
+      .compact .block-icon {
         width: 32px;
         height: 32px;
         font-size: 1.1em;
       }
       
-      /* 垂直布局的图标 */
-      .layout-vertical .block-icon {
-        width: 56px;
-        height: 56px;
-        font-size: 1.8em;
-        margin-bottom: var(--cf-spacing-xs);
-      }
-      
-      .compact.layout-vertical .block-icon {
-        width: 44px;
-        height: 44px;
-        font-size: 1.5em;
-      }
-      
-      /* 块内容容器 */
-      .block-content {
-        display: flex;
-        flex-direction: column;
-        justify-content: center;
-        min-width: 0;
-      }
-      
-      /* 水平布局的内容 */
-      .layout-horizontal .block-content {
-        flex: 1;
-      }
-      
-      /* 紧凑布局的内容（网格定位） */
-      .layout-compact .block-name {
+      /* 块名称（网格定位：右上） */
+      .block-name {
         grid-column: 2;
         grid-row: 1;
-        align-self: end;
-      }
-      
-      .layout-compact .block-value {
-        grid-column: 2;
-        grid-row: 2;
-        align-self: start;
-      }
-      
-      /* 垂直布局的内容 */
-      .layout-vertical .block-content {
-        align-items: center;
-        width: 100%;
-      }
-      
-      /* 块名称 */
-      .block-name {
         font-size: var(--cf-font-size-sm);
         color: var(--cf-text-secondary);
         font-weight: var(--cf-font-weight-medium);
@@ -169,76 +74,88 @@ export class BlockBase extends LitElement {
         text-overflow: ellipsis;
         white-space: nowrap;
         line-height: var(--cf-line-height-tight);
+        align-self: end;
       }
       
+      /* 紧凑模式下的名称显示优化 */
       .compact .block-name {
         font-size: var(--cf-font-size-xs);
+        color: var(--cf-text-tertiary);
       }
       
-      .layout-vertical .block-name {
-        white-space: normal;
-        text-align: center;
-        line-height: var(--cf-line-height-normal);
-        margin-bottom: 2px;
+      /* 当 showName=false 时隐藏名称 */
+      .block-name:empty {
+        display: none;
       }
       
-      /* 块值 */
+      /* 块值（网格定位：右下） */
       .block-value {
-        font-size: var(--cf-font-size-xl);
+        grid-column: 2;
+        grid-row: 2;
+        font-size: var(--cf-font-size-lg);
         font-weight: var(--cf-font-weight-bold);
         color: var(--cf-text-primary);
         line-height: var(--cf-line-height-tight);
         overflow: hidden;
         text-overflow: ellipsis;
         white-space: nowrap;
+        align-self: start;
       }
       
+      /* 紧凑模式下的值显示优化 */
       .compact .block-value {
-        font-size: var(--cf-font-size-lg);
+        font-size: var(--cf-font-size-md);
+        font-weight: var(--cf-font-weight-semibold);
       }
       
-      .layout-vertical .block-value {
-        font-size: var(--cf-font-size-2xl);
-        white-space: normal;
-        text-align: center;
-        line-height: var(--cf-line-height-tight);
+      /* 当 showValue=false 时隐藏值 */
+      .block-value:empty {
+        display: none;
       }
       
+      /* 单位显示 */
       .block-unit {
-        font-size: var(--cf-font-size-sm);
+        font-size: var(--cf-font-size-xs);
         color: var(--cf-text-tertiary);
         font-weight: var(--cf-font-weight-normal);
-        margin-left: var(--cf-spacing-xs);
+        margin-left: 2px;
       }
       
       .compact .block-unit {
-        font-size: var(--cf-font-size-xs);
+        font-size: 0.7em;
       }
       
       /* 状态指示器 */
       .block-status {
         position: absolute;
-        top: var(--cf-spacing-sm);
-        right: var(--cf-spacing-sm);
-        width: 8px;
-        height: 8px;
+        top: 4px;
+        right: 4px;
+        width: 6px;
+        height: 6px;
         border-radius: 50%;
         background: var(--cf-neutral-400);
       }
       
+      .compact .block-status {
+        width: 5px;
+        height: 5px;
+        top: 3px;
+        right: 3px;
+      }
+      
       .block-status.online {
         background: var(--cf-success-color);
-        box-shadow: 0 0 0 2px rgba(76, 175, 80, 0.2);
+        box-shadow: 0 0 0 1px rgba(76, 175, 80, 0.2);
       }
       
       .block-status.offline {
         background: var(--cf-error-color);
-        box-shadow: 0 0 0 2px rgba(244, 67, 54, 0.2);
+        box-shadow: 0 0 0 1px rgba(244, 67, 54, 0.2);
       }
       
       .block-status.warning {
         background: var(--cf-warning-color);
-        box-shadow: 0 0 0 2px rgba(255, 152, 0, 0.2);
+        box-shadow: 0 0 0 1px rgba(255, 152, 0, 0.2);
       }
       
       /* 空状态 */
@@ -246,6 +163,11 @@ export class BlockBase extends LitElement {
         color: var(--cf-text-tertiary);
         font-style: italic;
         font-weight: var(--cf-font-weight-normal);
+        font-size: var(--cf-font-size-sm);
+      }
+      
+      .compact .empty-state {
+        font-size: var(--cf-font-size-xs);
       }
       
       /* 区域样式 */
@@ -265,35 +187,26 @@ export class BlockBase extends LitElement {
         background: rgba(var(--cf-primary-color-rgb), 0.2);
       }
       
-      /* 响应式设计 */
-      @container cardforge-container (max-width: 480px) {
-        /* 在小屏幕上强制垂直布局 */
-        .layout-horizontal:not(.force-layout),
-        .layout-compact:not(.force-layout) {
-          display: flex;
-          flex-direction: column;
-          align-items: center;
-          gap: var(--cf-spacing-sm);
-          text-align: center;
+      /* 响应式设计 - 超小屏幕适配 */
+      @container cardforge-container (max-width: 320px) {
+        .block-base {
+          grid-template-columns: 28px 1fr;
+          gap: 1px 4px;
+          padding: 4px;
         }
         
-        .layout-horizontal:not(.force-layout) .block-icon,
-        .layout-compact:not(.force-layout) .block-icon {
-          margin-bottom: var(--cf-spacing-xs);
+        .block-icon {
+          width: 28px;
+          height: 28px;
+          font-size: 1em;
         }
         
-        .layout-horizontal:not(.force-layout) .block-content,
-        .layout-compact:not(.force-layout) .block-content {
-          align-items: center;
-          width: 100%;
+        .block-name {
+          font-size: 0.7em;
         }
         
-        .layout-horizontal:not(.force-layout) .block-name,
-        .layout-compact:not(.force-layout) .block-name,
-        .layout-horizontal:not(.force-layout) .block-value,
-        .layout-compact:not(.force-layout) .block-value {
-          text-align: center;
-          white-space: normal;
+        .block-value {
+          font-size: 0.85em;
         }
       }
       
@@ -313,6 +226,10 @@ export class BlockBase extends LitElement {
           background: rgba(var(--cf-accent-color-rgb), 0.15);
           color: var(--cf-accent-color);
         }
+        
+        .compact .block-name {
+          color: var(--cf-text-secondary);
+        }
       }
     `
   ];
@@ -324,7 +241,6 @@ export class BlockBase extends LitElement {
     this.showName = true;
     this.showValue = true;
     this.compact = false;
-    this.layout = 'horizontal'; // 默认水平布局
     this._displayName = '';
     this._displayValue = '';
     this._icon = 'mdi:cube-outline';
@@ -339,28 +255,22 @@ export class BlockBase extends LitElement {
   render() {
     const hasEntity = this.block?.entity && this.hass?.states?.[this.block.entity];
     const area = this.block?.area || 'content';
-    const layout = this.block?.layout || this.layout;
-    
-    // 确定使用的布局类
-    const layoutClass = `layout-${layout}`;
     
     return html`
-      <div class="block-base ${layoutClass} ${this.compact ? 'compact' : ''} area-${area}">
+      <div class="block-base ${this.compact ? 'compact' : ''} area-${area}">
         <div class="block-icon">
           <ha-icon .icon=${this._icon}></ha-icon>
         </div>
         
-        <div class="block-content">
-          ${this.showName && this._displayName ? html`
-            <div class="block-name">${this._displayName}</div>
-          ` : ''}
-          
-          ${this.showValue ? html`
-            <div class="block-value">
-              ${hasEntity ? this._displayValue : html`<span class="empty-state">未配置实体</span>`}
-            </div>
-          ` : ''}
-        </div>
+        ${this.showName ? html`
+          <div class="block-name">${this._displayName || ''}</div>
+        ` : ''}
+        
+        ${this.showValue ? html`
+          <div class="block-value">
+            ${hasEntity ? this._displayValue : html`<span class="empty-state">未配置实体</span>`}
+          </div>
+        ` : ''}
         
         ${hasEntity ? html`
           <div class="block-status ${this._getEntityStatusClass()}"></div>
