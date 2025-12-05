@@ -1,4 +1,4 @@
-// src/cards/week-card.js - 简洁正确版
+// src/cards/week-card.js - 修正版
 import { 
   getYearProgress, 
   getWeekNumber, 
@@ -17,7 +17,6 @@ export const card = {
   },
   
   schema: {
-    // 只有这两个核心配置项
     showYearProgress: {
       type: 'boolean',
       label: '显示年进度',
@@ -49,7 +48,7 @@ export const card = {
       const dashOffset = circumference * (1 - yearProgress / 100);
       
       template += `
-        <div class="week-header cf-flex-center">
+        <div class="week-header">
           <!-- 年进度环 -->
           <div class="year-progress">
             <svg width="60" height="60" viewBox="0 0 60 60">
@@ -66,12 +65,12 @@ export const card = {
           
           <!-- 第X周和日期信息 -->
           <div class="week-info">
-            <div class="week-number-row cf-flex-center">
+            <div class="week-number-row">
               <span class="week-label">第</span>
               <span class="week-value">${weekNumber}</span>
               <span class="week-label">周</span>
             </div>
-            <div class="date-row cf-flex-center">
+            <div class="date-row">
               <span class="current-date">${currentDate}</span>
               <span class="current-weekday">星期${currentWeekday}</span>
             </div>
@@ -101,7 +100,7 @@ export const card = {
       template += `
         <div class="week-progress">
           <div class="progress-bars">${weekBars}</div>
-          <div class="day-labels cf-flex-between">
+          <div class="day-labels">
             ${weekDays.map((day, index) => {
               const isToday = index === weekDay;
               const isWeekend = index === 0 || index === 6;
@@ -120,18 +119,23 @@ export const card = {
   },
   
   styles: (config, theme) => {
-    // 直接使用设计系统变量（无需JS中转）
+    // 直接使用设计系统变量
     return `
+      /* 基础卡片布局 - 使用设计系统变量 */
       .week-card {
-        ${this._applyLayout('centered')}
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
         gap: var(--cf-spacing-lg);
         padding: var(--cf-spacing-xl);
         width: 100%;
         height: 100%;
         min-height: 180px;
+        font-family: var(--cf-font-family-base);
       }
       
-      /* 使用设计系统的flex-center工具类 */
+      /* 顶部区域：年进度环 + 第X周 + 日期（同一行） */
       .week-header {
         display: flex;
         align-items: center;
@@ -149,7 +153,7 @@ export const card = {
         display: block;
       }
       
-      /* 直接使用设计系统颜色变量 */
+      /* 进度环样式 - 直接使用设计系统变量 */
       .progress-bg {
         stroke: var(--cf-border);
         fill: none;
@@ -169,7 +173,7 @@ export const card = {
         font-size: var(--cf-font-size-lg);
         font-weight: var(--cf-font-weight-bold);
         text-anchor: middle;
-        font-family: var(--cf-font-family-base);
+        font-family: inherit;
       }
       
       .percent {
@@ -187,6 +191,8 @@ export const card = {
       }
       
       .week-number-row {
+        display: flex;
+        align-items: baseline;
         gap: var(--cf-spacing-xs);
       }
       
@@ -204,6 +210,8 @@ export const card = {
       }
       
       .date-row {
+        display: flex;
+        align-items: center;
         gap: var(--cf-spacing-md);
         flex-wrap: wrap;
       }
@@ -220,14 +228,14 @@ export const card = {
         color: var(--cf-accent-color);
       }
       
-      /* 周进度条 */
+      /* 周进度条部分 */
       .week-progress {
         width: 100%;
         max-width: 300px;
       }
       
       .progress-bars {
-        ${this._applyLayout('horizontal')}
+        display: flex;
         width: 100%;
         height: var(--cf-spacing-xl);
         background: var(--cf-surface);
@@ -270,6 +278,8 @@ export const card = {
       }
       
       .day-labels {
+        display: flex;
+        justify-content: space-between;
         width: 100%;
       }
       
@@ -279,6 +289,7 @@ export const card = {
         color: var(--cf-text-tertiary);
         text-align: center;
         flex: 1;
+        position: relative;
       }
       
       .day-label.today {
@@ -300,10 +311,11 @@ export const card = {
         font-weight: var(--cf-font-weight-semibold);
       }
       
-      /* 深色模式 - 自动继承设计系统变量，只需微调 */
+      /* 深色模式优化 */
       @media (prefers-color-scheme: dark) {
         .progress-bars {
           background: rgba(255, 255, 255, 0.05);
+          border-color: rgba(255, 255, 255, 0.15);
         }
         
         .week-bar.active {
@@ -313,10 +325,14 @@ export const card = {
         .week-bar.future {
           background: rgba(255, 255, 255, 0.03);
         }
+        
+        .week-bar.current {
+          box-shadow: 0 0 12px rgba(var(--cf-accent-color-rgb), 0.4);
+        }
       }
       
-      /* 响应式设计 - 使用设计系统断点 */
-      @container cardforge-container (max-width: var(--cf-breakpoint-md)) {
+      /* 响应式设计 - 使用设计系统断点变量 */
+      @container cardforge-container (max-width: 600px) {
         .week-card {
           padding: var(--cf-spacing-lg);
           gap: var(--cf-spacing-md);
@@ -339,9 +355,13 @@ export const card = {
         .week-progress {
           max-width: 260px;
         }
+        
+        .progress-bars {
+          height: var(--cf-spacing-lg);
+        }
       }
       
-      @container cardforge-container (max-width: var(--cf-breakpoint-sm)) {
+      @container cardforge-container (max-width: 480px) {
         .week-card {
           padding: var(--cf-spacing-md);
         }
@@ -356,8 +376,8 @@ export const card = {
           align-items: center;
         }
         
-        .progress-bars {
-          height: var(--cf-spacing-lg);
+        .date-row {
+          justify-content: center;
         }
         
         .day-label {
@@ -365,10 +385,11 @@ export const card = {
         }
       }
       
-      @container cardforge-container (max-width: var(--cf-breakpoint-xs)) {
+      @container cardforge-container (max-width: 360px) {
         .week-card {
           min-height: 160px;
           padding: var(--cf-spacing-sm);
+          gap: var(--cf-spacing-sm);
         }
         
         .year-progress svg {
@@ -380,31 +401,25 @@ export const card = {
           font-size: var(--cf-font-size-lg);
         }
         
+        .current-date,
+        .current-weekday {
+          font-size: var(--cf-font-size-sm);
+        }
+        
         .progress-bars {
           height: var(--cf-spacing-md);
+          margin-bottom: var(--cf-spacing-xs);
         }
       }
+      
+      /* 高对比度模式支持 */
+      .high-contrast .week-bar.current {
+        border: 2px solid var(--cf-accent-color);
+      }
+      
+      .high-contrast .day-label.today {
+        text-decoration: underline;
+      }
     `;
-  },
-  
-  // 辅助方法：应用设计系统布局
-  _applyLayout(type) {
-    const layouts = {
-      centered: `
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        justify-content: center;
-      `,
-      horizontal: `
-        display: flex;
-        align-items: center;
-      `,
-      vertical: `
-        display: flex;
-        flex-direction: column;
-      `
-    };
-    return layouts[type] || layouts.centered;
   }
 };
