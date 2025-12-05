@@ -1,5 +1,13 @@
-// 欢迎卡片 - 简化版（基于新设计系统和工具组件）
-import {getGreeting, formatTime, escapeHtml, getDisplayName, getPresetBlockContent, getRandomQuote } from '../core/utils.js';
+// 欢迎卡片 - 完全使用设计系统变量
+import { 
+  getGreetingByHour, 
+  formatTime, 
+  getDisplayName,
+  escapeHtml,
+  getDefaultQuote,
+  getEntityState,
+  getEntityIcon
+} from '../core/utilities.js';
 
 export const card = {
   id: 'welcome',
@@ -40,33 +48,54 @@ export const card = {
   
   template: (config, data) => {
     const now = new Date();
-    const userName = getDisplayName(config, data.hass);
     
-    // 1. 问候语
-    const greeting = getGreeting(now, userName);
-    
-    // 2. 时间
+    // 使用工具库函数
+    const greeting = getGreetingByHour(now);
+    const userName = getDisplayName(data.hass, config.greetingName, '朋友');
     const timeStr = formatTime(now, config.use24Hour);
     
-    // 3. 每日一言
+    // 获取每日一言
     let quoteHtml = '';
     if (config.showQuote) {
-      const quoteData = getPresetBlockContent(
-        config.blocks || {}, 
-        'daily_quote', 
-        data.hass, 
-        getRandomQuote(now)
-      );
+      let quoteContent = '';
+      let quoteIcon = 'mdi:format-quote-close';
+      let hasEntity = false;
       
-      if (quoteData.content) {
+      const blocks = config.blocks || {};
+      
+      // 查找每日一言块
+      Object.values(blocks).forEach(block => {
+        if (block.presetKey === 'daily_quote') {
+          if (block.icon) {
+            quoteIcon = block.icon;
+          }
+          
+          if (block.entity) {
+            hasEntity = true;
+            // 使用工具库获取实体状态
+            quoteContent = getEntityState(data.hass, block.entity, getDefaultQuote(now));
+            
+            // 使用工具库获取实体图标
+            const entityIcon = getEntityIcon(data.hass, block.entity, quoteIcon);
+            if (entityIcon !== 'mdi:cube') {
+              quoteIcon = entityIcon;
+            }
+          }
+        }
+      });
+      
+      // 如果没有关联实体，使用默认名言
+      if (!hasEntity) {
+        quoteContent = getDefaultQuote(now);
+      }
+      
+      if (quoteContent) {
         quoteHtml = `
-          <div class="quote-container ${quoteData.hasEntity ? 'has-entity' : ''}">
-            ${quoteData.icon ? `
-              <div class="quote-icon">
-                <ha-icon icon="${quoteData.icon}"></ha-icon>
-              </div>
-            ` : ''}
-            <div class="quote-content">${escapeHtml(quoteData.content)}</div>
+          <div class="quote-container ${hasEntity ? 'has-entity' : ''}">
+            <div class="quote-icon">
+              <ha-icon icon="${quoteIcon}"></ha-icon>
+            </div>
+            <div class="quote-content">${escapeHtml(quoteContent)}</div>
           </div>
         `;
       }
@@ -74,143 +103,243 @@ export const card = {
     
     return `
       <div class="welcome-card">
-        <div class="greeting">${escapeHtml(greeting)}</div>
+        <div class="greeting">${escapeHtml(greeting + '，' + userName + '！')}</div>
         <div class="time">${timeStr}</div>
         ${quoteHtml}
       </div>
     `;
   },
   
-styles: (config, theme) => {
-  return `
-    .welcome-card {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      height: 100%;
-      min-height: var(--cf-card-min-height, 200px);
-      padding: var(--cf-spacing-xl);
-      text-align: center;
-      font-family: var(--cf-font-family-base);
-      gap: var(--cf-spacing-xl);
-    }
-    
-    .greeting {
-      font-size: var(--cf-font-size-2xl);
-      font-weight: var(--cf-font-weight-medium);
-      color: var(--cf-text-primary);
-      line-height: var(--cf-line-height-tight);
-      margin: 0;
-    }
-    
-    .time {
-      font-size: var(--cf-font-size-4xl);
-      font-weight: var(--cf-font-weight-bold);
-      color: var(--cf-primary-color);
-      line-height: var(--cf-line-height-tight);
-      letter-spacing: 0.5px;
-      margin: 0;
-      text-shadow: var(--cf-time-text-shadow, 0 2px 8px rgba(var(--cf-primary-color-rgb), 0.2));
-    }
-    
-    .quote-container {
-      width: 100%;
-      max-width: 500px;
-      padding: var(--cf-spacing-md);
-      background: var(--cf-surface-elevated);
-      border: 1px solid var(--cf-border);
-      border-radius: var(--cf-radius-lg);
-      display: flex;
-      align-items: flex-start;
-      justify-content: center;
-      gap: var(--cf-spacing-md);
-      transition: all var(--cf-transition-duration-fast) var(--cf-easing-standard);
-    }
-    
-    .quote-icon {
-      flex-shrink: 0;
-      width: 40px;
-      height: 40px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      border-radius: var(--cf-radius-md);
-      background: transparent;
-      color: var(--cf-text-secondary);
-      font-size: 1.4em;
-      transition: all var(--cf-transition-duration-fast) var(--cf-easing-standard);
-    }
-    
-    .quote-container.has-entity .quote-icon {
-      color: var(--cf-accent-color);
-    }
-    
-    .quote-content {
-      flex: 1;
-      min-width: 0;
-      font-size: var(--cf-font-size-lg);
-      color: var(--cf-text-secondary);
-      line-height: var(--cf-line-height-relaxed);
-      font-style: italic;
-      font-weight: var(--cf-font-weight-light);
-      word-break: break-word;
-      overflow-wrap: break-word;
-      white-space: normal;
-      text-align: left;
-      display: flex;
-      align-items: center;
-      margin: 0;
-      padding: 0;
-    }
-    
-    /* 交互效果 */
-    .quote-container:hover {
-      background: var(--cf-hover-color);
-      border-color: var(--cf-primary-color);
-      transform: translateY(-2px);
-      box-shadow: var(--cf-shadow-md);
-    }
-    
-    .quote-container:hover .quote-icon {
-      transform: scale(1.05);
-      color: var(--cf-primary-color);
-    }
-    
-    .quote-container:hover .quote-content {
-      color: var(--cf-text-primary);
-    }
-    
-    /* 响应式设计 - 使用设计系统的断点变量 */
-    @container cardforge-container (max-width: var(--cf-breakpoint-md)) {
+  styles: (config, theme) => {
+    // 直接使用设计系统变量，不使用备用值
+    // 主题系统会确保这些变量有值
+    return `
       .welcome-card {
-        padding: var(--cf-spacing-lg);
-        gap: var(--cf-spacing-lg);
-      }
-      
-      .greeting { font-size: var(--cf-font-size-xl); }
-      .time { font-size: var(--cf-font-size-3xl); }
-      .quote-container { max-width: 450px; }
-    }
-    
-    @container cardforge-container (max-width: var(--cf-breakpoint-sm)) {
-      .welcome-card {
-        padding: var(--cf-spacing-md);
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        height: 100%;
+        min-height: 200px;
+        padding: var(--cf-spacing-xl);
+        text-align: center;
+        font-family: var(--cf-font-family-base);
         gap: var(--cf-spacing-md);
       }
       
-      .greeting { font-size: var(--cf-font-size-lg); }
-      .time { font-size: var(--cf-font-size-2xl); }
-      .quote-container { 
-        flex-direction: column;
-        align-items: center;
-        text-align: center;
+      .greeting {
+        font-size: 1.8em;
+        font-weight: var(--cf-font-weight-medium);
+        color: var(--cf-text-primary);
+        line-height: var(--cf-line-height-tight);
+        margin-bottom: var(--cf-spacing-xs);
       }
       
-      .quote-content { 
-        text-align: center;
+      .time {
+        font-size: 3.5em;
+        font-weight: var(--cf-font-weight-bold);
+        color: var(--cf-primary-color);
+        letter-spacing: 1px;
+        line-height: var(--cf-line-height-tight);
+        margin-bottom: var(--cf-spacing-lg);
+        text-shadow: 0 2px 8px rgba(var(--cf-primary-color-rgb), 0.2);
+      }
+      
+      /* 每日一言容器 */
+      .quote-container {
+        width: 100%;
+        max-width: 500px;
+        margin-top: var(--cf-spacing-md);
+        padding: var(--cf-spacing-md);
+        background: var(--cf-surface-elevated);
+        border: 1px solid var(--cf-border);
+        border-left: 3px solid var(--cf-accent-color);
+        border-radius: var(--cf-radius-lg);
+        display: flex;
+        align-items: center;
+        gap: var(--cf-spacing-md);
+        transition: all var(--cf-transition-duration-fast);
+        box-shadow: var(--cf-shadow-sm);
+      }
+      
+      /* 图标区域 */
+      .quote-icon {
+        flex-shrink: 0;
+        width: 48px;
+        height: 48px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: var(--cf-radius-md);
+        background: transparent;
+        color: var(--cf-text-secondary);
+        font-size: 1.5em;
+        transition: all var(--cf-transition-duration-fast);
+      }
+      
+      .quote-container.has-entity .quote-icon {
+        color: var(--cf-accent-color);
+      }
+      
+      /* 内容区域 */
+      .quote-content {
+        flex: 1;
+        min-width: 0;
+        font-size: 1.1em;
+        color: var(--cf-text-secondary);
+        line-height: var(--cf-line-height-relaxed);
+        font-style: italic;
+        font-weight: var(--cf-font-weight-light);
+        word-break: break-word;
+        overflow-wrap: break-word;
+        white-space: normal;
+        text-align: left;
+        margin: 0;
+        padding: 0;
+        display: flex;
         align-items: center;
       }
-    }
-  `;
-}
+      
+      /* 交互效果 */
+      .quote-container:hover {
+        background: var(--cf-hover-color);
+        border-color: var(--cf-primary-color);
+        transform: translateY(-2px);
+        box-shadow: var(--cf-shadow-md);
+      }
+      
+      .quote-container:hover .quote-icon {
+        transform: scale(1.05);
+        color: var(--cf-primary-color);
+      }
+      
+      .quote-container:hover .quote-content {
+        color: var(--cf-text-primary);
+      }
+      
+      /* 深色模式 - 完全使用设计系统变量 */
+      @media (prefers-color-scheme: dark) {
+        .time {
+          text-shadow: 0 2px 12px rgba(var(--cf-primary-color-rgb), 0.4);
+        }
+        
+        .quote-container {
+          background: var(--cf-surface);
+          border-color: var(--cf-border-dark);
+        }
+        
+        .quote-icon {
+          color: var(--cf-text-tertiary);
+        }
+        
+        .quote-container.has-entity .quote-icon {
+          color: var(--cf-accent-color);
+        }
+        
+        .quote-content {
+          color: var(--cf-text-tertiary);
+        }
+        
+        .quote-container:hover .quote-icon {
+          color: var(--cf-primary-color);
+        }
+        
+        .quote-container:hover .quote-content {
+          color: var(--cf-text-secondary);
+        }
+      }
+      
+      /* 响应式设计 */
+      @container cardforge-container (max-width: 600px) {
+        .welcome-card {
+          padding: var(--cf-spacing-lg);
+        }
+        
+        .quote-container {
+          max-width: 450px;
+          padding: var(--cf-spacing-sm);
+          gap: var(--cf-spacing-sm);
+        }
+        
+        .greeting {
+          font-size: 1.6em;
+        }
+        
+        .time {
+          font-size: 3em;
+        }
+        
+        .quote-icon {
+          width: 40px;
+          height: 40px;
+          font-size: 1.3em;
+        }
+        
+        .quote-content {
+          font-size: 1em;
+        }
+      }
+      
+      @container cardforge-container (max-width: 480px) {
+        .welcome-card {
+          padding: var(--cf-spacing-md);
+          min-height: 180px;
+        }
+        
+        .quote-container {
+          max-width: 100%;
+          padding: var(--cf-spacing-sm);
+        }
+        
+        .greeting {
+          font-size: 1.4em;
+        }
+        
+        .time {
+          font-size: 2.5em;
+        }
+        
+        .quote-icon {
+          width: 36px;
+          height: 36px;
+          font-size: 1.2em;
+        }
+        
+        .quote-content {
+          font-size: 0.95em;
+          line-height: var(--cf-line-height-normal);
+        }
+      }
+      
+      @container cardforge-container (max-width: 360px) {
+        .welcome-card {
+          padding: var(--cf-spacing-sm);
+          gap: var(--cf-spacing-sm);
+        }
+        
+        .quote-container {
+          padding: var(--cf-spacing-xs) var(--cf-spacing-sm);
+          gap: var(--cf-spacing-sm);
+        }
+        
+        .greeting {
+          font-size: 1.3em;
+        }
+        
+        .time {
+          font-size: 2.2em;
+        }
+        
+        .quote-icon {
+          width: 32px;
+          height: 32px;
+          font-size: 1.1em;
+        }
+        
+        .quote-content {
+          font-size: 0.9em;
+        }
+      }
+    `;
+  }
+};
