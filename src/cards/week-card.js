@@ -1,10 +1,5 @@
 // src/cards/week-card.js - 修正版
-import { 
-  getYearProgress, 
-  getWeekNumber, 
-  formatDate, 
-  getWeekday 
-} from '../core/utils.js';
+import { getYearProgress,  getWeekNumber,  formatDate, getWeekday } from '../core/utils.js';
 
 export const card = {
   id: 'week',
