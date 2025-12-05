@@ -1,4 +1,3 @@
-// 欢迎卡片 - 完全使用设计系统变量
 import { getGreetingByHour, formatTime, getDisplayName,escapeHtml,getDefaultQuote, getEntityState, getEntityIcon } from '../core/utilities.js';
 
 export const card = {
@@ -116,7 +115,6 @@ export const card = {
         padding: var(--cf-spacing-xl);
         text-align: center;
         font-family: var(--cf-font-family-base);
-        gap: var(--cf-spacing-md);
       }
       
       .greeting {
@@ -124,7 +122,7 @@ export const card = {
         font-weight: var(--cf-font-weight-medium);
         color: var(--cf-text-primary);
         line-height: var(--cf-line-height-tight);
-        margin-bottom: var(--cf-spacing-xs);
+        margin-bottom: var(--cf-spacing-md);
       }
       
       .time {
@@ -133,15 +131,14 @@ export const card = {
         color: var(--cf-primary-color);
         letter-spacing: 1px;
         line-height: var(--cf-line-height-tight);
-        margin-bottom: var(--cf-spacing-lg);
         text-shadow: 0 2px 8px rgba(var(--cf-primary-color-rgb), 0.2);
+        margin-bottom: var(--cf-spacing-xl);
       }
       
       /* 每日一言容器 */
       .quote-container {
         width: 100%;
         max-width: 500px;
-        margin-top: var(--cf-spacing-md);
         padding: var(--cf-spacing-md);
         background: var(--cf-surface-elevated);
         border: 1px solid var(--cf-border);
@@ -152,6 +149,7 @@ export const card = {
         gap: var(--cf-spacing-md);
         transition: all var(--cf-transition-duration-fast);
         box-shadow: var(--cf-shadow-sm);
+        margin-top: var(--cf-spacing-md);
       }
       
       /* 图标区域 */
@@ -173,12 +171,12 @@ export const card = {
         color: var(--cf-accent-color);
       }
       
-      /* 内容区域 */
+      /* 内容区域 - 字体颜色调整为更清晰 */
       .quote-content {
         flex: 1;
         min-width: 0;
         font-size: 1.1em;
-        color: var(--cf-text-secondary);
+        color: var(--cf-text-primary);
         line-height: var(--cf-line-height-relaxed);
         font-style: italic;
         font-weight: var(--cf-font-weight-light);
@@ -221,15 +219,16 @@ export const card = {
         }
         
         .quote-icon {
-          color: var(--cf-text-tertiary);
+          color: var(--cf-text-secondary);
         }
         
         .quote-container.has-entity .quote-icon {
           color: var(--cf-accent-color);
         }
         
+        /* 深色模式下保持清晰的字体颜色 */
         .quote-content {
-          color: var(--cf-text-tertiary);
+          color: var(--cf-text-secondary);
         }
         
         .quote-container:hover .quote-icon {
@@ -237,7 +236,7 @@ export const card = {
         }
         
         .quote-container:hover .quote-content {
-          color: var(--cf-text-secondary);
+          color: var(--cf-text-primary);
         }
       }
       
@@ -247,18 +246,21 @@ export const card = {
           padding: var(--cf-spacing-lg);
         }
         
-        .quote-container {
-          max-width: 450px;
-          padding: var(--cf-spacing-sm);
-          gap: var(--cf-spacing-sm);
-        }
-        
         .greeting {
           font-size: 1.6em;
+          margin-bottom: var(--cf-spacing-sm);
         }
         
         .time {
           font-size: 3em;
+          margin-bottom: var(--cf-spacing-lg);
+        }
+        
+        .quote-container {
+          max-width: 450px;
+          padding: var(--cf-spacing-sm);
+          gap: var(--cf-spacing-sm);
+          margin-top: var(--cf-spacing-sm);
         }
         
         .quote-icon {
@@ -278,17 +280,20 @@ export const card = {
           min-height: 180px;
         }
         
-        .quote-container {
-          max-width: 100%;
-          padding: var(--cf-spacing-sm);
-        }
-        
         .greeting {
           font-size: 1.4em;
+          margin-bottom: var(--cf-spacing-sm);
         }
         
         .time {
           font-size: 2.5em;
+          margin-bottom: var(--cf-spacing-md);
+        }
+        
+        .quote-container {
+          max-width: 100%;
+          padding: var(--cf-spacing-sm);
+          margin-top: var(--cf-spacing-sm);
         }
         
         .quote-icon {
@@ -306,20 +311,22 @@ export const card = {
       @container cardforge-container (max-width: 360px) {
         .welcome-card {
           padding: var(--cf-spacing-sm);
-          gap: var(--cf-spacing-sm);
+        }
+        
+        .greeting {
+          font-size: 1.3em;
+          margin-bottom: var(--cf-spacing-xs);
+        }
+        
+        .time {
+          font-size: 2.2em;
+          margin-bottom: var(--cf-spacing-sm);
         }
         
         .quote-container {
           padding: var(--cf-spacing-xs) var(--cf-spacing-sm);
           gap: var(--cf-spacing-sm);
-        }
-        
-        .greeting {
-          font-size: 1.3em;
-        }
-        
-        .time {
-          font-size: 2.2em;
+          margin-top: var(--cf-spacing-xs);
         }
         
         .quote-icon {
