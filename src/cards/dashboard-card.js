@@ -1,4 +1,4 @@
-// 仪表盘卡片 - 完全变量化版本
+// 仪表盘卡片 - 移除block-styles引用
 import { renderBlocks } from '../blocks/index.js';
 
 export const card = {
@@ -70,6 +70,16 @@ export const card = {
         { value: 'relaxed', label: '宽松' }
       ],
       default: 'normal'
+    },
+    contentBlockLayout: {
+      type: 'select',
+      label: '内容块布局',
+      options: [
+        { value: 'horizontal', label: '水平布局' },
+        { value: 'vertical', label: '垂直布局' },
+        { value: 'auto', label: '自动响应' }
+      ],
+      default: 'horizontal'
     }
   },
   
@@ -112,9 +122,13 @@ export const card = {
     // 内容区域
     if (blocksByArea.content.length > 0) {
       const contentBlocks = Object.fromEntries(blocksByArea.content);
+      // 传递布局配置给renderBlocks
+      const contentHtml = renderBlocks(contentBlocks, data.hass, {
+        layout: config.contentBlockLayout
+      });
       html += `
         <div class="dashboard-content columns-${config.gridColumns}">
-          ${renderBlocks(contentBlocks, data.hass)}
+          ${contentHtml}
         </div>
       `;
     }
@@ -134,29 +148,29 @@ export const card = {
   },
   
   styles: (config, theme) => {
-    // 使用设计系统变量
-    const primaryColor = theme['--cf-primary-color'] || 'var(--cf-primary-color, #03a9f4)';
-    const accentColor = theme['--cf-accent-color'] || 'var(--cf-accent-color, #ff4081)';
-    const borderColor = theme['--cf-border'] || 'var(--cf-border, #e0e0e0)';
-    const surfaceColor = theme['--cf-surface'] || 'var(--cf-surface, #ffffff)';
-    const textPrimary = theme['--cf-text-primary'] || 'var(--cf-text-primary, #212121)';
-    const textSecondary = theme['--cf-text-secondary'] || 'var(--cf-text-secondary, #757575)';
-    const textTertiary = theme['--cf-text-tertiary'] || 'var(--cf-text-tertiary, #9e9e9e)';
-    const hoverColor = theme['--cf-hover-color'] || 'rgba(var(--cf-primary-color-rgb, 3, 169, 244), 0.08)';
+    // 使用design-system变量
+    const primaryColor = theme['--cf-primary-color'] || 'var(--cf-primary-color)';
+    const accentColor = theme['--cf-accent-color'] || 'var(--cf-accent-color)';
+    const borderColor = theme['--cf-border'] || 'var(--cf-border)';
+    const surfaceColor = theme['--cf-surface'] || 'var(--cf-surface)';
+    const textPrimary = theme['--cf-text-primary'] || 'var(--cf-text-primary)';
+    const textSecondary = theme['--cf-text-secondary'] || 'var(--cf-text-secondary)';
+    const textTertiary = theme['--cf-text-tertiary'] || 'var(--cf-text-tertiary)';
+    const hoverColor = theme['--cf-hover-color'] || 'var(--cf-hover-color)';
     
     // 计算间距
-    let gapSize = 'var(--cf-spacing-md, 12px)';
-    let paddingSize = 'var(--cf-spacing-md, 12px)';
-    let headerPadding = 'var(--cf-spacing-sm, 8px) var(--cf-spacing-md, 12px)';
+    let gapSize = 'var(--cf-spacing-md)';
+    let paddingSize = 'var(--cf-spacing-md)';
+    let headerPadding = 'var(--cf-spacing-sm) var(--cf-spacing-md)';
     
     if (config.spacing === 'compact') {
-      gapSize = 'var(--cf-spacing-sm, 8px)';
-      paddingSize = 'var(--cf-spacing-sm, 8px)';
-      headerPadding = 'var(--cf-spacing-xs, 4px) var(--cf-spacing-sm, 8px)';
+      gapSize = 'var(--cf-spacing-sm)';
+      paddingSize = 'var(--cf-spacing-sm)';
+      headerPadding = 'var(--cf-spacing-xs) var(--cf-spacing-sm)';
     } else if (config.spacing === 'relaxed') {
-      gapSize = 'var(--cf-spacing-lg, 16px)';
-      paddingSize = 'var(--cf-spacing-lg, 16px)';
-      headerPadding = 'var(--cf-spacing-md, 12px) var(--cf-spacing-lg, 16px)';
+      gapSize = 'var(--cf-spacing-lg)';
+      paddingSize = 'var(--cf-spacing-lg)';
+      headerPadding = 'var(--cf-spacing-md) var(--cf-spacing-lg)';
     }
     
     return `
@@ -167,80 +181,33 @@ export const card = {
         display: flex;
         flex-direction: column;
         gap: ${gapSize};
-        font-family: var(--cf-font-family-base, inherit);
+        font-family: var(--cf-font-family-base);
         background: ${surfaceColor};
-        border-radius: var(--cf-radius-lg, 12px);
-        box-shadow: var(--cf-shadow-sm, 0 1px 3px rgba(0, 0, 0, 0.12));
+        border-radius: var(--cf-radius-lg);
+        box-shadow: var(--cf-shadow-sm);
       }
       
+      /* 仪表盘区域样式 - 现在块样式来自设计系统，这里只需要布局 */
       .dashboard-header {
-        padding: ${headerPadding};
-        background: rgba(var(--cf-primary-color-rgb, 3, 169, 244), 0.08);
-        border-left: 3px solid ${primaryColor};
-        border-radius: var(--cf-radius-md, 8px);
-        margin-bottom: var(--cf-spacing-xs, 4px);
+        margin-bottom: var(--cf-spacing-xs);
       }
       
-      .dashboard-header.align-left {
-        text-align: left;
+      .dashboard-header.align-left .area-header {
+        justify-content: flex-start;
       }
       
-      .dashboard-header.align-center {
-        text-align: center;
+      .dashboard-header.align-center .area-header {
+        justify-content: center;
       }
       
-      .dashboard-header.align-right {
-        text-align: right;
-      }
-      
-      .dashboard-header .area-header {
-        display: flex;
-        gap: var(--cf-spacing-sm, 8px);
-        flex-wrap: wrap;
-        justify-content: var(--align, flex-start);
-      }
-      
-      .dashboard-header.align-left .area-header { --align: flex-start; }
-      .dashboard-header.align-center .area-header { --align: center; }
-      .dashboard-header.align-right .area-header { --align: flex-end; }
-      
-      .dashboard-header .cardforge-block {
-        background: rgba(255, 255, 255, 0.9);
-        min-height: 50px;
-        padding: var(--cf-spacing-sm, 8px);
-        border: 1px solid rgba(var(--cf-primary-color-rgb, 3, 169, 244), 0.3);
-        border-radius: var(--cf-radius-sm, 4px);
-        transition: all var(--cf-transition-fast, 0.15s) ease;
-      }
-      
-      .dashboard-header .cardforge-block:hover {
-        background: white;
-        border-color: ${primaryColor};
-        transform: translateY(-2px);
-        box-shadow: var(--cf-shadow-sm, 0 1px 3px rgba(0, 0, 0, 0.12));
-      }
-      
-      .dashboard-header .block-icon {
-        font-size: 1.4em;
-        color: ${primaryColor};
-        background: rgba(var(--cf-primary-color-rgb, 3, 169, 244), 0.1);
-      }
-      
-      .dashboard-header .block-name {
-        color: ${textSecondary};
-        font-size: var(--cf-font-size-sm, 0.875rem);
-      }
-      
-      .dashboard-header .block-value {
-        color: ${textPrimary};
-        font-size: var(--cf-font-size-lg, 1.125rem);
-        font-weight: var(--cf-font-weight-medium, 500);
+      .dashboard-header.align-right .area-header {
+        justify-content: flex-end;
       }
       
       .dashboard-content {
         flex: 1;
         overflow: auto;
-        padding: var(--cf-spacing-sm, 8px);
+        padding: var(--cf-spacing-sm);
       }
       
       .layout-flow .dashboard-content {
@@ -263,86 +230,20 @@ export const card = {
         gap: ${gapSize};
       }
       
-      .dashboard-content .area-content .cardforge-block {
-        background: ${surfaceColor};
-        min-height: 70px;
-        border: 1px solid ${borderColor};
-        border-radius: var(--cf-radius-md, 8px);
-        padding: var(--cf-spacing-md, 12px);
-        transition: all var(--cf-transition-fast, 0.15s) ease;
-      }
-      
-      .dashboard-content .area-content .cardforge-block:hover {
-        background: ${hoverColor};
-        border-color: ${primaryColor};
-        transform: translateY(-2px);
-        box-shadow: var(--cf-shadow-md, 0 4px 6px rgba(0, 0, 0, 0.1));
-      }
-      
-      .dashboard-content .block-icon {
-        background: rgba(var(--cf-primary-color-rgb, 3, 169, 244), 0.1);
-        color: ${primaryColor};
-      }
-      
       .dashboard-footer {
-        padding: ${headerPadding};
-        background: rgba(var(--cf-accent-color-rgb, 255, 64, 129), 0.05);
-        border-top: 1px solid ${borderColor};
-        border-radius: var(--cf-radius-md, 8px);
-        margin-top: var(--cf-spacing-xs, 4px);
+        margin-top: var(--cf-spacing-xs);
       }
       
-      .dashboard-footer.align-left {
-        text-align: left;
+      .dashboard-footer.align-left .area-footer {
+        justify-content: flex-start;
       }
       
-      .dashboard-footer.align-center {
-        text-align: center;
+      .dashboard-footer.align-center .area-footer {
+        justify-content: center;
       }
       
-      .dashboard-footer.align-right {
-        text-align: right;
-      }
-      
-      .dashboard-footer .area-footer {
-        display: flex;
-        gap: var(--cf-spacing-sm, 8px);
-        flex-wrap: wrap;
-        justify-content: var(--align, flex-start);
-      }
-      
-      .dashboard-footer.align-left .area-footer { --align: flex-start; }
-      .dashboard-footer.align-center .area-footer { --align: center; }
-      .dashboard-footer.align-right .area-footer { --align: flex-end; }
-      
-      .dashboard-footer .cardforge-block {
-        background: rgba(255, 255, 255, 0.8);
-        min-height: 45px;
-        padding: var(--cf-spacing-sm, 8px);
-        border-radius: var(--cf-radius-sm, 4px);
-        transition: all var(--cf-transition-fast, 0.15s) ease;
-      }
-      
-      .dashboard-footer .cardforge-block:hover {
-        background: white;
-        transform: translateY(-1px);
-        box-shadow: var(--cf-shadow-sm, 0 1px 3px rgba(0, 0, 0, 0.12));
-      }
-      
-      .dashboard-footer .block-icon {
-        font-size: 1.2em;
-        color: ${textTertiary};
-        background: rgba(0, 0, 0, 0.05);
-      }
-      
-      .dashboard-footer .block-name {
-        color: ${textTertiary};
-        font-size: var(--cf-font-size-xs, 0.75rem);
-      }
-      
-      .dashboard-footer .block-value {
-        color: ${textSecondary};
-        font-size: var(--cf-font-size-base, 1rem);
+      .dashboard-footer.align-right .area-footer {
+        justify-content: flex-end;
       }
       
       .empty {
@@ -352,8 +253,8 @@ export const card = {
         justify-content: center;
         text-align: center;
         color: ${textTertiary};
-        gap: var(--cf-spacing-md, 12px);
-        padding: var(--cf-spacing-2xl, 24px);
+        gap: var(--cf-spacing-md);
+        padding: var(--cf-spacing-2xl);
         background: ${surfaceColor};
       }
       
@@ -363,8 +264,8 @@ export const card = {
       }
       
       .empty-text {
-        font-size: var(--cf-font-size-lg, 1.125rem);
-        font-weight: var(--cf-font-weight-medium, 500);
+        font-size: var(--cf-font-size-lg);
+        font-weight: var(--cf-font-weight-medium);
       }
       
       /* 深色模式优化 */
@@ -372,44 +273,6 @@ export const card = {
         .dashboard-card {
           background: rgba(255, 255, 255, 0.05);
           box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
-        }
-        
-        .dashboard-header {
-          background: rgba(var(--cf-primary-color-rgb, 3, 169, 244), 0.12);
-          border-left-color: ${primaryColor};
-        }
-        
-        .dashboard-header .cardforge-block {
-          background: rgba(255, 255, 255, 0.1);
-          border-color: rgba(var(--cf-primary-color-rgb, 3, 169, 244), 0.4);
-        }
-        
-        .dashboard-header .cardforge-block:hover {
-          background: rgba(255, 255, 255, 0.15);
-          border-color: ${primaryColor};
-        }
-        
-        .dashboard-content .area-content .cardforge-block {
-          background: rgba(255, 255, 255, 0.08);
-          border-color: rgba(255, 255, 255, 0.2);
-        }
-        
-        .dashboard-content .area-content .cardforge-block:hover {
-          background: rgba(255, 255, 255, 0.12);
-          border-color: ${primaryColor};
-        }
-        
-        .dashboard-footer {
-          background: rgba(var(--cf-accent-color-rgb, 255, 64, 129), 0.08);
-          border-top-color: rgba(255, 255, 255, 0.2);
-        }
-        
-        .dashboard-footer .cardforge-block {
-          background: rgba(255, 255, 255, 0.06);
-        }
-        
-        .dashboard-footer .cardforge-block:hover {
-          background: rgba(255, 255, 255, 0.1);
         }
         
         .empty {
@@ -434,52 +297,9 @@ export const card = {
           grid-template-columns: 1fr;
         }
         
-        .dashboard-header .cardforge-block,
-        .dashboard-footer .cardforge-block {
-          width: 100%;
-          max-width: 100%;
-        }
-        
-        .spacing-normal .dashboard-card {
-          padding: var(--cf-spacing-sm, 8px);
-          gap: var(--cf-spacing-sm, 8px);
-        }
-      }
-      
-      /* 动画效果 */
-      .dashboard-card {
-        animation: dashboardAppear var(--cf-transition-slow, 0.4s) ease;
-      }
-      
-      @keyframes dashboardAppear {
-        from {
-          opacity: 0;
-          transform: translateY(20px);
-        }
-        to {
-          opacity: 1;
-          transform: translateY(0);
-        }
-      }
-      
-      .area-header .cardforge-block,
-      .area-content .cardforge-block,
-      .area-footer .cardforge-block {
-        animation: blockAppear 0.3s ease var(--delay, 0s) both;
-      }
-      
-      .area-header .cardforge-block:nth-child(1) { --delay: 0.1s; }
-      .area-header .cardforge-block:nth-child(2) { --delay: 0.2s; }
-      .area-header .cardforge-block:nth-child(3) { --delay: 0.3s; }
-      
-      @keyframes blockAppear {
-        from {
-          opacity: 0;
-          transform: scale(0.95);
-        }
-        to {
-          opacity: 1;
-          transform: scale(1);
+        .dashboard-card {
+          padding: var(--cf-spacing-sm);
+          gap: var(--cf-spacing-sm);
         }
       }
     `;
