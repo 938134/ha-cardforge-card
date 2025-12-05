@@ -1,4 +1,4 @@
-// 块编辑表单 - 优化版（使用下拉和内置标签）
+// 块编辑表单 - 移除布局选择器
 import { LitElement, html, css } from 'https://unpkg.com/lit@2.8.0/index.js?module';
 import { designSystem } from '../core/design-system.js';
 import { AREAS } from './block-config.js';
@@ -164,21 +164,6 @@ export class BlockEditForm extends LitElement {
             ></ha-icon-picker>
           </div>
           
-          <!-- 布局选择 -->
-          <div class="form-field">
-            <ha-select
-              .value=${this.block.layout || 'horizontal'}
-              @closed=${e => e.stopPropagation()}
-              @change=${e => this._handleLayoutChange(e.target.value)}
-              label="布局样式"
-              fullwidth
-            >
-              <ha-list-item value="horizontal">水平布局（图标+名称+状态值）</ha-list-item>
-              <ha-list-item value="compact">紧凑网格（图标左，右侧上下）</ha-list-item>
-              <ha-list-item value="vertical">垂直布局（图标在上，垂直堆叠）</ha-list-item>
-            </ha-select>
-          </div>
-          
           <!-- 区域选择 -->
           <div class="form-field">
             ${isPresetCard ? html`
@@ -255,12 +240,6 @@ export class BlockEditForm extends LitElement {
   _handleIconChange(e) {
     this.dispatchEvent(new CustomEvent('field-change', {
       detail: { field: 'icon', value: e.detail.value }
-    }));
-  }
-
-  _handleLayoutChange(value) {
-    this.dispatchEvent(new CustomEvent('field-change', {
-      detail: { field: 'layout', value }
     }));
   }
 
