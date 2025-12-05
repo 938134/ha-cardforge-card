@@ -1,4 +1,13 @@
-// 欢迎卡片 - 每日一言优化（无底色图标，内容垂直居中）
+// 欢迎卡片 - 简化版（基于新设计系统和工具组件）
+import { 
+  getGreeting, 
+  formatTime, 
+  escapeHtml, 
+  getDisplayName,
+  getPresetBlockContent,
+  getRandomQuote 
+} from '../core/utils.js';
+
 export const card = {
   id: 'welcome',
   meta: {
@@ -38,74 +47,33 @@ export const card = {
   
   template: (config, data) => {
     const now = new Date();
-    const hour = now.getHours();
-    const userName = config.greetingName || data.hass?.user?.name || '朋友';
+    const userName = getDisplayName(config, data.hass);
     
-    // 问候语
-    let greeting = '';
-    if (hour >= 5 && hour < 12) greeting = '早上好';
-    else if (hour >= 12 && hour < 14) greeting = '中午好';
-    else if (hour >= 14 && hour < 18) greeting = '下午好';
-    else if (hour >= 18 && hour < 22) greeting = '晚上好';
-    else greeting = '夜深了';
+    // 1. 问候语
+    const greeting = getGreeting(now, userName);
     
-    greeting += `，${userName}！`;
+    // 2. 时间
+    const timeStr = formatTime(now, config.use24Hour);
     
-    // 时间显示
-    let timeStr = '';
-    if (config.use24Hour) {
-      timeStr = now.getHours().toString().padStart(2, '0') + ':' + 
-                now.getMinutes().toString().padStart(2, '0');
-    } else {
-      let hours = now.getHours();
-      const ampm = hours >= 12 ? 'PM' : 'AM';
-      hours = hours % 12 || 12;
-      timeStr = hours + ':' + 
-                now.getMinutes().toString().padStart(2, '0') + 
-                ' ' + ampm;
-    }
-    
-    // 获取每日一言
+    // 3. 每日一言
     let quoteHtml = '';
     if (config.showQuote) {
-      let quoteContent = '';
-      let quoteIcon = 'mdi:format-quote-close';
-      let hasEntity = false;
+      const quoteData = getPresetBlockContent(
+        config.blocks || {}, 
+        'daily_quote', 
+        data.hass, 
+        getRandomQuote(now)
+      );
       
-      const blocks = config.blocks || {};
-      
-      // 查找每日一言块
-      Object.values(blocks).forEach(block => {
-        if (block.presetKey === 'daily_quote') {
-          if (block.icon) {
-            quoteIcon = block.icon;
-          }
-          
-          if (block.entity && data.hass?.states?.[block.entity]) {
-            hasEntity = true;
-            const entity = data.hass.states[block.entity];
-            quoteContent = entity.state || getDefaultQuote(now);
-            
-            // 如果实体有自定义图标属性，优先使用
-            if (entity.attributes && entity.attributes.icon) {
-              quoteIcon = entity.attributes.icon;
-            }
-          }
-        }
-      });
-      
-      // 如果没有关联实体，使用默认名言
-      if (!hasEntity) {
-        quoteContent = getDefaultQuote(now);
-      }
-      
-      if (quoteContent) {
+      if (quoteData.content) {
         quoteHtml = `
-          <div class="quote-container ${hasEntity ? 'has-entity' : ''}">
-            <div class="quote-icon">
-              <ha-icon icon="${quoteIcon}"></ha-icon>
-            </div>
-            <div class="quote-content">${escapeHtml(quoteContent)}</div>
+          <div class="quote-container ${quoteData.hasEntity ? 'has-entity' : ''}">
+            ${quoteData.icon ? `
+              <div class="quote-icon">
+                <ha-icon icon="${quoteData.icon}"></ha-icon>
+              </div>
+            ` : ''}
+            <div class="quote-content">${escapeHtml(quoteData.content)}</div>
           </div>
         `;
       }
@@ -118,223 +86,190 @@ export const card = {
         ${quoteHtml}
       </div>
     `;
-    
-    function escapeHtml(text) {
-      return text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
-    }
-    
-    function getDefaultQuote(date) {
-      const quotes = [
-        "生活就像一盒巧克力，你永远不知道下一颗是什么味道。",
-        "成功的秘诀在于对目标的坚持。",
-        "时间就像海绵里的水，只要愿挤，总还是有的。",
-        "不忘初心，方得始终。",
-        "学习如逆水行舟，不进则退。"
-      ];
-      const dayOfYear = Math.floor((date - new Date(date.getFullYear(), 0, 0)) / 1000 / 60 / 60 / 24);
-      return quotes[dayOfYear % quotes.length];
-    }
   },
   
   styles: (config, theme) => {
-    // 使用design-system变量
-    const primaryColor = theme['--cf-primary-color'] || 'var(--cf-primary-color)';
-    const accentColor = theme['--cf-accent-color'] || 'var(--cf-accent-color)';
-    const textPrimary = theme['--cf-text-primary'] || 'var(--cf-text-primary)';
-    const textSecondary = theme['--cf-text-secondary'] || 'var(--cf-text-secondary)';
-    const textTertiary = theme['--cf-text-tertiary'] || 'var(--cf-text-tertiary)';
-    const surfaceColor = theme['--cf-surface'] || 'var(--cf-surface)';
-    const borderColor = theme['--cf-border'] || 'var(--cf-border)';
-    const hoverColor = theme['--cf-hover-color'] || 'var(--cf-hover-color)';
-    const primaryColorRgb = theme['--cf-primary-color-rgb'] || 'var(--cf-primary-color-rgb, 3, 169, 244)';
+    // 注意：这里不再声明JS变量，直接在CSS中使用设计系统变量
     
     return `
+      /* ==================== 基础卡片布局 ==================== */
       .welcome-card {
+        /* 使用设计系统的居中布局 */
         display: flex;
         flex-direction: column;
         align-items: center;
         justify-content: center;
         height: 100%;
-        min-height: 200px;
+        min-height: var(--cf-card-min-height, 200px);
         padding: var(--cf-spacing-xl);
         text-align: center;
         font-family: var(--cf-font-family-base);
-        gap: var(--cf-spacing-md);
+        
+        /* 关键：三个部分的垂直间距完全一致 */
+        gap: var(--cf-spacing-xl);
       }
       
+      /* ==================== 问候语样式 ==================== */
       .greeting {
-        font-size: 1.8em;
+        font-size: var(--cf-font-size-2xl);
         font-weight: var(--cf-font-weight-medium);
-        color: ${textPrimary};
+        color: var(--cf-text-primary);
         line-height: var(--cf-line-height-tight);
-        margin-bottom: var(--cf-spacing-xs);
+        margin: 0;
       }
       
+      /* ==================== 时间样式 ==================== */
       .time {
-        font-size: 3.5em;
+        font-size: var(--cf-font-size-4xl);
         font-weight: var(--cf-font-weight-bold);
-        color: ${primaryColor};
-        letter-spacing: 1px;
+        color: var(--cf-primary-color);
         line-height: var(--cf-line-height-tight);
-        margin-bottom: var(--cf-spacing-lg);
-        text-shadow: 0 2px 8px rgba(${primaryColorRgb}, 0.2);
+        letter-spacing: 0.5px;
+        margin: 0;
+        
+        /* 文字阴影使用设计系统的主色RGB变量 */
+        text-shadow: 0 2px 8px rgba(var(--cf-primary-color-rgb), 0.2);
       }
       
-      /* 每日一言容器 - 图标左，内容右，同一行，内容垂直居中 */
+      /* ==================== 每日一言样式 ==================== */
       .quote-container {
         width: 100%;
         max-width: 500px;
-        margin-top: var(--cf-spacing-md);
         padding: var(--cf-spacing-md);
-        background: ${surfaceColor};
-        border: 1px solid ${borderColor};
+        background: var(--cf-surface-elevated);
+        border: 1px solid var(--cf-border);
         border-radius: var(--cf-radius-lg);
+        
+        /* 关键：与问候语和时间相同的水平居中 */
         display: flex;
-        align-items: center; /* 修改这里：图标和内容垂直居中对齐 */
+        align-items: flex-start;
+        justify-content: center;
         gap: var(--cf-spacing-md);
-        transition: all var(--cf-transition-fast);
-        box-shadow: var(--cf-shadow-sm);
+        
+        /* 过渡效果使用设计系统变量 */
+        transition: all var(--cf-transition-duration-fast) var(--cf-easing-standard);
       }
       
-      /* 图标区域 - 无底色，透明背景 */
+      /* 图标样式 - 使用设计系统的块图标基础样式 */
       .quote-icon {
         flex-shrink: 0;
-        width: 48px;
-        height: 48px;
+        width: 40px;
+        height: 40px;
         display: flex;
         align-items: center;
         justify-content: center;
         border-radius: var(--cf-radius-md);
-        background: transparent; /* 移除底色，改为透明 */
-        color: ${textSecondary}; /* 使用文字次要颜色 */
-        font-size: 1.5em;
-        transition: all var(--cf-transition-fast);
+        
+        /* 无底色，透明背景 */
+        background: transparent;
+        color: var(--cf-text-secondary);
+        font-size: 1.4em;
+        
+        transition: all var(--cf-transition-duration-fast) var(--cf-easing-standard);
       }
       
-      /* 关联实体时图标颜色 */
+      /* 关联实体时的图标颜色 */
       .quote-container.has-entity .quote-icon {
-        color: ${accentColor}; /* 使用强调色 */
+        color: var(--cf-accent-color);
       }
       
-      /* 内容区域 - 在右侧，自动换行，垂直居中 */
+      /* 内容样式 */
       .quote-content {
         flex: 1;
         min-width: 0;
-        font-size: 1.1em;
-        color: ${textSecondary};
+        font-size: var(--cf-font-size-lg);
+        color: var(--cf-text-secondary);
         line-height: var(--cf-line-height-relaxed);
         font-style: italic;
         font-weight: var(--cf-font-weight-light);
+        
+        /* 文本处理 */
         word-break: break-word;
         overflow-wrap: break-word;
         white-space: normal;
         text-align: left;
-        margin: 0;
-        padding: 0;
-        /* 确保内容垂直居中 */
+        
+        /* 关键：与图标垂直居中对齐 */
         display: flex;
         align-items: center;
+        margin: 0;
+        padding: 0;
       }
       
-      /* 交互效果 */
+      /* ==================== 交互效果 ==================== */
       .quote-container:hover {
-        background: ${hoverColor};
-        border-color: ${primaryColor};
+        background: var(--cf-hover-color);
+        border-color: var(--cf-primary-color);
         transform: translateY(-2px);
         box-shadow: var(--cf-shadow-md);
       }
       
       .quote-container:hover .quote-icon {
         transform: scale(1.05);
-        color: ${primaryColor}; /* 悬停时使用主色 */
+        color: var(--cf-primary-color);
       }
       
       .quote-container:hover .quote-content {
-        color: ${textPrimary}; /* 悬停时文字加深 */
+        color: var(--cf-text-primary);
       }
       
-      /* 深色模式优化 */
+      .quote-container:active {
+        transform: translateY(-1px);
+        box-shadow: var(--cf-shadow-sm);
+      }
+      
+      /* ==================== 深色模式适配 ==================== */
       @media (prefers-color-scheme: dark) {
         .time {
-          text-shadow: 0 2px 12px rgba(${primaryColorRgb}, 0.4);
+          text-shadow: 0 2px 12px rgba(var(--cf-primary-color-rgb), 0.3);
         }
         
         .quote-container {
           background: rgba(255, 255, 255, 0.05);
-          border-color: var(--cf-border-dark, ${borderColor});
+          border-color: var(--cf-border-dark);
         }
         
         .quote-icon {
-          color: ${textTertiary}; /* 深色模式使用第三级文字颜色 */
+          color: var(--cf-text-tertiary);
         }
         
         .quote-container.has-entity .quote-icon {
-          color: ${accentColor};
+          color: var(--cf-accent-color);
         }
         
         .quote-content {
-          color: ${textTertiary};
+          color: var(--cf-text-tertiary);
         }
         
         .quote-container:hover .quote-icon {
-          color: ${primaryColor};
+          color: var(--cf-primary-color);
         }
         
         .quote-container:hover .quote-content {
-          color: ${textSecondary};
+          color: var(--cf-text-secondary);
         }
       }
       
-      /* 响应式设计 */
+      /* ==================== 响应式设计 ==================== */
+      /* 使用设计系统的断点变量 */
       @container cardforge-container (max-width: 600px) {
         .welcome-card {
           padding: var(--cf-spacing-lg);
+          gap: var(--cf-spacing-lg);
+        }
+        
+        .greeting {
+          font-size: var(--cf-font-size-xl);
+        }
+        
+        .time {
+          font-size: var(--cf-font-size-3xl);
         }
         
         .quote-container {
           max-width: 450px;
           padding: var(--cf-spacing-sm);
           gap: var(--cf-spacing-sm);
-          align-items: flex-start; /* 小屏时恢复顶部对齐，保证阅读体验 */
-        }
-        
-        .greeting {
-          font-size: 1.6em;
-        }
-        
-        .time {
-          font-size: 3em;
-        }
-        
-        .quote-icon {
-          width: 40px;
-          height: 40px;
-          font-size: 1.3em;
-        }
-        
-        .quote-content {
-          font-size: 1em;
-          align-items: flex-start; /* 小屏时内容也顶部对齐 */
-        }
-      }
-      
-      @container cardforge-container (max-width: 480px) {
-        .welcome-card {
-          padding: var(--cf-spacing-md);
-          min-height: 180px;
-        }
-        
-        .quote-container {
-          max-width: 100%;
-          padding: var(--cf-spacing-sm);
-        }
-        
-        .greeting {
-          font-size: 1.4em;
-        }
-        
-        .time {
-          font-size: 2.5em;
         }
         
         .quote-icon {
@@ -344,7 +279,47 @@ export const card = {
         }
         
         .quote-content {
-          font-size: 0.95em;
+          font-size: var(--cf-font-size-md);
+        }
+      }
+      
+      @container cardforge-container (max-width: 480px) {
+        .welcome-card {
+          padding: var(--cf-spacing-md);
+          min-height: 180px;
+          gap: var(--cf-spacing-md);
+        }
+        
+        .greeting {
+          font-size: var(--cf-font-size-lg);
+        }
+        
+        .time {
+          font-size: var(--cf-font-size-2xl);
+        }
+        
+        .quote-container {
+          max-width: 100%;
+          padding: var(--cf-spacing-sm);
+          gap: var(--cf-spacing-sm);
+          
+          /* 小屏时改为垂直布局 */
+          flex-direction: column;
+          align-items: center;
+          text-align: center;
+        }
+        
+        .quote-icon {
+          width: 32px;
+          height: 32px;
+          font-size: 1.1em;
+          margin-bottom: var(--cf-spacing-xs);
+        }
+        
+        .quote-content {
+          font-size: var(--cf-font-size-sm);
+          text-align: center;
+          align-items: center;
           line-height: var(--cf-line-height-normal);
         }
       }
@@ -355,27 +330,20 @@ export const card = {
           gap: var(--cf-spacing-sm);
         }
         
-        .quote-container {
-          padding: var(--cf-spacing-xs) var(--cf-spacing-sm);
-          gap: var(--cf-spacing-sm);
-        }
-        
         .greeting {
-          font-size: 1.3em;
+          font-size: var(--cf-font-size-md);
         }
         
         .time {
-          font-size: 2.2em;
+          font-size: var(--cf-font-size-xl);
         }
         
-        .quote-icon {
-          width: 32px;
-          height: 32px;
-          font-size: 1.1em;
+        .quote-container {
+          padding: var(--cf-spacing-xs) var(--cf-spacing-sm);
         }
         
         .quote-content {
-          font-size: 0.9em;
+          font-size: var(--cf-font-size-xs);
         }
       }
     `;
