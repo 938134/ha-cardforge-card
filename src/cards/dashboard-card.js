@@ -1,4 +1,4 @@
-// 仪表盘卡片 - 移除block-styles引用
+// 仪表盘卡片 - 直接使用CSS变量
 import { renderBlocks } from '../blocks/index.js';
 
 export const card = {
@@ -103,6 +103,7 @@ export const card = {
         <div class="dashboard-card empty">
           <div class="empty-icon">📊</div>
           <div class="empty-text">仪表盘暂无数据块</div>
+          <div class="empty-hint">请添加块到标题、内容或页脚区域</div>
         </div>
       `;
     }
@@ -122,13 +123,17 @@ export const card = {
     // 内容区域
     if (blocksByArea.content.length > 0) {
       const contentBlocks = Object.fromEntries(blocksByArea.content);
-      // 传递布局配置给renderBlocks
-      const contentHtml = renderBlocks(contentBlocks, data.hass, {
-        layout: config.contentBlockLayout
-      });
+      
+      // 根据配置确定布局模式
+      let layoutMode = config.contentBlockLayout;
+      if (layoutMode === 'auto') {
+        // 可以根据块数量或其他因素自动决定
+        layoutMode = blocksByArea.content.length > 4 ? 'vertical' : 'horizontal';
+      }
+      
       html += `
-        <div class="dashboard-content columns-${config.gridColumns}">
-          ${contentHtml}
+        <div class="dashboard-content layout-${layoutMode} columns-${config.gridColumns}">
+          ${renderBlocks(contentBlocks, data.hass)}
         </div>
       `;
     }
@@ -148,29 +153,20 @@ export const card = {
   },
   
   styles: (config, theme) => {
-    // 使用design-system变量
-    const primaryColor = theme['--cf-primary-color'] || 'var(--cf-primary-color)';
-    const accentColor = theme['--cf-accent-color'] || 'var(--cf-accent-color)';
-    const borderColor = theme['--cf-border'] || 'var(--cf-border)';
-    const surfaceColor = theme['--cf-surface'] || 'var(--cf-surface)';
-    const textPrimary = theme['--cf-text-primary'] || 'var(--cf-text-primary)';
-    const textSecondary = theme['--cf-text-secondary'] || 'var(--cf-text-secondary)';
-    const textTertiary = theme['--cf-text-tertiary'] || 'var(--cf-text-tertiary)';
-    const hoverColor = theme['--cf-hover-color'] || 'var(--cf-hover-color)';
-    
+    // 直接使用CSS变量，不进行变量提取
     // 计算间距
     let gapSize = 'var(--cf-spacing-md)';
     let paddingSize = 'var(--cf-spacing-md)';
-    let headerPadding = 'var(--cf-spacing-sm) var(--cf-spacing-md)';
+    let headerFooterPadding = 'var(--cf-spacing-sm) var(--cf-spacing-md)';
     
     if (config.spacing === 'compact') {
       gapSize = 'var(--cf-spacing-sm)';
       paddingSize = 'var(--cf-spacing-sm)';
-      headerPadding = 'var(--cf-spacing-xs) var(--cf-spacing-sm)';
+      headerFooterPadding = 'var(--cf-spacing-xs) var(--cf-spacing-sm)';
     } else if (config.spacing === 'relaxed') {
       gapSize = 'var(--cf-spacing-lg)';
       paddingSize = 'var(--cf-spacing-lg)';
-      headerPadding = 'var(--cf-spacing-md) var(--cf-spacing-lg)';
+      headerFooterPadding = 'var(--cf-spacing-md) var(--cf-spacing-lg)';
     }
     
     return `
@@ -182,27 +178,43 @@ export const card = {
         flex-direction: column;
         gap: ${gapSize};
         font-family: var(--cf-font-family-base);
-        background: ${surfaceColor};
+        background: var(--cf-surface);
         border-radius: var(--cf-radius-lg);
         box-shadow: var(--cf-shadow-sm);
+        transition: all var(--cf-transition-duration-normal) var(--cf-easing-standard);
       }
       
-      /* 仪表盘区域样式 - 现在块样式来自设计系统，这里只需要布局 */
+      .dashboard-card:hover {
+        box-shadow: var(--cf-shadow-md);
+      }
+      
+      /* 仪表盘区域样式 */
       .dashboard-header {
         margin-bottom: var(--cf-spacing-xs);
       }
       
-      .dashboard-header.align-left .area-header {
-        justify-content: flex-start;
+      .dashboard-header.align-left {
+        text-align: left;
       }
       
-      .dashboard-header.align-center .area-header {
-        justify-content: center;
+      .dashboard-header.align-center {
+        text-align: center;
       }
       
-      .dashboard-header.align-right .area-header {
-        justify-content: flex-end;
+      .dashboard-header.align-right {
+        text-align: right;
       }
+      
+      .dashboard-header .area-header {
+        display: flex;
+        gap: ${gapSize};
+        flex-wrap: wrap;
+        justify-content: var(--align, flex-start);
+      }
+      
+      .dashboard-header.align-left .area-header { --align: flex-start; }
+      .dashboard-header.align-center .area-header { --align: center; }
+      .dashboard-header.align-right .area-header { --align: flex-end; }
       
       .dashboard-content {
         flex: 1;
@@ -210,6 +222,7 @@ export const card = {
         padding: var(--cf-spacing-sm);
       }
       
+      /* 内容区域布局 */
       .layout-flow .dashboard-content {
         display: flex;
         flex-wrap: wrap;
@@ -230,58 +243,88 @@ export const card = {
         gap: ${gapSize};
       }
       
+      /* 内容块布局模式 */
+      .dashboard-content.layout-horizontal .area-content {
+        display: flex;
+        flex-wrap: wrap;
+        gap: ${gapSize};
+      }
+      
+      .dashboard-content.layout-vertical .area-content {
+        display: flex;
+        flex-direction: column;
+        gap: ${gapSize};
+      }
+      
+      /* 确保块在网格布局中正确显示 */
+      .layout-grid .dashboard-content .area-content {
+        display: contents; /* 让块直接成为网格项 */
+      }
+      
       .dashboard-footer {
         margin-top: var(--cf-spacing-xs);
       }
       
-      .dashboard-footer.align-left .area-footer {
-        justify-content: flex-start;
+      .dashboard-footer.align-left {
+        text-align: left;
       }
       
-      .dashboard-footer.align-center .area-footer {
-        justify-content: center;
+      .dashboard-footer.align-center {
+        text-align: center;
       }
       
-      .dashboard-footer.align-right .area-footer {
-        justify-content: flex-end;
+      .dashboard-footer.align-right {
+        text-align: right;
       }
       
+      .dashboard-footer .area-footer {
+        display: flex;
+        gap: ${gapSize};
+        flex-wrap: wrap;
+        justify-content: var(--align, flex-start);
+      }
+      
+      .dashboard-footer.align-left .area-footer { --align: flex-start; }
+      .dashboard-footer.align-center .area-footer { --align: center; }
+      .dashboard-footer.align-right .area-footer { --align: flex-end; }
+      
+      /* 空状态 */
       .empty {
         display: flex;
         flex-direction: column;
         align-items: center;
         justify-content: center;
         text-align: center;
-        color: ${textTertiary};
+        color: var(--cf-text-tertiary);
         gap: var(--cf-spacing-md);
         padding: var(--cf-spacing-2xl);
-        background: ${surfaceColor};
+        background: var(--cf-surface-elevated);
+        border-radius: var(--cf-radius-lg);
+        border: 2px dashed var(--cf-border-light);
       }
       
       .empty-icon {
-        font-size: 2.5em;
+        font-size: 3em;
         opacity: 0.4;
       }
       
       .empty-text {
         font-size: var(--cf-font-size-lg);
         font-weight: var(--cf-font-weight-medium);
+        color: var(--cf-text-secondary);
       }
       
-      /* 深色模式优化 */
-      @media (prefers-color-scheme: dark) {
-        .dashboard-card {
-          background: rgba(255, 255, 255, 0.05);
-          box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
-        }
-        
-        .empty {
-          background: rgba(255, 255, 255, 0.03);
-        }
+      .empty-hint {
+        font-size: var(--cf-font-size-sm);
+        color: var(--cf-text-tertiary);
+        max-width: 300px;
+        line-height: var(--cf-line-height-relaxed);
       }
+      
+      /* 深色模式优化 - 通过设计系统变量自动处理 */
       
       /* 响应式设计 */
-      @container cardforge-container (max-width: 600px) {
+      @container cardforge-container (max-width: 768px) {
         .layout-grid .dashboard-content {
           grid-template-columns: repeat(2, 1fr);
         }
@@ -289,18 +332,88 @@ export const card = {
         .dashboard-header .area-header,
         .dashboard-footer .area-footer {
           justify-content: center !important;
+          text-align: center;
         }
       }
       
-      @container cardforge-container (max-width: 400px) {
+      @container cardforge-container (max-width: 600px) {
         .layout-grid .dashboard-content {
           grid-template-columns: 1fr;
         }
         
+        .layout-flow .dashboard-content {
+          justify-content: center;
+        }
+        
+        .dashboard-header.align-left,
+        .dashboard-header.align-right,
+        .dashboard-footer.align-left,
+        .dashboard-footer.align-right {
+          text-align: center;
+        }
+        
+        .spacing-normal .dashboard-card {
+          padding: var(--cf-spacing-sm);
+          gap: var(--cf-spacing-sm);
+        }
+        
+        .spacing-relaxed .dashboard-card {
+          padding: var(--cf-spacing-md);
+          gap: var(--cf-spacing-md);
+        }
+      }
+      
+      @container cardforge-container (max-width: 480px) {
+        .dashboard-card {
+          min-height: 180px;
+        }
+        
+        .layout-flow .dashboard-content,
+        .dashboard-content.layout-horizontal .area-content {
+          flex-direction: column;
+        }
+        
+        .dashboard-content {
+          padding: var(--cf-spacing-xs);
+        }
+        
+        .empty {
+          padding: var(--cf-spacing-xl);
+        }
+        
+        .empty-text {
+          font-size: var(--cf-font-size-md);
+        }
+        
+        .empty-hint {
+          font-size: var(--cf-font-size-xs);
+        }
+      }
+      
+      @container cardforge-container (max-width: 360px) {
         .dashboard-card {
           padding: var(--cf-spacing-sm);
           gap: var(--cf-spacing-sm);
         }
+        
+        .empty {
+          padding: var(--cf-spacing-lg);
+          gap: var(--cf-spacing-sm);
+        }
+        
+        .empty-icon {
+          font-size: 2.5em;
+        }
+      }
+      
+      /* 高对比度模式支持 */
+      .high-contrast .dashboard-card {
+        border: 2px solid var(--cf-border);
+      }
+      
+      .high-contrast .empty {
+        border-width: 3px;
+        border-style: dashed;
       }
     `;
   }
