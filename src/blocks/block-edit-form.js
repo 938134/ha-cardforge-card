@@ -1,7 +1,7 @@
-// 块编辑表单 - 支持预设卡片权限控制
+// 块编辑表单 - 优化版（使用下拉和内置标签）
 import { LitElement, html, css } from 'https://unpkg.com/lit@2.8.0/index.js?module';
 import { designSystem } from '../core/design-system.js';
-import { AREAS, ENTITY_ICONS } from './block-config.js';
+import { AREAS } from './block-config.js';
 
 export class BlockEditForm extends LitElement {
   static properties = {
@@ -17,7 +17,6 @@ export class BlockEditForm extends LitElement {
     css`
       .edit-form {
         background: var(--cf-surface);
-        border: 1px solid var(--cf-primary-color);
         border-radius: var(--cf-radius-md);
         padding: 16px;
       }
@@ -31,21 +30,10 @@ export class BlockEditForm extends LitElement {
       .form-field {
         display: flex;
         flex-direction: column;
-        gap: 8px;
+        gap: 6px;
       }
       
-      .form-label {
-        font-weight: 500;
-        font-size: 0.85em;
-        color: var(--cf-text-primary);
-      }
-      
-      .form-hint {
-        font-size: 0.8em;
-        color: var(--cf-text-secondary);
-        margin-top: 4px;
-      }
-      
+      /* 固定区域提示 */
       .fixed-area-hint {
         padding: 8px 12px;
         background: rgba(0, 0, 0, 0.05);
@@ -54,40 +42,7 @@ export class BlockEditForm extends LitElement {
         align-items: center;
         gap: 8px;
         font-size: 0.9em;
-      }
-      
-      .area-options {
-        display: flex;
-        flex-wrap: wrap;
-        gap: 8px;
-        margin-top: 8px;
-      }
-      
-      .area-option {
-        display: flex;
-        align-items: center;
-        gap: 8px;
-        padding: 8px 12px;
-        border: 1px solid var(--cf-border);
-        border-radius: var(--cf-radius-sm);
-        cursor: pointer;
-        transition: all var(--cf-transition-fast);
-        flex: 1;
-        min-width: 100px;
-      }
-      
-      .area-option:hover {
-        border-color: var(--cf-primary-color);
-      }
-      
-      .area-option.selected {
-        border-color: var(--cf-primary-color);
-        background: var(--cf-primary-color);
-        color: white;
-      }
-      
-      .area-option.selected ha-icon {
-        color: white;
+        color: var(--cf-text-tertiary);
       }
       
       .form-actions {
@@ -126,8 +81,16 @@ export class BlockEditForm extends LitElement {
         opacity: 0.9;
       }
       
-      ha-combo-box, ha-textfield, ha-icon-picker {
+      /* 表单控件使用内置标签 */
+      ha-combo-box, ha-textfield, ha-icon-picker, ha-select {
         width: 100%;
+      }
+      
+      /* 深色模式适配 */
+      @media (prefers-color-scheme: dark) {
+        .fixed-area-hint {
+          background: rgba(255, 255, 255, 0.05);
+        }
       }
     `
   ];
@@ -157,16 +120,15 @@ export class BlockEditForm extends LitElement {
         <div class="form-grid">
           <!-- 实体选择 -->
           <div class="form-field">
-            <div class="form-label">
-              实体 ${isRequired ? '*' : ''}
-            </div>
             ${this._availableEntities.length > 0 ? html`
               <ha-combo-box
                 .items=${this._availableEntities}
                 .value=${this.block.entity || ''}
                 @value-changed=${this._handleEntityChange}
                 allow-custom-value
-                label="选择实体或输入ID"
+                label="选择实体"
+                placeholder="输入或选择实体ID"
+                ?required=${isRequired}
                 fullwidth
               ></ha-combo-box>
             ` : html`
@@ -175,6 +137,7 @@ export class BlockEditForm extends LitElement {
                 @input=${this._handleEntityInput}
                 label="实体ID"
                 placeholder="例如: sensor.example"
+                ?required=${isRequired}
                 fullwidth
               ></ha-textfield>
             `}
@@ -182,11 +145,10 @@ export class BlockEditForm extends LitElement {
           
           <!-- 显示名称 -->
           <div class="form-field">
-            <div class="form-label">显示名称</div>
             <ha-textfield
               .value=${this.block.name || ''}
               @input=${this._handleNameChange}
-              label="块显示名称"
+              label="显示名称"
               placeholder="如果不填，将使用实体友好名称"
               fullwidth
             ></ha-textfield>
@@ -194,7 +156,6 @@ export class BlockEditForm extends LitElement {
           
           <!-- 图标 -->
           <div class="form-field">
-            <div class="form-label">图标</div>
             <ha-icon-picker
               .value=${this.block.icon || ''}
               @value-changed=${this._handleIconChange}
@@ -203,32 +164,49 @@ export class BlockEditForm extends LitElement {
             ></ha-icon-picker>
           </div>
           
+          <!-- 布局选择 -->
+          <div class="form-field">
+            <ha-select
+              .value=${this.block.layout || 'horizontal'}
+              @closed=${e => e.stopPropagation()}
+              @change=${e => this._handleLayoutChange(e.target.value)}
+              label="布局样式"
+              fullwidth
+            >
+              <ha-list-item value="horizontal">水平布局（图标+名称+状态值）</ha-list-item>
+              <ha-list-item value="compact">紧凑网格（图标左，右侧上下）</ha-list-item>
+              <ha-list-item value="vertical">垂直布局（图标在上，垂直堆叠）</ha-list-item>
+            </ha-select>
+          </div>
+          
           <!-- 区域选择 -->
           <div class="form-field">
-            <div class="form-label">所属区域</div>
             ${isPresetCard ? html`
               <div class="fixed-area-hint">
                 <ha-icon icon="mdi:lock"></ha-icon>
                 <span>固定为内容区域（预设卡片）</span>
               </div>
             ` : html`
-              <div class="area-options">
-                ${Object.values(AREAS).map(area => {
-                  const isSelected = this.block.area === area.id || (!this.block.area && area.id === 'content');
-                  return html`
-                    <div 
-                      class="area-option ${isSelected ? 'selected' : ''}"
-                      @click=${() => this._handleAreaChange(area.id)}
-                    >
-                      <ha-icon icon="${this._getAreaIcon(area.id)}"></ha-icon>
-                      <span>${area.label}</span>
-                    </div>
-                  `;
-                })}
-              </div>
-              <div class="form-hint">
-                选择块显示的区域位置
-              </div>
+              <ha-select
+                .value=${this.block.area || 'content'}
+                @closed=${e => e.stopPropagation()}
+                @change=${e => this._handleAreaChange(e.target.value)}
+                label="所属区域"
+                fullwidth
+              >
+                <ha-list-item value="header">
+                  <ha-icon icon="mdi:format-header-1" slot="item-icon"></ha-icon>
+                  标题区域
+                </ha-list-item>
+                <ha-list-item value="content">
+                  <ha-icon icon="mdi:view-grid" slot="item-icon"></ha-icon>
+                  内容区域
+                </ha-list-item>
+                <ha-list-item value="footer">
+                  <ha-icon icon="mdi:page-layout-footer" slot="item-icon"></ha-icon>
+                  页脚区域
+                </ha-list-item>
+              </ha-select>
             `}
           </div>
         </div>
@@ -255,15 +233,6 @@ export class BlockEditForm extends LitElement {
       .sort((a, b) => a.label.localeCompare(b.label));
   }
 
-  _getAreaIcon(areaId) {
-    const iconMap = {
-      header: 'mdi:format-header-1',
-      content: 'mdi:view-grid',
-      footer: 'mdi:page-layout-footer'
-    };
-    return iconMap[areaId] || 'mdi:view-grid';
-  }
-
   _handleEntityChange(e) {
     const entity = e.detail.value;
     this.dispatchEvent(new CustomEvent('field-change', {
@@ -286,6 +255,12 @@ export class BlockEditForm extends LitElement {
   _handleIconChange(e) {
     this.dispatchEvent(new CustomEvent('field-change', {
       detail: { field: 'icon', value: e.detail.value }
+    }));
+  }
+
+  _handleLayoutChange(value) {
+    this.dispatchEvent(new CustomEvent('field-change', {
+      detail: { field: 'layout', value }
     }));
   }
 
