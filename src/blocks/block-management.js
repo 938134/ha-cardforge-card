@@ -1,4 +1,4 @@
-// 块管理界面 - 基于blockType控制权限
+// 块管理界面 - 优化版
 import { LitElement, html, css } from 'https://unpkg.com/lit@2.8.0/index.js?module';
 import { designSystem } from '../core/design-system.js';
 import { BlockBase } from './block-base.js';
@@ -27,44 +27,46 @@ export class BlockManagement extends LitElement {
       }
       
       .block-item {
-        display: flex;
+        display: grid;
+        grid-template-columns: 80px 1fr 80px;
         align-items: center;
         background: var(--cf-surface);
         border: 1px solid var(--cf-border);
         border-radius: var(--cf-radius-md);
         overflow: hidden;
         transition: all var(--cf-transition-fast);
+        padding: 8px 0;
       }
       
       .block-item:hover {
         border-color: var(--cf-primary-color);
+        box-shadow: var(--cf-shadow-sm);
       }
       
       .preset-block {
-        background: rgba(var(--cf-rgb-primary), 0.03);
+        background: rgba(0, 0, 0, 0.02);
       }
       
+      /* 区域标识 - 简化版（图标+文字） */
       .area-indicator {
-        width: 100px;
-        min-width: 100px;
-        height: 100%;
         display: flex;
         flex-direction: column;
         align-items: center;
         justify-content: center;
-        gap: 6px;
-        padding: 12px;
+        gap: 4px;
+        padding: 0 8px;
         border-right: 1px solid var(--cf-border);
-        transition: all var(--cf-transition-fast);
+        height: 100%;
+        min-height: 60px;
       }
       
       .preset-block .area-indicator {
-        background: rgba(0, 0, 0, 0.03);
-        border-left-color: #cccccc;
+        color: var(--cf-text-tertiary);
       }
       
-      .preset-block .area-indicator ha-icon {
-        color: #999999;
+      .area-icon {
+        font-size: 1.2em;
+        margin-bottom: 2px;
       }
       
       .area-label {
@@ -74,17 +76,20 @@ export class BlockManagement extends LitElement {
         line-height: 1.1;
       }
       
-      .block-content {
-        flex: 1;
-        min-width: 0;
-        padding: 12px;
+      /* 块视图容器 */
+      .block-view-container {
+        padding: 0 12px;
+        min-height: 60px;
+        display: flex;
+        align-items: center;
       }
       
+      /* 块操作 */
       .block-actions {
         display: flex;
         gap: 4px;
-        padding: 12px;
-        border-left: 1px solid var(--cf-border);
+        padding: 0 12px;
+        justify-content: flex-end;
       }
       
       .block-action {
@@ -112,6 +117,7 @@ export class BlockManagement extends LitElement {
         cursor: not-allowed;
       }
       
+      /* 添加块按钮 */
       .add-block-btn {
         width: 100%;
         padding: 12px;
@@ -141,6 +147,7 @@ export class BlockManagement extends LitElement {
         cursor: not-allowed;
       }
       
+      /* 空状态 */
       .empty-state {
         text-align: center;
         padding: 32px 20px;
@@ -155,16 +162,56 @@ export class BlockManagement extends LitElement {
         opacity: 0.5;
       }
       
-      .preset-notice {
-        background: rgba(33, 150, 243, 0.1);
-        border-left: 3px solid #2196f3;
-        padding: 8px 12px;
-        border-radius: 4px;
-        margin-bottom: 16px;
-        display: flex;
-        align-items: center;
-        gap: 8px;
-        font-size: 0.9em;
+      /* 编辑表单容器 */
+      .edit-form-container {
+        margin-top: 12px;
+        border: 1px solid var(--cf-primary-color);
+        border-radius: var(--cf-radius-md);
+        overflow: hidden;
+      }
+      
+      /* 响应式设计 */
+      @media (max-width: 768px) {
+        .block-item {
+          grid-template-columns: 60px 1fr 70px;
+          padding: 6px 0;
+        }
+        
+        .area-indicator {
+          padding: 0 6px;
+        }
+        
+        .area-label {
+          font-size: 0.7em;
+        }
+        
+        .block-view-container {
+          padding: 0 8px;
+        }
+        
+        .block-actions {
+          padding: 0 8px;
+        }
+      }
+      
+      @media (max-width: 480px) {
+        .block-item {
+          grid-template-columns: 50px 1fr 60px;
+          padding: 4px 0;
+        }
+        
+        .area-indicator {
+          padding: 0 4px;
+        }
+        
+        .area-label {
+          font-size: 0.65em;
+        }
+        
+        .block-action {
+          width: 28px;
+          height: 28px;
+        }
       }
     `
   ];
@@ -180,7 +227,6 @@ export class BlockManagement extends LitElement {
   render() {
     const blocks = this._getAllBlocks();
     const blockType = this.cardDefinition?.blockType || 'none';
-    const isPresetCard = blockType === 'preset';
     
     if (blocks.length === 0) {
       return this._renderEmptyState();
@@ -188,13 +234,6 @@ export class BlockManagement extends LitElement {
     
     return html`
       <div class="block-management">
-        ${isPresetCard ? html`
-          <div class="preset-notice">
-            <ha-icon icon="mdi:information-outline"></ha-icon>
-            <span>此卡片使用预设块结构，只能配置实体，不能删除或更改区域</span>
-          </div>
-        ` : ''}
-        
         <div class="block-list">
           ${blocks.map(block => this._renderBlockItem(block))}
         </div>
@@ -210,30 +249,34 @@ export class BlockManagement extends LitElement {
     const blockType = this.cardDefinition?.blockType || 'none';
     const isPresetCard = blockType === 'preset';
     
-    // 区域处理：预设卡片强制使用 content 区域
+    // 区域处理：预设卡片固定为 content
     const area = isPresetCard ? 'content' : (block.area || 'content');
-    const areaInfo = AREAS[area] || AREAS.content;
     
     // 权限判断
     const canDelete = blockType === 'custom' && !isPresetBlock;
-    const canEdit = true; // 始终可以编辑
     
     return html`
       <div class="block-item ${isPresetBlock ? 'preset-block' : ''}">
-        <!-- 区域标识 -->
-        <div class="area-indicator" style="border-left-color: ${this._getAreaColor(area)}">
-          <ha-icon icon="${this._getAreaIcon(area)}"></ha-icon>
-          <span class="area-label">
-            ${isPresetCard ? '内容区域（固定）' : areaInfo.label}
-          </span>
+        <!-- 区域标识（简化版） -->
+        <div class="area-indicator">
+          <div class="area-icon">
+            <ha-icon icon="${this._getAreaIcon(area)}"></ha-icon>
+          </div>
+          <div class="area-label">
+            ${this._getAreaLabel(area)}
+            ${isPresetCard ? '（固定）' : ''}
+          </div>
         </div>
         
-        <!-- 块预览 -->
-        <div class="block-content">
+        <!-- 块视图（使用紧凑网格布局） -->
+        <div class="block-view-container">
           <block-base
             .block=${block}
             .hass=${this.hass}
+            .layout=${'compact'}  <!-- 管理界面固定使用紧凑布局 -->
             .compact=${true}
+            .showName=${true}
+            .showValue=${true}
           ></block-base>
         </div>
         
@@ -256,7 +299,7 @@ export class BlockManagement extends LitElement {
       </div>
       
       ${isEditing ? html`
-        <div style="margin-top: 12px;">
+        <div class="edit-form-container">
           <block-edit-form
             .block=${block}
             .hass=${this.hass}
@@ -316,15 +359,6 @@ export class BlockManagement extends LitElement {
     }));
   }
 
-  _getAreaColor(areaId) {
-    const colorMap = {
-      header: '#2196f3',
-      content: '#4caf50',
-      footer: '#ff9800'
-    };
-    return colorMap[areaId] || '#9e9e9e';
-  }
-
   _getAreaIcon(areaId) {
     const iconMap = {
       header: 'mdi:format-header-1',
@@ -332,6 +366,15 @@ export class BlockManagement extends LitElement {
       footer: 'mdi:page-layout-footer'
     };
     return iconMap[areaId] || 'mdi:view-grid';
+  }
+
+  _getAreaLabel(areaId) {
+    const labelMap = {
+      header: '标题',
+      content: '内容',
+      footer: '页脚'
+    };
+    return labelMap[areaId] || '内容';
   }
 
   _handleFieldChange(blockId, { field, value }) {
@@ -375,7 +418,8 @@ export class BlockManagement extends LitElement {
       entity: '',
       name: '新块',
       icon: 'mdi:cube-outline',
-      area: 'content'
+      area: 'content',
+      layout: 'horizontal'  // 默认水平布局
     };
     
     const currentBlocks = this.config.blocks || {};
