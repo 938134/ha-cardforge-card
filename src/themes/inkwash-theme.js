@@ -1,213 +1,245 @@
-// 水墨主题 - 使用设计系统变量
+// 水墨主题 - 极简意境版
 export const theme = {
   id: 'inkwash',
   name: '水墨',
-  description: '中国风水墨画效果，书香韵味',
+  description: '中式极简美学，留白与意境',
   icon: '🖌️',
   
   styles: `
     .cardforge-container {
-      /* 宣纸底色渐变 - 使用设计系统的中性色 */
-      background: 
-        linear-gradient(135deg, 
-          var(--cf-neutral-50) 0%, 
-          color-mix(in srgb, var(--cf-neutral-50), var(--cf-neutral-100) 50%) 50%, 
-          color-mix(in srgb, var(--cf-neutral-50), var(--cf-neutral-200) 20%) 100%),
-        
-        /* 水墨晕染效果 - 使用设计系统的文字颜色 */
-        radial-gradient(circle at 20% 30%, rgba(var(--cf-text-primary-rgb), 0.05) 0%, transparent 50%),
-        radial-gradient(circle at 80% 70%, rgba(var(--cf-text-primary-rgb), 0.03) 0%, transparent 50%);
+      /* 第一层：宣纸基底 - 纯净暖白 */
+      background-color: var(--cf-neutral-50);
       
-      /* 使用设计系统的边框变量 */
-      border: 1px solid rgba(var(--cf-text-primary-rgb), 0.3);
-      font-family: 'ZCOOL XiaoWei', 'Ma Shan Zheng', 'Noto Serif SC', 'SimSun', var(--cf-font-family-base, serif);
+      /* 极细边框 - 模拟宣纸边缘 */
+      border: 0.5px solid rgba(var(--cf-text-primary-rgb), 0.1);
       
-      /* 使用设计系统的阴影变量 */
-      box-shadow: 
-        0 2px 12px rgba(var(--cf-text-primary-rgb), 0.1),
-        inset 0 1px 0 rgba(255, 255, 255, 0.8);
+      /* 中式排版字体 */
+      font-family: 'ZCOOL XiaoWei', 'Noto Serif SC', var(--cf-font-family-base, serif);
+      
+      /* 极简阴影，仅作层次区分 */
+      box-shadow: var(--cf-shadow-sm);
       
       position: relative;
-      background-blend-mode: multiply;
+      overflow: hidden;
     }
     
-    /* 毛边效果 */
+    /* 第二层：右上角淡墨点 - 偶然滴落的意境 */
     .cardforge-container::before {
       content: '';
       position: absolute;
-      top: -1px;
-      left: -1px;
-      right: -1px;
-      bottom: -1px;
-      background: 
-        repeating-linear-gradient(
-          0deg,
-          transparent,
-          transparent 1px,
-          rgba(var(--cf-text-primary-rgb), 0.05) 1px,
-          rgba(var(--cf-text-primary-rgb), 0.05) 2px
-        ),
-        repeating-linear-gradient(
-          90deg,
-          transparent,
-          transparent 1px,
-          rgba(var(--cf-text-primary-rgb), 0.05) 1px,
-          rgba(var(--cf-text-primary-rgb), 0.05) 2px
-        );
+      top: var(--cf-spacing-sm);
+      right: var(--cf-spacing-sm);
+      width: 40px;
+      height: 40px;
+      
+      /* 单色墨点，无复杂渐变 */
+      background: rgba(var(--cf-text-primary-rgb), 0.03);
+      
+      /* 不规则圆形，模拟自然晕染 */
+      border-radius: 30% 70% 70% 30% / 30% 30% 70% 70%;
+      
       pointer-events: none;
-      border-radius: inherit;
-      z-index: 1;
-      opacity: 0.3;
+      z-index: 0;
+      
+      /* 悬停时几乎消失 */
+      transition: opacity var(--cf-transition-duration-normal) var(--cf-easing-standard);
     }
     
-    /* 印章水印效果 */
+    /* 悬停时墨点更淡，不干扰交互 */
+    .cardforge-container:hover::before {
+      opacity: 0.5;
+    }
+    
+    /* 第三层：右下角微型朱印 - 完成标记 */
     .cardforge-container::after {
       content: '墨';
       position: absolute;
-      bottom: var(--cf-spacing-sm);
-      right: var(--cf-spacing-sm);
-      font-size: 24px;
+      bottom: var(--cf-spacing-xs);
+      right: var(--cf-spacing-xs);
+      font-size: 11px;
       font-family: 'ZCOOL XiaoWei', cursive;
-      color: rgba(var(--cf-accent-color-rgb), 0.15);
-      transform: rotate(-15deg);
+      color: rgba(var(--cf-accent-color-rgb), 0.12);
+      
+      /* 轻微倾斜，自然钤印感 */
+      transform: rotate(-8deg);
+      
       z-index: 0;
+      font-weight: bold;
+      
+      /* 印文压痕效果 */
+      text-shadow: 
+        0.3px 0.3px 0 rgba(255, 255, 255, 0.8),
+        -0.3px -0.3px 0 rgba(0, 0, 0, 0.05);
+      
+      /* 响应式适配基础 */
+      transition: all var(--cf-transition-duration-normal) var(--cf-easing-standard);
     }
     
-    /* 水墨主题下的文字样式 */
+    /* 卡片内容区域 - 绝对干净 */
+    .cardforge-container > * {
+      position: relative;
+      z-index: 1;
+    }
+    
+    /* 标题文字优化 - 保持清晰 */
     .cardforge-container .greeting,
     .cardforge-container .clock-time,
     .cardforge-container .poetry-title,
     .cardforge-container .week-number {
-      font-family: 'ZCOOL XiaoWei', 'Ma Shan Zheng', var(--cf-font-family-base, serif);
+      font-family: 'ZCOOL XiaoWei', 'Noto Serif SC', var(--cf-font-family-base, serif);
       font-weight: var(--cf-font-weight-bold);
-      text-shadow: 1px 1px 2px rgba(var(--cf-text-primary-rgb), 0.1);
-      letter-spacing: 0.5px;
+      letter-spacing: 0.2px;
+      color: var(--cf-text-primary);
     }
     
-    /* 水墨主题下的块样式 */
+    /* 块样式优化 - 保持宣纸统一性 */
     .cardforge-container .area-header {
-      background: rgba(var(--cf-primary-color-rgb), 0.08);
-      border-left: 3px solid var(--cf-primary-color);
+      background: rgba(var(--cf-primary-color-rgb), 0.05);
+      border-left: 2px solid rgba(var(--cf-primary-color-rgb), 0.2);
       border-radius: var(--cf-radius-sm);
-      font-family: 'ZCOOL XiaoWei', var(--cf-font-family-base, serif);
     }
     
     .cardforge-container .area-content {
-      background: rgba(255, 255, 255, 0.9);
-      border: 1px solid rgba(var(--cf-text-primary-rgb), 0.1);
-      border-radius: var(--cf-radius-md);
-      box-shadow: 0 1px 3px rgba(var(--cf-text-primary-rgb), 0.05);
+      background: rgba(255, 255, 255, 0.95);
+      border: 0.5px solid rgba(var(--cf-text-primary-rgb), 0.08);
+      border-radius: var(--cf-radius-sm);
     }
     
     .cardforge-container .area-footer {
-      background: rgba(var(--cf-accent-color-rgb), 0.05);
-      border-top: 1px solid rgba(var(--cf-text-primary-rgb), 0.1);
+      background: rgba(var(--cf-accent-color-rgb), 0.03);
+      border-top: 0.5px solid rgba(var(--cf-text-primary-rgb), 0.06);
       border-radius: var(--cf-radius-sm);
-      font-family: 'ZCOOL XiaoWei', var(--cf-font-family-base, serif);
       font-size: var(--cf-font-size-sm);
     }
     
     .cardforge-container .block-icon {
-      background: rgba(var(--cf-primary-color-rgb), 0.1);
+      background: rgba(var(--cf-primary-color-rgb), 0.07);
       color: var(--cf-primary-color);
-      font-family: 'Material Icons';
-      border-radius: var(--cf-radius-sm);
+      border: 0.5px solid rgba(var(--cf-primary-color-rgb), 0.12);
     }
     
-    .cardforge-container .block-name {
-      color: color-mix(in srgb, var(--cf-text-secondary), var(--cf-primary-color) 20%);
-      font-weight: var(--cf-font-weight-medium);
-    }
-    
-    .cardforge-container .block-value {
-      color: var(--cf-text-primary);
-      font-weight: var(--cf-font-weight-bold);
-    }
-    
-    /* 链接样式 */
-    .cardforge-container a {
-      color: color-mix(in srgb, var(--cf-primary-color), var(--cf-info-color) 50%);
-      text-decoration: none;
-      border-bottom: 1px dashed rgba(var(--cf-info-color-rgb), 0.3);
-      transition: all var(--cf-transition-duration-fast) var(--cf-easing-standard);
-    }
-    
-    .cardforge-container a:hover {
-      color: var(--cf-accent-color);
-      border-bottom-color: rgba(var(--cf-accent-color-rgb), 0.5);
-    }
-    
-    /* 深色模式适配 */
+    /* 深色模式 - 更克制的呈现 */
     @media (prefers-color-scheme: dark) {
       .cardforge-container {
-        background: 
-          linear-gradient(135deg, 
-            color-mix(in srgb, var(--cf-background), var(--cf-neutral-800) 80%) 0%, 
-            color-mix(in srgb, var(--cf-background), var(--cf-neutral-800) 60%) 50%, 
-            color-mix(in srgb, var(--cf-background), var(--cf-neutral-700) 40%) 100%),
-          radial-gradient(circle at 20% 30%, rgba(232, 225, 209, 0.05) 0%, transparent 50%),
-          radial-gradient(circle at 80% 70%, rgba(232, 225, 209, 0.03) 0%, transparent 50%);
-        
-        border: 1px solid rgba(232, 225, 209, 0.3);
-      }
-      
-      .cardforge-container::after {
-        color: rgba(var(--cf-accent-color-rgb), 0.2);
-      }
-      
-      .cardforge-container .area-content {
-        background: rgba(255, 255, 255, 0.08);
-        border-color: rgba(255, 255, 255, 0.15);
-      }
-      
-      .cardforge-container .block-icon {
-        background: rgba(var(--cf-primary-color-rgb), 0.2);
-        color: var(--cf-text-tertiary);
-      }
-      
-      .cardforge-container a {
-        color: color-mix(in srgb, var(--cf-primary-color), var(--cf-info-color) 70%);
-        border-bottom-color: rgba(var(--cf-info-color-rgb), 0.4);
-      }
-    }
-    
-    /* 响应式设计 */
-    @container cardforge-container (max-width: 600px) {
-      .cardforge-container::after {
-        font-size: 18px;
-        bottom: var(--cf-spacing-xs);
-        right: var(--cf-spacing-xs);
-      }
-      
-      .cardforge-container .area-header,
-      .cardforge-container .area-footer {
-        font-size: var(--cf-font-size-xs);
-      }
-    }
-    
-    @container cardforge-container (max-width: 400px) {
-      .cardforge-container {
-        font-size: var(--cf-font-size-sm);
-      }
-      
-      .cardforge-container::after {
-        display: none; /* 在小屏幕上隐藏印章 */
+        background-color: color-mix(in srgb, var(--cf-background), white 3%);
+        border-color: rgba(255, 255, 255, 0.08);
       }
       
       .cardforge-container::before {
-        opacity: 0.2; /* 减少毛边效果强度 */
+        background: rgba(255, 255, 255, 0.02);
+      }
+      
+      .cardforge-container::after {
+        color: rgba(var(--cf-accent-color-rgb), 0.15);
+        text-shadow: 
+          0.3px 0.3px 0 rgba(0, 0, 0, 0.3),
+          -0.3px -0.3px 0 rgba(255, 255, 255, 0.05);
+      }
+      
+      .cardforge-container .area-content {
+        background: rgba(255, 255, 255, 0.04);
+        border-color: rgba(255, 255, 255, 0.06);
+      }
+      
+      .cardforge-container .block-icon {
+        background: rgba(var(--cf-primary-color-rgb), 0.1);
+        border-color: rgba(var(--cf-primary-color-rgb), 0.15);
+      }
+    }
+    
+    /* 响应式简化策略 */
+    
+    /* 平板端：缩小装饰 */
+    @container cardforge-container (max-width: 768px) {
+      .cardforge-container::before {
+        width: 30px;
+        height: 30px;
+        top: var(--cf-spacing-xs);
+        right: var(--cf-spacing-xs);
+        opacity: 0.8;
+      }
+      
+      .cardforge-container::after {
+        font-size: 10px;
+        bottom: var(--cf-spacing-xs);
+        right: var(--cf-spacing-xs);
+      }
+    }
+    
+    /* 手机端：移除墨点，仅保留印章 */
+    @container cardforge-container (max-width: 480px) {
+      .cardforge-container::before {
+        display: none;
+      }
+      
+      .cardforge-container::after {
+        font-size: 9px;
+        opacity: 0.9;
+        transform: rotate(-5deg);
+      }
+      
+      /* 手机端块样式更紧凑 */
+      .cardforge-container .area-header,
+      .cardforge-container .area-content,
+      .cardforge-container .area-footer {
+        padding: var(--cf-spacing-sm);
+      }
+    }
+    
+    /* 超小屏：最小化一切 */
+    @container cardforge-container (max-width: 360px) {
+      .cardforge-container::after {
+        font-size: 8px;
+        bottom: 2px;
+        right: 2px;
+        opacity: 0.7;
+      }
+    }
+    
+    /* 高对比度模式：完全简化 */
+    @media (prefers-contrast: high) {
+      .cardforge-container::before,
+      .cardforge-container::after {
+        display: none;
+      }
+      
+      .cardforge-container {
+        background-color: var(--cf-background);
+        border: 1px solid var(--cf-border);
+      }
+    }
+    
+    /* 性能优化：减少不必要的重绘 */
+    .cardforge-container {
+      will-change: transform;
+      contain: layout style;
+    }
+    
+    /* 打印样式：隐藏装饰 */
+    @media print {
+      .cardforge-container::before,
+      .cardforge-container::after {
+        display: none;
+      }
+      
+      .cardforge-container {
+        background-color: white !important;
+        border: 1px solid #ccc !important;
+        box-shadow: none !important;
       }
     }
   `,
   
   preview: {
-    background: 'linear-gradient(135deg, var(--cf-neutral-50) 0%, color-mix(in srgb, var(--cf-neutral-50), var(--cf-neutral-100) 50%) 50%, color-mix(in srgb, var(--cf-neutral-50), var(--cf-neutral-200) 20%) 100%)',
+    // 预览同样极简
+    background: 'var(--cf-neutral-50)',
     color: 'var(--cf-text-primary)',
-    border: '1px solid rgba(var(--cf-text-primary-rgb), 0.3)',
-    boxShadow: '0 2px 8px rgba(var(--cf-text-primary-rgb), 0.15)',
+    border: '0.5px solid rgba(var(--cf-text-primary-rgb), 0.1)',
+    boxShadow: 'var(--cf-shadow-sm)',
     
-    backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='48' height='48' viewBox='0 0 48 48'%3E%3Ctext x='24' y='32' font-family='ZCOOL XiaoWei' font-size='24' fill='rgba(var(--cf-accent-color-rgb),0.15)' text-anchor='middle'%3E墨%3C/text%3E%3C/svg%3E")`,
+    // 预览中的微型元素
+    backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24'%3E%3Ctext x='18' y='22' font-family='ZCOOL XiaoWei' font-size='9' fill='rgba(var(--cf-accent-color-rgb),0.12)' text-anchor='end'%3E墨%3C/text%3E%3C/svg%3E")`,
     backgroundRepeat: 'no-repeat',
-    backgroundPosition: 'center'
+    backgroundPosition: '95% 95%'
   }
 };
