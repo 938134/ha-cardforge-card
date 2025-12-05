@@ -1,4 +1,4 @@
-// 基础块组件
+// 基础块组件 - 使用合并后的设计系统
 import { LitElement, html, css } from 'https://unpkg.com/lit@2.8.0/index.js?module';
 import { designSystem } from '../core/design-system.js';
 import { AREAS, ENTITY_ICONS } from './block-config.js';
@@ -10,109 +10,217 @@ export class BlockBase extends LitElement {
     showName: { type: Boolean },
     showValue: { type: Boolean },
     compact: { type: Boolean },
+    layout: { type: String }, // 'horizontal' | 'vertical'
     _displayName: { state: true },
     _displayValue: { state: true },
     _icon: { state: true }
   };
 
   static styles = [
-    designSystem,
+    designSystem, // 直接使用合并后的设计系统
     css`
       :host { display: block; }
       
+      /* 基础块容器 */
       .block-base {
-        display: flex;
-        align-items: center;
-        gap: var(--cf-block-gap, 8px);
-        padding: var(--cf-block-padding, 12px);
-        background: var(--cf-block-bg, rgba(0, 0, 0, 0.03));
-        border-radius: var(--cf-block-radius, 8px);
-        min-height: 60px;
-        transition: all var(--cf-transition-fast, 0.15s ease);
+        width: 100%;
+        position: relative;
+        overflow: hidden;
       }
       
-      .block-base.compact {
-        min-height: 50px;
-        padding: 8px;
+      /* 区域样式应用 */
+      .area-header {
+        @apply --cf-recipe-header-block;
       }
       
+      .area-content.horizontal {
+        @apply --cf-recipe-content-block-horizontal;
+      }
+      
+      .area-content.vertical {
+        @apply --cf-recipe-content-block-vertical;
+      }
+      
+      .area-footer {
+        @apply --cf-recipe-footer-block;
+      }
+      
+      /* 块通用交互 */
       .block-base:hover {
-        background: rgba(var(--cf-rgb-primary, 3, 169, 244), 0.05);
+        @apply --cf-block-hover-state;
       }
       
+      .block-base:active {
+        @apply --cf-block-active-state;
+      }
+      
+      /* 块图标 */
       .block-icon {
-        font-size: 1.5em;
-        color: var(--cf-text-secondary, #757575);
-        flex-shrink: 0;
-        width: 40px;
-        height: 40px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        border-radius: var(--cf-radius-md, 8px);
-        background: rgba(var(--cf-rgb-primary, 3, 169, 244), 0.1);
+        @apply --cf-block-icon-base;
       }
       
-      .block-base.compact .block-icon {
-        font-size: 1.2em;
-        width: 32px;
-        height: 32px;
+      .block-base:hover .block-icon {
+        @apply --cf-block-icon-hover;
       }
       
+      /* 块内容 */
       .block-content {
         flex: 1;
         min-width: 0;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
       }
       
+      .vertical .block-content {
+        align-items: center;
+        text-align: center;
+      }
+      
+      /* 块名称 */
       .block-name {
-        font-size: 0.9em;
-        color: var(--cf-text-secondary, #757575);
-        margin-bottom: 4px;
+        font-size: var(--cf-font-size-sm);
+        color: var(--cf-text-secondary);
+        margin-bottom: var(--cf-spacing-xs);
         overflow: hidden;
         text-overflow: ellipsis;
         white-space: nowrap;
+        font-weight: var(--cf-font-weight-medium);
       }
       
-      .block-base.compact .block-name {
-        font-size: 0.8em;
+      .compact .block-name {
+        font-size: var(--cf-font-size-xs);
         margin-bottom: 2px;
       }
       
+      .vertical .block-name {
+        text-align: center;
+        white-space: normal;
+        line-height: var(--cf-line-height-tight);
+      }
+      
+      /* 块值 */
       .block-value {
-        font-size: 1.2em;
-        font-weight: 500;
-        color: var(--cf-text-primary, #212121);
-        line-height: 1.3;
+        font-size: var(--cf-font-size-xl);
+        font-weight: var(--cf-font-weight-bold);
+        color: var(--cf-text-primary);
+        line-height: var(--cf-line-height-tight);
         overflow: hidden;
         text-overflow: ellipsis;
         white-space: nowrap;
       }
       
-      .block-base.compact .block-value {
-        font-size: 1em;
+      .compact .block-value {
+        font-size: var(--cf-font-size-lg);
       }
       
-      /* 响应式 */
+      .vertical .block-value {
+        text-align: center;
+        white-space: normal;
+        margin-top: var(--cf-spacing-xs);
+      }
+      
+      .block-unit {
+        font-size: var(--cf-font-size-sm);
+        color: var(--cf-text-tertiary);
+        font-weight: var(--cf-font-weight-normal);
+        margin-left: var(--cf-spacing-xs);
+      }
+      
+      /* 状态指示器 */
+      .block-status {
+        position: absolute;
+        top: var(--cf-spacing-sm);
+        right: var(--cf-spacing-sm);
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        background: var(--cf-neutral-400);
+      }
+      
+      .block-status.online {
+        background: var(--cf-success-color);
+        box-shadow: 0 0 0 2px rgba(76, 175, 80, 0.2);
+      }
+      
+      .block-status.offline {
+        background: var(--cf-error-color);
+        box-shadow: 0 0 0 2px rgba(244, 67, 54, 0.2);
+      }
+      
+      .block-status.warning {
+        background: var(--cf-warning-color);
+        box-shadow: 0 0 0 2px rgba(255, 152, 0, 0.2);
+      }
+      
+      /* 空状态 */
+      .empty-state {
+        color: var(--cf-text-tertiary);
+        font-style: italic;
+        font-weight: var(--cf-font-weight-normal);
+      }
+      
+      /* 紧凑模式调整 */
+      .compact.block-base {
+        min-height: 50px;
+      }
+      
+      .compact .block-icon {
+        width: 36px;
+        height: 36px;
+        font-size: 1.2em;
+      }
+      
+      /* 最小模式调整 */
+      .minimal.block-base {
+        background: transparent;
+        border: none;
+        padding: 0;
+        min-height: auto;
+      }
+      
+      .minimal .block-icon {
+        background: transparent;
+        width: 32px;
+        height: 32px;
+        color: var(--cf-text-tertiary);
+      }
+      
+      /* 响应式设计 */
       @container cardforge-container (max-width: 400px) {
         .block-base {
           flex-direction: column;
           text-align: center;
-          gap: 8px;
-          padding: 10px;
-        }
-        
-        .block-name {
-          font-size: 0.8em;
-          margin-bottom: 2px;
-        }
-        
-        .block-value {
-          font-size: 1em;
+          gap: var(--cf-spacing-sm);
+          padding: var(--cf-spacing-md);
         }
         
         .block-icon {
-          width: 36px;
-          height: 36px;
+          margin-bottom: var(--cf-spacing-xs);
+        }
+        
+        .block-name {
+          font-size: var(--cf-font-size-xs);
+          margin-bottom: var(--cf-spacing-xs);
+        }
+        
+        .block-value {
+          font-size: var(--cf-font-size-lg);
+        }
+        
+        .block-content {
+          width: 100%;
+          text-align: center;
+        }
+        
+        /* 在小屏幕上强制垂直布局 */
+        .area-content.horizontal {
+          @apply --cf-layout-vertical;
+          align-items: center;
+        }
+        
+        .horizontal .block-content {
+          align-items: center;
         }
       }
     `
@@ -125,6 +233,7 @@ export class BlockBase extends LitElement {
     this.showName = true;
     this.showValue = true;
     this.compact = false;
+    this.layout = 'horizontal'; // 默认水平布局
     this._displayName = '';
     this._displayValue = '';
     this._icon = 'mdi:cube-outline';
@@ -140,9 +249,19 @@ export class BlockBase extends LitElement {
     const hasEntity = this.block?.entity && this.hass?.states?.[this.block.entity];
     const isPreset = this.block?.presetKey;
     const isRequired = this.block?.required;
+    const area = this.block?.area || 'content';
+    
+    // 确定布局：内容块根据layout属性，其他区域固定
+    let layoutClass = '';
+    if (area === 'content') {
+      layoutClass = this.layout;
+    } else {
+      // 标题和页脚块固定为水平布局
+      layoutClass = 'horizontal';
+    }
     
     return html`
-      <div class="block-base ${this.compact ? 'compact' : ''}">
+      <div class="block-base area-${area} ${layoutClass} ${this.compact ? 'compact' : ''}">
         <div class="block-icon">
           <ha-icon .icon=${this._icon}></ha-icon>
         </div>
@@ -162,6 +281,10 @@ export class BlockBase extends LitElement {
             </div>
           ` : ''}
         </div>
+        
+        ${hasEntity ? html`
+          <div class="block-status ${this._getEntityStatusClass()}"></div>
+        ` : ''}
         
         <slot></slot>
       </div>
@@ -216,6 +339,25 @@ export class BlockBase extends LitElement {
     
     const domain = this.block.entity.split('.')[0];
     return ENTITY_ICONS[domain] || 'mdi:cube';
+  }
+
+  _getEntityStatusClass() {
+    if (!this.block.entity || !this.hass?.states?.[this.block.entity]) {
+      return '';
+    }
+    
+    const entity = this.hass.states[this.block.entity];
+    const state = entity.state.toLowerCase();
+    
+    if (state === 'on' || state === 'home' || state === 'unlocked') {
+      return 'online';
+    } else if (state === 'off' || state === 'away' || state === 'locked') {
+      return 'offline';
+    } else if (state === 'unavailable' || state === 'unknown') {
+      return 'warning';
+    }
+    
+    return '';
   }
 }
 
