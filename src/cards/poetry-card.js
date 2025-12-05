@@ -92,9 +92,9 @@ export const card = {
         
         ${(dynasty || author) ? `
           <div class="poetry-meta">
-            ${dynasty ? `<span class="dynasty">${escapeHtml(dynasty)}</span>` : ''}
+            ${dynasty ? `<span class="meta-item dynasty">${escapeHtml(dynasty)}</span>` : ''}
             ${dynasty && author ? `<span class="separator">·</span>` : ''}
-            ${author ? `<span class="author">${escapeHtml(author)}</span>` : ''}
+            ${author ? `<span class="meta-item author">${escapeHtml(author)}</span>` : ''}
           </div>
         ` : ''}
         
@@ -150,12 +150,13 @@ export const card = {
         justify-content: center;
         height: 100%;
         min-height: 240px;
-        padding: var(--cf-spacing-xl);
+        padding: var(--cf-spacing-2xl);
         text-align: center;
         font-family: 'ZCOOL XiaoWei', 'Ma Shan Zheng', 'Noto Serif SC', var(--cf-font-family-base, serif);
         background: var(--cf-surface);
         border-radius: var(--cf-radius-lg);
         box-shadow: var(--cf-shadow-sm);
+        gap: var(--cf-spacing-md);
       }
       
       /* 字体大小控制 */
@@ -174,16 +175,16 @@ export const card = {
         font-size: 1.8em;
         font-weight: var(--cf-font-weight-bold);
         color: var(--cf-primary-color);
-        margin-bottom: var(--cf-spacing-sm);
+        margin-bottom: var(--cf-spacing-xs);
         line-height: var(--cf-line-height-tight);
         text-shadow: 0 1px 2px rgba(var(--cf-primary-color-rgb), 0.1);
       }
       
-      /* 元信息样式 */
+      /* 元信息样式 - 优化：统一字体颜色 */
       .poetry-meta {
         font-size: 0.95em;
         color: var(--cf-text-secondary);
-        margin-bottom: var(--cf-spacing-lg);
+        margin-bottom: var(--cf-spacing-sm);
         display: flex;
         align-items: center;
         justify-content: center;
@@ -191,14 +192,9 @@ export const card = {
         flex-wrap: wrap;
       }
       
-      .dynasty {
+      .meta-item {
         color: var(--cf-accent-color);
         font-weight: var(--cf-font-weight-medium);
-      }
-      
-      .author {
-        color: var(--cf-text-tertiary);
-        font-style: italic;
       }
       
       .separator {
@@ -206,13 +202,13 @@ export const card = {
         font-weight: var(--cf-font-weight-light);
       }
       
-      /* 分隔线 */
+      /* 分隔线 - 优化：减少上下边距 */
       .poetry-divider,
       .translation-divider {
         width: 60px;
         height: 1px;
         background: var(--cf-border);
-        margin: var(--cf-spacing-lg) 0;
+        margin: var(--cf-spacing-sm) 0;
         opacity: 0.5;
       }
       
@@ -220,6 +216,7 @@ export const card = {
       .poetry-content {
         width: 100%;
         max-width: 600px;
+        margin-top: var(--cf-spacing-xs);
       }
       
       .poetry-line {
@@ -229,11 +226,10 @@ export const card = {
         margin-bottom: var(--cf-spacing-xs);
       }
       
-      /* 译文区域 */
+      /* 译文区域 - 优化：减少上边距 */
       .translation-container {
         width: 100%;
         max-width: 600px;
-        margin-top: var(--cf-spacing-md);
         padding: var(--cf-spacing-md);
         background: rgba(var(--cf-accent-color-rgb), 0.05);
         border-radius: var(--cf-radius-md);
@@ -263,12 +259,12 @@ export const card = {
         align-items: center;
         justify-content: center;
         color: var(--cf-text-tertiary);
-        padding: var(--cf-spacing-2xl);
+        padding: var(--cf-spacing-3xl);
+        gap: var(--cf-spacing-md);
       }
       
       .empty-icon {
         font-size: 3em;
-        margin-bottom: var(--cf-spacing-md);
         opacity: 0.4;
       }
       
@@ -302,12 +298,14 @@ export const card = {
       /* 响应式设计 */
       @container cardforge-container (max-width: 600px) {
         .poetry-card {
-          padding: var(--cf-spacing-lg);
+          padding: var(--cf-spacing-xl);
           min-height: 200px;
+          gap: var(--cf-spacing-sm);
         }
         
         .poetry-title {
           font-size: 1.6em;
+          margin-bottom: 0;
         }
         
         .poetry-content,
@@ -318,11 +316,17 @@ export const card = {
         .translation-container {
           padding: var(--cf-spacing-sm);
         }
+        
+        .poetry-divider,
+        .translation-divider {
+          margin: var(--cf-spacing-xs) 0;
+        }
       }
       
       @container cardforge-container (max-width: 480px) {
         .poetry-card {
-          padding: var(--cf-spacing-md);
+          padding: var(--cf-spacing-lg);
+          gap: var(--cf-spacing-xs);
         }
         
         .poetry-title {
@@ -331,6 +335,7 @@ export const card = {
         
         .poetry-meta {
           font-size: 0.85em;
+          margin-bottom: var(--cf-spacing-xs);
         }
         
         .poetry-line {
@@ -341,13 +346,13 @@ export const card = {
         .poetry-divider,
         .translation-divider {
           width: 40px;
-          margin: var(--cf-spacing-md) 0;
+          margin: var(--cf-spacing-xs) 0;
         }
       }
       
       @container cardforge-container (max-width: 360px) {
         .poetry-card {
-          padding: var(--cf-spacing-sm);
+          padding: var(--cf-spacing-md);
           min-height: 180px;
         }
         
@@ -373,6 +378,11 @@ export const card = {
         
         .translation-content {
           font-size: 0.9em;
+        }
+        
+        .poetry-divider,
+        .translation-divider {
+          width: 30px;
         }
       }
     `;
