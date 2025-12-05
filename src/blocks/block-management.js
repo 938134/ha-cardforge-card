@@ -1,4 +1,4 @@
-// 块管理界面 - 优化版
+// 块管理界面 - 统一区域标识显示
 import { LitElement, html, css } from 'https://unpkg.com/lit@2.8.0/index.js?module';
 import { designSystem } from '../core/design-system.js';
 import { BlockBase } from './block-base.js';
@@ -28,7 +28,7 @@ export class BlockManagement extends LitElement {
       
       .block-item {
         display: grid;
-        grid-template-columns: 80px 1fr 80px;
+        grid-template-columns: 70px 1fr 80px;
         align-items: center;
         background: var(--cf-surface);
         border: 1px solid var(--cf-border);
@@ -47,7 +47,7 @@ export class BlockManagement extends LitElement {
         background: rgba(0, 0, 0, 0.02);
       }
       
-      /* 区域标识 - 简化版（图标+文字） */
+      /* 区域标识 - 简化版（图标+文字），预设块也显示相同内容 */
       .area-indicator {
         display: flex;
         flex-direction: column;
@@ -74,6 +74,11 @@ export class BlockManagement extends LitElement {
         font-weight: 600;
         text-align: center;
         line-height: 1.1;
+      }
+      
+      /* 预设块区域标识特殊样式 */
+      .preset-block .area-icon {
+        opacity: 0.7;
       }
       
       /* 块视图容器 */
@@ -249,7 +254,7 @@ export class BlockManagement extends LitElement {
     const blockType = this.cardDefinition?.blockType || 'none';
     const isPresetCard = blockType === 'preset';
     
-    // 区域处理：预设卡片固定为 content
+    // 区域处理：预设卡片固定为 content，其他使用配置的区域
     const area = isPresetCard ? 'content' : (block.area || 'content');
     
     // 权限判断
@@ -257,23 +262,21 @@ export class BlockManagement extends LitElement {
     
     return html`
       <div class="block-item ${isPresetBlock ? 'preset-block' : ''}">
-        <!-- 区域标识（简化版） -->
+        <!-- 区域标识（统一显示区域名称，预设块不显示"固定"字样） -->
         <div class="area-indicator">
           <div class="area-icon">
             <ha-icon icon="${this._getAreaIcon(area)}"></ha-icon>
           </div>
           <div class="area-label">
             ${this._getAreaLabel(area)}
-            ${isPresetCard ? '（固定）' : ''}
           </div>
         </div>
         
-        <!-- 块视图（使用紧凑网格布局） -->
+        <!-- 块视图（使用紧凑布局） -->
         <div class="block-view-container">
           <block-base
             .block=${block}
             .hass=${this.hass}
-            .layout=${'compact'}  <!-- 管理界面固定使用紧凑布局 -->
             .compact=${true}
             .showName=${true}
             .showValue=${true}
@@ -418,8 +421,7 @@ export class BlockManagement extends LitElement {
       entity: '',
       name: '新块',
       icon: 'mdi:cube-outline',
-      area: 'content',
-      layout: 'horizontal'  // 默认水平布局
+      area: 'content'
     };
     
     const currentBlocks = this.config.blocks || {};
