@@ -1,4 +1,4 @@
-// 卡片系统
+// 卡片系统 - 修复版
 class CardSystem {
   constructor() {
     this.cards = new Map();
@@ -27,7 +27,7 @@ class CardSystem {
         const module = await importFn();
         this._registerCardModule(module);
       } catch (error) {
-        // 静默失败
+        console.warn(`卡片加载失败:`, error);
       }
     }
   }
@@ -71,8 +71,8 @@ class CardSystem {
     }));
   }
 
-  // 渲染卡片
-  renderCard(cardId, userConfig = {}, hass = null, themeVariables = {}) {
+  // 渲染卡片 - 修复版，移除 themeVariables 参数
+  renderCard(cardId, userConfig = {}, hass = null) {
     const card = this.getCard(cardId);
     if (!card) {
       throw new Error(`卡片不存在: ${cardId}`);
@@ -82,8 +82,9 @@ class CardSystem {
     const config = this._mergeConfig(card.schema || {}, userConfig);
     
     try {
-      const template = card.template(config, { hass }, { theme: themeVariables });
-      const styles = card.styles(config, themeVariables);
+      // 移除 themeVariables 参数的传递
+      const template = card.template(config, { hass });
+      const styles = card.styles ? card.styles(config) : '';
       
       return { template, styles, config };
     } catch (error) {

@@ -1,4 +1,4 @@
-// 主卡片组件 - 修复主题应用
+// 主卡片组件 - 修复版
 import { LitElement, html, css } from 'https://unpkg.com/lit@2.8.0/index.js?module';
 import { unsafeHTML } from 'https://unpkg.com/lit-html/directives/unsafe-html.js?module';
 import { cardSystem } from '../core/card-system.js';
@@ -20,9 +20,6 @@ class HaCardForgeCard extends LitElement {
         position: relative;
         height: 100%;
         min-height: 80px;
-        /* 确保容器能应用主题样式 */
-        container-type: inline-size;
-        container-name: cardforge-container;
       }
       
       .cardforge-error {
@@ -124,13 +121,12 @@ class HaCardForgeCard extends LitElement {
 
   _renderCard() {
     try {
-      const themeVariables = themeSystem.getThemeVariables(this.config.theme || 'auto');
-      
+      // 移除对 getThemeVariables 的调用，直接渲染卡片
       this._cardData = cardSystem.renderCard(
         this.config.card_type,
         this.config,
-        this.hass,
-        themeVariables
+        this.hass
+        // 不再传递 themeVariables 参数
       );
     } catch (error) {
       throw new Error(`卡片渲染失败: ${error.message}`);
@@ -165,27 +161,39 @@ class HaCardForgeCard extends LitElement {
     }
     
     try {
+      // 获取主题样式
       const themeStyles = themeSystem.getThemeStyles(this.config.theme || 'auto');
       const cardStyles = this._cardData.styles || '';
       
       return html`
-        <style>
-          ${themeStyles}
-          ${cardStyles}
-        </style>
         <ha-card>
           <div class="cardforge-container">
             ${unsafeHTML(this._cardData.template)}
           </div>
         </ha-card>
+        <style>
+          /* 注入设计系统样式 */
+          ${themeStyles}
+          ${cardStyles}
+          
+          /* 确保卡片容器有正确的样式 */
+          .cardforge-container {
+            container-type: inline-size;
+            container-name: cardforge-container;
+            height: 100%;
+            min-height: 80px;
+            position: relative;
+          }
+        </style>
       `;
     } catch (error) {
+      console.error('卡片渲染错误:', error);
       return html`
         <ha-card>
           <div class="cardforge-container">
             <div class="cardforge-error">
               <div class="error-icon">⚠️</div>
-              <div class="error-message">渲染错误</div>
+              <div class="error-message">渲染错误: ${error.message}</div>
             </div>
           </div>
         </ha-card>
