@@ -88,7 +88,7 @@ export const card = {
   },
   
   template: (config, context, themeVariables) => {
-    // 修正：正确解构参数
+    // 从context中提取hass
     const { hass, theme } = context || {};
     
     const {
