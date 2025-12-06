@@ -1,4 +1,4 @@
-// cards/week-card.js - 最终版（周末不特殊处理）
+// cards/week-card.js - 优化间距版
 import { getYearProgress, getWeekNumber } from '../core/card-tools.js';
 import { createCardStyles } from '../core/card-styles.js';
 
@@ -144,11 +144,11 @@ export const card = {
   styles: (config, theme) => {
     const customStyles = `
       .week-card {
-        min-height: 200px;
+        min-height: 180px; /* 稍微降低最小高度 */
       }
       
       .week-card .card-content {
-        gap: var(--cf-spacing-xl);
+        gap: var(--cf-spacing-lg); /* 减小间距：xl → lg */
         justify-content: center;
       }
       
@@ -156,7 +156,7 @@ export const card = {
       .year-section {
         width: 100%;
         max-width: 320px;
-        margin: var(--cf-spacing-md) 0;
+        margin: var(--cf-spacing-sm) 0; /* 减小上下间距：md → sm */
       }
       
       .progress-bg {
@@ -191,7 +191,7 @@ export const card = {
       
       .week-label {
         line-height: var(--cf-line-height-tight);
-        margin-bottom: var(--cf-spacing-xs);
+        margin-bottom: 2px; /* 减小间距 */
         white-space: nowrap;
       }
       
@@ -204,17 +204,17 @@ export const card = {
       .week-section {
         width: 100%;
         max-width: 300px;
-        margin: var(--cf-spacing-md) 0;
+        margin: var(--cf-spacing-sm) 0; /* 减小上下间距：md → sm */
       }
       
       .progress-bars {
         display: flex;
         width: 100%;
-        height: var(--cf-spacing-xl);
+        height: var(--cf-spacing-lg); /* 减小高度：xl → lg */
         background: var(--cf-surface);
         border-radius: var(--cf-radius-pill);
         overflow: hidden;
-        margin-bottom: var(--cf-spacing-md);
+        margin-bottom: var(--cf-spacing-sm); /* 减小间距：md → sm */
         border: 1px solid var(--cf-border);
         box-shadow: var(--cf-shadow-inner);
       }
@@ -275,40 +275,44 @@ export const card = {
         color: var(--cf-primary-color);
       }
       
-      /* 响应式设计 */
+      /* 响应式设计 - 进一步减小间距 */
       @container cardforge-container (max-width: 500px) {
         .week-card {
-          min-height: 180px;
+          min-height: 160px; /* 减小高度 */
         }
         
         .week-card .card-content {
-          gap: var(--cf-spacing-lg);
+          gap: var(--cf-spacing-md); /* lg → md */
         }
         
         .year-section {
           max-width: 280px;
+          margin: 8px 0; /* 具体数值 */
         }
         
         .week-section {
           max-width: 280px;
+          margin: 8px 0; /* 具体数值 */
         }
         
         .progress-bars {
-          height: var(--cf-spacing-lg);
+          height: var(--cf-spacing-md); /* lg → md */
+          margin-bottom: var(--cf-spacing-xs); /* sm → xs */
         }
       }
       
       @container cardforge-container (max-width: 400px) {
         .week-card {
-          min-height: 160px;
+          min-height: 150px; /* 继续减小高度 */
         }
         
         .week-card .card-content {
-          gap: var(--cf-spacing-md);
+          gap: var(--cf-spacing-sm); /* md → sm */
         }
         
         .year-section {
           max-width: 260px;
+          margin: 6px 0; /* 继续减小 */
         }
         
         .date-info {
@@ -317,10 +321,16 @@ export const card = {
         
         .week-section {
           max-width: 260px;
+          margin: 6px 0; /* 继续减小 */
         }
         
         .progress-bars {
-          height: var(--cf-spacing-md);
+          height: 12px; /* 具体数值 */
+          margin-bottom: 6px; /* 具体数值 */
+        }
+        
+        .week-label {
+          margin-bottom: 1px; /* 继续减小 */
         }
       }
       
@@ -329,7 +339,8 @@ export const card = {
           flex-direction: column;
           text-align: center;
           max-width: 240px;
-          gap: var(--cf-spacing-md);
+          gap: var(--cf-spacing-sm); /* md → sm */
+          margin: 6px 0; /* 继续减小 */
         }
         
         .progress-ring svg {
@@ -340,10 +351,31 @@ export const card = {
         .progress-bars {
           height: 10px;
           border-radius: var(--cf-radius-md);
+          margin-bottom: 4px; /* 继续减小 */
         }
         
         .week-section {
           max-width: 240px;
+          margin: 6px 0; /* 继续减小 */
+        }
+      }
+      
+      /* 超小屏幕 */
+      @container cardforge-container (max-width: 280px) {
+        .week-card {
+          min-height: 140px;
+        }
+        
+        .week-card .card-content {
+          gap: 8px; /* 更小间距 */
+        }
+        
+        .year-section {
+          margin: 4px 0;
+        }
+        
+        .week-section {
+          margin: 4px 0;
         }
       }
     `;
