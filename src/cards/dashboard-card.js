@@ -87,7 +87,10 @@ export const card = {
     supportsResize: true
   },
   
-  template: (config, { hass }, { theme }) => {
+  template: (config, context, themeVariables) => {
+    // 修正：正确解构参数
+    const { hass, theme } = context || {};
+    
     const {
       show_header = true,
       header_alignment = 'left',
@@ -153,7 +156,7 @@ export const card = {
     `;
   },
   
-  styles: (config, theme) => {
+  styles: (config, themeVariables) => {
     const {
       content_layout = 'flow',
       block_style = 'compact'
