@@ -1,4 +1,4 @@
-// core/card-styles.js - 修复版
+// core/card-styles.js - 完整版
 // 卡片通用样式工具
 // 处理通用深色模式和响应式，不针对具体卡片
 
@@ -9,29 +9,16 @@ export const cardBaseStyles = `
   /* === 基础卡片容器 === */
   .cardforge-container {
     height: 100%;
-    min-height: 140px; /* 增加最小高度 */
+    min-height: 140px;
     font-family: var(--cf-font-family-base);
     transition: all var(--cf-transition-duration-normal) var(--cf-easing-standard);
     position: relative;
     overflow: hidden;
-    display: flex; /* 新增：使用flex居中内容 */
-    flex-direction: column;
-  }
-
-  /* === 通用卡片内容容器 === */
-  .card-content {
     display: flex;
     flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    flex: 1; /* 新增：占据所有可用空间 */
-    text-align: center;
-    padding: var(--cf-spacing-xl); /* 增加内边距 */
-    width: 100%;
-    box-sizing: border-box;
   }
 
-  /* === 通用卡片包装器（用于开关控制时保持居中）=== */
+  /* === 卡片内容包装器 - 用于居中内容 === */
   .card-wrapper {
     display: flex;
     flex-direction: column;
@@ -39,7 +26,22 @@ export const cardBaseStyles = `
     justify-content: center;
     width: 100%;
     flex: 1;
-    min-height: 0; /* 防止内容溢出 */
+    min-height: 0;
+    position: relative;
+    z-index: 1;
+  }
+
+  /* === 通用卡片内容区域 === */
+  .card-content {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    flex: 1;
+    text-align: center;
+    padding: var(--cf-spacing-xl);
+    width: 100%;
+    box-sizing: border-box;
   }
 
   /* === 通用标题样式 === */
@@ -48,7 +50,7 @@ export const cardBaseStyles = `
     font-weight: var(--cf-font-weight-bold);
     color: var(--cf-text-primary);
     line-height: var(--cf-line-height-tight);
-    margin-bottom: var(--cf-spacing-sm); /* 增加标题下方间距 */
+    margin-bottom: var(--cf-spacing-sm);
   }
 
   .card-subtitle {
@@ -70,7 +72,7 @@ export const cardBaseStyles = `
   .card-emphasis {
     color: var(--cf-primary-color);
     font-weight: var(--cf-font-weight-bold);
-    margin: var(--cf-spacing-sm) 0; /* 增加强调文本的上下间距 */
+    margin: var(--cf-spacing-sm) 0;
   }
 
   /* === 通用空状态 === */
@@ -97,7 +99,7 @@ export const cardBaseStyles = `
     font-weight: var(--cf-font-weight-medium);
   }
 
-  /* === 通用垂直间距 === */
+  /* === 通用垂直间距工具 === */
   .card-spacing-sm {
     margin-top: var(--cf-spacing-sm);
     margin-bottom: var(--cf-spacing-sm);
@@ -134,7 +136,7 @@ export const cardBaseStyles = `
     }
     
     .card-content {
-      padding: var(--cf-spacing-lg); /* 减少一点内边距 */
+      padding: var(--cf-spacing-lg);
     }
     
     .card-title {
@@ -204,7 +206,7 @@ export const cardBaseStyles = `
  * 布局工具样式
  */
 export const layoutStyles = `
-  /* 居中布局 - 增强版 */
+  /* 居中布局 */
   .layout-center {
     display: flex;
     flex-direction: column;
@@ -234,7 +236,7 @@ export const layoutStyles = `
   .layout-horizontal {
     display: flex;
     align-items: center;
-    justify-content: center; /* 新增：默认居中 */
+    justify-content: center;
     gap: var(--cf-spacing-md);
     width: 100%;
   }
@@ -244,8 +246,16 @@ export const layoutStyles = `
     display: flex;
     flex-direction: column;
     align-items: center;
-    justify-content: center; /* 新增：默认居中 */
+    justify-content: center;
     gap: var(--cf-spacing-md);
+    width: 100%;
+  }
+
+  /* 两端对齐布局 */
+  .layout-between {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
     width: 100%;
   }
 
