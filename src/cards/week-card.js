@@ -1,4 +1,4 @@
-// cards/week-card.js - 优化颜色版（颜色统一，去掉小圆点）
+// cards/week-card.js - 最终版（周末不特殊处理）
 import { getYearProgress, getWeekNumber } from '../core/card-tools.js';
 import { createCardStyles } from '../core/card-styles.js';
 
@@ -28,7 +28,7 @@ export const card = {
     const now = new Date();
     const yearProgress = getYearProgress(now);
     const weekNumber = getWeekNumber(now);
-    const weekDay = now.getDay(); // 0=周日, 1=周一...
+    const currentDay = now.getDay(); // 0=周日, 1=周一...
     
     // 当前日期
     const month = now.getMonth() + 1;
@@ -89,24 +89,24 @@ export const card = {
       const weekDays = ['日', '一', '二', '三', '四', '五', '六'];
       
       for (let i = 0; i < 7; i++) {
-        const isPast = i < weekDay;
-        const isCurrent = i === weekDay;
-        const isWeekend = i === 0 || i === 6; // 周日或周六
+        const isPast = i < currentDay;
+        const isCurrent = i === currentDay;
         
-        // 确定进度条颜色
-        let barClass = 'future';
-        if (isPast) barClass = 'active';
-        if (isCurrent) barClass = 'current';
-        if (isWeekend) barClass = 'weekend'; // 周末特殊处理
+        // 确定颜色（只按时间状态，周末不特殊处理）
+        let colorClass = '';
+        if (isCurrent) {
+          // 当前日
+          colorClass = 'current';
+        } else if (isPast) {
+          // 已过去的日子
+          colorClass = 'past';
+        } else {
+          // 未来的日子
+          colorClass = 'future';
+        }
         
-        // 确定标签颜色（与进度条保持一致）
-        let labelClass = '';
-        if (isPast) labelClass = 'active';
-        if (isCurrent) labelClass = 'current';
-        if (isWeekend) labelClass = 'weekend';
-        
-        weekBars += `<div class="week-bar ${barClass}" data-day="${weekDays[i]}"></div>`;
-        weekLabels += `<div class="day-label ${labelClass}">${weekDays[i]}</div>`;
+        weekBars += `<div class="week-bar ${colorClass}" data-day="${weekDays[i]}"></div>`;
+        weekLabels += `<div class="day-label ${colorClass}">${weekDays[i]}</div>`;
       }
       
       weekSectionHtml = `
@@ -142,26 +142,21 @@ export const card = {
   },
   
   styles: (config, theme) => {
-    // 只保留星期卡片特有的样式
     const customStyles = `
       .week-card {
-        min-height: 200px; /* 增加最小高度 */
+        min-height: 200px;
       }
       
       .week-card .card-content {
-        gap: var(--cf-spacing-xl); /* 增加内容之间的间距 */
-        justify-content: center; /* 确保垂直居中 */
+        gap: var(--cf-spacing-xl);
+        justify-content: center;
       }
       
       /* 年进度区域 */
       .year-section {
         width: 100%;
         max-width: 320px;
-        margin: var(--cf-spacing-md) 0; /* 增加上下间距 */
-      }
-      
-      .progress-ring svg {
-        display: block;
+        margin: var(--cf-spacing-md) 0;
       }
       
       .progress-bg {
@@ -209,7 +204,7 @@ export const card = {
       .week-section {
         width: 100%;
         max-width: 300px;
-        margin: var(--cf-spacing-md) 0; /* 增加上下间距 */
+        margin: var(--cf-spacing-md) 0;
       }
       
       .progress-bars {
@@ -228,7 +223,6 @@ export const card = {
         flex: 1;
         height: 100%;
         transition: all var(--cf-transition-duration-normal);
-        position: relative;
         border-right: 1px solid var(--cf-border-light);
       }
       
@@ -236,30 +230,26 @@ export const card = {
         border-right: none;
       }
       
-      /* 已过分段 - 中性背景色 */
-      .week-bar.active {
-        background: var(--cf-surface);
+      /* 已过去的日子 - 中性色 */
+      .week-bar.past {
+        background: var(--cf-neutral-200);
       }
       
-      /* 当前分段 - 强调色 */
+      /* 当前日 - 强调色 */
       .week-bar.current {
         background: var(--cf-accent-color);
-        position: relative;
-        z-index: 1;
         transform: scaleY(1.1);
         box-shadow: 0 0 8px rgba(var(--cf-accent-color-rgb), 0.3);
+        z-index: 1;
+        position: relative;
       }
       
-      /* 未来分段 - 主色 */
+      /* 未来的日子 - 主色 */
       .week-bar.future {
         background: var(--cf-primary-color);
       }
       
-      /* 周末分段 - 统一用强调色 */
-      .week-bar.weekend {
-        background: var(--cf-accent-color);
-      }
-      
+      /* 标签样式 */
       .day-labels {
         justify-content: space-between;
       }
@@ -268,13 +258,12 @@ export const card = {
         font-weight: var(--cf-font-weight-medium);
         text-align: center;
         flex: 1;
-        transition: color var(--cf-transition-duration-fast);
         font-size: var(--cf-font-size-sm);
       }
       
-      /* 标签颜色与进度条完全对应 */
-      .day-label.active {
-        color: var(--cf-surface);
+      /* 标签颜色与进度条对应 */
+      .day-label.past {
+        color: var(--cf-neutral-400);
       }
       
       .day-label.current {
@@ -286,12 +275,7 @@ export const card = {
         color: var(--cf-primary-color);
       }
       
-      .day-label.weekend {
-        color: var(--cf-accent-color);
-        font-weight: var(--cf-font-weight-semibold);
-      }
-      
-      /* 星期卡片特定的响应式 */
+      /* 响应式设计 */
       @container cardforge-container (max-width: 500px) {
         .week-card {
           min-height: 180px;
@@ -303,12 +287,10 @@ export const card = {
         
         .year-section {
           max-width: 280px;
-          margin: var(--cf-spacing-sm) 0;
         }
         
         .week-section {
           max-width: 280px;
-          margin: var(--cf-spacing-sm) 0;
         }
         
         .progress-bars {
@@ -327,7 +309,6 @@ export const card = {
         
         .year-section {
           max-width: 260px;
-          margin: var(--cf-spacing-xs) 0;
         }
         
         .date-info {
@@ -336,12 +317,10 @@ export const card = {
         
         .week-section {
           max-width: 260px;
-          margin: var(--cf-spacing-xs) 0;
         }
         
         .progress-bars {
           height: var(--cf-spacing-md);
-          margin-bottom: var(--cf-spacing-sm);
         }
       }
       
@@ -351,7 +330,6 @@ export const card = {
           text-align: center;
           max-width: 240px;
           gap: var(--cf-spacing-md);
-          margin: var(--cf-spacing-sm) 0;
         }
         
         .progress-ring svg {
@@ -366,12 +344,10 @@ export const card = {
         
         .week-section {
           max-width: 240px;
-          margin: var(--cf-spacing-sm) 0;
         }
       }
     `;
     
-    // 使用通用样式工具
     return createCardStyles(customStyles);
   }
 };
