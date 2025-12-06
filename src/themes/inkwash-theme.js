@@ -1,4 +1,4 @@
-// themes/inkwash-theme.js - 简化无动画版
+// themes/inkwash-theme.js - 修复版
 export const theme = {
   id: 'inkwash',
   name: '水墨',
@@ -17,7 +17,7 @@ export const theme = {
           var(--cf-warning-color),
           transparent 92%
         ) 12%
-      );
+      ) !important;
       
       /* 宣纸纹理 */
       background-image: 
@@ -29,43 +29,43 @@ export const theme = {
           rgba(var(--cf-text-primary-rgb), 0.008) 2px,
           transparent 2px,
           transparent 8px
-        );
+        ) !important;
       
-      background-blend-mode: multiply;
-      background-size: 8px 8px;
+      background-blend-mode: multiply !important;
+      background-size: 8px 8px !important;
       
       /* 宣纸边框 */
-      border: 0.8px solid rgba(var(--cf-text-primary-rgb), 0.12);
+      border: 0.8px solid rgba(var(--cf-text-primary-rgb), 0.12) !important;
       box-shadow: 
         inset 0 0 40px rgba(255, 255, 255, 0.7),
-        0 1px 2px rgba(0, 0, 0, 0.03);
+        0 1px 2px rgba(0, 0, 0, 0.03) !important;
       
       /* 中式字体 */
-      font-family: 'ZCOOL XiaoWei', 'Noto Serif SC', var(--cf-font-family-base, serif);
+      font-family: 'ZCOOL XiaoWei', 'Noto Serif SC', var(--cf-font-family-base, serif) !important;
     }
     
     /* 水墨主题 - 文字颜色 */
-    .card-title {
-      color: rgba(var(--cf-text-primary-rgb), 0.9);
+    .cardforge-container .card-title {
+      color: rgba(var(--cf-text-primary-rgb), 0.9) !important;
       font-weight: var(--cf-font-weight-bold);
       letter-spacing: 1px;
     }
     
-    .card-subtitle {
-      color: rgba(var(--cf-text-primary-rgb), 0.7);
+    .cardforge-container .card-subtitle {
+      color: rgba(var(--cf-text-primary-rgb), 0.7) !important;
       font-weight: var(--cf-font-weight-medium);
       letter-spacing: 0.5px;
     }
     
-    .card-caption {
-      color: rgba(var(--cf-text-primary-rgb), 0.5);
+    .cardforge-container .card-caption {
+      color: rgba(var(--cf-text-primary-rgb), 0.5) !important;
       font-style: italic;
       border-left: 3px solid rgba(var(--cf-warning-color-rgb), 0.3);
       padding-left: var(--cf-spacing-sm);
     }
     
-    .card-emphasis {
-      color: var(--cf-warning-color);
+    .cardforge-container .card-emphasis {
+      color: var(--cf-warning-color) !important;
       font-style: italic;
     }
     
@@ -80,20 +80,20 @@ export const theme = {
             var(--cf-neutral-100),
             transparent 85%
           ) 18%
-        );
-        border-color: rgba(255, 255, 255, 0.09);
+        ) !important;
+        border-color: rgba(255, 255, 255, 0.09) !important;
       }
       
-      .card-title {
-        color: rgba(255, 255, 255, 0.9);
+      .cardforge-container .card-title {
+        color: rgba(255, 255, 255, 0.9) !important;
       }
       
-      .card-subtitle {
-        color: rgba(255, 255, 255, 0.7);
+      .cardforge-container .card-subtitle {
+        color: rgba(255, 255, 255, 0.7) !important;
       }
       
-      .card-caption {
-        color: rgba(255, 255, 255, 0.5);
+      .cardforge-container .card-caption {
+        color: rgba(255, 255, 255, 0.5) !important;
       }
     }
   `,

@@ -27,7 +27,7 @@ class ThemeSystem {
         const module = await importFn();
         this._registerThemeModule(module);
       } catch (error) {
-        console.warn('主题加载失败:', error);
+        console.warn(`主题加载失败:`, error);
       }
     }
   }
@@ -56,29 +56,17 @@ class ThemeSystem {
     }));
   }
 
-  // 获取主题变量
-  getThemeVariables(themeId) {
-    const theme = this.getTheme(themeId);
-    return theme?.variables || {};
-  }
-
-  // 获取主题样式 - 修复：总是返回主题的样式
+  // 获取主题样式 - 修复版
   getThemeStyles(themeId) {
     const theme = this.getTheme(themeId);
-    if (!theme) return '';
+    if (!theme) {
+      console.warn(`主题 "${themeId}" 不存在，使用默认主题`);
+      return this.getThemeStyles('auto');
+    }
     
     let styles = '';
     
-    // 添加CSS变量（如果存在）
-    const variables = theme.variables || {};
-    if (Object.keys(variables).length > 0) {
-      const varStyles = Object.entries(variables)
-        .map(([key, value]) => `${key}: ${value};`)
-        .join('');
-      styles += `:host { ${varStyles} }`;
-    }
-    
-    // 添加主题样式（总是添加）
+    // 添加主题样式
     if (theme.styles) {
       styles += theme.styles;
     }

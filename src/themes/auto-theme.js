@@ -1,4 +1,4 @@
-// themes/auto-theme.js - 简化无动画版
+// themes/auto-theme.js - 修复版
 export const theme = {
   id: 'auto',
   name: '自动',
@@ -8,56 +8,34 @@ export const theme = {
   styles: `
     /* 自动主题 - 仅使用设计系统变量，无额外样式 */
     .cardforge-container {
-      background: var(--cf-background);
-      border: 1px solid var(--cf-border);
-      border-radius: var(--cf-radius-md);
+      background: var(--cf-background) !important;
+      border: 1px solid var(--cf-border) !important;
+      border-radius: var(--cf-radius-md) !important;
     }
     
     /* 使用设计系统的文字颜色变量 */
-    .card-title {
-      color: var(--cf-text-primary);
+    .cardforge-container .card-title {
+      color: var(--cf-text-primary) !important;
       font-weight: var(--cf-font-weight-bold);
     }
     
-    .card-subtitle {
-      color: var(--cf-text-secondary);
+    .cardforge-container .card-subtitle {
+      color: var(--cf-text-secondary) !important;
       font-weight: var(--cf-font-weight-medium);
     }
     
-    .card-caption {
-      color: var(--cf-text-tertiary);
+    .cardforge-container .card-caption {
+      color: var(--cf-text-tertiary) !important;
     }
     
-    .card-emphasis {
-      color: var(--cf-primary-color);
+    .cardforge-container .card-emphasis {
+      color: var(--cf-primary-color) !important;
       font-weight: var(--cf-font-weight-semibold);
-    }
-    
-    /* 深色模式自动适配（依赖设计系统的深色变量） */
-    @media (prefers-color-scheme: dark) {
-      .cardforge-container {
-        background: var(--cf-background);
-        border-color: var(--cf-border);
-      }
-      
-      .card-title {
-        color: var(--cf-text-primary);
-      }
-      
-      .card-subtitle {
-        color: var(--cf-text-secondary);
-      }
-      
-      .card-caption {
-        color: var(--cf-text-tertiary);
-      }
     }
   `,
   
   preview: {
     background: 'var(--cf-background)',
-    color: 'var(--cf-text-primary)',
-    border: '1px solid var(--cf-border)',
-    boxShadow: 'none'
+    border: '1px solid var(--cf-border)'
   }
 };

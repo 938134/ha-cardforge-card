@@ -1,4 +1,4 @@
-// themes/glass-theme.js - 简化无动画版
+// themes/glass-theme.js - 修复版
 export const theme = {
   id: 'glass',
   name: '毛玻璃',
@@ -10,29 +10,29 @@ export const theme = {
     .cardforge-container {
       background: linear-gradient(135deg, 
         rgba(255, 255, 255, 0.1) 0%, 
-        rgba(255, 255, 255, 0.05) 100%);
-      backdrop-filter: blur(20px) saturate(180%);
-      -webkit-backdrop-filter: blur(20px) saturate(180%);
-      border: 1px solid rgba(255, 255, 255, 0.2);
-      box-shadow: var(--cf-shadow-md);
+        rgba(255, 255, 255, 0.05) 100%) !important;
+      backdrop-filter: blur(20px) saturate(180%) !important;
+      -webkit-backdrop-filter: blur(20px) saturate(180%) !important;
+      border: 1px solid rgba(255, 255, 255, 0.2) !important;
+      box-shadow: var(--cf-shadow-md) !important;
     }
     
     /* 毛玻璃主题 - 文字颜色 */
-    .card-title {
-      color: rgba(0, 0, 0, 0.85);
+    .cardforge-container .card-title {
+      color: rgba(0, 0, 0, 0.85) !important;
       font-weight: var(--cf-font-weight-bold);
     }
     
-    .card-subtitle {
-      color: rgba(0, 0, 0, 0.65);
+    .cardforge-container .card-subtitle {
+      color: rgba(0, 0, 0, 0.65) !important;
     }
     
-    .card-caption {
-      color: rgba(0, 0, 0, 0.45);
+    .cardforge-container .card-caption {
+      color: rgba(0, 0, 0, 0.45) !important;
     }
     
-    .card-emphasis {
-      color: var(--cf-primary-color);
+    .cardforge-container .card-emphasis {
+      color: var(--cf-primary-color) !important;
     }
     
     /* 深色模式优化 */
@@ -40,20 +40,20 @@ export const theme = {
       .cardforge-container {
         background: linear-gradient(135deg, 
           rgba(255, 255, 255, 0.08) 0%, 
-          rgba(255, 255, 255, 0.03) 100%);
-        border: 1px solid rgba(255, 255, 255, 0.15);
+          rgba(255, 255, 255, 0.03) 100%) !important;
+        border: 1px solid rgba(255, 255, 255, 0.15) !important;
       }
       
-      .card-title {
-        color: rgba(255, 255, 255, 0.95);
+      .cardforge-container .card-title {
+        color: rgba(255, 255, 255, 0.95) !important;
       }
       
-      .card-subtitle {
-        color: rgba(255, 255, 255, 0.75);
+      .cardforge-container .card-subtitle {
+        color: rgba(255, 255, 255, 0.75) !important;
       }
       
-      .card-caption {
-        color: rgba(255, 255, 255, 0.55);
+      .cardforge-container .card-caption {
+        color: rgba(255, 255, 255, 0.55) !important;
       }
     }
   `,
