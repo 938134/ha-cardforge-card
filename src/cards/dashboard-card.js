@@ -26,8 +26,7 @@ export const card = {
       options: [
         { value: 'left', label: '左对齐' },
         { value: 'center', label: '居中对齐' },
-        { value: 'right', label: '右对齐' },
-        { value: 'space-between', label: '两端对齐' }
+        { value: 'right', label: '右对齐' }
       ],
       default: 'left',
       description: '标题区域块的对齐方式'
@@ -72,8 +71,7 @@ export const card = {
       options: [
         { value: 'left', label: '左对齐' },
         { value: 'center', label: '居中对齐' },
-        { value: 'right', label: '右对齐' },
-        { value: 'space-between', label: '两端对齐' }
+        { value: 'right', label: '右对齐' }
       ],
       default: 'left',
       description: '页脚区域块的对齐方式'
@@ -121,8 +119,8 @@ export const card = {
       gridColumns = parseInt(content_layout.split('-')[1]) || 3;
     }
     
-    // 标题/页脚：使用水平模式，非紧凑
-    // 内容：根据选择的块样式和布局模式渲染
+    // 标题/页脚：使用水平模式，支持三种对齐
+    // 内容：根据选择的块样式和布局模式渲染，始终居中
     
     return `
       <div class="dashboard-container">
@@ -170,18 +168,17 @@ export const card = {
         container-name: dashboard;
       }
       
-      /* 标题/页脚区域 - 水平模式 */
+      /* 标题/页脚区域 - 水平模式，三种对齐 */
       .dashboard-header,
       .dashboard-footer {
         display: flex;
         align-items: center;
         min-height: 48px;
-        padding: 8px 12px;
+        padding: 8px 16px;
         border-bottom: 1px solid var(--cf-border);
         flex-shrink: 0;
         flex-wrap: nowrap;
-        overflow-x: auto;
-        gap: 12px;
+        gap: 16px;
       }
       
       .dashboard-footer {
@@ -189,55 +186,54 @@ export const card = {
         border-bottom: none;
       }
       
-      /* 标题/页脚对齐方式 */
-      .align-left { justify-content: flex-start; }
-      .align-center { justify-content: center; }
-      .align-right { justify-content: flex-end; }
-      .align-space-between { justify-content: space-between; }
+      /* 标题/页脚三种对齐方式 */
+      .dashboard-header.align-left,
+      .dashboard-footer.align-left {
+        justify-content: flex-start;
+      }
       
-      /* 内容区域 - 始终居中 */
+      .dashboard-header.align-center,
+      .dashboard-footer.align-center {
+        justify-content: center;
+      }
+      
+      .dashboard-header.align-right,
+      .dashboard-footer.align-right {
+        justify-content: flex-end;
+      }
+      
+      /* 内容区域 - 始终居中（无论布局和样式） */
       .dashboard-content {
         flex: 1;
         min-height: 60px;
         overflow-y: auto;
-        padding: 16px;
+        padding: 20px;
         display: flex;
         justify-content: center;
         align-items: center;
       }
       
-      /* === 横向流式布局 (5种组合之一) === */
+      /* === 横向流式布局 - 始终居中 === */
       .dashboard-content.layout-flow {
         flex-wrap: wrap;
-        gap: 16px;
+        gap: 20px;
         align-items: flex-start;
-      }
-      
-      /* 横向流式 + 紧凑样式 */
-      .dashboard-content.layout-flow.block-style-compact {
         align-content: center;
       }
       
+      /* 横向流式 + 紧凑样式 */
       .dashboard-content.layout-flow.block-style-compact .cardforge-block {
         width: 180px;
         min-height: 70px;
       }
       
       /* 横向流式 + 水平样式 */
-      .dashboard-content.layout-flow.block-style-horizontal {
-        align-content: center;
-      }
-      
       .dashboard-content.layout-flow.block-style-horizontal .cardforge-block {
         width: 220px;
         min-height: 60px;
       }
       
       /* 横向流式 + 垂直样式 */
-      .dashboard-content.layout-flow.block-style-vertical {
-        align-content: center;
-      }
-      
       .dashboard-content.layout-flow.block-style-vertical .cardforge-block {
         width: 150px;
         min-height: 120px;
@@ -247,10 +243,10 @@ export const card = {
         justify-content: center;
       }
       
-      /* === 纵向堆叠布局 (5种组合之二) === */
+      /* === 纵向堆叠布局 - 始终居中 === */
       .dashboard-content.layout-stack {
         flex-direction: column;
-        gap: 12px;
+        gap: 16px;
         align-items: center;
         justify-content: center;
       }
@@ -279,32 +275,35 @@ export const card = {
         justify-content: center;
       }
       
-      /* === 网格布局 (15种组合之三到五) === */
+      /* === 网格布局 - 始终居中 === */
       /* 网格2列 */
       .dashboard-content.layout-grid-2 {
         display: grid;
-        gap: 16px;
+        gap: 20px;
         grid-template-columns: repeat(2, 1fr);
         align-items: center;
         justify-items: center;
+        justify-content: center;
       }
       
       /* 网格3列 */
       .dashboard-content.layout-grid-3 {
         display: grid;
-        gap: 16px;
+        gap: 20px;
         grid-template-columns: repeat(3, 1fr);
         align-items: center;
         justify-items: center;
+        justify-content: center;
       }
       
       /* 网格4列 */
       .dashboard-content.layout-grid-4 {
         display: grid;
-        gap: 12px;
+        gap: 16px;
         grid-template-columns: repeat(4, 1fr);
         align-items: center;
         justify-items: center;
+        justify-content: center;
       }
       
       /* 网格布局 + 紧凑样式 */
@@ -339,12 +338,12 @@ export const card = {
         width: 100%;
         height: 100%;
         text-align: center;
-        padding: 32px;
+        padding: 40px;
       }
       
       .empty-content ha-icon {
-        font-size: 2.5em;
-        margin-bottom: 16px;
+        font-size: 3em;
+        margin-bottom: 20px;
         opacity: 0.4;
       }
       
@@ -369,14 +368,34 @@ export const card = {
       @container dashboard (max-width: 768px) {
         .dashboard-header,
         .dashboard-footer {
+          padding: 8px 12px;
+          gap: 12px;
+          min-height: 44px;
           flex-wrap: wrap;
+        }
+        
+        /* 小屏幕时标题/页脚保持对齐方式 */
+        .dashboard-header.align-left,
+        .dashboard-footer.align-left {
+          justify-content: flex-start;
+        }
+        
+        .dashboard-header.align-center,
+        .dashboard-footer.align-center {
           justify-content: center;
-          gap: 8px;
-          min-height: 60px;
+        }
+        
+        .dashboard-header.align-right,
+        .dashboard-footer.align-right {
+          justify-content: flex-end;
+        }
+        
+        .dashboard-content {
+          padding: 16px;
         }
         
         .dashboard-content.layout-flow {
-          justify-content: center;
+          gap: 16px;
         }
         
         .dashboard-content.layout-flow.block-style-compact .cardforge-block {
@@ -402,8 +421,20 @@ export const card = {
       
       /* 超小屏幕 (手机) */
       @container dashboard (max-width: 480px) {
+        .dashboard-header,
+        .dashboard-footer {
+          padding: 6px 8px;
+          gap: 8px;
+          min-height: 40px;
+          justify-content: center !important; /* 小屏幕强制居中 */
+        }
+        
         .dashboard-content {
           padding: 12px;
+        }
+        
+        .dashboard-content.layout-flow {
+          gap: 12px;
         }
         
         .dashboard-content.layout-flow .cardforge-block {
@@ -420,7 +451,7 @@ export const card = {
         
         /* 纵向堆叠布局间距调整 */
         .dashboard-content.layout-stack {
-          gap: 8px;
+          gap: 12px;
         }
       }
       
@@ -428,7 +459,7 @@ export const card = {
       @container dashboard (max-width: 360px) {
         .dashboard-header,
         .dashboard-footer {
-          padding: 6px;
+          padding: 4px 6px;
           gap: 6px;
         }
         
@@ -442,6 +473,15 @@ export const card = {
         
         .dashboard-content[class*="layout-grid"] {
           gap: 8px;
+        }
+        
+        .empty-content {
+          padding: 20px;
+        }
+        
+        .empty-content ha-icon {
+          font-size: 2.5em;
+          margin-bottom: 12px;
         }
       }
       
