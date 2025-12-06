@@ -1,5 +1,6 @@
-// 时钟卡片 - 优化最终版
-import { formatTime, formatDate, getWeekday } from '../core/utilities.js';
+// src/cards/clock-card.js - 完全简化版
+import { formatTime, formatDate, getWeekday } from '../core/card-tools.js';
+import { createCardStyles, responsiveClasses, darkModeClasses } from '../core/card-styles.js';
 
 export const card = {
   id: 'clock',
@@ -41,20 +42,20 @@ export const card = {
     if (config.showSeconds) {
       const baseTime = formatTime(now, config.use24Hour);
       const seconds = now.getSeconds().toString().padStart(2, '0');
-      timeHtml = `<div class="clock-time">${baseTime}:${seconds}</div>`;
+      timeHtml = `<div class="clock-time text-emphasis ${darkModeClasses.emphasis}">${baseTime}:${seconds}</div>`;
     } else {
-      timeHtml = `<div class="clock-time">${formatTime(now, config.use24Hour)}</div>`;
+      timeHtml = `<div class="clock-time text-emphasis ${darkModeClasses.emphasis}">${formatTime(now, config.use24Hour)}</div>`;
     }
     
     const dateHtml = config.showDate ? 
-      `<div class="clock-date">${formatDate(now)}</div>` : '';
+      `<div class="clock-date text-subtitle ${responsiveClasses.subtitle}">${formatDate(now)}</div>` : '';
     
     const weekdayHtml = config.showWeekday ? 
-      `<div class="clock-weekday">${getWeekday(now)}</div>` : '';
+      `<div class="clock-weekday text-caption ${responsiveClasses.caption}">${getWeekday(now)}</div>` : '';
     
     return `
-      <div class="clock-card">
-        <div class="clock-display">
+      <div class="clock-card card-base ${darkModeClasses.base} ${responsiveClasses.container} ${responsiveClasses.minHeight}">
+        <div class="card-content layout-center">
           ${timeHtml}
           ${dateHtml}
           ${weekdayHtml}
@@ -64,87 +65,22 @@ export const card = {
   },
   
   styles: (config) => {
-    return `
+    const customStyles = `
       .clock-card {
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        height: 100%;
-        min-height: 140px;
-        padding: var(--cf-spacing-xl);
-        font-family: var(--cf-font-family-base);
+        min-height: 160px;
       }
       
-      .clock-display {
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        justify-content: center;
-        gap: var(--cf-spacing-sm);
-        text-align: center;
-        padding: var(--cf-spacing-lg);
-        width: 100%;
-      }
-      
-      /* 时间：使用最大字号，确保醒目 */
       .clock-time {
         font-size: var(--cf-font-size-4xl);
-        font-weight: var(--cf-font-weight-bold);
-        color: var(--cf-primary-color);
-        line-height: var(--cf-line-height-tight);
-        letter-spacing: 1px;
         margin-bottom: var(--cf-spacing-xs);
-        text-shadow: 0 2px 4px rgba(var(--cf-primary-color-rgb), 0.2);
+        letter-spacing: 1px;
       }
       
       .clock-date, .clock-weekday {
-        font-size: var(--cf-font-size-lg);
-        color: var(--cf-text-secondary);
-        line-height: var(--cf-line-height-normal);
-        font-weight: var(--cf-font-weight-medium);
-        letter-spacing: 0.5px;
-      }
-      
-      .clock-weekday {
-        color: var(--cf-text-tertiary);
-      }
-      
-      /* 深色模式优化 - 调整阴影效果 */
-      @media (prefers-color-scheme: dark) {
-        .clock-time {
-          text-shadow: 0 2px 8px rgba(var(--cf-primary-color-rgb), 0.4);
-        }
-      }
-      
-      /* 响应式设计 - 容器查询 */
-      @container cardforge-container (max-width: 400px) {
-        .clock-display {
-          padding: var(--cf-spacing-md);
-        }
-        
-        .clock-time {
-          font-size: var(--cf-font-size-3xl);
-        }
-        
-        .clock-date, .clock-weekday {
-          font-size: var(--cf-font-size-md);
-        }
-      }
-      
-      @container cardforge-container (max-width: 300px) {
-        .clock-card {
-          padding: var(--cf-spacing-md);
-          min-height: 120px;
-        }
-        
-        .clock-time {
-          font-size: var(--cf-font-size-2xl);
-        }
-        
-        .clock-date, .clock-weekday {
-          font-size: var(--cf-font-size-sm);
-        }
+        margin-top: var(--cf-spacing-xs);
       }
     `;
+    
+    return createCardStyles(customStyles);
   }
 };
