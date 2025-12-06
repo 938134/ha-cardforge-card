@@ -1,4 +1,4 @@
-// cards/dashboard-card.js - 仪表盘卡片（重构）
+// cards/dashboard-card.js - 修复宽度问题
 import { createCardStyles } from '../core/card-styles.js';
 
 export const card = {
@@ -140,6 +140,34 @@ export const card = {
   },
   
   styles: (config, themeVariables) => {
+    const { content_layout = 'flow', block_style = 'compact' } = config;
+    
+    // 根据布局和样式计算最佳宽度
+    const getBlockWidth = () => {
+      if (content_layout.startsWith('grid-')) {
+        // 网格布局：宽度由网格列数决定，自动填充
+        return '100%';
+      } else if (content_layout === 'stack') {
+        // 纵向堆叠：根据样式决定
+        switch (block_style) {
+          case 'compact': return '320px';
+          case 'horizontal': return '380px';
+          case 'vertical': return '200px';
+          default: return '300px';
+        }
+      } else {
+        // 横向流式：根据样式决定
+        switch (block_style) {
+          case 'compact': return '180px';
+          case 'horizontal': return '220px';
+          case 'vertical': return '150px';
+          default: return '180px';
+        }
+      }
+    };
+    
+    const blockWidth = getBlockWidth();
+    
     return createCardStyles(`
       /* 仪表盘容器 */
       .dashboard-container {
@@ -161,7 +189,7 @@ export const card = {
         background: rgba(var(--cf-primary-color-rgb), 0.03);
         border: 1px solid rgba(var(--cf-primary-color-rgb), 0.1);
         flex-shrink: 0;
-        gap: 16px;
+        gap: 12px;
       }
       
       .dashboard-header {
@@ -196,30 +224,39 @@ export const card = {
         display: flex;
         align-items: center;
         gap: 8px;
-        padding: 8px 12px;
+        padding: 6px 10px;
         background: var(--cf-surface);
         border: 1px solid var(--cf-border);
         border-radius: var(--cf-radius-md);
-        min-width: 120px;
+        min-width: 0; /* 重要：允许内容收缩 */
+        flex-shrink: 1;
         white-space: nowrap;
+        overflow: hidden;
       }
       
       .dashboard-header .dashboard-block-icon,
       .dashboard-footer .dashboard-block-icon {
         font-size: 1.2em;
         color: var(--cf-primary-color);
+        flex-shrink: 0;
       }
       
       .dashboard-header .dashboard-block-name,
       .dashboard-footer .dashboard-block-name {
         font-weight: 500;
         color: var(--cf-text-primary);
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        flex-shrink: 1;
+        min-width: 0;
       }
       
       .dashboard-header .dashboard-block-value,
       .dashboard-footer .dashboard-block-value {
         color: var(--cf-text-secondary);
         margin-left: 4px;
+        flex-shrink: 0;
       }
       
       /* ===== 内容区域 ===== */
@@ -231,159 +268,10 @@ export const card = {
         justify-content: center;
         align-items: center;
         background: var(--cf-background);
+        overflow: auto;
       }
       
-      /* === 横向流式布局 === */
-      .dashboard-content.layout-flow {
-        flex-wrap: wrap;
-        gap: 20px;
-        align-content: center;
-      }
-      
-      /* 横向流式 + 紧凑样式 */
-      .dashboard-content.layout-flow.style-compact {
-        align-items: center;
-      }
-      
-      .dashboard-content.layout-flow.style-compact .dashboard-block {
-        width: 180px;
-        height: 80px;
-        display: grid;
-        grid-template-columns: 40px 1fr;
-        grid-template-rows: auto auto;
-        gap: 4px 8px;
-      }
-      
-      /* 横向流式 + 水平样式 */
-      .dashboard-content.layout-flow.style-horizontal {
-        align-items: center;
-      }
-      
-      .dashboard-content.layout-flow.style-horizontal .dashboard-block {
-        width: 220px;
-        height: 60px;
-        display: flex;
-        align-items: center;
-        gap: 12px;
-      }
-      
-      /* 横向流式 + 垂直样式 */
-      .dashboard-content.layout-flow.style-vertical {
-        align-items: center;
-      }
-      
-      .dashboard-content.layout-flow.style-vertical .dashboard-block {
-        width: 150px;
-        height: 140px;
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        justify-content: center;
-        gap: 12px;
-      }
-      
-      /* === 纵向堆叠布局 === */
-      .dashboard-content.layout-stack {
-        flex-direction: column;
-        gap: 16px;
-        align-items: center;
-        justify-content: center;
-      }
-      
-      /* 纵向堆叠 + 紧凑样式 */
-      .dashboard-content.layout-stack.style-compact .dashboard-block {
-        width: 320px;
-        max-width: 90%;
-        height: 60px;
-        display: grid;
-        grid-template-columns: 40px 1fr;
-        grid-template-rows: auto auto;
-        gap: 4px 12px;
-      }
-      
-      /* 纵向堆叠 + 水平样式 */
-      .dashboard-content.layout-stack.style-horizontal .dashboard-block {
-        width: 380px;
-        max-width: 95%;
-        height: 60px;
-        display: flex;
-        align-items: center;
-        gap: 16px;
-      }
-      
-      /* 纵向堆叠 + 垂直样式 */
-      .dashboard-content.layout-stack.style-vertical .dashboard-block {
-        width: 200px;
-        height: 160px;
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        justify-content: center;
-        gap: 16px;
-      }
-      
-      /* === 网格布局 === */
-      /* 网格2列 */
-      .dashboard-content.layout-grid-2 {
-        display: grid;
-        grid-template-columns: repeat(2, 1fr);
-        gap: 20px;
-        justify-items: center;
-        align-items: center;
-      }
-      
-      /* 网格3列 */
-      .dashboard-content.layout-grid-3 {
-        display: grid;
-        grid-template-columns: repeat(3, 1fr);
-        gap: 20px;
-        justify-items: center;
-        align-items: center;
-      }
-      
-      /* 网格4列 */
-      .dashboard-content.layout-grid-4 {
-        display: grid;
-        grid-template-columns: repeat(4, 1fr);
-        gap: 16px;
-        justify-items: center;
-        align-items: center;
-      }
-      
-      /* 网格 + 紧凑样式 */
-      .dashboard-content[class*="layout-grid"].style-compact .dashboard-block {
-        width: 100%;
-        height: 90px;
-        display: grid;
-        grid-template-columns: 40px 1fr;
-        grid-template-rows: auto auto;
-        gap: 4px 12px;
-        padding: 12px;
-      }
-      
-      /* 网格 + 水平样式 */
-      .dashboard-content[class*="layout-grid"].style-horizontal .dashboard-block {
-        width: 100%;
-        height: 70px;
-        display: flex;
-        align-items: center;
-        gap: 12px;
-        padding: 12px;
-      }
-      
-      /* 网格 + 垂直样式 */
-      .dashboard-content[class*="layout-grid"].style-vertical .dashboard-block {
-        width: 100%;
-        height: 160px;
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        justify-content: center;
-        gap: 12px;
-        padding: 16px;
-      }
-      
-      /* 通用块样式 */
+      /* 通用块样式 - 修复宽度问题 */
       .dashboard-block {
         background: var(--cf-surface);
         border: 1px solid var(--cf-border);
@@ -391,6 +279,7 @@ export const card = {
         box-shadow: var(--cf-shadow-sm);
         transition: all var(--cf-transition-fast);
         overflow: hidden;
+        box-sizing: border-box;
       }
       
       .dashboard-block:hover {
@@ -424,6 +313,169 @@ export const card = {
         font-size: 0.9em;
         color: var(--cf-text-secondary);
         margin-left: 2px;
+      }
+      
+      /* === 横向流式布局 === */
+      .dashboard-content.layout-flow {
+        flex-wrap: wrap;
+        gap: 16px;
+        align-content: center;
+      }
+      
+      /* 横向流式 + 紧凑样式 */
+      .dashboard-content.layout-flow.style-compact {
+        align-items: center;
+      }
+      
+      .dashboard-content.layout-flow.style-compact .dashboard-block {
+        width: 180px;
+        height: 80px;
+        display: grid;
+        grid-template-columns: 40px 1fr;
+        grid-template-rows: auto auto;
+        gap: 4px 8px;
+        padding: 12px;
+      }
+      
+      /* 横向流式 + 水平样式 */
+      .dashboard-content.layout-flow.style-horizontal {
+        align-items: center;
+      }
+      
+      .dashboard-content.layout-flow.style-horizontal .dashboard-block {
+        width: 220px;
+        height: 60px;
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        padding: 12px;
+      }
+      
+      /* 横向流式 + 垂直样式 */
+      .dashboard-content.layout-flow.style-vertical {
+        align-items: center;
+      }
+      
+      .dashboard-content.layout-flow.style-vertical .dashboard-block {
+        width: 150px;
+        height: 140px;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 12px;
+        padding: 16px;
+      }
+      
+      /* === 纵向堆叠布局 === */
+      .dashboard-content.layout-stack {
+        flex-direction: column;
+        gap: 12px;
+        align-items: center;
+        justify-content: center;
+      }
+      
+      /* 纵向堆叠 + 紧凑样式 */
+      .dashboard-content.layout-stack.style-compact .dashboard-block {
+        width: 300px;
+        max-width: 90%;
+        height: 60px;
+        display: grid;
+        grid-template-columns: 40px 1fr;
+        grid-template-rows: auto auto;
+        gap: 4px 12px;
+        padding: 12px;
+      }
+      
+      /* 纵向堆叠 + 水平样式 */
+      .dashboard-content.layout-stack.style-horizontal .dashboard-block {
+        width: 350px;
+        max-width: 95%;
+        height: 60px;
+        display: flex;
+        align-items: center;
+        gap: 16px;
+        padding: 12px;
+      }
+      
+      /* 纵向堆叠 + 垂直样式 */
+      .dashboard-content.layout-stack.style-vertical .dashboard-block {
+        width: 180px;
+        height: 160px;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 16px;
+        padding: 16px;
+      }
+      
+      /* === 网格布局 === */
+      /* 网格2列 */
+      .dashboard-content.layout-grid-2 {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 16px;
+        justify-items: center;
+        align-items: center;
+        width: 100%;
+      }
+      
+      /* 网格3列 */
+      .dashboard-content.layout-grid-3 {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 16px;
+        justify-items: center;
+        align-items: center;
+        width: 100%;
+      }
+      
+      /* 网格4列 */
+      .dashboard-content.layout-grid-4 {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 12px;
+        justify-items: center;
+        align-items: center;
+        width: 100%;
+      }
+      
+      /* 网格布局通用块样式 */
+      .dashboard-content[class*="layout-grid"] .dashboard-block {
+        width: 100%; /* 网格布局宽度自动适应 */
+        min-width: 0; /* 允许收缩 */
+        max-width: 100%;
+      }
+      
+      /* 网格 + 紧凑样式 */
+      .dashboard-content[class*="layout-grid"].style-compact .dashboard-block {
+        height: 90px;
+        display: grid;
+        grid-template-columns: 40px 1fr;
+        grid-template-rows: auto auto;
+        gap: 4px 12px;
+        padding: 12px;
+      }
+      
+      /* 网格 + 水平样式 */
+      .dashboard-content[class*="layout-grid"].style-horizontal .dashboard-block {
+        height: 70px;
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        padding: 12px;
+      }
+      
+      /* 网格 + 垂直样式 */
+      .dashboard-content[class*="layout-grid"].style-vertical .dashboard-block {
+        height: 160px;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 12px;
+        padding: 16px;
       }
       
       /* 紧凑样式特定定位 */
@@ -465,19 +517,34 @@ export const card = {
       }
       
       /* ===== 响应式设计 ===== */
+      @container dashboard (max-width: 1024px) {
+        .dashboard-content.layout-flow.style-compact .dashboard-block {
+          width: 160px;
+        }
+        
+        .dashboard-content.layout-flow.style-horizontal .dashboard-block {
+          width: 200px;
+        }
+        
+        .dashboard-content.layout-grid-4 {
+          grid-template-columns: repeat(3, 1fr);
+        }
+      }
+      
       @container dashboard (max-width: 768px) {
         .dashboard-header,
         .dashboard-footer {
           padding: 8px 12px;
-          gap: 12px;
+          gap: 8px;
           flex-wrap: wrap;
           justify-content: center !important;
         }
         
         .dashboard-header .dashboard-block,
         .dashboard-footer .dashboard-block {
-          min-width: 100px;
-          padding: 6px 10px;
+          padding: 4px 8px;
+          min-width: 80px;
+          font-size: 0.9em;
         }
         
         .dashboard-content {
@@ -485,11 +552,18 @@ export const card = {
         }
         
         .dashboard-content.layout-flow {
-          gap: 16px;
+          gap: 12px;
         }
         
-        .dashboard-content.layout-flow .dashboard-block {
-          width: 160px !important;
+        .dashboard-content.layout-flow.style-compact .dashboard-block {
+          width: 140px;
+          height: 70px;
+          padding: 10px;
+        }
+        
+        .dashboard-content.layout-flow.style-horizontal .dashboard-block {
+          width: 180px;
+          padding: 10px;
         }
         
         .dashboard-content.layout-grid-3,
@@ -497,9 +571,9 @@ export const card = {
           grid-template-columns: repeat(2, 1fr);
         }
         
-        .dashboard-content.layout-stack .dashboard-block {
-          width: 280px !important;
-          max-width: 100%;
+        .dashboard-content.layout-stack.style-compact .dashboard-block,
+        .dashboard-content.layout-stack.style-horizontal .dashboard-block {
+          width: 280px;
         }
       }
       
@@ -508,7 +582,7 @@ export const card = {
         .dashboard-footer {
           min-height: 44px;
           padding: 6px 8px;
-          gap: 8px;
+          gap: 6px;
         }
         
         .dashboard-content {
@@ -516,7 +590,7 @@ export const card = {
         }
         
         .dashboard-content.layout-flow {
-          gap: 12px;
+          gap: 8px;
         }
         
         .dashboard-content.layout-flow .dashboard-block {
@@ -532,7 +606,12 @@ export const card = {
         }
         
         .dashboard-content.layout-stack {
-          gap: 12px;
+          gap: 8px;
+        }
+        
+        .dashboard-content.layout-stack .dashboard-block {
+          width: 100% !important;
+          max-width: 100%;
         }
       }
       
