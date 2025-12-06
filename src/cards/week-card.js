@@ -1,4 +1,4 @@
-// cards/week-card.js - 优化颜色版
+// cards/week-card.js - 修复渲染错误版
 import { createCardStyles } from '../core/card-styles.js';
 import { getDateTimeInfo, escapeHtml } from '../core/card-tools.js';
 
@@ -31,7 +31,11 @@ export const card = {
   
   blockType: 'none',
   
-  template: (config, { hass }, { theme }) => {
+  // 修复：移除第三个参数或者添加默认值
+  template: (config, context) => {
+    const { hass } = context || {};
+    const theme = context?.theme || {};
+    
     const date = new Date();
     const dateInfo = getDateTimeInfo(date);
     const weekdays = ['日', '一', '二', '三', '四', '五', '六'];
@@ -94,6 +98,9 @@ export const card = {
       `;
     }
     
+    // 获取用户名
+    const userName = hass?.user?.name ? escapeHtml(hass.user.name) : '朋友';
+    
     return `
       <div class="cardforge-container">
         <div class="card-wrapper">
@@ -113,14 +120,15 @@ export const card = {
             ${yearProgressHtml}
             
             <!-- 底部信息 -->
-            <div class="card-caption">${dateInfo.greeting}，${escapeHtml(hass?.user?.name || '朋友')}</div>
+            <div class="card-caption">${dateInfo.greeting}，${userName}</div>
           </div>
         </div>
       </div>
     `;
   },
   
-  styles: (config, theme) => createCardStyles(`
+  // 修复：第二个参数使用默认值
+  styles: (config, theme = {}) => createCardStyles(`
     /* 星期卡片特有样式 */
     .week-container {
       display: grid;
