@@ -1,4 +1,4 @@
-// themes/glass-theme.js - 简化通用版
+// themes/glass-theme.js - 修复版
 export const theme = {
   id: 'glass',
   name: '毛玻璃',
@@ -13,6 +13,8 @@ export const theme = {
       backdrop-filter: blur(20px) saturate(180%);
       border: 1px solid rgba(255, 255, 255, 0.2);
       box-shadow: var(--cf-shadow-md);
+      border-radius: var(--cf-radius-lg);
+      overflow: hidden;
     }
     
     @media (prefers-color-scheme: dark) {

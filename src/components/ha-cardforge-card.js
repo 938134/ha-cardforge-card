@@ -1,4 +1,4 @@
-// 主卡片组件
+// 主卡片组件 - 修复主题应用
 import { LitElement, html, css } from 'https://unpkg.com/lit@2.8.0/index.js?module';
 import { unsafeHTML } from 'https://unpkg.com/lit-html/directives/unsafe-html.js?module';
 import { cardSystem } from '../core/card-system.js';
@@ -20,6 +20,9 @@ class HaCardForgeCard extends LitElement {
         position: relative;
         height: 100%;
         min-height: 80px;
+        /* 确保容器能应用主题样式 */
+        container-type: inline-size;
+        container-name: cardforge-container;
       }
       
       .cardforge-error {
@@ -166,15 +169,15 @@ class HaCardForgeCard extends LitElement {
       const cardStyles = this._cardData.styles || '';
       
       return html`
+        <style>
+          ${themeStyles}
+          ${cardStyles}
+        </style>
         <ha-card>
           <div class="cardforge-container">
             ${unsafeHTML(this._cardData.template)}
           </div>
         </ha-card>
-        <style>
-          ${themeStyles}
-          ${cardStyles}
-        </style>
       `;
     } catch (error) {
       return html`

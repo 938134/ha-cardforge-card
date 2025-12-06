@@ -1,4 +1,4 @@
-// themes/gradient-theme.js - 简化通用版
+// themes/gradient-theme.js - 修复版
 export const theme = {
   id: 'gradient',
   name: '渐变',
@@ -17,6 +17,8 @@ export const theme = {
       animation: gradient-shift 15s ease infinite;
       border: 1px solid rgba(255, 255, 255, 0.25);
       backdrop-filter: blur(5px);
+      border-radius: var(--cf-radius-lg);
+      overflow: hidden;
     }
     
     @keyframes gradient-shift {

@@ -1,4 +1,4 @@
-// 主题系统
+// 主题系统 - 修复版
 class ThemeSystem {
   constructor() {
     this.themes = new Map();
@@ -27,7 +27,7 @@ class ThemeSystem {
         const module = await importFn();
         this._registerThemeModule(module);
       } catch (error) {
-        // 静默失败
+        console.warn('主题加载失败:', error);
       }
     }
   }
@@ -62,14 +62,14 @@ class ThemeSystem {
     return theme?.variables || {};
   }
 
-  // 获取主题样式
+  // 获取主题样式 - 修复：总是返回主题的样式
   getThemeStyles(themeId) {
     const theme = this.getTheme(themeId);
     if (!theme) return '';
     
     let styles = '';
     
-    // 添加CSS变量
+    // 添加CSS变量（如果存在）
     const variables = theme.variables || {};
     if (Object.keys(variables).length > 0) {
       const varStyles = Object.entries(variables)
@@ -78,7 +78,7 @@ class ThemeSystem {
       styles += `:host { ${varStyles} }`;
     }
     
-    // 添加主题样式
+    // 添加主题样式（总是添加）
     if (theme.styles) {
       styles += theme.styles;
     }

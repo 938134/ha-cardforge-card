@@ -1,4 +1,4 @@
-// themes/inkwash-theme.js - 简化通用版
+// themes/inkwash-theme.js - 修复版
 export const theme = {
   id: 'inkwash',
   name: '水墨',
@@ -24,8 +24,8 @@ export const theme = {
           45deg,
           transparent,
           transparent 1px,
-          rgba(var(--cf-text-primary-rgb), 0.008) 1px,
-          rgba(var(--cf-text-primary-rgb), 0.008) 2px,
+          rgba(var(--cf-text-primary-rgb, 0, 0, 0), 0.008) 1px,
+          rgba(var(--cf-text-primary-rgb, 0, 0, 0), 0.008) 2px,
           transparent 2px,
           transparent 4px
         ),
@@ -33,8 +33,8 @@ export const theme = {
           135deg,
           transparent,
           transparent 1px,
-          rgba(var(--cf-text-primary-rgb), 0.006) 1px,
-          rgba(var(--cf-text-primary-rgb), 0.006) 1.5px,
+          rgba(var(--cf-text-primary-rgb, 0, 0, 0), 0.006) 1px,
+          rgba(var(--cf-text-primary-rgb, 0, 0, 0), 0.006) 1.5px,
           transparent 1.5px,
           transparent 3px
         );
@@ -43,14 +43,13 @@ export const theme = {
       background-size: 8px 8px, 6px 6px;
       
       /* 宣纸边框 */
-      border: 0.8px solid rgba(var(--cf-text-primary-rgb), 0.12);
+      border: 0.8px solid rgba(var(--cf-text-primary-rgb, 0, 0, 0), 0.12);
       box-shadow: 
         inset 0 0 40px rgba(255, 255, 255, 0.7),
         0 1px 2px rgba(0, 0, 0, 0.03),
-        0 0 0 0.5px rgba(var(--cf-text-primary-rgb), 0.05);
-      
-      /* 中式字体 */
-      font-family: 'ZCOOL XiaoWei', 'Noto Serif SC', var(--cf-font-family-base, serif);
+        0 0 0 0.5px rgba(var(--cf-text-primary-rgb, 0, 0, 0), 0.05);
+      border-radius: var(--cf-radius-lg);
+      overflow: hidden;
     }
     
     /* 深色模式 */
@@ -78,8 +77,8 @@ export const theme = {
         45deg,
         transparent,
         transparent 1px,
-        rgba(var(--cf-text-primary-rgb), 0.008) 1px,
-        rgba(var(--cf-text-primary-rgb), 0.008) 2px,
+        rgba(var(--cf-text-primary-rgb, 0, 0, 0), 0.008) 1px,
+        rgba(var(--cf-text-primary-rgb, 0, 0, 0), 0.008) 2px,
         transparent 2px,
         transparent 8px
       )
