@@ -1,5 +1,4 @@
-// core/card-tools.js
-// 卡片工坊核心工具库
+// core/card-tools.js - 卡片工坊核心工具库（重命名版）
 // 所有函数都是纯函数，无副作用，便于测试和维护
 
 /**
@@ -294,10 +293,8 @@ export function getEntityIcon(hass, entityId, defaultIcon = 'mdi:cube') {
 }
 
 /**
- * 初始化工具库（如果需要）
+ * 初始化工具库
  */
-export function initializeUtilities() {
-  // 目前没有需要初始化的内容
-  // 为未来扩展预留
+export function initializeCardTools() {
   console.debug('CardForge Tools initialized');
 }

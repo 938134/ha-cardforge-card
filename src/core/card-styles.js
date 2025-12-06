@@ -1,231 +1,169 @@
-// core/card-styles.js
-import { css } from 'https://unpkg.com/lit@2.8.0/index.js?module';
+// core/card-styles.js - 卡片通用样式工具
+// 处理通用深色模式和响应式，不针对具体卡片
 
 /**
- * 深色模式适配
+ * 基础卡片样式 - 所有卡片共享
  */
-export const darkModeStyles = css`
-  @media (prefers-color-scheme: dark) {
-    /* 基础卡片容器 */
-    .card-base {
-      background: var(--cf-surface);
-      color: var(--cf-text-primary);
-    }
-    
-    /* 强调文本 */
-    .text-emphasis {
-      text-shadow: 0 2px 8px rgba(var(--cf-primary-color-rgb), 0.4);
-    }
-    
-    /* 进度条背景 */
-    .progress-bg {
-      background: rgba(255, 255, 255, 0.05);
-    }
-    
-    /* 边框 */
-    .border-base {
-      border-color: rgba(255, 255, 255, 0.2);
-    }
-    
-    /* 图标 */
-    .icon-base {
-      color: var(--cf-text-secondary);
-    }
-    
-    /* 容器阴影 */
-    .shadow-base {
-      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
-    }
-    
-    /* 半透明白色背景 */
-    .bg-transparent-light {
-      background: rgba(255, 255, 255, 0.05);
-    }
-    
-    /* 主题色背景 */
-    .bg-primary-transparent {
-      background: rgba(var(--cf-primary-color-rgb), 0.1);
-    }
-    
-    /* 强调色背景 */
-    .bg-accent-transparent {
-      background: rgba(var(--cf-accent-color-rgb), 0.08);
-    }
+export const cardBaseStyles = `
+  /* === 基础卡片容器 === */
+  .cardforge-container {
+    height: 100%;
+    min-height: 120px;
+    font-family: var(--cf-font-family-base);
+    transition: all var(--cf-transition-duration-normal) var(--cf-easing-standard);
+    position: relative;
+    overflow: hidden;
   }
-`;
 
-/**
- * 响应式设计 - 平板尺寸
- */
-export const tabletResponsiveStyles = css`
-  @container cardforge-container (max-width: 768px) {
-    /* 基础容器 */
-    .responsive-container {
-      padding: var(--cf-spacing-lg);
-      gap: var(--cf-spacing-md);
-    }
-    
-    /* 标题文本 */
-    .responsive-title {
-      font-size: var(--cf-font-size-2xl);
-    }
-    
-    /* 副标题 */
-    .responsive-subtitle {
-      font-size: var(--cf-font-size-lg);
-    }
-    
-    /* 内容文本 */
-    .responsive-text {
-      font-size: var(--cf-font-size-base);
-    }
-    
-    /* 小文本 */
-    .responsive-caption {
-      font-size: var(--cf-font-size-sm);
-    }
-    
-    /* 布局 */
-    .responsive-grid-2col {
-      grid-template-columns: repeat(2, 1fr);
-    }
-    
-    /* 间距 */
-    .responsive-gap-md {
-      gap: var(--cf-spacing-sm);
-    }
-    
-    /* 最小高度 */
-    .responsive-min-height {
-      min-height: 140px;
-    }
-  }
-`;
-
-/**
- * 响应式设计 - 手机尺寸
- */
-export const mobileResponsiveStyles = css`
-  @container cardforge-container (max-width: 480px) {
-    /* 基础容器 */
-    .responsive-container {
-      padding: var(--cf-spacing-md);
-      gap: var(--cf-spacing-sm);
-    }
-    
-    /* 标题文本 */
-    .responsive-title {
-      font-size: var(--cf-font-size-xl);
-    }
-    
-    /* 副标题 */
-    .responsive-subtitle {
-      font-size: var(--cf-font-size-md);
-    }
-    
-    /* 内容文本 */
-    .responsive-text {
-      font-size: var(--cf-font-size-sm);
-    }
-    
-    /* 小文本 */
-    .responsive-caption {
-      font-size: var(--cf-font-size-xs);
-    }
-    
-    /* 布局 */
-    .responsive-grid-1col {
-      grid-template-columns: 1fr;
-    }
-    
-    .responsive-column-layout {
-      flex-direction: column;
-      align-items: stretch;
-    }
-    
-    /* 间距 */
-    .responsive-gap-sm {
-      gap: var(--cf-spacing-xs);
-    }
-    
-    /* 最小高度 */
-    .responsive-min-height {
-      min-height: 120px;
-    }
-  }
-`;
-
-/**
- * 响应式设计 - 小手机尺寸
- */
-export const smallMobileResponsiveStyles = css`
-  @container cardforge-container (max-width: 360px) {
-    /* 基础容器 */
-    .responsive-container {
-      padding: var(--cf-spacing-sm);
-      gap: var(--cf-spacing-xs);
-    }
-    
-    /* 标题文本 */
-    .responsive-title {
-      font-size: var(--cf-font-size-lg);
-    }
-    
-    /* 副标题 */
-    .responsive-subtitle {
-      font-size: var(--cf-font-size-sm);
-    }
-    
-    /* 最小高度 */
-    .responsive-min-height {
-      min-height: 100px;
-    }
-  }
-`;
-
-/**
- * 通用卡片样式
- */
-export const commonCardStyles = css`
-  .card-base {
+  /* === 通用卡片内容容器 === */
+  .card-content {
     display: flex;
     flex-direction: column;
     align-items: center;
     justify-content: center;
     height: 100%;
-    min-height: 160px;
-    padding: var(--cf-spacing-2xl);
-    font-family: var(--cf-font-family-base);
-    transition: all var(--cf-transition-duration-normal) var(--cf-easing-standard);
+    text-align: center;
+    padding: var(--cf-spacing-lg);
   }
-  
-  /* 文本样式 */
-  .text-title {
-    font-size: var(--cf-font-size-3xl);
+
+  /* === 通用标题样式 === */
+  .card-title {
+    font-size: var(--cf-font-size-2xl);
     font-weight: var(--cf-font-weight-bold);
     color: var(--cf-text-primary);
     line-height: var(--cf-line-height-tight);
   }
-  
-  .text-subtitle {
-    font-size: var(--cf-font-size-xl);
+
+  .card-subtitle {
+    font-size: var(--cf-font-size-lg);
     font-weight: var(--cf-font-weight-medium);
     color: var(--cf-text-secondary);
     line-height: var(--cf-line-height-normal);
   }
-  
-  .text-caption {
-    font-size: var(--cf-font-size-lg);
+
+  .card-caption {
+    font-size: var(--cf-font-size-sm);
     color: var(--cf-text-tertiary);
     line-height: var(--cf-line-height-normal);
   }
-  
-  .text-emphasis {
+
+  .card-emphasis {
     color: var(--cf-primary-color);
     font-weight: var(--cf-font-weight-bold);
   }
+
+  /* === 通用空状态 === */
+  .card-empty {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    color: var(--cf-text-tertiary);
+    padding: var(--cf-spacing-2xl);
+    height: 100%;
+  }
+
+  .card-empty-icon {
+    font-size: 2.5em;
+    margin-bottom: var(--cf-spacing-md);
+    opacity: 0.4;
+  }
+
+  .card-empty-text {
+    font-size: var(--cf-font-size-lg);
+    font-weight: var(--cf-font-weight-medium);
+  }
+
+  /* === 深色模式适配（通用）=== */
+  @media (prefers-color-scheme: dark) {
+    .cardforge-container {
+      background: var(--cf-surface);
+      color: var(--cf-text-primary);
+    }
+
+    .card-emphasis {
+      text-shadow: 0 2px 8px rgba(var(--cf-primary-color-rgb), 0.4);
+    }
+  }
+
+  /* === 响应式设计（通用）=== */
   
-  /* 布局样式 */
+  /* 平板设备 */
+  @container cardforge-container (max-width: 768px) {
+    .cardforge-container {
+      min-height: 100px;
+    }
+    
+    .card-content {
+      padding: var(--cf-spacing-md);
+    }
+    
+    .card-title {
+      font-size: var(--cf-font-size-xl);
+    }
+    
+    .card-subtitle {
+      font-size: var(--cf-font-size-md);
+    }
+  }
+
+  /* 手机设备 */
+  @container cardforge-container (max-width: 480px) {
+    .cardforge-container {
+      min-height: 80px;
+    }
+    
+    .card-content {
+      padding: var(--cf-spacing-sm);
+    }
+    
+    .card-title {
+      font-size: var(--cf-font-size-lg);
+    }
+    
+    .card-subtitle {
+      font-size: var(--cf-font-size-sm);
+    }
+    
+    .card-caption {
+      font-size: var(--cf-font-size-xs);
+    }
+    
+    .card-empty {
+      padding: var(--cf-spacing-xl);
+    }
+    
+    .card-empty-icon {
+      font-size: 2em;
+    }
+    
+    .card-empty-text {
+      font-size: var(--cf-font-size-md);
+    }
+  }
+
+  /* 小屏手机 */
+  @container cardforge-container (max-width: 360px) {
+    .cardforge-container {
+      min-height: 70px;
+    }
+    
+    .card-content {
+      padding: var(--cf-spacing-xs);
+    }
+    
+    .card-empty {
+      padding: var(--cf-spacing-lg);
+    }
+  }
+`;
+
+/**
+ * 布局工具样式
+ */
+export const layoutStyles = `
+  /* 居中布局 */
   .layout-center {
     display: flex;
     flex-direction: column;
@@ -233,104 +171,119 @@ export const commonCardStyles = css`
     justify-content: center;
     text-align: center;
   }
-  
-  .layout-flex {
+
+  /* 流式布局 */
+  .layout-flow {
     display: flex;
     flex-wrap: wrap;
     gap: var(--cf-spacing-md);
     justify-content: center;
   }
-  
+
+  /* 网格布局 */
   .layout-grid {
     display: grid;
     gap: var(--cf-spacing-md);
   }
-  
-  /* 空状态 */
-  .empty-state {
+
+  /* 水平布局 */
+  .layout-horizontal {
+    display: flex;
+    align-items: center;
+    gap: var(--cf-spacing-md);
+  }
+
+  /* 垂直布局 */
+  .layout-vertical {
     display: flex;
     flex-direction: column;
     align-items: center;
-    justify-content: center;
-    text-align: center;
-    color: var(--cf-text-tertiary);
-    padding: var(--cf-spacing-3xl);
+    gap: var(--cf-spacing-md);
   }
-  
-  .empty-icon {
-    font-size: 3em;
-    margin-bottom: var(--cf-spacing-md);
-    opacity: 0.4;
+
+  /* 响应式布局调整 */
+  @container cardforge-container (max-width: 768px) {
+    .layout-grid {
+      gap: var(--cf-spacing-sm);
+    }
+    
+    .layout-flow {
+      gap: var(--cf-spacing-sm);
+    }
+    
+    .layout-horizontal {
+      gap: var(--cf-spacing-sm);
+    }
+    
+    .layout-vertical {
+      gap: var(--cf-spacing-sm);
+    }
   }
-  
-  .empty-text {
-    font-size: var(--cf-font-size-xl);
-    font-weight: var(--cf-font-weight-medium);
-  }
-  
-  /* 边框和阴影 */
-  .border-base {
-    border: 1px solid var(--cf-border);
-  }
-  
-  .shadow-base {
-    box-shadow: var(--cf-shadow-md);
-  }
-  
-  .rounded-base {
-    border-radius: var(--cf-radius-lg);
+
+  @container cardforge-container (max-width: 480px) {
+    .layout-grid {
+      gap: var(--cf-spacing-xs);
+    }
+    
+    .layout-flow {
+      gap: var(--cf-spacing-xs);
+    }
+    
+    .layout-horizontal {
+      gap: var(--cf-spacing-xs);
+    }
+    
+    .layout-vertical {
+      gap: var(--cf-spacing-xs);
+    }
   }
 `;
 
 /**
- * 创建完整的卡片样式
+ * 生成卡片样式 - 组合通用样式和自定义样式
+ * @param {string} customStyles - 卡片特有的自定义样式
+ * @returns {string} 完整的样式字符串
  */
-export const createCardStyles = (customStyles = '') => {
-  return css`
-    ${commonCardStyles}
-    ${darkModeStyles}
-    ${tabletResponsiveStyles}
-    ${mobileResponsiveStyles}
-    ${smallMobileResponsiveStyles}
+export function createCardStyles(customStyles = '') {
+  return `
+    ${cardBaseStyles}
+    ${layoutStyles}
     ${customStyles}
   `;
-};
+}
 
 /**
- * 响应式工具类 - 用于模板中动态添加类名
+ * 获取响应式字体大小
+ * @param {string} baseSize - 基础字体大小（如 '1.8em', '3.5em'）
+ * @returns {string} 响应式字体大小
  */
-export const responsiveClasses = {
-  // 容器类
-  container: 'responsive-container',
-  minHeight: 'responsive-min-height',
+export function getResponsiveFontSize(baseSize) {
+  // 简单响应式字体大小映射
+  const sizeMap = {
+    '4xl': '3xl',
+    '3xl': '2xl',
+    '2xl': 'xl',
+    'xl': 'lg',
+    'lg': 'md',
+    'md': 'sm',
+    'sm': 'xs',
+    'xs': '0.8em'
+  };
   
-  // 文本类
-  title: 'responsive-title',
-  subtitle: 'responsive-subtitle',
-  text: 'responsive-text',
-  caption: 'responsive-caption',
+  const baseMatch = baseSize.match(/var\(--cf-font-size-(\w+)\)/);
+  if (baseMatch && sizeMap[baseMatch[1]]) {
+    return `
+      font-size: var(--cf-font-size-${baseMatch[1]});
+      
+      @container cardforge-container (max-width: 768px) {
+        font-size: var(--cf-font-size-${sizeMap[baseMatch[1]]});
+      }
+      
+      @container cardforge-container (max-width: 480px) {
+        font-size: var(--cf-font-size-${sizeMap[sizeMap[baseMatch[1]]] || 'sm'});
+      }
+    `;
+  }
   
-  // 布局类
-  grid2col: 'responsive-grid-2col',
-  grid1col: 'responsive-grid-1col',
-  columnLayout: 'responsive-column-layout',
-  
-  // 间距类
-  gapMd: 'responsive-gap-md',
-  gapSm: 'responsive-gap-sm',
-};
-
-/**
- * 深色模式工具类
- */
-export const darkModeClasses = {
-  base: 'card-base',
-  emphasis: 'text-emphasis',
-  progressBg: 'progress-bg',
-  border: 'border-base',
-  icon: 'icon-base',
-  shadow: 'shadow-base',
-  bgLight: 'bg-transparent-light',
-  bgPrimary: 'bg-primary-transparent',
-  bgAccent: 'bg-accent-transparent',
-};
+  return `font-size: ${baseSize};`;
+}

@@ -1,6 +1,6 @@
-// src/cards/dashboard-card.js - 修复版
+// cards/dashboard-card.js - 重构版
 import { renderBlocks } from '../blocks/index.js';
-import { createCardStyles, responsiveClasses, darkModeClasses } from '../core/card-styles.js';
+import { createCardStyles } from '../core/card-styles.js';
 
 export const card = {
   id: 'dashboard',
@@ -16,9 +16,9 @@ export const card = {
       type: 'select',
       label: '内容区域排列',
       options: [
-        { value: 'flow', label: '流式排列' },
+        { value: 'flow', label: '流式排列（自动换行）' },
         { value: 'grid', label: '网格排列' },
-        { value: 'list', label: '列表排列' }
+        { value: 'list', label: '列表排列（垂直堆叠）' }
       ],
       default: 'flow'
     },
@@ -85,9 +85,9 @@ export const card = {
       type: 'select',
       label: '内容块布局',
       options: [
-        { value: 'horizontal', label: '水平布局' },
-        { value: 'vertical', label: '垂直布局' },
-        { value: 'compact', label: '紧凑网格' }
+        { value: 'horizontal', label: '水平布局（图标+名称+状态值）' },
+        { value: 'vertical', label: '垂直布局（图标在上，垂直堆叠）' },
+        { value: 'compact', label: '紧凑网格（图标左，右侧上下）' }
       ],
       default: 'horizontal'
     }
@@ -99,6 +99,7 @@ export const card = {
     const blocks = config.blocks || {};
     const blockList = Object.entries(blocks);
     
+    // 按区域分组
     const blocksByArea = {
       header: blockList.filter(([_, block]) => block.area === 'header'),
       content: blockList.filter(([_, block]) => !block.area || block.area === 'content'),
@@ -109,21 +110,23 @@ export const card = {
     
     if (!hasBlocks) {
       return `
-        <div class="dashboard-card empty-state ${darkModeClasses.base}">
-          <div class="empty-icon">📊</div>
-          <div class="empty-text ${responsiveClasses.title}">仪表盘暂无数据块</div>
+        <div class="dashboard-card card-empty">
+          <div class="card-empty-icon">📊</div>
+          <div class="card-empty-text">仪表盘暂无数据块</div>
         </div>
       `;
     }
     
-    let html = `<div class="dashboard-card card-base ${darkModeClasses.base} ${responsiveClasses.container} layout-${config.contentLayout} spacing-${config.spacing}">`;
+    let html = `<div class="dashboard-card layout-${config.contentLayout} spacing-${config.spacing}">`;
     
     // 标题区域
     if (config.showHeader && blocksByArea.header.length > 0) {
       const headerBlocks = Object.fromEntries(blocksByArea.header);
       html += `
-        <div class="dashboard-header ${darkModeClasses.bgPrimary} ${responsiveClasses.gapMd}" style="justify-content: ${config.headerAlign}">
-          ${renderBlocks(headerBlocks, data.hass, { layout: 'horizontal' })}
+        <div class="dashboard-header" style="justify-content: ${config.headerAlign}">
+          ${renderBlocks(headerBlocks, data.hass, { 
+            layout: 'horizontal'
+          })}
         </div>
       `;
     }
@@ -133,7 +136,9 @@ export const card = {
       const contentBlocks = Object.fromEntries(blocksByArea.content);
       html += `
         <div class="dashboard-content columns-${config.gridColumns}">
-          ${renderBlocks(contentBlocks, data.hass, { layout: config.contentBlockLayout })}
+          ${renderBlocks(contentBlocks, data.hass, { 
+            layout: config.contentBlockLayout
+          })}
         </div>
       `;
     }
@@ -142,8 +147,10 @@ export const card = {
     if (config.showFooter && blocksByArea.footer.length > 0) {
       const footerBlocks = Object.fromEntries(blocksByArea.footer);
       html += `
-        <div class="dashboard-footer ${darkModeClasses.bgAccent} ${responsiveClasses.gapMd}" style="justify-content: ${config.footerAlign}">
-          ${renderBlocks(footerBlocks, data.hass, { layout: 'horizontal' })}
+        <div class="dashboard-footer" style="justify-content: ${config.footerAlign}">
+          ${renderBlocks(footerBlocks, data.hass, { 
+            layout: 'horizontal'
+          })}
         </div>
       `;
     }
@@ -153,25 +160,20 @@ export const card = {
   },
   
   styles: (config, theme) => {
+    // 只保留仪表盘卡片特有的样式
     const customStyles = `
       .dashboard-card {
         min-height: 200px;
         background: var(--cf-surface);
         border-radius: var(--cf-radius-lg);
         box-shadow: var(--cf-shadow-sm);
-        display: flex;
-        flex-direction: column;
+        transition: all var(--cf-transition-duration-normal) var(--cf-easing-standard);
       }
       
       /* 间距控制 */
       .dashboard-card.spacing-compact {
         padding: var(--cf-spacing-md);
         gap: var(--cf-spacing-md);
-      }
-      
-      .dashboard-card.spacing-normal {
-        padding: var(--cf-spacing-xl);
-        gap: var(--cf-spacing-lg);
       }
       
       .dashboard-card.spacing-relaxed {
@@ -185,6 +187,7 @@ export const card = {
         flex-wrap: wrap;
         align-items: center;
         padding: var(--cf-spacing-sm);
+        background: rgba(var(--cf-primary-color-rgb), 0.05);
         border-radius: var(--cf-radius-md);
         border-left: 3px solid var(--cf-primary-color);
       }
@@ -192,26 +195,18 @@ export const card = {
       .dashboard-header .cardforge-block {
         background: transparent;
         border: 1px solid rgba(var(--cf-primary-color-rgb), 0.2);
-        padding: var(--cf-spacing-sm);
-        border-radius: var(--cf-radius-sm);
       }
       
       .dashboard-header .block-icon {
         background: transparent !important;
         color: var(--cf-primary-color);
-        width: 36px;
-        height: 36px;
-        font-size: 1.2em;
       }
       
       .dashboard-header .block-name {
-        color: var(--cf-text-secondary);
         font-size: var(--cf-font-size-sm);
-        font-weight: var(--cf-font-weight-medium);
       }
       
       .dashboard-header .block-value {
-        color: var(--cf-text-primary);
         font-size: var(--cf-font-size-lg);
         font-weight: var(--cf-font-weight-semibold);
       }
@@ -227,16 +222,13 @@ export const card = {
       .layout-flow .dashboard-content {
         display: flex;
         flex-wrap: wrap;
-        align-content: flex-start;
         justify-content: center;
-        gap: var(--cf-spacing-md);
       }
       
       /* 网格排列 */
       .layout-grid .dashboard-content {
         display: grid;
         grid-template-columns: repeat(${config.gridColumns}, 1fr);
-        gap: var(--cf-spacing-md);
         align-content: start;
       }
       
@@ -244,7 +236,6 @@ export const card = {
       .layout-list .dashboard-content {
         display: flex;
         flex-direction: column;
-        gap: var(--cf-spacing-md);
       }
       
       /* 内容块通用样式 */
@@ -252,9 +243,7 @@ export const card = {
         background: var(--cf-surface);
         border: 1px solid var(--cf-border);
         border-radius: var(--cf-radius-md);
-        padding: var(--cf-spacing-md);
         transition: all var(--cf-transition-duration-fast) var(--cf-easing-standard);
-        min-height: 80px;
       }
       
       .dashboard-content .cardforge-block:hover {
@@ -266,9 +255,6 @@ export const card = {
       .dashboard-content .block-icon {
         background: transparent !important;
         color: var(--cf-text-secondary);
-        width: 40px;
-        height: 40px;
-        font-size: 1.5em;
       }
       
       .dashboard-content .cardforge-block:hover .block-icon {
@@ -282,6 +268,7 @@ export const card = {
         flex-wrap: wrap;
         align-items: center;
         padding: var(--cf-spacing-sm);
+        background: rgba(var(--cf-accent-color-rgb), 0.05);
         border-radius: var(--cf-radius-md);
         border-top: 1px solid var(--cf-border);
       }
@@ -289,136 +276,54 @@ export const card = {
       .dashboard-footer .cardforge-block {
         background: transparent;
         border: 1px solid rgba(var(--cf-accent-color-rgb), 0.2);
-        padding: var(--cf-spacing-sm);
-        border-radius: var(--cf-radius-sm);
       }
       
       .dashboard-footer .block-icon {
         background: transparent !important;
         color: var(--cf-text-tertiary);
-        width: 32px;
-        height: 32px;
-        font-size: 1.1em;
       }
       
       .dashboard-footer .block-name {
-        color: var(--cf-text-tertiary);
         font-size: var(--cf-font-size-xs);
-        font-weight: var(--cf-font-weight-medium);
       }
       
       .dashboard-footer .block-value {
-        color: var(--cf-text-secondary);
         font-size: var(--cf-font-size-md);
         font-weight: var(--cf-font-weight-medium);
       }
       
-      /* 特定响应式 - 平板 */
+      /* 仪表盘卡片特定的响应式 */
       @container cardforge-container (max-width: 768px) {
-        .dashboard-card.spacing-normal,
-        .dashboard-card.spacing-relaxed {
-          padding: var(--cf-spacing-lg);
-          gap: var(--cf-spacing-md);
+        .dashboard-card {
+          min-height: 180px;
         }
         
         .layout-grid .dashboard-content {
           grid-template-columns: repeat(2, 1fr);
-          gap: var(--cf-spacing-sm);
-        }
-        
-        .layout-flow .dashboard-content,
-        .layout-list .dashboard-content {
-          gap: var(--cf-spacing-sm);
-        }
-        
-        .dashboard-header,
-        .dashboard-footer {
-          padding: var(--cf-spacing-xs);
-          gap: var(--cf-spacing-sm);
-        }
-        
-        .dashboard-header .cardforge-block,
-        .dashboard-footer .cardforge-block {
-          padding: var(--cf-spacing-xs);
-        }
-        
-        .dashboard-content .cardforge-block {
-          padding: var(--cf-spacing-sm);
-          min-height: 70px;
         }
       }
       
-      /* 特定响应式 - 手机 */
       @container cardforge-container (max-width: 480px) {
         .dashboard-card {
-          padding: var(--cf-spacing-md) !important;
-          gap: var(--cf-spacing-sm) !important;
+          min-height: 160px;
         }
         
         .layout-grid .dashboard-content {
           grid-template-columns: 1fr;
         }
         
-        .dashboard-header,
-        .dashboard-footer {
+        .layout-flow .dashboard-content {
+          justify-content: stretch;
+        }
+        
+        .dashboard-header, .dashboard-footer {
           flex-direction: column;
           align-items: stretch;
-          gap: var(--cf-spacing-xs);
-        }
-        
-        .dashboard-header .cardforge-block,
-        .dashboard-footer .cardforge-block {
-          width: 100%;
-          margin-bottom: var(--cf-spacing-xs);
-        }
-        
-        .dashboard-header .block-icon,
-        .dashboard-footer .block-icon {
-          width: 28px;
-          height: 28px;
-          font-size: 1em;
-        }
-        
-        .dashboard-content .cardforge-block {
-          padding: var(--cf-spacing-xs);
-          min-height: 60px;
-        }
-        
-        .dashboard-content .block-icon {
-          width: 32px;
-          height: 32px;
-          font-size: 1.2em;
-        }
-      }
-      
-      /* 特定响应式 - 小手机 */
-      @container cardforge-container (max-width: 360px) {
-        .dashboard-card {
-          padding: var(--cf-spacing-sm) !important;
-          gap: var(--cf-spacing-xs) !important;
-        }
-        
-        .dashboard-content {
-          padding: var(--cf-spacing-xs);
-        }
-        
-        .dashboard-content .cardforge-block {
-          min-height: 50px;
-          padding: var(--cf-spacing-xs) var(--cf-spacing-sm);
-        }
-        
-        .dashboard-header .block-name,
-        .dashboard-footer .block-name {
-          font-size: 0.7em;
-        }
-        
-        .dashboard-header .block-value,
-        .dashboard-footer .block-value {
-          font-size: var(--cf-font-size-sm);
         }
       }
     `;
     
+    // 使用通用样式工具
     return createCardStyles(customStyles);
   }
 };
