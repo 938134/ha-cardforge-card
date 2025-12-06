@@ -1,4 +1,4 @@
-// cards/week-card.js - 修复渲染错误版
+// cards/week-card.js - 简化版（移除重复深色模式）
 import { createCardStyles } from '../core/card-styles.js';
 import { getDateTimeInfo, escapeHtml } from '../core/card-tools.js';
 
@@ -19,7 +19,7 @@ export const card = {
       type: 'boolean',
       label: '显示年份进度',
       default: true,
-      description: '是否显示年份进度条'
+      description: '是否显示年份进度环'
     },
     show_week_progress: {
       type: 'boolean',
@@ -31,11 +31,8 @@ export const card = {
   
   blockType: 'none',
   
-  // 修复：移除第三个参数或者添加默认值
   template: (config, context) => {
     const { hass } = context || {};
-    const theme = context?.theme || {};
-    
     const date = new Date();
     const dateInfo = getDateTimeInfo(date);
     const weekdays = ['日', '一', '二', '三', '四', '五', '六'];
@@ -79,20 +76,47 @@ export const card = {
       `;
     }
     
-    // 年份进度条
+    // 年份进度环
     let yearProgressHtml = '';
     if (config.show_year_progress !== false) {
+      const radius = 40;
+      const circumference = 2 * Math.PI * radius;
+      const progress = dateInfo.yearProgress;
+      const strokeDashoffset = circumference - (progress / 100) * circumference;
+      
       yearProgressHtml = `
-        <div class="year-progress-container">
-          <div class="year-progress-info">
-            <span>${dateInfo.date}</span>
-            <span class="year-progress-text">第 ${dateInfo.weekNumber} 周 · 已完成 ${dateInfo.yearProgress.toFixed(1)}%</span>
-          </div>
-          <div class="year-progress-bar">
-            <div 
+        <div class="year-progress-wrapper">
+          <svg class="year-progress-svg" width="100" height="100">
+            <!-- 渐变定义 -->
+            <defs>
+              <linearGradient id="year-progress-gradient" x1="0%" y1="0%" x2="100%" y2="0%">
+                <stop offset="0%" stop-color="var(--cf-primary-color)" />
+                <stop offset="100%" stop-color="var(--cf-accent-color)" />
+              </linearGradient>
+            </defs>
+            <circle 
+              class="year-progress-bg" 
+              cx="50" cy="50" r="${radius}" 
+              fill="none" 
+              stroke-width="6"
+            />
+            <circle 
               class="year-progress-fill" 
-              style="width: ${dateInfo.yearProgress}%"
-            ></div>
+              cx="50" cy="50" r="${radius}" 
+              fill="none" 
+              stroke-width="6"
+              stroke-dasharray="${circumference}"
+              stroke-dashoffset="${strokeDashoffset}"
+              transform="rotate(-90 50 50)"
+              stroke="url(#year-progress-gradient)"
+            />
+            <text x="50" y="50" class="year-progress-text">
+              ${Math.round(progress)}%
+            </text>
+          </svg>
+          <div class="year-progress-info">
+            <div class="year-progress-week">第 ${dateInfo.weekNumber} 周</div>
+            <div class="year-progress-date">${dateInfo.date}</div>
           </div>
         </div>
       `;
@@ -105,9 +129,6 @@ export const card = {
       <div class="cardforge-container">
         <div class="card-wrapper">
           <div class="card-content">
-            <!-- 卡片标题 -->
-            <div class="card-title">${dateInfo.weekday}</div>
-            
             <!-- 星期展示 -->
             <div class="week-container">
               ${weekHtml}
@@ -116,20 +137,21 @@ export const card = {
             <!-- 周进度指示器 -->
             ${weekDots}
             
-            <!-- 年份进度 -->
+            <!-- 年份进度环 -->
             ${yearProgressHtml}
             
-            <!-- 底部信息 -->
-            <div class="card-caption">${dateInfo.greeting}，${userName}</div>
+            <!-- 问候语 -->
+            <div class="card-caption">
+              ${dateInfo.greeting}，${userName}
+            </div>
           </div>
         </div>
       </div>
     `;
   },
   
-  // 修复：第二个参数使用默认值
   styles: (config, theme = {}) => createCardStyles(`
-    /* 星期卡片特有样式 */
+    /* 星期卡片特有样式 - 只定义颜色变量，深色模式由card-styles处理 */
     .week-container {
       display: grid;
       grid-template-columns: repeat(7, 1fr);
@@ -238,84 +260,50 @@ export const card = {
       background: rgba(var(--cf-primary-color-rgb), 0.4);
     }
     
-    /* 年份进度条 */
-    .year-progress-container {
-      width: 100%;
-      max-width: 300px;
-      margin-top: var(--cf-spacing-lg);
-    }
-    
-    .year-progress-info {
+    /* 年份进度环 */
+    .year-progress-wrapper {
       display: flex;
-      justify-content: space-between;
+      flex-direction: column;
       align-items: center;
-      margin-bottom: 6px;
-      font-size: var(--cf-font-size-sm);
+      margin-top: var(--cf-spacing-lg);
+      width: 100%;
     }
     
-    .year-progress-info span:first-child {
-      color: var(--cf-text-primary);
-      font-weight: var(--cf-font-weight-medium);
+    .year-progress-svg {
+      margin-bottom: var(--cf-spacing-sm);
     }
     
-    .year-progress-text {
-      color: var(--cf-text-tertiary);
-    }
-    
-    .year-progress-bar {
-      height: 6px;
-      background: var(--cf-neutral-200);
-      border-radius: var(--cf-radius-pill);
-      overflow: hidden;
+    .year-progress-bg {
+      stroke: var(--cf-neutral-200);
     }
     
     .year-progress-fill {
-      height: 100%;
-      background: linear-gradient(90deg, 
-        var(--cf-primary-color), 
-        var(--cf-accent-color)
-      );
-      border-radius: var(--cf-radius-pill);
-      transition: width 1s var(--cf-easing-standard);
+      stroke-linecap: round;
+      transition: stroke-dashoffset 1s var(--cf-easing-standard);
     }
     
-    /* 深色模式适配 */
-    @media (prefers-color-scheme: dark) {
-      .weekday-past {
-        color: var(--cf-neutral-600);
-      }
-      
-      .weekday-past .weekday-number {
-        color: var(--cf-neutral-500);
-      }
-      
-      .weekday-past .weekday-name {
-        color: var(--cf-neutral-600);
-      }
-      
-      .weekday-current {
-        background: rgba(var(--cf-accent-color-rgb), 0.2);
-      }
-      
-      .weekday-future .weekday-number {
-        color: var(--cf-primary-color);
-      }
-      
-      .weekday-future .weekday-name {
-        color: var(--cf-neutral-400);
-      }
-      
-      .week-dot-past {
-        background: var(--cf-neutral-600);
-      }
-      
-      .week-dot-future {
-        background: rgba(var(--cf-primary-color-rgb), 0.6);
-      }
-      
-      .year-progress-bar {
-        background: var(--cf-neutral-700);
-      }
+    .year-progress-text {
+      fill: var(--cf-text-primary);
+      font-size: 14px;
+      font-weight: var(--cf-font-weight-bold);
+      text-anchor: middle;
+      dominant-baseline: middle;
+    }
+    
+    .year-progress-info {
+      text-align: center;
+    }
+    
+    .year-progress-week {
+      font-size: var(--cf-font-size-lg);
+      font-weight: var(--cf-font-weight-bold);
+      color: var(--cf-text-primary);
+      margin-bottom: 4px;
+    }
+    
+    .year-progress-date {
+      font-size: var(--cf-font-size-sm);
+      color: var(--cf-text-secondary);
     }
     
     /* 响应式设计 */
@@ -340,8 +328,26 @@ export const card = {
         font-size: var(--cf-font-size-md);
       }
       
-      .year-progress-container {
-        max-width: 250px;
+      .year-progress-svg {
+        width: 80px;
+        height: 80px;
+      }
+      
+      .year-progress-bg,
+      .year-progress-fill {
+        stroke-width: 5;
+      }
+      
+      .year-progress-text {
+        font-size: 12px;
+      }
+      
+      .year-progress-week {
+        font-size: var(--cf-font-size-md);
+      }
+      
+      .year-progress-date {
+        font-size: var(--cf-font-size-xs);
       }
     }
     
@@ -375,12 +381,26 @@ export const card = {
         transform: scale(1.2);
       }
       
-      .year-progress-info {
-        font-size: var(--cf-font-size-xs);
+      .year-progress-svg {
+        width: 70px;
+        height: 70px;
       }
       
-      .year-progress-bar {
-        height: 4px;
+      .year-progress-bg,
+      .year-progress-fill {
+        stroke-width: 4;
+      }
+      
+      .year-progress-text {
+        font-size: 11px;
+      }
+      
+      .year-progress-week {
+        font-size: var(--cf-font-size-sm);
+      }
+      
+      .year-progress-date {
+        font-size: 0.8em;
       }
     }
     
