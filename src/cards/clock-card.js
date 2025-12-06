@@ -1,4 +1,4 @@
-// cards/clock-card.js - 重构版
+// cards/clock-card.js - 修复版
 import { formatTime, formatDate, getWeekday } from '../core/card-tools.js';
 import { createCardStyles } from '../core/card-styles.js';
 
@@ -55,10 +55,12 @@ export const card = {
     
     return `
       <div class="clock-card">
-        <div class="card-content layout-center">
-          ${timeHtml}
-          ${dateHtml}
-          ${weekdayHtml}
+        <div class="card-wrapper">
+          <div class="card-content layout-center">
+            ${timeHtml}
+            ${dateHtml}
+            ${weekdayHtml}
+          </div>
         </div>
       </div>
     `;
@@ -67,20 +69,40 @@ export const card = {
   styles: (config) => {
     // 只保留时钟卡片特有的样式
     const customStyles = `
-    .clock-card {
-      min-height: 140px;
-    }
-    
-    .clock-time {
-      font-size: var(--cf-font-size-4xl);
-      letter-spacing: 1px;
-      margin-bottom: var(--cf-spacing-xs);
-    }
-    
-    .clock-date, .clock-weekday {
-      margin-top: var(--cf-spacing-xs);
-    }
-  `;
+      .clock-card {
+        min-height: 160px; /* 增加最小高度 */
+      }
+      
+      .clock-time {
+        font-size: var(--cf-font-size-4xl);
+        letter-spacing: 1px;
+        margin: var(--cf-spacing-md) 0; /* 增加上下间距 */
+      }
+      
+      .clock-date {
+        margin-top: var(--cf-spacing-sm);
+        margin-bottom: var(--cf-spacing-xs);
+      }
+      
+      .clock-weekday {
+        margin-top: var(--cf-spacing-xs);
+      }
+      
+      /* 时钟卡片特定的响应式 */
+      @container cardforge-container (max-width: 400px) {
+        .clock-time {
+          font-size: var(--cf-font-size-3xl);
+          margin: var(--cf-spacing-sm) 0;
+        }
+      }
+      
+      @container cardforge-container (max-width: 300px) {
+        .clock-time {
+          font-size: var(--cf-font-size-2xl);
+          margin: var(--cf-spacing-xs) 0;
+        }
+      }
+    `;
     
     // 使用通用样式工具
     return createCardStyles(customStyles);
