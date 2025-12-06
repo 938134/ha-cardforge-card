@@ -1,122 +1,128 @@
-// 渐变主题 - 使用设计系统变量
+// themes/gradient-theme.js - 使用设计系统重构版
 export const theme = {
   id: 'gradient',
   name: '渐变',
   description: '时尚渐变背景，Material Design配色',
   icon: '🌈',
   
+  // 渐变主题变量
+  variables: {
+    '--gradient-primary': 'var(--cf-primary-color)',
+    '--gradient-accent': 'var(--cf-accent-color)',
+    '--gradient-error': 'var(--cf-error-color)',
+    '--gradient-warning': 'var(--cf-warning-color)',
+    '--gradient-duration': '15s',
+    '--gradient-border-opacity': '0.25',
+    '--gradient-blur': '5px'
+  },
+  
+  // 深色模式变量
+  darkVariables: {
+    '--gradient-primary': 'color-mix(in srgb, var(--cf-primary-color), black 30%)',
+    '--gradient-accent': 'color-mix(in srgb, var(--cf-accent-color), black 20%)',
+    '--gradient-warning': 'color-mix(in srgb, var(--cf-warning-color), black 20%)'
+  },
+  
   styles: `
     .cardforge-container {
-      /* 使用设计系统的主题色作为渐变色 */
+      /* 动态渐变背景 */
       background: linear-gradient(135deg, 
-        var(--cf-primary-color) 0%, 
-        color-mix(in srgb, var(--cf-primary-color), var(--cf-accent-color) 25%) 25%,
-        var(--cf-accent-color) 50%, 
-        color-mix(in srgb, var(--cf-accent-color), var(--cf-error-color) 25%) 75%, 
-        var(--cf-error-color) 100%);
+        var(--gradient-primary) 0%, 
+        color-mix(in srgb, var(--gradient-primary), var(--gradient-accent) 25%) 25%,
+        var(--gradient-accent) 50%, 
+        color-mix(in srgb, var(--gradient-accent), var(--gradient-error) 25%) 75%, 
+        var(--gradient-error) 100%);
       
+      /* 背景动画 */
       background-size: 400% 400%;
-      animation: gradient-shift 15s ease infinite;
+      animation: gradient-shift var(--gradient-duration) ease infinite;
       
-      /* 使用设计系统的边框变量 */
-      border: 1px solid rgba(255, 255, 255, 0.25);
-      backdrop-filter: blur(5px);
+      /* 玻璃效果叠加 */
+      backdrop-filter: blur(var(--gradient-blur));
+      -webkit-backdrop-filter: blur(var(--gradient-blur));
+      
+      /* 渐变边框 */
+      border: 1px solid rgba(255, 255, 255, var(--gradient-border-opacity));
+      
+      /* 确保内容可读 */
+      position: relative;
+      overflow: hidden;
     }
     
+    /* 渐变背景动画 */
     @keyframes gradient-shift {
       0% { background-position: 0% 50%; }
       50% { background-position: 100% 50%; }
       100% { background-position: 0% 50%; }
     }
     
-    /* 渐变主题下的文字增强 */
-    .cardforge-container .greeting,
-    .cardforge-container .clock-time,
-    .cardforge-container .poetry-title,
-    .cardforge-container .week-number {
-      color: var(--cf-text-inverse);
-      text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+    /* 内容区域遮罩，提高可读性 */
+    .card-wrapper::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(255, 255, 255, 0.05);
+      backdrop-filter: blur(2px);
+      z-index: 1;
     }
     
-    /* 渐变主题下的块样式优化 */
-    .cardforge-container .area-header {
-      background: rgba(255, 255, 255, 0.15);
-      backdrop-filter: blur(8px);
-      border-left: 3px solid rgba(255, 255, 255, 0.6);
-      color: var(--cf-text-inverse);
+    .card-content {
+      position: relative;
+      z-index: 2;
     }
     
-    .cardforge-container .area-content {
-      background: rgba(255, 255, 255, 0.1);
-      backdrop-filter: blur(6px);
-      color: var(--cf-text-inverse);
+    /* 文字效果 */
+    .card-title {
+      background: linear-gradient(45deg, 
+        var(--gradient-primary), 
+        var(--gradient-accent),
+        var(--gradient-error));
+      -webkit-background-clip: text;
+      background-clip: text;
+      color: transparent;
+      background-size: 200% 100%;
+      animation: text-gradient 8s ease infinite alternate;
     }
     
-    .cardforge-container .area-footer {
-      background: rgba(0, 0, 0, 0.1);
-      backdrop-filter: blur(4px);
-      border-top: 1px solid rgba(255, 255, 255, 0.2);
-      color: var(--cf-text-inverse);
+    @keyframes text-gradient {
+      0% { background-position: 0% 50%; }
+      100% { background-position: 100% 50%; }
     }
     
-    .cardforge-container .block-icon {
-      background: rgba(255, 255, 255, 0.2);
-      color: var(--cf-text-inverse);
-    }
-    
-    .cardforge-container .block-name {
+    .card-subtitle {
       color: rgba(255, 255, 255, 0.9);
+      text-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
     }
     
-    .cardforge-container .block-value {
-      color: var(--cf-text-inverse);
-      font-weight: var(--cf-font-weight-bold);
+    .card-caption {
+      color: rgba(255, 255, 255, 0.7);
     }
     
-    /* 深色模式优化 - 使用更暗的渐变 */
-    @media (prefers-color-scheme: dark) {
-      .cardforge-container {
-        background: linear-gradient(135deg, 
-          color-mix(in srgb, var(--cf-primary-color), black 30%) 0%, 
-          color-mix(in srgb, var(--cf-primary-color), var(--cf-accent-color) 25%) 25%,
-          color-mix(in srgb, var(--cf-accent-color), black 20%) 50%, 
-          color-mix(in srgb, var(--cf-accent-color), var(--cf-warning-color) 25%) 75%, 
-          color-mix(in srgb, var(--cf-warning-color), black 20%) 100%);
+    /* 响应式调整 */
+    @container cardforge-container (max-width: 768px) {
+      :host {
+        --gradient-blur: 3px;
       }
       
-      .cardforge-container .area-header {
-        background: rgba(0, 0, 0, 0.2);
-      }
-      
-      .cardforge-container .area-content {
-        background: rgba(0, 0, 0, 0.15);
-      }
-      
-      .cardforge-container .block-icon {
-        background: rgba(0, 0, 0, 0.25);
+      .cardforge-container {
+        background-size: 300% 300%;
       }
     }
     
-    /* 响应式优化 */
-    @container cardforge-container (max-width: 600px) {
+    @container cardforge-container (max-width: 480px) {
       .cardforge-container {
-        animation-duration: 20s;
-        backdrop-filter: blur(3px);
-      }
-    }
-    
-    @container cardforge-container (max-width: 400px) {
-      .cardforge-container {
-        animation: none;
         background-size: 200% 200%;
       }
     }
   `,
   
   preview: {
-    background: 'linear-gradient(135deg, var(--cf-primary-color) 0%, var(--cf-accent-color) 50%, var(--cf-error-color) 100%)',
-    color: 'var(--cf-text-inverse)',
+    background: 'linear-gradient(135deg, var(--cf-primary-color), var(--cf-accent-color), var(--cf-error-color))',
+    animation: 'gradient-shift 15s ease infinite',
     border: '1px solid rgba(255, 255, 255, 0.25)',
-    boxShadow: '0 4px 15px rgba(var(--cf-primary-color-rgb), 0.3)'
+    backdropFilter: 'blur(5px)'
   }
 };
