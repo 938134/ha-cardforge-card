@@ -1,9 +1,10 @@
-// 诗词卡片 - 简化版（使用系统变量，5个块，最小配置）
+// src/cards/poetry-card.js - 彻底简化版
 import { 
   escapeHtml, 
   formatPoetryContent,
   getEntityState
-} from '../core/utilities.js';
+} from '../core/card-tools.js';
+import { createCardStyles, responsiveClasses, darkModeClasses } from '../core/card-styles.js';
 
 export const card = {
   id: 'poetry',
@@ -76,9 +77,9 @@ export const card = {
     // 如果没有任何内容，显示空状态
     if (!title && !content) {
       return `
-        <div class="poetry-card empty">
+        <div class="poetry-card empty-state ${darkModeClasses.base}">
           <div class="empty-icon">📜</div>
-          <div class="empty-text">诗词卡片需要配置内容</div>
+          <div class="empty-text ${responsiveClasses.title}">诗词卡片需要配置内容</div>
         </div>
       `;
     }
@@ -87,29 +88,33 @@ export const card = {
     const formattedTranslation = translation ? formatPoetryContent(translation) : '';
     
     return `
-      <div class="poetry-card font-${config.fontSize}">
-        ${title ? `<div class="poetry-title">${escapeHtml(title)}</div>` : ''}
-        
-        ${(dynasty || author) ? `
-          <div class="poetry-meta">
-            ${dynasty ? `<span class="meta-item dynasty">${escapeHtml(dynasty)}</span>` : ''}
-            ${dynasty && author ? `<span class="separator">·</span>` : ''}
-            ${author ? `<span class="meta-item author">${escapeHtml(author)}</span>` : ''}
-          </div>
-        ` : ''}
-        
-        ${formattedContent ? `
-          <div class="poetry-divider"></div>
-          <div class="poetry-content">${formattedContent}</div>
-        ` : ''}
-        
-        ${formattedTranslation ? `
-          <div class="translation-divider"></div>
-          <div class="translation-container">
-            <div class="translation-label">译文</div>
-            <div class="translation-content">${formattedTranslation}</div>
-          </div>
-        ` : ''}
+      <div class="poetry-card card-base ${darkModeClasses.base} ${responsiveClasses.container} font-${config.fontSize}">
+        <div class="card-content layout-center">
+          ${title ? `<div class="poetry-title text-emphasis ${darkModeClasses.emphasis} ${responsiveClasses.title}">${escapeHtml(title)}</div>` : ''}
+          
+          ${(dynasty || author) ? `
+            <div class="poetry-meta layout-flex ${responsiveClasses.gapSm} ${responsiveClasses.caption}">
+              ${dynasty ? `<span class="meta-item dynasty text-subtitle ${responsiveClasses.subtitle}">${escapeHtml(dynasty)}</span>` : ''}
+              ${dynasty && author ? `<span class="separator">·</span>` : ''}
+              ${author ? `<span class="meta-item author text-subtitle ${responsiveClasses.subtitle}">${escapeHtml(author)}</span>` : ''}
+            </div>
+          ` : ''}
+          
+          ${formattedContent ? `
+            <div class="poetry-divider ${darkModeClasses.border} ${responsiveClasses.gapMd}"></div>
+            <div class="poetry-content ${responsiveClasses.text}">
+              ${formattedContent}
+            </div>
+          ` : ''}
+          
+          ${formattedTranslation ? `
+            <div class="translation-divider ${darkModeClasses.border} ${responsiveClasses.gapMd}"></div>
+            <div class="translation-container ${darkModeClasses.bgAccent} ${responsiveClasses.gapSm}">
+              <div class="translation-label ${responsiveClasses.caption}">译文</div>
+              <div class="translation-content text-caption ${responsiveClasses.text}">${formattedTranslation}</div>
+            </div>
+          ` : ''}
+        </div>
       </div>
     `;
     
@@ -141,22 +146,13 @@ export const card = {
   },
   
   styles: (config, theme) => {
-    // 直接使用系统变量，无需定义中间变量
-    return `
+    const customStyles = `
       .poetry-card {
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        justify-content: center;
-        height: 100%;
         min-height: 240px;
-        padding: var(--cf-spacing-2xl);
-        text-align: center;
-        font-family: 'ZCOOL XiaoWei', 'Ma Shan Zheng', 'Noto Serif SC', var(--cf-font-family-base, serif);
         background: var(--cf-surface);
         border-radius: var(--cf-radius-lg);
         box-shadow: var(--cf-shadow-sm);
-        gap: var(--cf-spacing-md);
+        font-family: 'ZCOOL XiaoWei', 'Ma Shan Zheng', 'Noto Serif SC', var(--cf-font-family-base, serif);
       }
       
       /* 字体大小控制 */
@@ -170,26 +166,13 @@ export const card = {
         font-size: 1.1em; 
       }
       
-      /* 标题样式 */
       .poetry-title {
-        font-size: 1.8em;
-        font-weight: var(--cf-font-weight-bold);
-        color: var(--cf-primary-color);
         margin-bottom: var(--cf-spacing-xs);
-        line-height: var(--cf-line-height-tight);
         text-shadow: 0 1px 2px rgba(var(--cf-primary-color-rgb), 0.1);
       }
       
-      /* 元信息样式 - 优化：统一字体颜色 */
       .poetry-meta {
-        font-size: 0.95em;
-        color: var(--cf-text-secondary);
         margin-bottom: var(--cf-spacing-sm);
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        gap: var(--cf-spacing-xs);
-        flex-wrap: wrap;
       }
       
       .meta-item {
@@ -202,13 +185,11 @@ export const card = {
         font-weight: var(--cf-font-weight-light);
       }
       
-      /* 分隔线 - 优化：减少上下边距 */
+      /* 分隔线 */
       .poetry-divider,
       .translation-divider {
         width: 60px;
         height: 1px;
-        background: var(--cf-border);
-        margin: var(--cf-spacing-sm) 0;
         opacity: 0.5;
       }
       
@@ -226,165 +207,28 @@ export const card = {
         margin-bottom: var(--cf-spacing-xs);
       }
       
-      /* 译文区域 - 优化：减少上边距 */
+      /* 译文区域 */
       .translation-container {
         width: 100%;
         max-width: 600px;
         padding: var(--cf-spacing-md);
-        background: rgba(var(--cf-accent-color-rgb), 0.05);
         border-radius: var(--cf-radius-md);
         border-left: 3px solid var(--cf-accent-color);
       }
       
       .translation-label {
-        font-size: 0.9em;
         font-weight: var(--cf-font-weight-semibold);
         color: var(--cf-accent-color);
-        margin-bottom: var(--cf-spacing-sm);
         text-transform: uppercase;
         letter-spacing: 1px;
       }
       
       .translation-content {
-        font-size: 1em;
         line-height: var(--cf-line-height-relaxed);
-        color: var(--cf-text-secondary);
         font-style: normal;
       }
-      
-      /* 空状态 */
-      .empty {
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        justify-content: center;
-        color: var(--cf-text-tertiary);
-        padding: var(--cf-spacing-3xl);
-        gap: var(--cf-spacing-md);
-      }
-      
-      .empty-icon {
-        font-size: 3em;
-        opacity: 0.4;
-      }
-      
-      .empty-text {
-        font-size: var(--cf-font-size-lg);
-        font-weight: var(--cf-font-weight-medium);
-      }
-      
-      /* 深色模式优化 */
-      @media (prefers-color-scheme: dark) {
-        .poetry-card {
-          background: rgba(255, 255, 255, 0.05);
-          box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
-        }
-        
-        .poetry-title {
-          text-shadow: 0 1px 4px rgba(var(--cf-primary-color-rgb), 0.2);
-        }
-        
-        .poetry-divider,
-        .translation-divider {
-          background: rgba(255, 255, 255, 0.2);
-        }
-        
-        .translation-container {
-          background: rgba(var(--cf-accent-color-rgb), 0.08);
-          border-left-color: var(--cf-accent-color);
-        }
-      }
-      
-      /* 响应式设计 */
-      @container cardforge-container (max-width: 600px) {
-        .poetry-card {
-          padding: var(--cf-spacing-xl);
-          min-height: 200px;
-          gap: var(--cf-spacing-sm);
-        }
-        
-        .poetry-title {
-          font-size: 1.6em;
-          margin-bottom: 0;
-        }
-        
-        .poetry-content,
-        .translation-container {
-          max-width: 100%;
-        }
-        
-        .translation-container {
-          padding: var(--cf-spacing-sm);
-        }
-        
-        .poetry-divider,
-        .translation-divider {
-          margin: var(--cf-spacing-xs) 0;
-        }
-      }
-      
-      @container cardforge-container (max-width: 480px) {
-        .poetry-card {
-          padding: var(--cf-spacing-lg);
-          gap: var(--cf-spacing-xs);
-        }
-        
-        .poetry-title {
-          font-size: 1.4em;
-        }
-        
-        .poetry-meta {
-          font-size: 0.85em;
-          margin-bottom: var(--cf-spacing-xs);
-        }
-        
-        .poetry-line {
-          font-size: 1.1em;
-          line-height: 1.8;
-        }
-        
-        .poetry-divider,
-        .translation-divider {
-          width: 40px;
-          margin: var(--cf-spacing-xs) 0;
-        }
-      }
-      
-      @container cardforge-container (max-width: 360px) {
-        .poetry-card {
-          padding: var(--cf-spacing-md);
-          min-height: 180px;
-        }
-        
-        .poetry-title {
-          font-size: 1.3em;
-        }
-        
-        .poetry-card.font-small .poetry-title {
-          font-size: 1.2em;
-        }
-        
-        .poetry-card.font-large .poetry-title {
-          font-size: 1.5em;
-        }
-        
-        .poetry-line {
-          font-size: 1em;
-        }
-        
-        .translation-label {
-          font-size: 0.8em;
-        }
-        
-        .translation-content {
-          font-size: 0.9em;
-        }
-        
-        .poetry-divider,
-        .translation-divider {
-          width: 30px;
-        }
-      }
     `;
+    
+    return createCardStyles(customStyles);
   }
 };

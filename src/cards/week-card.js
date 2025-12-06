@@ -1,4 +1,4 @@
-// src/cards/week-card.js - 完全简化版
+// src/cards/week-card.js - 修正版
 import { getYearProgress, getWeekNumber } from '../core/card-tools.js';
 import { createCardStyles, responsiveClasses, darkModeClasses } from '../core/card-styles.js';
 
@@ -35,7 +35,7 @@ export const card = {
     const month = now.getMonth() + 1;
     const day = now.getDate();
     
-    let template = `<div class="week-card card-base ${darkModeClasses.base} ${responsiveClasses.container}">`;
+    let template = `<div class="week-card card-base ${darkModeClasses.base} ${responsiveClasses.container} ${responsiveClasses.minHeight}">`;
     
     // 年进度区域
     if (config.showYearProgress) {
@@ -46,9 +46,9 @@ export const card = {
       const dashOffset = circumference * (1 - yearProgress / 100);
       
       template += `
-        <div class="year-section layout-flex">
+        <div class="year-section layout-flex ${responsiveClasses.columnLayout}">
           <div class="progress-ring">
-            <svg width="${size}" height="${size}" viewBox="0 0 ${size} ${size}">
+            <svg width="${size}" height="${size}" viewBox="0 0 ${size} ${size}" class="progress-svg">
               <circle cx="${size/2}" cy="${size/2}" r="${radius}" 
                       class="progress-bg ${darkModeClasses.border}" 
                       stroke-width="${strokeWidth}" />
@@ -60,14 +60,14 @@ export const card = {
                       transform="rotate(-90 ${size/2} ${size/2})" />
               <text x="${size/2}" y="${size/2 + 5}" 
                     text-anchor="middle" 
-                    class="progress-text text-emphasis">
+                    class="progress-text text-emphasis ${responsiveClasses.subtitle}">
                 ${Math.round(yearProgress)}<tspan class="progress-percent">%</tspan>
               </text>
             </svg>
           </div>
           <div class="date-info">
             <div class="week-label text-emphasis ${responsiveClasses.title}">第 ${weekNumber} 周</div>
-            <div class="month-day text-subtitle ${responsiveClasses.subtitle}">${month}月${day}日</div>
+            <div class="month-day text-subtitle ${responsiveClasses.caption}">${month}月${day}日</div>
           </div>
         </div>
       `;
@@ -96,7 +96,7 @@ export const card = {
               const isWeekend = index === 0 || index === 6;
               const isToday = index === weekDay;
               const dayClass = isToday ? 'day-today' : (isWeekend ? 'day-weekend' : '');
-              return `<div class="day-label text-caption ${dayClass}">${day}</div>`;
+              return `<div class="day-label text-caption ${responsiveClasses.caption} ${dayClass}">${day}</div>`;
             }).join('')}
           </div>
         </div>
@@ -119,7 +119,7 @@ export const card = {
         max-width: 320px;
       }
       
-      .progress-ring svg {
+      .progress-svg {
         display: block;
       }
       
@@ -148,6 +148,7 @@ export const card = {
       
       .date-info {
         min-width: 100px;
+        text-align: center;
       }
       
       .week-label {
@@ -228,35 +229,6 @@ export const card = {
         height: 4px;
         background: var(--cf-primary-color);
         border-radius: 50%;
-      }
-      
-      /* 特定响应式 */
-      @container cardforge-container (max-width: 400px) {
-        .year-section {
-          flex-direction: column;
-          text-align: center;
-          gap: var(--cf-spacing-md);
-        }
-        
-        .date-info {
-          min-width: auto;
-        }
-        
-        .progress-bars {
-          height: var(--cf-spacing-md);
-        }
-      }
-      
-      @container cardforge-container (max-width: 300px) {
-        .progress-ring svg {
-          width: 60px;
-          height: 60px;
-        }
-        
-        .progress-bars {
-          height: 10px;
-          border-radius: var(--cf-radius-md);
-        }
       }
     `;
     

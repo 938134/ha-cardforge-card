@@ -1,4 +1,4 @@
-// src/cards/welcome-card.js - 完全简化版
+// src/cards/welcome-card.js - 修正版
 import { 
   getGreetingByHour, 
   formatTime, 
@@ -80,8 +80,8 @@ export const card = {
       
       if (quoteContent) {
         quoteHtml = `
-          <div class="quote-container ${hasEntity ? 'has-entity' : ''} ${darkModeClasses.bgPrimary} ${responsiveClasses.gapMd}">
-            <div class="quote-icon ${darkModeClasses.icon}">
+          <div class="quote-container ${hasEntity ? 'has-entity' : ''} ${darkModeClasses.bgPrimary} ${responsiveClasses.gapMd} ${responsiveClasses.columnLayout}">
+            <div class="quote-icon ${darkModeClasses.icon} ${responsiveClasses.text}">
               <ha-icon icon="${quoteIcon}"></ha-icon>
             </div>
             <div class="quote-content text-caption ${responsiveClasses.text}">${escapeHtml(quoteContent)}</div>
@@ -94,7 +94,7 @@ export const card = {
       <div class="welcome-card card-base ${darkModeClasses.base} ${responsiveClasses.container} ${responsiveClasses.minHeight}">
         <div class="card-content layout-center">
           <div class="greeting text-title ${responsiveClasses.title}">${escapeHtml(greeting + '，' + userName + '！')}</div>
-          <div class="time text-emphasis ${darkModeClasses.emphasis}">${timeStr}</div>
+          <div class="time text-emphasis ${darkModeClasses.emphasis} ${responsiveClasses.subtitle}">${timeStr}</div>
           ${quoteHtml}
         </div>
       </div>
@@ -165,51 +165,6 @@ export const card = {
       .quote-container:hover .quote-icon {
         transform: scale(1.05);
         color: var(--cf-primary-color);
-      }
-      
-      /* 特定响应式 */
-      @container cardforge-container (max-width: 480px) {
-        .time {
-          font-size: 2.5em;
-          margin-bottom: var(--cf-spacing-md);
-        }
-        
-        .quote-container {
-          padding: var(--cf-spacing-sm);
-          margin-top: var(--cf-spacing-sm);
-        }
-        
-        .quote-icon {
-          width: 36px;
-          height: 36px;
-          font-size: 1.2em;
-        }
-        
-        .quote-content {
-          font-size: 0.95em;
-        }
-      }
-      
-      @container cardforge-container (max-width: 360px) {
-        .time {
-          font-size: 2.2em;
-          margin-bottom: var(--cf-spacing-sm);
-        }
-        
-        .quote-container {
-          padding: var(--cf-spacing-xs) var(--cf-spacing-sm);
-          margin-top: var(--cf-spacing-xs);
-        }
-        
-        .quote-icon {
-          width: 32px;
-          height: 32px;
-          font-size: 1.1em;
-        }
-        
-        .quote-content {
-          font-size: 0.9em;
-        }
       }
     `;
     
