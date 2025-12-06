@@ -1,6 +1,5 @@
-// cards/dashboard-card.js - 仪表盘卡片
+// cards/dashboard-card.js - 仪表盘卡片（重构）
 import { createCardStyles } from '../core/card-styles.js';
-import { renderBlocks } from '../blocks/index.js';
 
 export const card = {
   id: 'dashboard',
@@ -86,9 +85,7 @@ export const card = {
   },
   
   template: (config, context, themeVariables) => {
-    // 从context中提取hass
-    const { hass, theme } = context || {};
-    
+    const { hass } = context || {};
     const {
       show_header = true,
       header_alignment = 'left',
@@ -98,53 +95,44 @@ export const card = {
       block_style = 'compact'
     } = config;
     
-    // 按区域分离块
-    const headerBlocks = {};
-    const contentBlocks = {};
-    const footerBlocks = {};
+    // 分离块
+    const headerBlocks = [];
+    const contentBlocks = [];
+    const footerBlocks = [];
     
     Object.entries(config.blocks || {}).forEach(([id, block]) => {
+      const blockWithId = { ...block, id };
       if (block.area === 'header') {
-        headerBlocks[id] = block;
+        headerBlocks.push(blockWithId);
       } else if (block.area === 'footer') {
-        footerBlocks[id] = block;
+        footerBlocks.push(blockWithId);
       } else {
-        contentBlocks[id] = block;
+        contentBlocks.push(blockWithId);
       }
     });
     
-    // 解析网格列数
-    let gridColumns = 3;
-    if (content_layout.startsWith('grid-')) {
-      gridColumns = parseInt(content_layout.split('-')[1]) || 3;
-    }
-    
-    // 标题/页脚：使用水平模式，支持三种对齐
-    // 内容：根据选择的块样式和布局模式渲染，始终居中
-    
     return `
       <div class="dashboard-container">
-        ${show_header && Object.keys(headerBlocks).length > 0 ? `
-          <div class="dashboard-header align-${header_alignment}">
-            ${renderBlocks(headerBlocks, hass, { layout: 'horizontal' })}
+        ${show_header && headerBlocks.length > 0 ? `
+          <div class="dashboard-header alignment-${header_alignment}">
+            ${headerBlocks.map(block => renderBlock(block, hass, 'header')).join('')}
           </div>
         ` : ''}
         
-        <div class="dashboard-content layout-${content_layout} block-style-${block_style}"
-             data-columns="${gridColumns}">
-          ${Object.keys(contentBlocks).length > 0 ? 
-            renderBlocks(contentBlocks, hass, { layout: block_style }) 
+        <div class="dashboard-content layout-${content_layout} style-${block_style}">
+          ${contentBlocks.length > 0 ? 
+            renderContentBlocks(contentBlocks, hass, content_layout, block_style)
           : `
-            <div class="empty-content">
-              <ha-icon icon="mdi:view-dashboard"></ha-icon>
+            <div class="empty-state">
+              <ha-icon icon="mdi:view-dashboard-outline"></ha-icon>
               <div>添加内容块以显示仪表盘</div>
             </div>
           `}
         </div>
         
-        ${show_footer && Object.keys(footerBlocks).length > 0 ? `
-          <div class="dashboard-footer align-${footer_alignment}">
-            ${renderBlocks(footerBlocks, hass, { layout: 'horizontal' })}
+        ${show_footer && footerBlocks.length > 0 ? `
+          <div class="dashboard-footer alignment-${footer_alignment}">
+            ${footerBlocks.map(block => renderBlock(block, hass, 'footer')).join('')}
           </div>
         ` : ''}
       </div>
@@ -152,98 +140,149 @@ export const card = {
   },
   
   styles: (config, themeVariables) => {
-    const {
-      content_layout = 'flow',
-      block_style = 'compact'
-    } = config;
-    
     return createCardStyles(`
       /* 仪表盘容器 */
       .dashboard-container {
         display: flex;
         flex-direction: column;
         height: 100%;
-        min-height: 140px;
+        min-height: 160px;
         container-type: inline-size;
         container-name: dashboard;
       }
       
-      /* 标题/页脚区域 - 水平模式，三种对齐 */
+      /* ===== 标题/页脚区域 ===== */
       .dashboard-header,
       .dashboard-footer {
         display: flex;
         align-items: center;
-        min-height: 48px;
-        padding: 8px 16px;
-        border-bottom: 1px solid var(--cf-border);
+        min-height: 52px;
+        padding: 12px 16px;
+        background: rgba(var(--cf-primary-color-rgb), 0.03);
+        border: 1px solid rgba(var(--cf-primary-color-rgb), 0.1);
         flex-shrink: 0;
-        flex-wrap: nowrap;
         gap: 16px;
       }
       
-      .dashboard-footer {
-        border-top: 1px solid var(--cf-border);
+      .dashboard-header {
         border-bottom: none;
+        border-radius: var(--cf-radius-lg) var(--cf-radius-lg) 0 0;
       }
       
-      /* 标题/页脚三种对齐方式 */
-      .dashboard-header.align-left,
-      .dashboard-footer.align-left {
+      .dashboard-footer {
+        border-top: none;
+        border-radius: 0 0 var(--cf-radius-lg) var(--cf-radius-lg);
+      }
+      
+      /* 标题/页脚对齐方式 */
+      .dashboard-header.alignment-left,
+      .dashboard-footer.alignment-left {
         justify-content: flex-start;
       }
       
-      .dashboard-header.align-center,
-      .dashboard-footer.align-center {
+      .dashboard-header.alignment-center,
+      .dashboard-footer.alignment-center {
         justify-content: center;
       }
       
-      .dashboard-header.align-right,
-      .dashboard-footer.align-right {
+      .dashboard-header.alignment-right,
+      .dashboard-footer.alignment-right {
         justify-content: flex-end;
       }
       
-      /* 内容区域 - 始终居中（无论布局和样式） */
+      /* 标题/页脚块样式（固定水平模式） */
+      .dashboard-header .dashboard-block,
+      .dashboard-footer .dashboard-block {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 8px 12px;
+        background: var(--cf-surface);
+        border: 1px solid var(--cf-border);
+        border-radius: var(--cf-radius-md);
+        min-width: 120px;
+        white-space: nowrap;
+      }
+      
+      .dashboard-header .dashboard-block-icon,
+      .dashboard-footer .dashboard-block-icon {
+        font-size: 1.2em;
+        color: var(--cf-primary-color);
+      }
+      
+      .dashboard-header .dashboard-block-name,
+      .dashboard-footer .dashboard-block-name {
+        font-weight: 500;
+        color: var(--cf-text-primary);
+      }
+      
+      .dashboard-header .dashboard-block-value,
+      .dashboard-footer .dashboard-block-value {
+        color: var(--cf-text-secondary);
+        margin-left: 4px;
+      }
+      
+      /* ===== 内容区域 ===== */
       .dashboard-content {
         flex: 1;
-        min-height: 60px;
-        overflow-y: auto;
+        min-height: 100px;
         padding: 20px;
         display: flex;
         justify-content: center;
         align-items: center;
+        background: var(--cf-background);
       }
       
-      /* === 横向流式布局 - 始终居中 === */
+      /* === 横向流式布局 === */
       .dashboard-content.layout-flow {
         flex-wrap: wrap;
         gap: 20px;
-        align-items: flex-start;
         align-content: center;
       }
       
       /* 横向流式 + 紧凑样式 */
-      .dashboard-content.layout-flow.block-style-compact .cardforge-block {
+      .dashboard-content.layout-flow.style-compact {
+        align-items: center;
+      }
+      
+      .dashboard-content.layout-flow.style-compact .dashboard-block {
         width: 180px;
-        min-height: 70px;
+        height: 80px;
+        display: grid;
+        grid-template-columns: 40px 1fr;
+        grid-template-rows: auto auto;
+        gap: 4px 8px;
       }
       
       /* 横向流式 + 水平样式 */
-      .dashboard-content.layout-flow.block-style-horizontal .cardforge-block {
+      .dashboard-content.layout-flow.style-horizontal {
+        align-items: center;
+      }
+      
+      .dashboard-content.layout-flow.style-horizontal .dashboard-block {
         width: 220px;
-        min-height: 60px;
+        height: 60px;
+        display: flex;
+        align-items: center;
+        gap: 12px;
       }
       
       /* 横向流式 + 垂直样式 */
-      .dashboard-content.layout-flow.block-style-vertical .cardforge-block {
+      .dashboard-content.layout-flow.style-vertical {
+        align-items: center;
+      }
+      
+      .dashboard-content.layout-flow.style-vertical .dashboard-block {
         width: 150px;
-        min-height: 120px;
+        height: 140px;
         display: flex;
         flex-direction: column;
         align-items: center;
         justify-content: center;
+        gap: 12px;
       }
       
-      /* === 纵向堆叠布局 - 始终居中 === */
+      /* === 纵向堆叠布局 === */
       .dashboard-content.layout-stack {
         flex-direction: column;
         gap: 16px;
@@ -252,142 +291,193 @@ export const card = {
       }
       
       /* 纵向堆叠 + 紧凑样式 */
-      .dashboard-content.layout-stack.block-style-compact .cardforge-block {
-        width: 300px;
-        max-width: 80%;
-        min-height: 50px;
+      .dashboard-content.layout-stack.style-compact .dashboard-block {
+        width: 320px;
+        max-width: 90%;
+        height: 60px;
+        display: grid;
+        grid-template-columns: 40px 1fr;
+        grid-template-rows: auto auto;
+        gap: 4px 12px;
       }
       
       /* 纵向堆叠 + 水平样式 */
-      .dashboard-content.layout-stack.block-style-horizontal .cardforge-block {
-        width: 400px;
-        max-width: 90%;
-        min-height: 60px;
+      .dashboard-content.layout-stack.style-horizontal .dashboard-block {
+        width: 380px;
+        max-width: 95%;
+        height: 60px;
+        display: flex;
+        align-items: center;
+        gap: 16px;
       }
       
       /* 纵向堆叠 + 垂直样式 */
-      .dashboard-content.layout-stack.block-style-vertical .cardforge-block {
-        width: 180px;
-        min-height: 140px;
+      .dashboard-content.layout-stack.style-vertical .dashboard-block {
+        width: 200px;
+        height: 160px;
         display: flex;
         flex-direction: column;
         align-items: center;
         justify-content: center;
+        gap: 16px;
       }
       
-      /* === 网格布局 - 始终居中 === */
+      /* === 网格布局 === */
       /* 网格2列 */
       .dashboard-content.layout-grid-2 {
         display: grid;
-        gap: 20px;
         grid-template-columns: repeat(2, 1fr);
-        align-items: center;
+        gap: 20px;
         justify-items: center;
-        justify-content: center;
+        align-items: center;
       }
       
       /* 网格3列 */
       .dashboard-content.layout-grid-3 {
         display: grid;
-        gap: 20px;
         grid-template-columns: repeat(3, 1fr);
-        align-items: center;
+        gap: 20px;
         justify-items: center;
-        justify-content: center;
+        align-items: center;
       }
       
       /* 网格4列 */
       .dashboard-content.layout-grid-4 {
         display: grid;
-        gap: 16px;
         grid-template-columns: repeat(4, 1fr);
-        align-items: center;
+        gap: 16px;
         justify-items: center;
-        justify-content: center;
+        align-items: center;
       }
       
-      /* 网格布局 + 紧凑样式 */
-      .dashboard-content[class*="layout-grid"].block-style-compact .cardforge-block {
+      /* 网格 + 紧凑样式 */
+      .dashboard-content[class*="layout-grid"].style-compact .dashboard-block {
         width: 100%;
-        min-height: 80px;
+        height: 90px;
+        display: grid;
+        grid-template-columns: 40px 1fr;
+        grid-template-rows: auto auto;
+        gap: 4px 12px;
+        padding: 12px;
       }
       
-      /* 网格布局 + 水平样式 */
-      .dashboard-content[class*="layout-grid"].block-style-horizontal .cardforge-block {
+      /* 网格 + 水平样式 */
+      .dashboard-content[class*="layout-grid"].style-horizontal .dashboard-block {
         width: 100%;
-        min-height: 60px;
+        height: 70px;
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        padding: 12px;
       }
       
-      /* 网格布局 + 垂直样式 */
-      .dashboard-content[class*="layout-grid"].block-style-vertical .cardforge-block {
+      /* 网格 + 垂直样式 */
+      .dashboard-content[class*="layout-grid"].style-vertical .dashboard-block {
         width: 100%;
-        min-height: 140px;
+        height: 160px;
         display: flex;
         flex-direction: column;
         align-items: center;
         justify-content: center;
+        gap: 12px;
+        padding: 16px;
+      }
+      
+      /* 通用块样式 */
+      .dashboard-block {
+        background: var(--cf-surface);
+        border: 1px solid var(--cf-border);
+        border-radius: var(--cf-radius-lg);
+        box-shadow: var(--cf-shadow-sm);
+        transition: all var(--cf-transition-fast);
+        overflow: hidden;
+      }
+      
+      .dashboard-block:hover {
+        transform: translateY(-2px);
+        box-shadow: var(--cf-shadow-md);
+        border-color: var(--cf-primary-color);
+      }
+      
+      .dashboard-block-icon {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: var(--cf-primary-color);
+      }
+      
+      .dashboard-block-name {
+        font-weight: 600;
+        color: var(--cf-text-primary);
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+      
+      .dashboard-block-value {
+        font-weight: 700;
+        color: var(--cf-text-primary);
+        font-size: 1.1em;
+      }
+      
+      .dashboard-block-unit {
+        font-size: 0.9em;
+        color: var(--cf-text-secondary);
+        margin-left: 2px;
+      }
+      
+      /* 紧凑样式特定定位 */
+      .style-compact .dashboard-block-icon {
+        grid-column: 1;
+        grid-row: 1 / span 2;
+        font-size: 1.3em;
+      }
+      
+      .style-compact .dashboard-block-name {
+        grid-column: 2;
+        grid-row: 1;
+        font-size: 0.9em;
+        color: var(--cf-text-secondary);
+        align-self: end;
+      }
+      
+      .style-compact .dashboard-block-value {
+        grid-column: 2;
+        grid-row: 2;
+        align-self: start;
       }
       
       /* 空状态 */
-      .empty-content {
+      .empty-state {
         display: flex;
         flex-direction: column;
         align-items: center;
         justify-content: center;
         color: var(--cf-text-tertiary);
-        width: 100%;
-        height: 100%;
         text-align: center;
-        padding: 40px;
+        padding: 40px 20px;
       }
       
-      .empty-content ha-icon {
+      .empty-state ha-icon {
         font-size: 3em;
-        margin-bottom: 20px;
-        opacity: 0.4;
+        margin-bottom: 16px;
+        opacity: 0.3;
       }
       
-      /* === 响应式设计 === */
-      
-      /* 中等屏幕 (平板) */
-      @container dashboard (max-width: 1024px) {
-        .dashboard-content.layout-flow.block-style-compact .cardforge-block {
-          width: 160px;
-        }
-        
-        .dashboard-content.layout-flow.block-style-horizontal .cardforge-block {
-          width: 200px;
-        }
-        
-        .dashboard-content.layout-grid-4 {
-          grid-template-columns: repeat(3, 1fr);
-        }
-      }
-      
-      /* 小屏幕 (大手机) */
+      /* ===== 响应式设计 ===== */
       @container dashboard (max-width: 768px) {
         .dashboard-header,
         .dashboard-footer {
           padding: 8px 12px;
           gap: 12px;
-          min-height: 44px;
           flex-wrap: wrap;
+          justify-content: center !important;
         }
         
-        /* 小屏幕时标题/页脚保持对齐方式 */
-        .dashboard-header.align-left,
-        .dashboard-footer.align-left {
-          justify-content: flex-start;
-        }
-        
-        .dashboard-header.align-center,
-        .dashboard-footer.align-center {
-          justify-content: center;
-        }
-        
-        .dashboard-header.align-right,
-        .dashboard-footer.align-right {
-          justify-content: flex-end;
+        .dashboard-header .dashboard-block,
+        .dashboard-footer .dashboard-block {
+          min-width: 100px;
+          padding: 6px 10px;
         }
         
         .dashboard-content {
@@ -398,12 +488,8 @@ export const card = {
           gap: 16px;
         }
         
-        .dashboard-content.layout-flow.block-style-compact .cardforge-block {
-          width: 140px;
-        }
-        
-        .dashboard-content.layout-flow.block-style-horizontal .cardforge-block {
-          width: 180px;
+        .dashboard-content.layout-flow .dashboard-block {
+          width: 160px !important;
         }
         
         .dashboard-content.layout-grid-3,
@@ -411,22 +497,18 @@ export const card = {
           grid-template-columns: repeat(2, 1fr);
         }
         
-        /* 纵向堆叠布局在小屏幕全宽 */
-        .dashboard-content.layout-stack.block-style-compact .cardforge-block,
-        .dashboard-content.layout-stack.block-style-horizontal .cardforge-block {
-          width: 100%;
+        .dashboard-content.layout-stack .dashboard-block {
+          width: 280px !important;
           max-width: 100%;
         }
       }
       
-      /* 超小屏幕 (手机) */
       @container dashboard (max-width: 480px) {
         .dashboard-header,
         .dashboard-footer {
+          min-height: 44px;
           padding: 6px 8px;
           gap: 8px;
-          min-height: 40px;
-          justify-content: center !important; /* 小屏幕强制居中 */
         }
         
         .dashboard-content {
@@ -437,7 +519,7 @@ export const card = {
           gap: 12px;
         }
         
-        .dashboard-content.layout-flow .cardforge-block {
+        .dashboard-content.layout-flow .dashboard-block {
           width: 100% !important;
           max-width: 100%;
         }
@@ -449,54 +531,77 @@ export const card = {
           gap: 12px;
         }
         
-        /* 纵向堆叠布局间距调整 */
         .dashboard-content.layout-stack {
           gap: 12px;
         }
       }
       
-      /* 超小屏幕 (小手机) */
-      @container dashboard (max-width: 360px) {
-        .dashboard-header,
-        .dashboard-footer {
-          padding: 4px 6px;
-          gap: 6px;
-        }
-        
-        .dashboard-content {
-          padding: 8px;
-        }
-        
-        .dashboard-content.layout-flow {
-          gap: 8px;
-        }
-        
-        .dashboard-content[class*="layout-grid"] {
-          gap: 8px;
-        }
-        
-        .empty-content {
-          padding: 20px;
-        }
-        
-        .empty-content ha-icon {
-          font-size: 2.5em;
-          margin-bottom: 12px;
-        }
-      }
-      
-      /* 深色模式适配 */
+      /* 深色模式 */
       @media (prefers-color-scheme: dark) {
         .dashboard-header,
         .dashboard-footer {
-          background: rgba(255, 255, 255, 0.03);
-          border-color: rgba(255, 255, 255, 0.1);
+          background: rgba(var(--cf-primary-color-rgb), 0.08);
+          border-color: rgba(var(--cf-primary-color-rgb), 0.2);
         }
         
-        .empty-content {
-          color: var(--cf-text-secondary);
+        .dashboard-block {
+          background: rgba(255, 255, 255, 0.05);
+          border-color: rgba(255, 255, 255, 0.1);
         }
       }
     `);
   }
 };
+
+// 渲染标题/页脚块（固定水平模式）
+function renderBlock(block, hass, area) {
+  const entity = block.entity ? hass?.states?.[block.entity] : null;
+  const name = block.name || entity?.attributes?.friendly_name || block.entity || '未命名';
+  const value = entity ? entity.state : '';
+  const unit = entity?.attributes?.unit_of_measurement || '';
+  const icon = block.icon || 'mdi:cube-outline';
+  
+  return `
+    <div class="dashboard-block" data-block-id="${block.id}">
+      <div class="dashboard-block-icon">
+        <ha-icon icon="${icon}"></ha-icon>
+      </div>
+      <div class="dashboard-block-name">${escapeHtml(name)}</div>
+      ${value ? `<div class="dashboard-block-value">${escapeHtml(value)}${unit ? `<span class="dashboard-block-unit">${unit}</span>` : ''}</div>` : ''}
+    </div>
+  `;
+}
+
+// 渲染内容块（根据布局和样式）
+function renderContentBlocks(blocks, hass, layout, style) {
+  const blocksHtml = blocks.map(block => {
+    const entity = block.entity ? hass?.states?.[block.entity] : null;
+    const name = block.name || entity?.attributes?.friendly_name || block.entity || '未命名';
+    const value = entity ? entity.state : '';
+    const unit = entity?.attributes?.unit_of_measurement || '';
+    const icon = block.icon || 'mdi:cube-outline';
+    
+    return `
+      <div class="dashboard-block" data-block-id="${block.id}">
+        <div class="dashboard-block-icon">
+          <ha-icon icon="${icon}"></ha-icon>
+        </div>
+        <div class="dashboard-block-name">${escapeHtml(name)}</div>
+        ${value ? `<div class="dashboard-block-value">${escapeHtml(value)}${unit ? `<span class="dashboard-block-unit">${unit}</span>` : ''}</div>` : ''}
+      </div>
+    `;
+  }).join('');
+  
+  return blocksHtml;
+}
+
+// HTML安全编码
+function escapeHtml(text) {
+  if (!text) return '';
+  return String(text)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#x27;');
+}
