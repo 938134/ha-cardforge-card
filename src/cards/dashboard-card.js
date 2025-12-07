@@ -71,7 +71,7 @@ export const card = {
     }
   },
   
-  blockType: 'dashboard',
+  blockType: 'custom',
   
   template: (config, { hass }) => {
     // 获取所有块配置
