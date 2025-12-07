@@ -1,4 +1,4 @@
-// blocks/block-base.js - 扩展布局模式支持
+// blocks/block-base.js - 修复版
 import { LitElement, html, css } from 'https://unpkg.com/lit@2.8.0/index.js?module';
 import { designSystem } from '../core/design-system.js';
 import { AREAS, ENTITY_ICONS } from './block-config.js';
@@ -41,6 +41,31 @@ export class BlockBase extends LitElement {
       }
       
       /* 原有样式保持不变... */
+      
+      /* =========== 新增：优化空状态显示 =========== */
+      
+      /* 优化空状态文本 */
+      .empty-state {
+        color: var(--cf-text-tertiary);
+        font-style: italic;
+        font-weight: var(--cf-font-weight-normal);
+        font-size: var(--cf-font-size-sm);
+        padding: 4px 0;
+      }
+      
+      .compact .empty-state {
+        font-size: var(--cf-font-size-xs);
+      }
+      
+      /* 针对空块的优化样式 */
+      .block-base:has(.block-value:empty) {
+        opacity: 0.8;
+      }
+      
+      .block-base:has(.block-value:empty) .block-icon {
+        background: rgba(var(--cf-primary-color-rgb), 0.05);
+        color: var(--cf-text-tertiary);
+      }
       
       /* =========== 新增布局模式样式 =========== */
       
@@ -198,7 +223,7 @@ export class BlockBase extends LitElement {
         text-align: right;
       }
       
-      /* =========== 响应式优化 =========== */
+      /* 响应式优化 */
       @container cardforge-container (max-width: 768px) {
         .layout-grid-3 .block-base,
         .layout-grid-4 .block-base {
@@ -301,7 +326,12 @@ export class BlockBase extends LitElement {
         
         ${this.showValue ? html`
           <div class="block-value">
-            ${hasEntity ? this._displayValue : html`<span class="empty-state">未配置实体</span>`}
+            ${hasEntity ? this._displayValue : html`
+              <!-- 优化空状态显示 -->
+              <span class="empty-state">
+                ${this.block.entity ? '未配置实体' : '点击编辑'}
+              </span>
+            `}
           </div>
         ` : ''}
         
@@ -314,7 +344,6 @@ export class BlockBase extends LitElement {
     `;
   }
 
-  // 原有方法保持不变...
   _updateDisplayData() {
     if (!this.block) {
       this._displayName = '';
@@ -323,10 +352,10 @@ export class BlockBase extends LitElement {
       return;
     }
     
-    // 获取显示名称
+    // =========== 关键修复：优化显示名称逻辑 ===========
     this._displayName = this._getDisplayName();
     
-    // 获取显示值
+    // =========== 关键修复：优化显示值逻辑 ===========
     this._displayValue = this._getDisplayValue();
     
     // 获取图标
@@ -334,32 +363,42 @@ export class BlockBase extends LitElement {
   }
 
   _getDisplayName() {
-    // 优先使用块配置中的name
+    // 1. 优先使用块配置中的name
     if (this.block.name && this.block.name.trim()) {
       return this.block.name.trim();
     }
     
-    // 如果有实体，优先显示friendly_name
+    // 2. 如果有实体，优先显示friendly_name
     if (this.block.entity && this.hass?.states?.[this.block.entity]) {
       const entity = this.hass.states[this.block.entity];
       const friendlyName = entity.attributes?.friendly_name;
       
       // 如果friendly_name包含中文，直接使用
       if (friendlyName && /[\u4e00-\u9fa5]/.test(friendlyName)) {
-        return friendlyName;
+        // 移除可能存在的括号内容
+        return friendlyName.replace(/\(.*?\)/g, '').trim();
       }
       
-      // 否则使用实体ID的最后一部分
+      // 否则使用实体ID的最后一部分（去掉下划线）
       const entityParts = this.block.entity.split('.');
-      return entityParts[entityParts.length - 1].replace(/_/g, ' ');
+      const lastPart = entityParts[entityParts.length - 1];
+      return lastPart.replace(/_/g, ' ').replace(/\d+$/, '').trim();
     }
     
-    return this.block.entity ? '实体块' : '自定义块';
+    // 3. 如果只有entity ID但没有实体
+    if (this.block.entity) {
+      const entityParts = this.block.entity.split('.');
+      const lastPart = entityParts[entityParts.length - 1];
+      return lastPart.replace(/_/g, ' ');
+    }
+    
+    // 4. 默认名称
+    return '新块';
   }
 
   _getDisplayValue() {
     if (!this.block.entity || !this.hass?.states?.[this.block.entity]) {
-      return '';
+      return ''; // 返回空字符串，让渲染逻辑处理
     }
     
     const entity = this.hass.states[this.block.entity];
