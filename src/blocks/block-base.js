@@ -1,4 +1,4 @@
-// 基础块组件 - 优化自适应布局
+// 基础块组件 - 统一渲染方案
 import { LitElement, html, css } from 'https://unpkg.com/lit@2.8.0/index.js?module';
 import { designSystem } from '../core/design-system.js';
 import { AREAS, ENTITY_ICONS } from './block-config.js';
@@ -9,47 +9,57 @@ export class BlockBase extends LitElement {
     hass: { type: Object },
     showName: { type: Boolean },
     showValue: { type: Boolean },
-    compact: { type: Boolean },
+    layout: { type: String },  // horizontal, vertical, compact
+    area: { type: String },    // header, content, footer
     _displayName: { state: true },
     _displayValue: { state: true },
-    _icon: { state: true }
+    _icon: { state: true },
+    _hasEntity: { state: true }
   };
 
   static styles = [
     designSystem,
     css`
-      :host { display: block; }
+      :host { 
+        display: block; 
+        box-sizing: border-box;
+      }
       
-      /* ===== 基础块容器 - 默认紧凑布局 ===== */
+      /* ===== 基础容器 ===== */
       .block-base {
         width: 100%;
+        height: 100%;
         transition: all var(--cf-transition-duration-fast) var(--cf-easing-standard);
-        display: grid;
-        grid-template-columns: auto 1fr;
-        grid-template-rows: auto auto;
-        gap: 2px 8px;
-        align-items: center;
-        min-height: 60px;
-        padding: 8px;
+        position: relative;
         background: var(--cf-surface);
         border: 1px solid var(--cf-border);
         border-radius: var(--cf-radius-md);
         box-sizing: border-box;
+        overflow: hidden;
       }
       
-      /* ===== 水平布局样式 (用于标题/页脚) ===== */
-      :host(.style-horizontal) .block-base {
+      /* 区域样式 */
+      .block-base.area-header {
+        background: rgba(var(--cf-primary-color-rgb), 0.05);
+        border-color: rgba(var(--cf-primary-color-rgb), 0.3);
+      }
+      
+      .block-base.area-footer {
+        background: rgba(var(--cf-accent-color-rgb), 0.05);
+        border-color: rgba(var(--cf-accent-color-rgb), 0.3);
+      }
+      
+      /* ===== 水平布局 (100%宽度) ===== */
+      .block-base.layout-horizontal {
         display: flex;
         align-items: center;
         gap: 12px;
-        min-width: 200px;
-        max-width: 300px;
         height: 60px;
         min-height: 60px;
         padding: 0 12px;
       }
       
-      :host(.style-horizontal) .block-icon {
+      .block-base.layout-horizontal .block-icon {
         flex-shrink: 0;
         width: 48px;
         height: 48px;
@@ -63,7 +73,7 @@ export class BlockBase extends LitElement {
         transition: all var(--cf-transition-duration-fast) var(--cf-easing-standard);
       }
       
-      :host(.style-horizontal) .block-content {
+      .block-base.layout-horizontal .block-content {
         flex: 1;
         display: flex;
         align-items: center;
@@ -72,7 +82,7 @@ export class BlockBase extends LitElement {
         gap: 8px;
       }
       
-      :host(.style-horizontal) .block-name {
+      .block-base.layout-horizontal .block-name {
         font-size: var(--cf-font-size-base);
         font-weight: var(--cf-font-weight-medium);
         color: var(--cf-text-primary);
@@ -83,7 +93,7 @@ export class BlockBase extends LitElement {
         min-width: 0;
       }
       
-      :host(.style-horizontal) .block-value {
+      .block-base.layout-horizontal .block-value {
         font-size: var(--cf-font-size-lg);
         font-weight: var(--cf-font-weight-bold);
         color: var(--cf-text-primary);
@@ -93,20 +103,20 @@ export class BlockBase extends LitElement {
         max-width: 100px;
       }
       
-      /* ===== 垂直布局样式 ===== */
-      :host(.style-vertical) .block-base {
-        width: 140px;
-        min-height: 120px;
+      /* ===== 垂直布局 (自适应) ===== */
+      .block-base.layout-vertical {
         display: flex;
         flex-direction: column;
         align-items: center;
         justify-content: center;
+        width: 140px;
+        min-height: 120px;
         padding: 12px;
         gap: 8px;
         text-align: center;
       }
       
-      :host(.style-vertical) .block-icon {
+      .block-base.layout-vertical .block-icon {
         width: 56px;
         height: 56px;
         display: flex;
@@ -120,7 +130,7 @@ export class BlockBase extends LitElement {
         transition: all var(--cf-transition-duration-fast) var(--cf-easing-standard);
       }
       
-      :host(.style-vertical) .block-name {
+      .block-base.layout-vertical .block-name {
         font-size: var(--cf-font-size-sm);
         color: var(--cf-text-secondary);
         font-weight: var(--cf-font-weight-medium);
@@ -136,7 +146,7 @@ export class BlockBase extends LitElement {
         max-height: 2.6em;
       }
       
-      :host(.style-vertical) .block-value {
+      .block-base.layout-vertical .block-value {
         font-size: var(--cf-font-size-lg);
         font-weight: var(--cf-font-weight-bold);
         color: var(--cf-text-primary);
@@ -148,19 +158,19 @@ export class BlockBase extends LitElement {
         max-width: 100%;
       }
       
-      /* ===== 紧凑布局样式 ===== */
-      :host(.style-compact) .block-base {
-        width: 160px;
-        min-height: 80px;
+      /* ===== 紧凑布局 (自适应) ===== */
+      .block-base.layout-compact {
         display: grid;
         grid-template-columns: 40px 1fr;
         grid-template-rows: auto auto;
         gap: 4px 12px;
         align-items: center;
+        width: 160px;
+        min-height: 80px;
         padding: 10px;
       }
       
-      :host(.style-compact) .block-icon {
+      .block-base.layout-compact .block-icon {
         grid-column: 1;
         grid-row: 1 / span 2;
         width: 40px;
@@ -175,7 +185,7 @@ export class BlockBase extends LitElement {
         transition: all var(--cf-transition-duration-fast) var(--cf-easing-standard);
       }
       
-      :host(.style-compact) .block-name {
+      .block-base.layout-compact .block-name {
         grid-column: 2;
         grid-row: 1;
         font-size: var(--cf-font-size-xs);
@@ -188,7 +198,7 @@ export class BlockBase extends LitElement {
         line-height: 1.2;
       }
       
-      :host(.style-compact) .block-value {
+      .block-base.layout-compact .block-value {
         grid-column: 2;
         grid-row: 2;
         font-size: var(--cf-font-size-lg);
@@ -199,27 +209,6 @@ export class BlockBase extends LitElement {
         white-space: nowrap;
         align-self: start;
         line-height: 1.2;
-      }
-      
-      /* ===== 区域样式 ===== */
-      :host(.header-block) .block-base {
-        background: rgba(var(--cf-primary-color-rgb), 0.05);
-        border-color: rgba(var(--cf-primary-color-rgb), 0.3);
-      }
-      
-      :host(.header-block) .block-icon {
-        background: rgba(var(--cf-primary-color-rgb), 0.15);
-        color: var(--cf-primary-color);
-      }
-      
-      :host(.footer-block) .block-base {
-        background: rgba(var(--cf-accent-color-rgb), 0.05);
-        border-color: rgba(var(--cf-accent-color-rgb), 0.3);
-      }
-      
-      :host(.footer-block) .block-icon {
-        background: rgba(var(--cf-accent-color-rgb), 0.15);
-        color: var(--cf-accent-color);
       }
       
       /* ===== 通用样式 ===== */
@@ -277,93 +266,88 @@ export class BlockBase extends LitElement {
       }
       
       /* ===== 响应式设计 ===== */
-      
-      /* 平板设备 */
       @container cardforge-container (max-width: 768px) {
-        :host(.style-horizontal) .block-base {
-          min-width: 180px;
+        .block-base.layout-horizontal {
           height: 56px;
           min-height: 56px;
         }
         
-        :host(.style-horizontal) .block-icon {
+        .block-base.layout-horizontal .block-icon {
           width: 44px;
           height: 44px;
           font-size: 1.4em;
         }
         
-        :host(.style-horizontal) .block-name {
+        .block-base.layout-horizontal .block-name {
           font-size: var(--cf-font-size-sm);
         }
         
-        :host(.style-horizontal) .block-value {
+        .block-base.layout-horizontal .block-value {
           font-size: var(--cf-font-size-md);
           max-width: 80px;
         }
         
-        :host(.style-vertical) .block-base {
+        .block-base.layout-vertical {
           width: 130px;
           min-height: 110px;
         }
         
-        :host(.style-vertical) .block-icon {
+        .block-base.layout-vertical .block-icon {
           width: 50px;
           height: 50px;
           font-size: 1.6em;
         }
         
-        :host(.style-compact) .block-base {
+        .block-base.layout-compact {
           width: 150px;
           min-height: 75px;
         }
       }
       
-      /* 手机设备 */
       @container cardforge-container (max-width: 480px) {
-        :host(.style-horizontal) .block-base {
-          min-width: 150px;
+        .block-base.layout-horizontal {
           height: 52px;
           min-height: 52px;
           padding: 0 10px;
           gap: 10px;
         }
         
-        :host(.style-horizontal) .block-icon {
+        .block-base.layout-horizontal .block-icon {
           width: 40px;
           height: 40px;
           font-size: 1.3em;
         }
         
-        :host(.style-horizontal) .block-name {
+        .block-base.layout-horizontal .block-name {
           font-size: var(--cf-font-size-xs);
         }
         
-        :host(.style-horizontal) .block-value {
+        .block-base.layout-horizontal .block-value {
           font-size: var(--cf-font-size-sm);
           max-width: 60px;
         }
         
-        :host(.style-vertical) .block-base {
+        .block-base.layout-vertical {
           width: 120px;
           min-height: 100px;
           padding: 10px;
         }
         
-        :host(.style-vertical) .block-icon {
+        .block-base.layout-vertical .block-icon {
           width: 48px;
           height: 48px;
           font-size: 1.5em;
         }
         
-        :host(.style-vertical) .block-name {
+        .block-base.layout-vertical .block-name {
           font-size: var(--cf-font-size-xs);
         }
         
-        :host(.style-vertical) .block-value {
+        .block-base.layout-vertical .block-value {
           font-size: var(--cf-font-size-md);
         }
         
-        :host(.style-compact) .block-base {
+        .block-base.layout-compact {
           width: 140px;
           min-height: 70px;
           padding: 8px;
@@ -371,83 +355,64 @@ export class BlockBase extends LitElement {
           gap: 3px 10px;
         }
         
-        :host(.style-compact) .block-icon {
+        .block-base.layout-compact .block-icon {
           width: 36px;
           height: 36px;
           font-size: 1.2em;
         }
         
-        :host(.style-compact) .block-name {
+        .block-base.layout-compact .block-name {
           font-size: 0.7em;
         }
         
-        :host(.style-compact) .block-value {
+        .block-base.layout-compact .block-value {
           font-size: var(--cf-font-size-md);
         }
       }
       
-      /* 小屏手机 */
       @container cardforge-container (max-width: 360px) {
-        :host(.style-horizontal) .block-base {
-          min-width: 120px;
+        .block-base.layout-horizontal {
           height: 48px;
           min-height: 48px;
           padding: 0 8px;
           gap: 8px;
         }
         
-        :host(.style-horizontal) .block-icon {
+        .block-base.layout-horizontal .block-icon {
           width: 36px;
           height: 36px;
           font-size: 1.2em;
         }
         
-        :host(.style-horizontal) .block-name {
+        .block-base.layout-horizontal .block-name {
           font-size: 0.75em;
         }
         
-        :host(.style-horizontal) .block-value {
+        .block-base.layout-horizontal .block-value {
           font-size: var(--cf-font-size-sm);
           max-width: 50px;
         }
         
-        :host(.style-vertical) .block-base {
+        .block-base.layout-vertical {
           width: 110px;
           min-height: 95px;
           padding: 8px;
         }
         
-        :host(.style-vertical) .block-icon {
+        .block-base.layout-vertical .block-icon {
           width: 44px;
           height: 44px;
           font-size: 1.4em;
         }
         
-        :host(.style-compact) .block-base {
+        .block-base.layout-compact {
           width: 130px;
           min-height: 65px;
           padding: 6px;
         }
       }
       
-      /* 超小屏幕 */
-      @container cardforge-container (max-width: 320px) {
-        :host(.style-horizontal) .block-base {
-          min-width: 100px;
-        }
-        
-        :host(.style-vertical) .block-base {
-          width: 100px;
-          min-height: 90px;
-        }
-        
-        :host(.style-compact) .block-base {
-          width: 120px;
-          min-height: 60px;
-        }
-      }
-      
-      /* ===== 深色模式适配 ===== */
+      /* ===== 深色模式 ===== */
       @media (prefers-color-scheme: dark) {
         .block-base {
           background: rgba(255, 255, 255, 0.05);
@@ -459,27 +424,17 @@ export class BlockBase extends LitElement {
           color: var(--cf-text-tertiary);
         }
         
-        :host(.header-block) .block-base {
+        .block-base.area-header {
           background: rgba(var(--cf-primary-color-rgb), 0.12);
           border-color: rgba(var(--cf-primary-color-rgb), 0.4);
         }
         
-        :host(.header-block) .block-icon {
-          background: rgba(var(--cf-primary-color-rgb), 0.25);
-          color: var(--cf-primary-color);
-        }
-        
-        :host(.footer-block) .block-base {
+        .block-base.area-footer {
           background: rgba(var(--cf-accent-color-rgb), 0.12);
           border-color: rgba(var(--cf-accent-color-rgb), 0.4);
         }
         
-        :host(.footer-block) .block-icon {
-          background: rgba(var(--cf-accent-color-rgb), 0.25);
-          color: var(--cf-accent-color);
-        }
-        
-        :host(.style-compact) .block-name {
+        .block-base.layout-compact .block-name {
           color: var(--cf-text-secondary);
         }
       }
@@ -492,10 +447,12 @@ export class BlockBase extends LitElement {
     this.hass = null;
     this.showName = true;
     this.showValue = true;
-    this.compact = false;
+    this.layout = 'compact';  // 默认紧凑布局
+    this.area = 'content';    // 默认内容区域
     this._displayName = '';
     this._displayValue = '';
     this._icon = 'mdi:cube-outline';
+    this._hasEntity = false;
   }
 
   willUpdate(changedProperties) {
@@ -505,26 +462,28 @@ export class BlockBase extends LitElement {
   }
 
   render() {
-    const hasEntity = this.block?.entity && this.hass?.states?.[this.block.entity];
-    const area = this.block?.area || 'content';
-    
-    // 确定渲染模式
-    const renderMode = this._getRenderMode();
-    
     return html`
-      <div class="block-base area-${area}">
-        ${renderMode === 'horizontal' ? this._renderHorizontal() : ''}
-        ${renderMode === 'vertical' ? this._renderVertical() : ''}
-        ${renderMode === 'compact' ? this._renderCompact() : ''}
-        
-        ${hasEntity ? html`
+      <div class="block-base layout-${this.layout} area-${this.area}">
+        ${this._renderContent()}
+        ${this._hasEntity ? html`
           <div class="block-status ${this._getEntityStatusClass()}"></div>
         ` : ''}
       </div>
     `;
   }
 
-  // 水平布局渲染（用于标题/页脚）
+  _renderContent() {
+    switch (this.layout) {
+      case 'horizontal':
+        return this._renderHorizontal();
+      case 'vertical':
+        return this._renderVertical();
+      case 'compact':
+      default:
+        return this._renderCompact();
+    }
+  }
+
   _renderHorizontal() {
     return html`
       <div class="block-icon">
@@ -536,14 +495,13 @@ export class BlockBase extends LitElement {
         ` : ''}
         ${this.showValue ? html`
           <div class="block-value">
-            ${this._hasEntity() ? this._displayValue : html`<span class="empty-state">未配置</span>`}
+            ${this._hasEntity ? this._displayValue : html`<span class="empty-state">未配置</span>`}
           </div>
         ` : ''}
       </div>
     `;
   }
 
-  // 垂直布局渲染
   _renderVertical() {
     return html`
       <div class="block-icon">
@@ -554,13 +512,12 @@ export class BlockBase extends LitElement {
       ` : ''}
       ${this.showValue ? html`
         <div class="block-value">
-          ${this._hasEntity() ? this._displayValue : html`<span class="empty-state">未配置</span>`}
+          ${this._hasEntity ? this._displayValue : html`<span class="empty-state">未配置</span>`}
         </div>
       ` : ''}
     `;
   }
 
-  // 紧凑布局渲染（默认）
   _renderCompact() {
     return html`
       <div class="block-icon">
@@ -571,7 +528,7 @@ export class BlockBase extends LitElement {
       ` : ''}
       ${this.showValue ? html`
         <div class="block-value">
-          ${this._hasEntity() ? this._displayValue : html`<span class="empty-state">未配置</span>`}
+          ${this._hasEntity ? this._displayValue : html`<span class="empty-state">未配置</span>`}
         </div>
       ` : ''}
     `;
@@ -579,11 +536,17 @@ export class BlockBase extends LitElement {
 
   _updateDisplayData() {
     if (!this.block) {
-      this._displayName = '';
-      this._displayValue = '';
-      this._icon = 'mdi:cube-outline';
+      this._resetData();
       return;
     }
+    
+    // 从block中获取配置，否则使用组件属性
+    const blockLayout = this.block.layout || this.layout;
+    const blockArea = this.block.area || this.area;
+    
+    // 更新布局和区域
+    this.layout = blockLayout;
+    this.area = blockArea;
     
     // 获取显示名称
     this._displayName = this._getDisplayName();
@@ -593,23 +556,34 @@ export class BlockBase extends LitElement {
     
     // 获取图标
     this._icon = this._getIcon();
+    
+    // 检查是否有实体
+    this._hasEntity = this._checkHasEntity();
+  }
+
+  _resetData() {
+    this._displayName = '';
+    this._displayValue = '';
+    this._icon = 'mdi:cube-outline';
+    this._hasEntity = false;
   }
 
   _getDisplayName() {
+    // 优先使用block中的name
     if (this.block.name) return this.block.name;
     
+    // 如果有实体，使用实体友好名称
     if (this.block.entity && this.hass?.states?.[this.block.entity]) {
       const entity = this.hass.states[this.block.entity];
       return entity.attributes?.friendly_name || this.block.entity;
     }
     
+    // 默认名称
     return this.block.entity ? '实体块' : '自定义块';
   }
 
   _getDisplayValue() {
-    if (!this._hasEntity()) {
-      return '';
-    }
+    if (!this._hasEntity) return '';
     
     const entity = this.hass.states[this.block.entity];
     const state = entity.state;
@@ -623,22 +597,25 @@ export class BlockBase extends LitElement {
   }
 
   _getIcon() {
+    // 优先使用block中的icon
     if (this.block.icon) return this.block.icon;
     
-    if (!this.block.entity) return 'mdi:cube-outline';
+    // 如果有实体，根据实体类型获取默认图标
+    if (this.block.entity) {
+      const domain = this.block.entity.split('.')[0];
+      return ENTITY_ICONS[domain] || 'mdi:cube';
+    }
     
-    const domain = this.block.entity.split('.')[0];
-    return ENTITY_ICONS[domain] || 'mdi:cube';
+    // 默认图标
+    return 'mdi:cube-outline';
   }
 
-  _hasEntity() {
-    return this.block.entity && this.hass?.states?.[this.block.entity];
+  _checkHasEntity() {
+    return !!(this.block.entity && this.hass?.states?.[this.block.entity]);
   }
 
   _getEntityStatusClass() {
-    if (!this._hasEntity()) {
-      return '';
-    }
+    if (!this._hasEntity) return '';
     
     const entity = this.hass.states[this.block.entity];
     const state = entity.state.toLowerCase();
@@ -653,22 +630,50 @@ export class BlockBase extends LitElement {
     
     return '';
   }
-
-  // 根据宿主类名确定渲染模式
-  _getRenderMode() {
-    if (this.classList.contains('style-horizontal')) {
-      return 'horizontal';
-    } else if (this.classList.contains('style-vertical')) {
-      return 'vertical';
-    } else if (this.classList.contains('style-compact')) {
-      return 'compact';
-    }
-    
-    // 默认使用紧凑模式
-    return 'compact';
-  }
 }
 
 if (!customElements.get('block-base')) {
   customElements.define('block-base', BlockBase);
+}
+
+// 导出纯函数版本（兼容旧的renderer API）
+export function renderBlock(block, hass, options = {}) {
+  // 创建一个临时div来渲染block-base组件
+  const div = document.createElement('div');
+  const blockEl = document.createElement('block-base');
+  
+  // 设置属性
+  blockEl.block = block;
+  blockEl.hass = hass;
+  blockEl.showName = options.showName !== false;
+  blockEl.showValue = options.showValue !== false;
+  blockEl.layout = options.layout || block.layout || 'compact';
+  blockEl.area = block.area || 'content';
+  
+  div.appendChild(blockEl);
+  
+  // 渲染并获取HTML
+  setTimeout(() => {
+    // 异步渲染
+  }, 0);
+  
+  // 注意：这个纯函数版本不能直接返回HTML字符串
+  // 但可以提供兼容接口
+  return {
+    element: blockEl,
+    update: (newBlock, newHass) => {
+      blockEl.block = newBlock;
+      blockEl.hass = newHass;
+    }
+  };
+}
+
+export function renderBlocks(blocks, hass, options = {}) {
+  const elements = {};
+  
+  Object.entries(blocks).forEach(([id, block]) => {
+    elements[id] = renderBlock(block, hass, options);
+  });
+  
+  return elements;
 }
