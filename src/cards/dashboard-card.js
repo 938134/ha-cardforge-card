@@ -73,87 +73,87 @@ export const card = {
     }
   },
   
-  template: (config, data) => {
-    const blocks = config.blocks || {};
-    
-    // 按区域分组块
-    const headerBlocks = {};
-    const contentBlocks = {};
-    const footerBlocks = {};
-    
-    Object.entries(blocks).forEach(([id, block]) => {
-      const area = block.area || 'content';
-      if (area === 'header') {
-        headerBlocks[id] = block;
-      } else if (area === 'footer') {
-        footerBlocks[id] = block;
-      } else {
-        contentBlocks[id] = block;
-      }
-    });
-    
-    // 生成HTML
-    return `
-      <div class="dashboard-card">
-        ${config.showHeader && Object.keys(headerBlocks).length > 0 ? `
-          <div class="dashboard-header ${config.headerAlignment}">
-            <div class="dashboard-area-content">
-              ${Object.entries(headerBlocks).map(([id, block]) => `
-                <block-base 
-                  class="dashboard-block header-block style-horizontal"
-                  .block=${JSON.stringify(block)}
-                  .hass=${data?.hass}
-                  .showName=${true}
-                  .showValue=${true}
-                  .compact=${false}
-                ></block-base>
-              `).join('')}
-            </div>
-          </div>
-        ` : ''}
-        
-        <div class="dashboard-content layout-${config.contentLayout || 'grid-3'}">
-          <div class="dashboard-area-content ${config.blockStyle || 'compact'}">
-            ${Object.entries(contentBlocks).map(([id, block]) => `
+template: (config, data) => {
+  const blocks = config.blocks || {};
+  
+  // 按区域分组块
+  const headerBlocks = {};
+  const contentBlocks = {};
+  const footerBlocks = {};
+  
+  Object.entries(blocks).forEach(([id, block]) => {
+    const area = block.area || 'content';
+    if (area === 'header') {
+      headerBlocks[id] = block;
+    } else if (area === 'footer') {
+      footerBlocks[id] = block;
+    } else {
+      contentBlocks[id] = block;
+    }
+  });
+  
+  // 生成HTML
+  return `
+    <div class="dashboard-card">
+      ${config.showHeader && Object.keys(headerBlocks).length > 0 ? `
+        <div class="dashboard-header ${config.headerAlignment}">
+          <div class="dashboard-area-content">
+            ${Object.entries(headerBlocks).map(([id, block]) => `
               <block-base 
-                class="dashboard-block content-block style-${config.blockStyle || 'compact'}"
                 .block=${JSON.stringify(block)}
-                .hass=${data?.hass}
+                .hass=${JSON.stringify(data?.hass || {})}
                 .showName=${true}
                 .showValue=${true}
-                .compact=${config.blockStyle === 'compact'}
+                .layout="horizontal"
+                .area="header"
               ></block-base>
             `).join('')}
-            ${Object.keys(contentBlocks).length === 0 ? `
-              <div class="dashboard-empty">
-                <div class="dashboard-empty-icon">
-                  <ha-icon icon="mdi:view-grid-plus"></ha-icon>
-                </div>
-                <div>请在块管理中为内容区域添加块</div>
-              </div>
-            ` : ''}
           </div>
         </div>
-        
-        ${config.showFooter && Object.keys(footerBlocks).length > 0 ? `
-          <div class="dashboard-footer ${config.footerAlignment}">
-            <div class="dashboard-area-content">
-              ${Object.entries(footerBlocks).map(([id, block]) => `
-                <block-base 
-                  class="dashboard-block footer-block style-horizontal"
-                  .block=${JSON.stringify(block)}
-                  .hass=${data?.hass}
-                  .showName=${true}
-                  .showValue=${true}
-                  .compact=${false}
-                ></block-base>
-              `).join('')}
+      ` : ''}
+      
+      <div class="dashboard-content layout-${config.contentLayout || 'grid-3'}">
+        <div class="dashboard-area-content ${config.blockStyle || 'compact'}">
+          ${Object.entries(contentBlocks).map(([id, block]) => `
+            <block-base 
+              .block=${JSON.stringify(block)}
+              .hass=${JSON.stringify(data?.hass || {})}
+              .showName=${true}
+              .showValue=${true}
+              .layout="${config.blockStyle || 'compact'}"
+              .area="content"
+            ></block-base>
+          `).join('')}
+          ${Object.keys(contentBlocks).length === 0 ? `
+            <div class="dashboard-empty">
+              <div class="dashboard-empty-icon">
+                <ha-icon icon="mdi:view-grid-plus"></ha-icon>
+              </div>
+              <div>请在块管理中为内容区域添加块</div>
             </div>
-          </div>
-        ` : ''}
+          ` : ''}
+        </div>
       </div>
-    `;
-  },
+      
+      ${config.showFooter && Object.keys(footerBlocks).length > 0 ? `
+        <div class="dashboard-footer ${config.footerAlignment}">
+          <div class="dashboard-area-content">
+            ${Object.entries(footerBlocks).map(([id, block]) => `
+              <block-base 
+                .block=${JSON.stringify(block)}
+                .hass=${JSON.stringify(data?.hass || {})}
+                .showName=${true}
+                .showValue=${true}
+                .layout="horizontal"
+                .area="footer"
+              ></block-base>
+            `).join('')}
+          </div>
+        </div>
+      ` : ''}
+    </div>
+  `;
+},
   
   styles: (config) => {
     const customStyles = `

@@ -277,9 +277,10 @@ export class BlockManagement extends LitElement {
           <block-base
             .block=${block}
             .hass=${this.hass}
-            .compact=${true}
             .showName=${true}
             .showValue=${true}
+            .layout="compact"
+            .area=${isPresetCard ? 'content' : (block.area || 'content')}
           ></block-base>
         </div>
         

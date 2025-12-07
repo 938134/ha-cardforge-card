@@ -1,4 +1,4 @@
-// 基础块组件 - 统一渲染方案
+// 基础块组件 - 统一渲染方案（简化版）
 import { LitElement, html, css } from 'https://unpkg.com/lit@2.8.0/index.js?module';
 import { designSystem } from '../core/design-system.js';
 import { AREAS, ENTITY_ICONS } from './block-config.js';
@@ -634,46 +634,4 @@ export class BlockBase extends LitElement {
 
 if (!customElements.get('block-base')) {
   customElements.define('block-base', BlockBase);
-}
-
-// 导出纯函数版本（兼容旧的renderer API）
-export function renderBlock(block, hass, options = {}) {
-  // 创建一个临时div来渲染block-base组件
-  const div = document.createElement('div');
-  const blockEl = document.createElement('block-base');
-  
-  // 设置属性
-  blockEl.block = block;
-  blockEl.hass = hass;
-  blockEl.showName = options.showName !== false;
-  blockEl.showValue = options.showValue !== false;
-  blockEl.layout = options.layout || block.layout || 'compact';
-  blockEl.area = block.area || 'content';
-  
-  div.appendChild(blockEl);
-  
-  // 渲染并获取HTML
-  setTimeout(() => {
-    // 异步渲染
-  }, 0);
-  
-  // 注意：这个纯函数版本不能直接返回HTML字符串
-  // 但可以提供兼容接口
-  return {
-    element: blockEl,
-    update: (newBlock, newHass) => {
-      blockEl.block = newBlock;
-      blockEl.hass = newHass;
-    }
-  };
-}
-
-export function renderBlocks(blocks, hass, options = {}) {
-  const elements = {};
-  
-  Object.entries(blocks).forEach(([id, block]) => {
-    elements[id] = renderBlock(block, hass, options);
-  });
-  
-  return elements;
 }
