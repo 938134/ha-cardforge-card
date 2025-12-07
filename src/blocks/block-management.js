@@ -1,4 +1,4 @@
-// blocks/block-management.js - 原始简单版本
+// blocks/block-management.js - 修复数据传递
 import { LitElement, html, css } from 'https://unpkg.com/lit@2.8.0/index.js?module';
 import { designSystem } from '../core/design-system.js';
 import { BlockBase } from './block-base.js';
@@ -10,7 +10,8 @@ export class BlockManagement extends LitElement {
     config: { type: Object },
     hass: { type: Object },
     cardDefinition: { type: Object },
-    _editingBlockId: { state: true }
+    _editingBlockId: { state: true },
+    _currentBlocks: { state: true }  // 新增：缓存块数据
   };
 
   static styles = [
@@ -226,20 +227,24 @@ export class BlockManagement extends LitElement {
     this.hass = null;
     this.cardDefinition = {};
     this._editingBlockId = null;
+    this._currentBlocks = [];  // 新增
+  }
+
+  willUpdate(changedProperties) {
+    if (changedProperties.has('config')) {
+      this._currentBlocks = this._getAllBlocks();
+    }
   }
 
   render() {
-    const blocks = this._getAllBlocks();
-    const blockType = this.cardDefinition?.blockType || 'none';
-    
-    if (blocks.length === 0) {
+    if (this._currentBlocks.length === 0) {
       return this._renderEmptyState();
     }
     
     return html`
       <div class="block-management">
         <div class="block-list">
-          ${blocks.map(block => this._renderBlockItem(block))}
+          ${this._currentBlocks.map(block => this._renderBlockItem(block))}
         </div>
         
         ${this._renderAddButton()}
@@ -259,6 +264,16 @@ export class BlockManagement extends LitElement {
     // 权限判断
     const canDelete = blockType === 'custom' && !isPresetBlock;
     
+    // 创建块配置的浅拷贝，确保是纯对象
+    const blockConfig = {
+      id: block.id,
+      entity: block.entity || '',
+      name: block.name || '',
+      icon: block.icon || 'mdi:cube-outline',
+      area: block.area || 'content',
+      presetKey: block.presetKey
+    };
+    
     return html`
       <div class="block-item ${isPresetBlock ? 'preset-block' : ''}">
         <!-- 区域标识 -->
@@ -273,9 +288,9 @@ export class BlockManagement extends LitElement {
         
         <!-- 块视图 -->
         <div class="block-view-container">
-          <!-- 关键修复：使用对象展开操作符传递数据 -->
+          <!-- 关键修复：确保传递纯对象，而不是JSON字符串 -->
           <block-base
-            .block=${{...block}}
+            .block=${blockConfig}
             .hass=${this.hass}
             .compact=${true}
             .showName=${true}
@@ -304,7 +319,7 @@ export class BlockManagement extends LitElement {
       ${isEditing ? html`
         <div class="edit-form-container">
           <block-edit-form
-            .block=${block}
+            .block=${blockConfig}
             .hass=${this.hass}
             .cardDefinition=${this.cardDefinition}
             @field-change=${(e) => this._handleFieldChange(block.id, e.detail)}
@@ -356,10 +371,21 @@ export class BlockManagement extends LitElement {
 
   _getAllBlocks() {
     if (!this.config?.blocks) return [];
-    return Object.entries(this.config.blocks).map(([id, config]) => ({
-      id,
-      ...config
-    }));
+    
+    const blocks = [];
+    Object.entries(this.config.blocks).forEach(([id, config]) => {
+      // 确保每个块都有正确的结构
+      blocks.push({
+        id,
+        entity: config.entity || '',
+        name: config.name || '',
+        icon: config.icon || 'mdi:cube-outline',
+        area: config.area || 'content',
+        presetKey: config.presetKey
+      });
+    });
+    
+    return blocks;
   }
 
   _getAreaIcon(areaId) {

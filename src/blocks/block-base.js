@@ -1,4 +1,4 @@
-// blocks/block-base.js - 原始版本 + 关键修复
+// blocks/block-base.js - 简化安全版
 import { LitElement, html, css } from 'https://unpkg.com/lit@2.8.0/index.js?module';
 import { designSystem } from '../core/design-system.js';
 import { AREAS, ENTITY_ICONS } from './block-config.js';
@@ -9,10 +9,7 @@ export class BlockBase extends LitElement {
     hass: { type: Object },
     showName: { type: Boolean },
     showValue: { type: Boolean },
-    compact: { type: Boolean },
-    _displayName: { state: true },
-    _displayValue: { state: true },
-    _icon: { state: true }
+    compact: { type: Boolean }
   };
 
   static styles = [
@@ -20,7 +17,7 @@ export class BlockBase extends LitElement {
     css`
       :host { display: block; }
       
-      /* 基础块容器 - 使用紧凑网格布局（图标在左，名称在上，状态值在下） */
+      /* 基础块容器 */
       .block-base {
         width: 100%;
         transition: all var(--cf-transition-duration-fast) var(--cf-easing-standard);
@@ -63,7 +60,7 @@ export class BlockBase extends LitElement {
         font-size: 1.1em;
       }
       
-      /* 块名称（网格定位：右上） */
+      /* 块名称 */
       .block-name {
         grid-column: 2;
         grid-row: 1;
@@ -77,18 +74,16 @@ export class BlockBase extends LitElement {
         align-self: end;
       }
       
-      /* 紧凑模式下的名称显示优化 */
       .compact .block-name {
         font-size: var(--cf-font-size-xs);
         color: var(--cf-text-tertiary);
       }
       
-      /* 当 showName=false 时隐藏名称 */
       .block-name:empty {
         display: none;
       }
       
-      /* 块值（网格定位：右下） */
+      /* 块值 */
       .block-value {
         grid-column: 2;
         grid-row: 2;
@@ -102,13 +97,11 @@ export class BlockBase extends LitElement {
         align-self: start;
       }
       
-      /* 紧凑模式下的值显示优化 */
       .compact .block-value {
         font-size: var(--cf-font-size-md);
         font-weight: var(--cf-font-weight-semibold);
       }
       
-      /* 当 showValue=false 时隐藏值 */
       .block-value:empty {
         display: none;
       }
@@ -123,39 +116,6 @@ export class BlockBase extends LitElement {
       
       .compact .block-unit {
         font-size: 0.7em;
-      }
-      
-      /* 状态指示器 */
-      .block-status {
-        position: absolute;
-        top: 4px;
-        right: 4px;
-        width: 6px;
-        height: 6px;
-        border-radius: 50%;
-        background: var(--cf-neutral-400);
-      }
-      
-      .compact .block-status {
-        width: 5px;
-        height: 5px;
-        top: 3px;
-        right: 3px;
-      }
-      
-      .block-status.online {
-        background: var(--cf-success-color);
-        box-shadow: 0 0 0 1px rgba(76, 175, 80, 0.2);
-      }
-      
-      .block-status.offline {
-        background: var(--cf-error-color);
-        box-shadow: 0 0 0 1px rgba(244, 67, 54, 0.2);
-      }
-      
-      .block-status.warning {
-        background: var(--cf-warning-color);
-        box-shadow: 0 0 0 1px rgba(255, 152, 0, 0.2);
       }
       
       /* 空状态 */
@@ -181,13 +141,7 @@ export class BlockBase extends LitElement {
         color: var(--cf-accent-color);
       }
       
-      /* 交互效果 */
-      .block-base:hover .block-icon {
-        transform: scale(1.05);
-        background: rgba(var(--cf-primary-color-rgb), 0.2);
-      }
-      
-      /* 响应式设计 - 超小屏幕适配 */
+      /* 响应式设计 */
       @container cardforge-container (max-width: 320px) {
         .block-base {
           grid-template-columns: 28px 1fr;
@@ -209,156 +163,71 @@ export class BlockBase extends LitElement {
           font-size: 0.85em;
         }
       }
-      
-      /* 深色模式适配 */
-      @media (prefers-color-scheme: dark) {
-        .block-icon {
-          background: rgba(var(--cf-primary-color-rgb), 0.2);
-          color: var(--cf-text-tertiary);
-        }
-        
-        .area-header .block-icon {
-          background: rgba(var(--cf-primary-color-rgb), 0.25);
-          color: var(--cf-primary-color);
-        }
-        
-        .area-footer .block-icon {
-          background: rgba(var(--cf-accent-color-rgb), 0.15);
-          color: var(--cf-accent-color);
-        }
-        
-        .compact .block-name {
-          color: var(--cf-text-secondary);
-        }
-      }
     `
   ];
 
-  constructor() {
-    super();
-    this.block = {};
-    this.hass = null;
-    this.showName = true;
-    this.showValue = true;
-    this.compact = false;
-    this._displayName = '';
-    this._displayValue = '';
-    this._icon = 'mdi:cube-outline';
-  }
-
-  willUpdate(changedProperties) {
-    if (changedProperties.has('block') || changedProperties.has('hass')) {
-      this._updateDisplayData();
-    }
-  }
-
   render() {
-    // 关键修复：确保 block 是对象
-    const block = this.block || {};
-    const hasEntity = block.entity && this.hass?.states?.[block.entity];
+    // 安全地获取 block 数据
+    let block = {};
+    try {
+      if (this.block && typeof this.block === 'object') {
+        block = this.block;
+      } else if (typeof this.block === 'string') {
+        // 如果是字符串，尝试解析
+        block = JSON.parse(this.block);
+      }
+    } catch (e) {
+      console.warn('无法解析 block 数据:', this.block);
+      block = {};
+    }
+    
+    const entityId = block.entity || '';
+    const hasEntity = entityId && this.hass?.states?.[entityId];
     const area = block.area || 'content';
+    
+    // 获取显示名称
+    let displayName = block.name || '';
+    if (!displayName && hasEntity) {
+      const entity = this.hass.states[entityId];
+      displayName = entity.attributes?.friendly_name || entityId;
+    }
+    if (!displayName) {
+      displayName = block.entity ? '实体块' : '新块';
+    }
+    
+    // 获取显示值
+    let displayValue = '';
+    if (hasEntity) {
+      const entity = this.hass.states[entityId];
+      const state = entity.state;
+      const unit = entity.attributes?.unit_of_measurement || '';
+      displayValue = unit ? `${state} ${unit}` : state;
+    }
+    
+    // 获取图标
+    let icon = block.icon || 'mdi:cube-outline';
+    if (!block.icon && entityId) {
+      const domain = entityId.split('.')[0];
+      icon = ENTITY_ICONS[domain] || 'mdi:cube';
+    }
     
     return html`
       <div class="block-base ${this.compact ? 'compact' : ''} area-${area}">
         <div class="block-icon">
-          <ha-icon .icon=${this._icon}></ha-icon>
+          <ha-icon .icon=${icon}></ha-icon>
         </div>
         
         ${this.showName ? html`
-          <div class="block-name">${this._displayName || ''}</div>
+          <div class="block-name">${displayName}</div>
         ` : ''}
         
         ${this.showValue ? html`
           <div class="block-value">
-            ${hasEntity ? this._displayValue : html`<span class="empty-state">未配置实体</span>`}
+            ${displayValue || html`<span class="empty-state">未配置实体</span>`}
           </div>
         ` : ''}
-        
-        ${hasEntity ? html`
-          <div class="block-status ${this._getEntityStatusClass()}"></div>
-        ` : ''}
-        
-        <slot></slot>
       </div>
     `;
-  }
-
-  _updateDisplayData() {
-    // 关键修复：确保 block 是对象
-    const block = this.block || {};
-    
-    if (!block || typeof block !== 'object') {
-      this._displayName = '';
-      this._displayValue = '';
-      this._icon = 'mdi:cube-outline';
-      return;
-    }
-    
-    // 获取显示名称
-    this._displayName = this._getDisplayName(block);
-    
-    // 获取显示值
-    this._displayValue = this._getDisplayValue(block);
-    
-    // 获取图标
-    this._icon = this._getIcon(block);
-  }
-
-  _getDisplayName(block = {}) {
-    // 关键修复：接收 block 参数
-    if (block.name) return block.name;
-    
-    if (block.entity && this.hass?.states?.[block.entity]) {
-      const entity = this.hass.states[block.entity];
-      return entity.attributes?.friendly_name || block.entity;
-    }
-    
-    return block.entity ? '实体块' : '自定义块';
-  }
-
-  _getDisplayValue(block = {}) {
-    // 关键修复：接收 block 参数
-    if (!block.entity || !this.hass?.states?.[block.entity]) {
-      return '';
-    }
-    
-    const entity = this.hass.states[block.entity];
-    const state = entity.state;
-    const unit = entity.attributes?.unit_of_measurement || '';
-    
-    return unit ? `${state} ${unit}` : state;
-  }
-
-  _getIcon(block = {}) {
-    // 关键修复：接收 block 参数
-    if (block.icon) return block.icon;
-    
-    if (!block.entity) return 'mdi:cube-outline';
-    
-    const domain = block.entity.split('.')[0];
-    return ENTITY_ICONS[domain] || 'mdi:cube';
-  }
-
-  _getEntityStatusClass() {
-    // 关键修复：确保 block 是对象
-    const block = this.block || {};
-    
-    if (!block.entity || !this.hass?.states?.[block.entity]) {
-      return '';
-    }
-    
-    const entity = this.hass.states[block.entity];
-    const state = entity.state.toLowerCase();
-    
-    if (state === 'on' || state === 'home' || state === 'unlocked') {
-      return 'online';
-    } else if (state === 'off' || state === 'away' || state === 'locked') {
-      return 'offline';
-    } else if (state === 'unavailable' || state === 'unknown') {
-      return 'warning';
-    }
-    
-    return '';
   }
 }
 
