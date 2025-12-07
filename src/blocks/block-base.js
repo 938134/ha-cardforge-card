@@ -334,11 +334,24 @@ export class BlockBase extends LitElement {
   }
 
   _getDisplayName() {
-    if (this.block.name) return this.block.name;
+    // 优先使用块配置中的name
+    if (this.block.name && this.block.name.trim()) {
+      return this.block.name.trim();
+    }
     
+    // 如果有实体，优先显示friendly_name
     if (this.block.entity && this.hass?.states?.[this.block.entity]) {
       const entity = this.hass.states[this.block.entity];
-      return entity.attributes?.friendly_name || this.block.entity;
+      const friendlyName = entity.attributes?.friendly_name;
+      
+      // 如果friendly_name包含中文，直接使用
+      if (friendlyName && /[\u4e00-\u9fa5]/.test(friendlyName)) {
+        return friendlyName;
+      }
+      
+      // 否则使用实体ID的最后一部分
+      const entityParts = this.block.entity.split('.');
+      return entityParts[entityParts.length - 1].replace(/_/g, ' ');
     }
     
     return this.block.entity ? '实体块' : '自定义块';
