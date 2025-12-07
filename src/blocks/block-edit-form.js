@@ -1,6 +1,7 @@
-// blocks/block-edit-form.js - 原始版本（保持不变）
+// blocks/block-edit-form.js - 添加自动填充功能
 import { LitElement, html, css } from 'https://unpkg.com/lit@2.8.0/index.js?module';
 import { designSystem } from '../core/design-system.js';
+import { ENTITY_ICONS } from './block-config.js';  // 导入图标映射
 
 export class BlockEditForm extends LitElement {
   static properties = {
@@ -218,15 +219,45 @@ export class BlockEditForm extends LitElement {
   }
 
   _handleEntityChange(e) {
-    const entity = e.detail.value;
+    const entityId = e.detail.value;
+    
+    // 构建更新对象
+    const updates = {};
+    
+    // 如果有实体，尝试自动填充
+    if (entityId && this.hass?.states?.[entityId]) {
+      const entity = this.hass.states[entityId];
+      
+      // 自动填充名称（如果当前为空）
+      if (!this.block.name || this.block.name === '新块') {
+        const friendlyName = entity.attributes?.friendly_name;
+        if (friendlyName && friendlyName.trim()) {
+          updates.name = friendlyName;
+        }
+      }
+      
+      // 自动填充图标（如果当前是默认图标）
+      if (!this.block.icon || this.block.icon === 'mdi:cube-outline') {
+        const domain = entityId.split('.')[0];
+        const defaultIcon = entity.attributes?.icon || ENTITY_ICONS[domain] || 'mdi:cube';
+        updates.icon = defaultIcon;
+      }
+    }
+    
+    // 分发事件
     this.dispatchEvent(new CustomEvent('field-change', {
-      detail: { field: 'entity', value: entity }
+      detail: {
+        field: 'entity',
+        value: entityId,
+        ...(Object.keys(updates).length > 0 && { updates }) // 如果有自动填充，包含更新
+      }
     }));
   }
 
   _handleEntityInput(e) {
+    const entityId = e.target.value;
     this.dispatchEvent(new CustomEvent('field-change', {
-      detail: { field: 'entity', value: e.target.value }
+      detail: { field: 'entity', value: entityId }
     }));
   }
 

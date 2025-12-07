@@ -406,7 +406,7 @@ export class BlockManagement extends LitElement {
     return labelMap[areaId] || '内容';
   }
 
-  _handleFieldChange(blockId, { field, value }) {
+  _handleFieldChange(blockId, { field, value, updates }) {
     const currentBlocks = this.config.blocks || {};
     const currentBlock = currentBlocks[blockId] || {};
     
@@ -416,7 +416,14 @@ export class BlockManagement extends LitElement {
       value = 'content';
     }
     
-    const newBlock = { ...currentBlock, [field]: value };
+    // 应用主要字段更新
+    let newBlock = { ...currentBlock, [field]: value };
+    
+    // 应用自动填充的更新（如果有）
+    if (updates && typeof updates === 'object') {
+      newBlock = { ...newBlock, ...updates };
+    }
+    
     const newBlocks = { ...currentBlocks, [blockId]: newBlock };
     
     this._fireConfigChange({ blocks: newBlocks });
