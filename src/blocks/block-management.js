@@ -175,6 +175,11 @@ export class BlockManagement extends LitElement {
         overflow: hidden;
       }
       
+      /* 块预览样式 */
+      .block-preview {
+        width: 100%;
+      }
+      
       /* 响应式设计 */
       @media (max-width: 768px) {
         .block-item {
@@ -272,15 +277,16 @@ export class BlockManagement extends LitElement {
           </div>
         </div>
         
-        <!-- 块视图（使用紧凑布局） -->
+        <!-- 块视图（使用紧凑布局，100%宽度） -->
         <div class="block-view-container">
           <block-base
+            class="block-preview"
             .block=${block}
             .hass=${this.hass}
             .showName=${true}
             .showValue=${true}
             .layout="compact"
-            .area=${isPresetCard ? 'content' : (block.area || 'content')}
+            .area=${area}
           ></block-base>
         </div>
         

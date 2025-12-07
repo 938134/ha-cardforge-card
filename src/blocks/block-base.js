@@ -1,4 +1,4 @@
-// 基础块组件 - 统一渲染方案（简化版）
+// 基础块组件 - 统一渲染方案
 import { LitElement, html, css } from 'https://unpkg.com/lit@2.8.0/index.js?module';
 import { designSystem } from '../core/design-system.js';
 import { AREAS, ENTITY_ICONS } from './block-config.js';
@@ -265,6 +265,26 @@ export class BlockBase extends LitElement {
         background: rgba(var(--cf-primary-color-rgb), 0.2);
       }
       
+      /* ===== 块预览模式（用于块管理界面）===== */
+      :host(.block-preview) .block-base.layout-compact {
+        width: 100% !important;
+        min-width: 100% !important;
+        grid-template-columns: 40px 1fr;
+        gap: 4px 12px;
+        padding: 10px;
+      }
+      
+      :host(.block-preview) .block-base.layout-compact .block-name {
+        font-size: var(--cf-font-size-sm);
+        color: var(--cf-text-primary);
+        font-weight: var(--cf-font-weight-medium);
+      }
+      
+      :host(.block-preview) .block-base.layout-compact .block-value {
+        font-size: var(--cf-font-size-md);
+        font-weight: var(--cf-font-weight-semibold);
+      }
+      
       /* ===== 响应式设计 ===== */
       @container cardforge-container (max-width: 768px) {
         .block-base.layout-horizontal {
@@ -301,6 +321,12 @@ export class BlockBase extends LitElement {
         .block-base.layout-compact {
           width: 150px;
           min-height: 75px;
+        }
+        
+        :host(.block-preview) .block-base.layout-compact {
+          grid-template-columns: 36px 1fr;
+          gap: 4px 10px;
+          padding: 8px;
         }
       }
       
@@ -367,6 +393,20 @@ export class BlockBase extends LitElement {
         
         .block-base.layout-compact .block-value {
           font-size: var(--cf-font-size-md);
+        }
+        
+        :host(.block-preview) .block-base.layout-compact {
+          grid-template-columns: 32px 1fr;
+          gap: 3px 8px;
+          padding: 6px;
+        }
+        
+        :host(.block-preview) .block-base.layout-compact .block-name {
+          font-size: var(--cf-font-size-xs);
+        }
+        
+        :host(.block-preview) .block-base.layout-compact .block-value {
+          font-size: var(--cf-font-size-sm);
         }
       }
       
