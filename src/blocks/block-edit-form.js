@@ -1,7 +1,6 @@
-// 块编辑表单 - 移除布局选择器
+// blocks/block-edit-form.js - 完整修复版
 import { LitElement, html, css } from 'https://unpkg.com/lit@2.8.0/index.js?module';
 import { designSystem } from '../core/design-system.js';
-import { AREAS } from './block-config.js';
 
 export class BlockEditForm extends LitElement {
   static properties = {
@@ -136,7 +135,7 @@ export class BlockEditForm extends LitElement {
                 .value=${this.block.entity || ''}
                 @input=${this._handleEntityInput}
                 label="实体ID"
-                placeholder="例如: sensor.example"
+                placeholder="例如: sensor.temperature"
                 ?required=${isRequired}
                 fullwidth
               ></ha-textfield>
@@ -210,12 +209,83 @@ export class BlockEditForm extends LitElement {
       return;
     }
     
-    this._availableEntities = Object.entries(this.hass.states)
-      .map(([entityId, state]) => ({
-        value: entityId,
-        label: `${state.attributes?.friendly_name || entityId} (${entityId})`
-      }))
-      .sort((a, b) => a.label.localeCompare(b.label));
+    const entities = Object.entries(this.hass.states);
+    const groupedEntities = [];
+    
+    // 分类实体
+    const categories = {
+      weather: [],
+      calendar: [],
+      sensor: [],
+      device: [],
+      other: []
+    };
+    
+    entities.forEach(([entityId, state]) => {
+      const friendlyName = state.attributes?.friendly_name || '';
+      const domain = entityId.split('.')[0];
+      const hasChinese = /[\u4e00-\u9fa5]/.test(friendlyName);
+      
+      // 跳过不需要显示的实体类型
+      const excludeDomains = ['tts', 'ai_task', 'image', 'event', 'button', 'script', 'automation', 'scene'];
+      if (excludeDomains.includes(domain)) {
+        return;
+      }
+      
+      // 构建显示标签
+      let displayLabel = '';
+      if (hasChinese && friendlyName.trim()) {
+        displayLabel = friendlyName;
+      } else {
+        // 美化英文实体ID
+        const lastPart = entityId.split('.').pop();
+        displayLabel = lastPart.replace(/_/g, ' ').replace(/\d+/g, '').trim();
+        
+        // 如果美化后为空，使用完整ID
+        if (!displayLabel) {
+          displayLabel = entityId;
+        }
+      }
+      
+      // 分类
+      if (entityId.includes('weather') || entityId.includes('yueqing')) {
+        categories.weather.push({ value: entityId, label: displayLabel });
+      } else if (entityId.includes('huang_li') || entityId.includes('calendar')) {
+        categories.calendar.push({ value: entityId, label: displayLabel });
+      } else if (domain === 'sensor' || domain === 'binary_sensor') {
+        categories.sensor.push({ value: entityId, label: displayLabel });
+      } else if (['light', 'switch', 'climate', 'cover', 'vacuum', 'media_player'].includes(domain)) {
+        categories.device.push({ value: entityId, label: displayLabel });
+      } else {
+        categories.other.push({ value: entityId, label: displayLabel });
+      }
+    });
+    
+    // 构建最终列表（带分组）
+    const categoryNames = {
+      weather: '天气信息',
+      calendar: '日历黄历',
+      sensor: '传感器',
+      device: '设备控制',
+      other: '其他实体'
+    };
+    
+    Object.entries(categories).forEach(([key, items]) => {
+      if (items.length > 0) {
+        // 添加分组标题（使用特殊值标记）
+        groupedEntities.push({
+          value: `_group_${key}`,
+          label: `--- ${categoryNames[key]} (${items.length}) ---`,
+          disabled: true
+        });
+        
+        // 添加分组内实体，按标签排序
+        items.sort((a, b) => a.label.localeCompare(b.label, 'zh-CN'));
+        groupedEntities.push(...items);
+      }
+    });
+    
+    this._availableEntities = groupedEntities;
   }
 
   _handleEntityChange(e) {
