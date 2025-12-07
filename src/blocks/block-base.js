@@ -574,32 +574,33 @@ export class BlockBase extends LitElement {
     `;
   }
 
-  _updateDisplayData() {
-    if (!this.block) {
-      this._resetData();
-      return;
-    }
-    
-    // 从block中获取配置，否则使用组件属性
-    const blockLayout = this.block.layout || this.layout;
-    const blockArea = this.block.area || this.area;
-    
-    // 更新布局和区域
-    this.layout = blockLayout;
-    this.area = blockArea;
-    
-    // 获取显示名称
-    this._displayName = this._getDisplayName();
-    
-    // 获取显示值
-    this._displayValue = this._getDisplayValue();
-    
-    // 获取图标
-    this._icon = this._getIcon();
-    
-    // 检查是否有实体
-    this._hasEntity = this._checkHasEntity();
+_updateDisplayData() {
+  if (!this.block) {
+    this._resetData();
+    return;
   }
+  
+  // 优先使用组件属性，然后使用block中的配置
+  // 重要：这里确保外部传入的layout属性优先
+  const blockLayout = this.layout || this.block.layout || 'compact';
+  const blockArea = this.area || this.block.area || 'content';
+  
+  // 更新布局和区域
+  this.layout = blockLayout;
+  this.area = blockArea;
+  
+  // 获取显示名称
+  this._displayName = this._getDisplayName();
+  
+  // 获取显示值
+  this._displayValue = this._getDisplayValue();
+  
+  // 获取图标
+  this._icon = this._getIcon();
+  
+  // 检查是否有实体
+  this._hasEntity = this._checkHasEntity();
+}
 
   _resetData() {
     this._displayName = '';

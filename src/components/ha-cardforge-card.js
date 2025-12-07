@@ -20,6 +20,8 @@ class HaCardForgeCard extends LitElement {
         position: relative;
         height: 100%;
         min-height: 80px;
+        display: flex;
+        flex-direction: column;
       }
       
       .cardforge-error {
