@@ -1,4 +1,4 @@
-// blocks/block-management.js - 简化版（移除智能初始配置）
+// blocks/block-management.js - 原始简单版本
 import { LitElement, html, css } from 'https://unpkg.com/lit@2.8.0/index.js?module';
 import { designSystem } from '../core/design-system.js';
 import { BlockBase } from './block-base.js';
@@ -45,19 +45,6 @@ export class BlockManagement extends LitElement {
       
       .preset-block {
         background: rgba(0, 0, 0, 0.02);
-      }
-      
-      /* 空块样式 */
-      .empty-block {
-        opacity: 0.8;
-        background: rgba(var(--cf-primary-color-rgb), 0.03);
-        border-style: dashed;
-        border-width: 1.5px;
-      }
-      
-      .empty-block:hover {
-        opacity: 1;
-        background: rgba(var(--cf-primary-color-rgb), 0.08);
       }
       
       /* 区域标识 */
@@ -272,11 +259,8 @@ export class BlockManagement extends LitElement {
     // 权限判断
     const canDelete = blockType === 'custom' && !isPresetBlock;
     
-    // 检查是否是空块
-    const isEmptyBlock = !block.entity || block.entity.trim() === '';
-    
     return html`
-      <div class="block-item ${isPresetBlock ? 'preset-block' : ''} ${isEmptyBlock ? 'empty-block' : ''}">
+      <div class="block-item ${isPresetBlock ? 'preset-block' : ''}">
         <!-- 区域标识 -->
         <div class="area-indicator">
           <div class="area-icon">
@@ -289,8 +273,9 @@ export class BlockManagement extends LitElement {
         
         <!-- 块视图 -->
         <div class="block-view-container">
+          <!-- 关键修复：使用对象展开操作符传递数据 -->
           <block-base
-            .block=${block}
+            .block=${{...block}}
             .hass=${this.hass}
             .compact=${true}
             .showName=${true}
@@ -369,34 +354,6 @@ export class BlockManagement extends LitElement {
     `;
   }
 
-  // =========== 简化的_addBlock方法 ===========
-
-  _addBlock() {
-    const blockType = this.cardDefinition?.blockType || 'none';
-    if (blockType !== 'custom') {
-      alert('此卡片不支持添加新块');
-      return;
-    }
-    
-    const blockId = `block_${Date.now()}`;
-    
-    // 简化的初始配置
-    const newBlock = {
-      entity: '',
-      name: '新块',
-      icon: 'mdi:cube-outline',
-      area: 'content'
-    };
-    
-    const currentBlocks = this.config.blocks || {};
-    const newBlocks = { ...currentBlocks, [blockId]: newBlock };
-    
-    this._fireConfigChange({ blocks: newBlocks });
-    this._editingBlockId = blockId;
-  }
-
-  // =========== 原有方法保持不变 ===========
-
   _getAllBlocks() {
     if (!this.config?.blocks) return [];
     return Object.entries(this.config.blocks).map(([id, config]) => ({
@@ -449,6 +406,30 @@ export class BlockManagement extends LitElement {
 
   _finishEdit() {
     this._editingBlockId = null;
+  }
+
+  _addBlock() {
+    const blockType = this.cardDefinition?.blockType || 'none';
+    if (blockType !== 'custom') {
+      alert('此卡片不支持添加新块');
+      return;
+    }
+    
+    const blockId = `block_${Date.now()}`;
+    
+    // 简单的初始配置
+    const newBlock = {
+      entity: '',
+      name: '新块',
+      icon: 'mdi:cube-outline',
+      area: 'content'
+    };
+    
+    const currentBlocks = this.config.blocks || {};
+    const newBlocks = { ...currentBlocks, [blockId]: newBlock };
+    
+    this._fireConfigChange({ blocks: newBlocks });
+    this._editingBlockId = blockId;
   }
 
   _deleteBlock(e, blockId) {
