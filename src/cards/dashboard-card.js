@@ -1,17 +1,18 @@
-// cards/dashboard-card.js - 仪表盘卡片
-import { createCardStyles } from '../core/card-styles.js';
-import { BlockBase } from '../blocks/block-base.js';
+// cards/dashboard-card.js - 仪表盘卡片（类版本）
+import { CardBase } from '../core/card-base.js';
+import { html } from 'https://unpkg.com/lit@3.0.0/index.js?module';
+import '../blocks/block-base.js';
 
-export const card = {
-  id: 'dashboard',
-  meta: {
+export class DashboardCard extends CardBase {
+  static cardId = 'dashboard';
+  static meta = {
     name: '仪表盘',
     description: '三段式布局的仪表盘卡片',
     icon: '📊',
     category: '布局'
-  },
+  };
   
-  schema: {
+  static schema = {
     // 标题区域
     showHeader: {
       type: 'boolean',
@@ -69,13 +70,18 @@ export const card = {
       ],
       default: 'right'
     }
-  },
+  };
   
-  blockType: 'custom',
+  static blockType = 'custom';
   
-  template: (config, { hass }) => {
-    // 获取所有块配置
-    const blocks = config.blocks || {};
+  renderContent() {
+    const blocks = this.config.blocks || {};
+    const showHeader = this.getConfigValue('showHeader', true);
+    const showFooter = this.getConfigValue('showFooter', false);
+    const headerAlign = this.getConfigValue('headerAlign', 'left');
+    const footerAlign = this.getConfigValue('footerAlign', 'right');
+    const contentLayout = this.getConfigValue('contentLayout', 'flow');
+    const contentBlockStyle = this.getConfigValue('contentBlockStyle', 'compact');
     
     // 分离不同区域的块
     const headerBlocks = [];
@@ -95,69 +101,63 @@ export const card = {
       }
     });
     
-    return `
+    return html`
       <div class="dashboard-card">
-        <!-- 标题区域 -->
-        ${config.showHeader ? `
-          <div class="dashboard-header align-${config.headerAlign}">
+        ${showHeader ? html`
+          <div class="dashboard-header align-${headerAlign}">
             <div class="header-content">
-              ${headerBlocks.map(block => `
+              ${headerBlocks.map(block => html`
                 <block-base 
                   class="dashboard-block header-block"
-                  .block="${JSON.stringify(block)}"
-                  .hass="${JSON.stringify(hass)}"
-                  .showName="${true}"
-                  .showValue="${true}"
-                  .layoutMode="horizontal"
-                  .blockStyle="horizontal"
-                  .areaAlign="${config.headerAlign}"
+                  .block=${block}
+                  .hass=${this.hass}
+                  .showName=${true}
+                  .showValue=${true}
+                  .compact=${true}
+                  .areaAlign=${headerAlign}
                 ></block-base>
-              `).join('')}
-              ${headerBlocks.length === 0 ? `
+              `)}
+              ${headerBlocks.length === 0 ? html`
                 <div class="empty-area">标题区域 - 可在此添加块</div>
               ` : ''}
             </div>
           </div>
         ` : ''}
         
-        <!-- 内容区域 -->
-        <div class="dashboard-content layout-${config.contentLayout} block-style-${config.contentBlockStyle}">
+        <div class="dashboard-content layout-${contentLayout} block-style-${contentBlockStyle}">
           <div class="content-container">
-            ${contentBlocks.map(block => `
+            ${contentBlocks.map(block => html`
               <block-base 
                 class="dashboard-block content-block"
-                .block="${JSON.stringify(block)}"
-                .hass="${JSON.stringify(hass)}"
-                .showName="${true}"
-                .showValue="${true}"
-                .layoutMode="${config.contentLayout}"
-                .blockStyle="${config.contentBlockStyle}"
-                .areaAlign="center"
+                .block=${block}
+                .hass=${this.hass}
+                .showName=${true}
+                .showValue=${true}
+                .compact=${contentBlockStyle === 'compact'}
+                .blockStyle=${contentBlockStyle}
               ></block-base>
-            `).join('')}
-            ${contentBlocks.length === 0 ? `
+            `)}
+            ${contentBlocks.length === 0 ? html`
               <div class="empty-area">内容区域 - 请在此添加块</div>
             ` : ''}
           </div>
         </div>
         
-        <!-- 页脚区域 -->
-        ${config.showFooter ? `
-          <div class="dashboard-footer align-${config.footerAlign}">
+        ${showFooter ? html`
+          <div class="dashboard-footer align-${footerAlign}">
             <div class="footer-content">
-              ${footerBlocks.map(block => `
+              ${footerBlocks.map(block => html`
                 <block-base 
                   class="dashboard-block footer-block"
-                  .block="${JSON.stringify(block)}"
-                  .hass="${JSON.stringify(hass)}"
-                  .showName="${true}"
-                  .showValue="${true}"
-                  .layoutMode="horizontal"
-                  .blockStyle="horizontal"
-                  .areaAlign="${config.footerAlign}"
+                  .block=${block}
+                  .hass=${this.hass}
+                  .showName=${true}
+                  .showValue=${true}
+                  .compact=${true}
+                  .areaAlign=${footerAlign}
                 ></block-base>
-              `).join('')}
-              ${footerBlocks.length === 0 ? `
+              `)}
+              ${footerBlocks.length === 0 ? html`
                 <div class="empty-area">页脚区域 - 可在此添加块</div>
               ` : ''}
             </div>
@@ -165,11 +165,10 @@ export const card = {
         ` : ''}
       </div>
     `;
-  },
+  }
   
-  styles: (config) => {
-    const customStyles = `
-      /* 仪表盘卡片容器 */
+  getCustomStyles() {
+    return `
       .dashboard-card {
         display: flex;
         flex-direction: column;
@@ -178,7 +177,6 @@ export const card = {
         width: 100%;
       }
       
-      /* 区域通用样式 */
       .dashboard-header,
       .dashboard-footer {
         flex-shrink: 0;
@@ -196,12 +194,10 @@ export const card = {
         background: rgba(var(--cf-accent-color-rgb), 0.05);
       }
       
-      /* 对齐方式 */
       .align-left { justify-content: flex-start; }
       .align-center { justify-content: center; }
       .align-right { justify-content: flex-end; }
       
-      /* 区域内容容器 */
       .header-content,
       .footer-content {
         display: flex;
@@ -213,7 +209,6 @@ export const card = {
         width: 100%;
       }
       
-      /* 内容区域 */
       .dashboard-content {
         flex: 1;
         min-height: 80px;
@@ -232,21 +227,17 @@ export const card = {
         justify-content: center;
       }
       
-      /* 布局模式 */
-      /* 流式布局 */
       .layout-flow .content-container {
         flex-wrap: wrap;
         gap: 12px;
         justify-content: flex-start;
       }
       
-      /* 堆叠布局 */
       .layout-stack .content-container {
         flex-direction: column;
         gap: 12px;
       }
       
-      /* 网格布局 */
       .layout-grid-2 .content-container {
         display: grid;
         grid-template-columns: repeat(2, 1fr);
@@ -265,26 +256,11 @@ export const card = {
         gap: 12px;
       }
       
-      /* 仪表盘块样式 */
       .dashboard-block {
         width: 100%;
         height: 100%;
       }
       
-      /* 块样式差异处理 */
-      .content-block.block-style-compact {
-        /* 紧凑样式已在block-base中定义 */
-      }
-      
-      .content-block.block-style-horizontal {
-        /* 水平样式调整 */
-      }
-      
-      .content-block.block-style-vertical {
-        /* 垂直样式调整 */
-      }
-      
-      /* 空区域提示 */
       .empty-area {
         display: flex;
         align-items: center;
@@ -296,7 +272,6 @@ export const card = {
         width: 100%;
       }
       
-      /* 响应式设计 */
       @container cardforge-container (max-width: 768px) {
         .dashboard-header,
         .dashboard-footer {
@@ -338,7 +313,6 @@ export const card = {
         }
       }
       
-      /* 滚动条样式 */
       .header-content::-webkit-scrollbar,
       .footer-content::-webkit-scrollbar {
         height: 4px;
@@ -356,7 +330,6 @@ export const card = {
         border-radius: 2px;
       }
       
-      /* 深色模式适配 */
       @media (prefers-color-scheme: dark) {
         .dashboard-header {
           background: rgba(var(--cf-primary-color-rgb), 0.1);
@@ -371,7 +344,8 @@ export const card = {
         }
       }
     `;
-    
-    return createCardStyles(customStyles);
   }
-};
+}
+
+// 导出卡片类用于注册
+export const CardClass = DashboardCard;
