@@ -1,7 +1,8 @@
-// 卡片系统
+// core/card-system.js - 卡片系统（支持类注册）
 class CardSystem {
   constructor() {
     this.cards = new Map();
+    this.cardClasses = new Map(); // 新增：存储卡片类
     this._initialized = false;
   }
 
@@ -27,27 +28,67 @@ class CardSystem {
         const module = await importFn();
         this._registerCardModule(module);
       } catch (error) {
-        // 静默失败
+        console.warn(`卡片加载失败:`, error);
       }
     }
   }
 
-  // 注册卡片模块
+  // 注册卡片模块（支持类和对象两种格式）
   _registerCardModule(module) {
-    if (!module.card) return;
-    const cardId = module.card.id;
-    if (!cardId) return;
+    // 检查是否是卡片类（继承自 CardBase）
+    if (module.CardClass && module.CardClass.cardId && module.CardClass.cardId !== 'base') {
+      const cardClass = module.CardClass;
+      const definition = cardClass.getDefinition();
+      
+      this.cardClasses.set(cardClass.cardId, cardClass);
+      this.cards.set(cardClass.cardId, {
+        id: cardClass.cardId,
+        definition: definition
+      });
+      
+      console.debug(`卡片类已注册: ${cardClass.cardId}`);
+      return;
+    }
+    
+    // 旧格式的卡片对象
+    if (module.card) {
+      const cardId = module.card.id;
+      if (!cardId) return;
 
-    this.cards.set(cardId, {
-      id: cardId,
-      definition: module.card
+      this.cards.set(cardId, {
+        id: cardId,
+        definition: module.card
+      });
+    }
+  }
+
+  // 注册卡片类（外部调用）
+  registerCardClass(cardClass) {
+    if (!cardClass || !cardClass.cardId || cardClass.cardId === 'base') {
+      console.warn('无效的卡片类:', cardClass);
+      return false;
+    }
+    
+    const definition = cardClass.getDefinition();
+    this.cardClasses.set(cardClass.cardId, cardClass);
+    this.cards.set(cardClass.cardId, {
+      id: cardClass.cardId,
+      definition: definition
     });
+    
+    console.debug(`卡片类已注册: ${cardClass.cardId}`);
+    return true;
   }
 
   // 获取卡片定义
   getCard(cardId) {
     const cardData = this.cards.get(cardId);
     return cardData?.definition || null;
+  }
+
+  // 获取卡片类
+  getCardClass(cardId) {
+    return this.cardClasses.get(cardId);
   }
 
   // 获取默认卡片
@@ -82,7 +123,6 @@ class CardSystem {
     const config = this._mergeConfig(card.schema || {}, userConfig);
     
     try {
-      // 修正：统一传递正确的参数结构
       const template = card.template(config, { hass, theme: themeVariables });
       const styles = card.styles(config, themeVariables);
       
