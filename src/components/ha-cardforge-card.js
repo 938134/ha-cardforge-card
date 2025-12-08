@@ -1,6 +1,6 @@
-// 主卡片组件 - 修复版
-import { LitElement, html, css } from 'https://unpkg.com/lit@2.8.0/index.js?module';
-import { unsafeHTML } from 'https://unpkg.com/lit-html/directives/unsafe-html.js?module';
+// components/ha-cardforge-card.js - 更新版
+import { LitElement, html, css } from 'https://unpkg.com/lit@3.0.0/index.js?module';
+import { unsafeHTML } from 'https://unpkg.com/lit/directives/unsafe-html.js?module';
 import { cardSystem } from '../core/card-system.js';
 import { themeSystem } from '../core/theme-system.js';
 import { designSystem } from '../core/design-system.js';
@@ -10,7 +10,8 @@ class HaCardForgeCard extends LitElement {
     hass: { type: Object },
     config: { type: Object },
     _cardData: { state: true },
-    _error: { state: true }
+    _error: { state: true },
+    _currentCardClass: { state: true }
   };
 
   static styles = [
@@ -61,6 +62,7 @@ class HaCardForgeCard extends LitElement {
     super();
     this._cardData = null;
     this._error = null;
+    this._currentCardClass = null;
   }
 
   async setConfig(config) {
@@ -72,8 +74,16 @@ class HaCardForgeCard extends LitElement {
       await cardSystem.initialize();
       await themeSystem.initialize();
       
-      // 渲染卡片
-      this._renderCard();
+      // 尝试获取卡片类
+      const CardClass = cardSystem.getCardClass(this.config.card_type);
+      if (CardClass) {
+        this._currentCardClass = CardClass;
+        // 直接使用卡片类实例
+        this._renderWithCardClass();
+      } else {
+        // 回退到旧系统
+        this._renderWithOldSystem();
+      }
     } catch (error) {
       this._error = error.message || '未知错误';
     }
@@ -84,21 +94,17 @@ class HaCardForgeCard extends LitElement {
       return this.constructor.getStubConfig();
     }
     
-    // 必须有 card_type
     if (!userConfig.card_type) {
       throw new Error('必须指定 card_type 参数');
     }
     
-    // 确保卡片系统已初始化
     await cardSystem.initialize();
     
-    // 获取卡片定义
     const card = cardSystem.getCard(userConfig.card_type);
     if (!card) {
       throw new Error(`卡片类型不存在: "${userConfig.card_type}"`);
     }
     
-    // 应用卡片schema中的默认值
     const defaultConfig = {};
     const schema = card.schema || {};
     Object.entries(schema).forEach(([key, field]) => {
@@ -107,7 +113,6 @@ class HaCardForgeCard extends LitElement {
       }
     });
     
-    // 合并配置
     const mergedConfig = {
       type: 'custom:ha-cardforge-card',
       card_type: userConfig.card_type,
@@ -119,14 +124,32 @@ class HaCardForgeCard extends LitElement {
     return mergedConfig;
   }
 
-  _renderCard() {
+  _renderWithCardClass() {
     try {
-      // 移除对 getThemeVariables 的调用，直接渲染卡片
+      // 创建卡片实例并获取渲染结果
+      const cardInstance = new this._currentCardClass();
+      cardInstance.config = this.config;
+      cardInstance.hass = this.hass;
+      
+      // 获取卡片样式
+      const cardStyles = cardInstance.getCardStyles();
+      const themeStyles = themeSystem.getThemeStyles(this.config.theme || 'auto');
+      
+      this._cardData = {
+        template: cardInstance.render(),
+        styles: cardStyles + themeStyles
+      };
+    } catch (error) {
+      throw new Error(`卡片渲染失败: ${error.message}`);
+    }
+  }
+
+  _renderWithOldSystem() {
+    try {
       this._cardData = cardSystem.renderCard(
         this.config.card_type,
         this.config,
         this.hass
-        // 不再传递 themeVariables 参数
       );
     } catch (error) {
       throw new Error(`卡片渲染失败: ${error.message}`);
@@ -161,10 +184,21 @@ class HaCardForgeCard extends LitElement {
     }
     
     try {
-      // 获取主题样式
-      const themeStyles = themeSystem.getThemeStyles(this.config.theme || 'auto');
-      const cardStyles = this._cardData.styles || '';
+      // 如果是卡片类实例，直接渲染
+      if (this._currentCardClass) {
+        return html`
+          <ha-card>
+            <div class="cardforge-container">
+              ${this._cardData.template}
+            </div>
+          </ha-card>
+          <style>
+            ${this._cardData.styles}
+          </style>
+        `;
+      }
       
+      // 旧系统渲染
       return html`
         <ha-card>
           <div class="cardforge-container">
@@ -172,18 +206,7 @@ class HaCardForgeCard extends LitElement {
           </div>
         </ha-card>
         <style>
-          /* 注入设计系统样式 */
-          ${themeStyles}
-          ${cardStyles}
-          
-          /* 确保卡片容器有正确的样式 */
-          .cardforge-container {
-            container-type: inline-size;
-            container-name: cardforge-container;
-            height: 100%;
-            min-height: 80px;
-            position: relative;
-          }
+          ${this._cardData.styles}
         </style>
       `;
     } catch (error) {
@@ -203,7 +226,11 @@ class HaCardForgeCard extends LitElement {
 
   updated(changedProperties) {
     if (changedProperties.has('hass') || changedProperties.has('config')) {
-      this._renderCard();
+      if (this._currentCardClass) {
+        this._renderWithCardClass();
+      } else {
+        this._renderWithOldSystem();
+      }
       this.requestUpdate();
     }
   }
