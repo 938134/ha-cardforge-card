@@ -31,25 +31,138 @@ class CardSystem {
    * 动态发现卡片
    */
   async _discoverCards() {
-    // 卡片模块路径映射
+    // 卡片模块路径映射 - 使用函数包装动态导入
     const cardModules = [
-      { path: '../cards/clock-card.js', name: 'clock' },
-      { path: '../cards/week-card.js', name: 'week' },
-      { path: '../cards/welcome-card.js', name: 'welcome' },
-      { path: '../cards/poetry-card.js', name: 'poetry' },
-      { path: '../cards/dashboard-card.js', name: 'dashboard' }
+      () => import('../cards/clock-card.js'),
+      () => import('../cards/week-card.js'),
+      () => import('../cards/welcome-card.js'),
+      () => import('../cards/poetry-card.js'),
+      () => import('../cards/dashboard-card.js')
     ];
 
-    for (const moduleInfo of cardModules) {
+    for (const importFn of cardModules) {
       try {
-        const module = await import(moduleInfo.path);
-        if (module.CardClass && typeof module.CardClass === 'function') {
-          this.registerCard(moduleInfo.name, module.CardClass);
+        const module = await importFn();
+        if (module.default && typeof module.default === 'function') {
+          // 从default导出获取卡片类
+          const CardClass = module.default;
+          const cardId = this._extractCardId(CardClass);
+          
+          if (cardId) {
+            this.registerCard(cardId, CardClass);
+          }
+        } else if (module.card) {
+          // 兼容旧的导出方式
+          const card = module.card;
+          if (card.id && card.template) {
+            // 转换为新的卡片类
+            const CardClass = this._convertLegacyCard(card);
+            this.registerCard(card.id, CardClass);
+          }
         }
       } catch (error) {
-        console.warn(`卡片加载失败 ${moduleInfo.name}:`, error);
+        console.warn(`卡片加载失败:`, error);
       }
     }
+  }
+
+  /**
+   * 从卡片类提取ID
+   */
+  _extractCardId(CardClass) {
+    // 尝试从静态属性获取
+    if (CardClass.meta?.id) {
+      return CardClass.meta.id;
+    }
+    
+    // 尝试从类名推断
+    const className = CardClass.name;
+    if (className.endsWith('Card')) {
+      return className.replace('Card', '').toLowerCase();
+    }
+    
+    // 尝试从文件名推断
+    const importPath = CardClass.toString().match(/from\s+['"]([^'"]+)['"]/);
+    if (importPath) {
+      const path = importPath[1];
+      const match = path.match(/\/([^/]+)\.js$/);
+      if (match) {
+        return match[1].replace('-card', '');
+      }
+    }
+    
+    return null;
+  }
+
+  /**
+   * 转换旧版卡片定义
+   */
+  _convertLegacyCard(legacyCard) {
+    // 这是一个简化的转换，实际需要根据旧版卡片结构调整
+    class ConvertedCard extends HTMLElement {
+      static get meta() {
+        return legacyCard.meta || {
+          name: legacyCard.id || '未知卡片',
+          description: '转换自旧版卡片',
+          icon: '🔄',
+          category: '其他'
+        };
+      }
+
+      static get schema() {
+        return legacyCard.schema || {};
+      }
+
+      static get blocksConfig() {
+        return legacyCard.blockType ? {
+          type: legacyCard.blockType,
+          blocks: legacyCard.presetBlocks || {}
+        } : null;
+      }
+
+      connectedCallback() {
+        this.render();
+      }
+
+      setConfig(config) {
+        this.config = config;
+        this.render();
+      }
+
+      set hass(value) {
+        this._hass = value;
+        this.render();
+      }
+
+      get hass() {
+        return this._hass;
+      }
+
+      render() {
+        if (!this.config || !this.hass) return;
+        
+        try {
+          const template = legacyCard.template(this.config, { hass: this.hass });
+          const styles = legacyCard.styles ? legacyCard.styles(this.config) : '';
+          
+          this.innerHTML = `
+            <style>${styles}</style>
+            ${template}
+          `;
+        } catch (error) {
+          console.error('卡片渲染失败:', error);
+          this.innerHTML = `<div style="color: red; padding: 20px; text-align: center;">
+            卡片渲染失败: ${error.message}
+          </div>`;
+        }
+      }
+
+      getCardSize() {
+        return legacyCard.layout?.recommendedSize || 3;
+      }
+    }
+
+    return ConvertedCard;
   }
 
   /**
@@ -60,18 +173,24 @@ class CardSystem {
       console.warn(`卡片 ${cardId} 已存在，将被覆盖`);
     }
 
+    // 从卡片类提取元数据
     const cardMeta = {
       id: cardId,
-      name: meta.name || cardId,
-      description: meta.description || '',
-      icon: meta.icon || 'mdi:card-text-outline',
-      category: meta.category || '通用',
-      tags: meta.tags || [],
-      recommendedSize: meta.recommendedSize || 1,
+      name: meta.name || CardClass.meta?.name || cardId,
+      description: meta.description || CardClass.meta?.description || '',
+      icon: meta.icon || CardClass.meta?.icon || 'mdi:card-text-outline',
+      category: meta.category || CardClass.meta?.category || '通用',
+      tags: meta.tags || CardClass.meta?.tags || [],
+      recommendedSize: meta.recommendedSize || CardClass.meta?.recommendedSize || 1,
       ...meta
     };
 
-    this.cards.set(cardId, { CardClass, meta: cardMeta });
+    this.cards.set(cardId, { 
+      CardClass, 
+      meta: cardMeta,
+      schema: CardClass.schema || {},
+      blocksConfig: CardClass.blocksConfig || null
+    });
     
     // 更新分类
     if (cardMeta.category) {
@@ -93,9 +212,15 @@ class CardSystem {
    */
   getAllCards() {
     return Array.from(this.cards.values()).map(item => ({
-      ...item.meta,
-      hasSchema: !!item.CardClass.schema,
-      hasBlocks: !!item.CardClass.blocksConfig
+      id: item.meta.id,
+      name: item.meta.name,
+      description: item.meta.description,
+      icon: item.meta.icon,
+      category: item.meta.category,
+      tags: item.meta.tags,
+      recommendedSize: item.meta.recommendedSize,
+      hasSchema: !!item.schema && Object.keys(item.schema).length > 0,
+      hasBlocks: !!item.blocksConfig
     }));
   }
 
@@ -157,7 +282,7 @@ class CardSystem {
 
     // 合并配置
     return {
-      card_type: userConfig.card_type,
+      card_type: userConfig.card_type || 'clock',
       theme: userConfig.theme || 'auto',
       ...defaultConfig,
       ...userConfig
@@ -171,7 +296,7 @@ class CardSystem {
     const cardDef = this.getCard(cardId);
     if (!cardDef) return null;
     
-    return cardDef.CardClass.schema || null;
+    return cardDef.schema || null;
   }
 
   /**
@@ -181,7 +306,7 @@ class CardSystem {
     const cardDef = this.getCard(cardId);
     if (!cardDef) return null;
     
-    return cardDef.CardClass.blocksConfig || null;
+    return cardDef.blocksConfig || null;
   }
 
   /**
