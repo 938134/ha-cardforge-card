@@ -1,8 +1,16 @@
-// blocks/block-base.js - 完全使用lit版本
-import { LitElement, html, css } from 'https://unpkg.com/lit@3.0.0/index.js?module';
+import { LitElement, html, css } from 'https://unpkg.com/lit@3.1.3/index.js?module';
+import { property, state } from 'https://unpkg.com/lit@3.1.3/decorators.js?module';
 import { designSystem } from '../core/design-system.js';
-import { AREAS, ENTITY_ICONS } from './block-config.js';
+import { 
+  getEntityFriendlyName, 
+  getEntityState, 
+  getEntityIcon, 
+  getEntityUnit 
+} from '../core/card-tools.js';
 
+/**
+ * 块基础组件
+ */
 export class BlockBase extends LitElement {
   static properties = {
     block: { type: Object },
@@ -10,54 +18,82 @@ export class BlockBase extends LitElement {
     showName: { type: Boolean },
     showValue: { type: Boolean },
     compact: { type: Boolean },
-    blockStyle: { type: String },
-    areaAlign: { type: String }
+    horizontal: { type: Boolean },
+    vertical: { type: Boolean },
+    _entityData: { state: true },
+    _updateTimer: { state: true }
   };
 
   static styles = [
     designSystem,
     css`
-      :host { 
+      :host {
         display: block;
         width: 100%;
+        height: 100%;
       }
-      
+
       .block-base {
-        width: 100%;
-        transition: all var(--cf-transition-duration-fast) var(--cf-easing-standard);
         display: grid;
         grid-template-columns: auto 1fr;
         grid-template-rows: auto auto;
         gap: 2px 8px;
         align-items: center;
-        min-height: 60px;
         padding: 8px;
+        width: 100%;
+        height: 100%;
+        min-height: 60px;
         box-sizing: border-box;
+        transition: all var(--cf-transition-fast);
+        border-radius: var(--cf-radius-md);
+        background: var(--cf-surface);
+        border: 1px solid transparent;
       }
-      
-      .compact.block-base {
-        min-height: 50px;
+
+      .block-base:hover {
+        border-color: var(--cf-primary-color);
+        background: rgba(var(--cf-primary-color-rgb), 0.03);
+        box-shadow: var(--cf-shadow-sm);
+      }
+
+      /* 紧凑模式 */
+      .block-base.compact {
         grid-template-columns: 32px 1fr;
         gap: 1px 6px;
         padding: 6px;
+        min-height: 50px;
       }
-      
-      .block-style-vertical {
-        display: flex;
-        flex-direction: column;
+
+      /* 水平模式 */
+      .block-base.horizontal {
+        grid-template-columns: auto 1fr auto;
+        grid-template-rows: 1fr;
+        gap: 8px;
         align-items: center;
-        text-align: center;
+        justify-items: start;
+      }
+
+      .block-base.horizontal.compact {
+        grid-template-columns: 32px 1fr auto;
         gap: 6px;
-        padding: 12px;
       }
-      
-      .block-style-horizontal {
-        display: flex;
-        align-items: center;
-        gap: 12px;
-        padding: 8px 12px;
+
+      /* 垂直模式 */
+      .block-base.vertical {
+        grid-template-columns: 1fr;
+        grid-template-rows: auto auto auto;
+        gap: 4px;
+        justify-items: center;
+        text-align: center;
+        padding: 12px 8px;
       }
-      
+
+      .block-base.vertical.compact {
+        padding: 8px 6px;
+        gap: 3px;
+      }
+
+      /* 图标区域 */
       .block-icon {
         grid-column: 1;
         grid-row: 1 / span 2;
@@ -70,30 +106,33 @@ export class BlockBase extends LitElement {
         background: rgba(var(--cf-primary-color-rgb), 0.1);
         color: var(--cf-text-secondary);
         font-size: 1.3em;
-        transition: all var(--cf-transition-duration-fast) var(--cf-easing-standard);
-        align-self: center;
+        transition: all var(--cf-transition-fast);
       }
-      
+
       .compact .block-icon {
         width: 32px;
         height: 32px;
         font-size: 1.1em;
       }
-      
-      .block-style-vertical .block-icon {
+
+      .horizontal .block-icon {
+        grid-row: 1;
+      }
+
+      .vertical .block-icon {
+        grid-column: 1;
+        grid-row: 1;
         width: 48px;
         height: 48px;
-        font-size: 1.5em;
         margin-bottom: 4px;
       }
-      
-      .block-style-horizontal .block-icon {
-        width: 36px;
-        height: 36px;
-        font-size: 1.2em;
-        flex-shrink: 0;
+
+      .vertical.compact .block-icon {
+        width: 40px;
+        height: 40px;
       }
-      
+
+      /* 名称区域 */
       .block-name {
         grid-column: 2;
         grid-row: 1;
@@ -104,27 +143,31 @@ export class BlockBase extends LitElement {
         text-overflow: ellipsis;
         white-space: nowrap;
         line-height: var(--cf-line-height-tight);
-        align-self: end;
       }
-      
+
       .compact .block-name {
         font-size: var(--cf-font-size-xs);
         color: var(--cf-text-tertiary);
       }
-      
-      .block-style-vertical .block-name {
+
+      .horizontal .block-name {
+        grid-column: 2;
+        grid-row: 1;
+        align-self: end;
+      }
+
+      .vertical .block-name {
         grid-column: 1;
-        grid-row: auto;
+        grid-row: 2;
         width: 100%;
         text-align: center;
-        margin-top: 2px;
       }
-      
-      .block-style-horizontal .block-name {
-        flex: 1;
-        min-width: 0;
+
+      .block-name:empty {
+        display: none;
       }
-      
+
+      /* 值区域 */
       .block-value {
         grid-column: 2;
         grid-row: 2;
@@ -135,79 +178,92 @@ export class BlockBase extends LitElement {
         overflow: hidden;
         text-overflow: ellipsis;
         white-space: nowrap;
-        align-self: start;
       }
-      
+
       .compact .block-value {
         font-size: var(--cf-font-size-md);
         font-weight: var(--cf-font-weight-semibold);
       }
-      
-      .block-style-vertical .block-value {
+
+      .horizontal .block-value {
+        grid-column: 3;
+        grid-row: 1;
+        align-self: end;
+        justify-self: end;
+      }
+
+      .vertical .block-value {
         grid-column: 1;
-        grid-row: auto;
+        grid-row: 3;
         width: 100%;
         text-align: center;
-        margin-top: 4px;
       }
-      
-      .block-style-horizontal .block-value {
-        flex-shrink: 0;
-        min-width: 60px;
-        text-align: right;
+
+      .block-value:empty {
+        display: none;
       }
-      
+
+      /* 单位 */
       .block-unit {
         font-size: var(--cf-font-size-xs);
         color: var(--cf-text-tertiary);
         font-weight: var(--cf-font-weight-normal);
         margin-left: 2px;
       }
-      
+
       .compact .block-unit {
         font-size: 0.7em;
       }
-      
-      .empty-state {
+
+      /* 空状态 */
+      .block-empty {
         color: var(--cf-text-tertiary);
         font-style: italic;
         font-weight: var(--cf-font-weight-normal);
-        font-size: var(--cf-font-size-sm);
       }
-      
-      .compact .empty-state {
-        font-size: var(--cf-font-size-xs);
-      }
-      
+
+      /* 区域样式 */
       .area-header .block-icon {
         background: rgba(var(--cf-primary-color-rgb), 0.15);
         color: var(--cf-primary-color);
       }
-      
+
       .area-footer .block-icon {
         background: rgba(var(--cf-accent-color-rgb), 0.1);
         color: var(--cf-accent-color);
       }
-      
+
+      /* 响应式设计 */
       @container cardforge-container (max-width: 320px) {
         .block-base {
           grid-template-columns: 28px 1fr;
           gap: 1px 4px;
           padding: 4px;
         }
-        
+
         .block-icon {
           width: 28px;
           height: 28px;
           font-size: 1em;
         }
-        
+
         .block-name {
           font-size: 0.7em;
         }
-        
+
         .block-value {
           font-size: 0.85em;
+        }
+      }
+
+      /* 深色模式优化 */
+      @media (prefers-color-scheme: dark) {
+        .block-base {
+          background: rgba(255, 255, 255, 0.05);
+        }
+
+        .block-base:hover {
+          background: rgba(var(--cf-primary-color-rgb), 0.1);
         }
       }
     `
@@ -220,121 +276,137 @@ export class BlockBase extends LitElement {
     this.showName = true;
     this.showValue = true;
     this.compact = false;
-    this.blockStyle = 'default';
-    this.areaAlign = 'left';
+    this.horizontal = false;
+    this.vertical = false;
+    this._entityData = null;
+    this._updateTimer = null;
+  }
+
+  connectedCallback() {
+    super.connectedCallback();
+    this._startAutoUpdate();
+  }
+
+  disconnectedCallback() {
+    super.disconnectedCallback();
+    this._stopAutoUpdate();
+  }
+
+  willUpdate(changedProperties) {
+    if (changedProperties.has('block') || changedProperties.has('hass')) {
+      this._updateEntityData();
+    }
+  }
+
+  /**
+   * 开始自动更新
+   */
+  _startAutoUpdate() {
+    if (this._updateTimer) {
+      clearInterval(this._updateTimer);
+    }
+    
+    // 如果有实体，每分钟更新一次
+    if (this.block?.entity) {
+      this._updateTimer = setInterval(() => {
+        this._updateEntityData();
+      }, 60000);
+    }
+  }
+
+  /**
+   * 停止自动更新
+   */
+  _stopAutoUpdate() {
+    if (this._updateTimer) {
+      clearInterval(this._updateTimer);
+      this._updateTimer = null;
+    }
+  }
+
+  /**
+   * 更新实体数据
+   */
+  _updateEntityData() {
+    if (!this.block || !this.hass) {
+      this._entityData = null;
+      return;
+    }
+
+    const { entity: entityId, name: customName, icon: customIcon } = this.block;
+    
+    if (!entityId || !this.hass.states?.[entityId]) {
+      this._entityData = {
+        hasEntity: false,
+        name: customName || '未配置实体',
+        value: '',
+        icon: customIcon || 'mdi:cube-outline',
+        unit: ''
+      };
+      return;
+    }
+
+    const entity = this.hass.states[entityId];
+    const name = customName || getEntityFriendlyName(this.hass, entityId, entityId);
+    const value = getEntityState(this.hass, entityId, '');
+    const icon = customIcon || getEntityIcon(this.hass, entityId, 'mdi:cube');
+    const unit = getEntityUnit(this.hass, entityId, '');
+
+    this._entityData = {
+      hasEntity: true,
+      name,
+      value,
+      icon,
+      unit,
+      entity
+    };
   }
 
   render() {
-    // 安全地获取 block 数据
-    let block = {};
-    try {
-      if (this.block && typeof this.block === 'object') {
-        block = this.block;
-      } else if (typeof this.block === 'string') {
-        block = JSON.parse(this.block);
-      }
-    } catch (e) {
-      console.warn('无法解析 block 数据:', this.block);
-      block = {};
+    if (!this._entityData) {
+      this._updateEntityData();
     }
-    
-    const entityId = block.entity || '';
-    const hasEntity = entityId && this.hass?.states?.[entityId];
-    const area = block.area || 'content';
-    const blockStyle = block.blockStyle || this.blockStyle;
-    
-    // 获取显示名称
-    let displayName = block.name || '';
-    if (!displayName && hasEntity) {
-      const entity = this.hass.states[entityId];
-      displayName = entity.attributes?.friendly_name || entityId;
-    }
-    if (!displayName) {
-      displayName = block.entity ? '实体块' : '新块';
-    }
-    
-    // 获取显示值
-    let displayValue = '';
-    if (hasEntity) {
-      const entity = this.hass.states[entityId];
-      const state = entity.state;
-      const unit = entity.attributes?.unit_of_measurement || '';
-      displayValue = unit ? `${state} ${unit}` : state;
-    }
-    
-    // 获取图标
-    let icon = block.icon || 'mdi:cube-outline';
-    if (!block.icon && entityId) {
-      const domain = entityId.split('.')[0];
-      icon = ENTITY_ICONS[domain] || 'mdi:cube';
-    }
-    
-    // 确定CSS类
-    const cssClasses = [
+
+    const data = this._entityData || {};
+    const { name, value, icon, unit, hasEntity } = data;
+    const area = this.block.area || 'content';
+
+    // 确定布局类
+    const layoutClasses = [
       'block-base',
       this.compact ? 'compact' : '',
-      `block-style-${blockStyle}`,
-      `area-${area}`,
-      `align-${this.areaAlign}`
-    ].filter(c => c).join(' ');
-    
-    if (blockStyle === 'vertical') {
-      return html`
-        <div class="${cssClasses}">
-          <div class="block-icon">
-            <ha-icon .icon=${icon}></ha-icon>
-          </div>
-          
-          ${this.showName ? html`
-            <div class="block-name">${displayName}</div>
-          ` : ''}
-          
-          ${this.showValue ? html`
-            <div class="block-value">
-              ${displayValue || html`<span class="empty-state">未配置实体</span>`}
-            </div>
-          ` : ''}
+      this.horizontal ? 'horizontal' : '',
+      this.vertical ? 'vertical' : '',
+      `area-${area}`
+    ].filter(Boolean).join(' ');
+
+    return html`
+      <div class="${layoutClasses}">
+        <div class="block-icon">
+          <ha-icon .icon=${icon}></ha-icon>
         </div>
-      `;
-    } else if (blockStyle === 'horizontal') {
-      return html`
-        <div class="${cssClasses}">
-          <div class="block-icon">
-            <ha-icon .icon=${icon}></ha-icon>
+        
+        ${this.showName ? html`
+          <div class="block-name">
+            ${name}
           </div>
-          
-          <div class="block-name">${this.showName ? displayName : ''}</div>
-          
-          ${this.showValue ? html`
-            <div class="block-value">
-              ${displayValue || html`<span class="empty-state">未配置实体</span>`}
-            </div>
-          ` : ''}
-        </div>
-      `;
-    } else {
-      // 默认样式（compact或grid）
-      return html`
-        <div class="${cssClasses}">
-          <div class="block-icon">
-            <ha-icon .icon=${icon}></ha-icon>
+        ` : ''}
+        
+        ${this.showValue ? html`
+          <div class="block-value">
+            ${hasEntity && value ? html`
+              ${value}<span class="block-unit">${unit}</span>
+            ` : html`
+              <span class="block-empty">未配置实体</span>
+            `}
           </div>
-          
-          ${this.showName ? html`
-            <div class="block-name">${displayName}</div>
-          ` : ''}
-          
-          ${this.showValue ? html`
-            <div class="block-value">
-              ${displayValue || html`<span class="empty-state">未配置实体</span>`}
-            </div>
-          ` : ''}
-        </div>
-      `;
-    }
+        ` : ''}
+      </div>
+    `;
   }
 }
 
+// 注册自定义元素
 if (!customElements.get('block-base')) {
   customElements.define('block-base', BlockBase);
 }
