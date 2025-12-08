@@ -18,7 +18,8 @@ export class CardEditor extends LitElement {
     _cards: { state: true },
     _themes: { state: true },
     _selectedCard: { state: true },
-    _sections: { state: true }
+    _sections: { state: true },
+    _initialized: { state: true }
   };
 
   static styles = [
@@ -70,6 +71,22 @@ export class CardEditor extends LitElement {
         color: var(--cf-text-tertiary);
         margin-top: var(--cf-spacing-xs);
         line-height: var(--cf-line-height-normal);
+      }
+
+      .loading-state {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        padding: var(--cf-spacing-2xl);
+        color: var(--cf-text-secondary);
+        text-align: center;
+        gap: var(--cf-spacing-md);
+      }
+
+      .loading-icon {
+        font-size: 2em;
+        opacity: 0.5;
       }
 
       .empty-state {
@@ -143,6 +160,7 @@ export class CardEditor extends LitElement {
       { id: 'settings', icon: 'mdi:cog', title: '卡片设置', description: '配置卡片的具体参数' },
       { id: 'blocks', icon: 'mdi:cube-outline', title: '块管理', description: '管理卡片中的功能块' }
     ];
+    this._initialized = false;
   }
 
   async firstUpdated() {
@@ -167,15 +185,19 @@ export class CardEditor extends LitElement {
    */
   async _initializeSystems() {
     try {
+      // 确保系统已初始化
       await Promise.all([
         cardSystem.initialize(),
         themeSystem.initialize()
       ]);
 
+      // 获取卡片和主题列表
       this._cards = cardSystem.getAllCards();
       this._themes = themeSystem.getAllThemes();
+      
+      this._initialized = true;
 
-      console.log('卡片系统初始化完成:', {
+      console.log('卡片编辑器初始化完成:', {
         cards: this._cards.length,
         themes: this._themes.length
       });
@@ -184,6 +206,7 @@ export class CardEditor extends LitElement {
       console.error('系统初始化失败:', error);
       this._cards = [];
       this._themes = [];
+      this._initialized = false;
     }
   }
 
@@ -228,7 +251,7 @@ export class CardEditor extends LitElement {
     };
 
     // 应用schema默认值
-    const schema = cardDef.CardClass.schema || {};
+    const schema = cardSystem.getCardSchema(cardId) || {};
     Object.entries(schema).forEach(([key, field]) => {
       if (field.default !== undefined) {
         config[key] = field.default;
@@ -236,7 +259,7 @@ export class CardEditor extends LitElement {
     });
 
     // 如果是预设卡片，初始化块配置
-    const blocksConfig = cardDef.CardClass.blocksConfig;
+    const blocksConfig = cardSystem.getCardBlocksConfig(cardId);
     if (blocksConfig?.type === 'preset' && blocksConfig.blocks) {
       const blocks = {};
       Object.entries(blocksConfig.blocks).forEach(([key, preset]) => {
@@ -278,6 +301,17 @@ export class CardEditor extends LitElement {
    * 渲染卡片选择
    */
   _renderCardSelection() {
+    if (!this._initialized) {
+      return html`
+        <div class="loading-state">
+          <div class="loading-icon">
+            <ha-icon icon="mdi:loading" class="cf-animate-spin"></ha-icon>
+          </div>
+          <div>正在加载卡片...</div>
+        </div>
+      `;
+    }
+
     if (this._cards.length === 0) {
       return html`
         <div class="empty-state">
@@ -285,7 +319,7 @@ export class CardEditor extends LitElement {
             <ha-icon icon="mdi:package-variant-closed"></ha-icon>
           </div>
           <div class="empty-title">暂无可用卡片</div>
-          <div class="empty-description">卡片系统正在初始化...</div>
+          <div class="empty-description">请确保卡片文件已正确加载</div>
         </div>
       `;
     }
@@ -305,7 +339,7 @@ export class CardEditor extends LitElement {
    * 渲染主题选择
    */
   _renderThemeSelection() {
-    if (!this.config.card_type || this._themes.length === 0) {
+    if (!this._initialized || !this.config.card_type || this._themes.length === 0) {
       return null;
     }
 
@@ -322,13 +356,25 @@ export class CardEditor extends LitElement {
    * 渲染卡片设置
    */
   _renderCardSettings() {
-    if (!this._selectedCard?.CardClass?.schema) {
+    if (!this._selectedCard) {
       return null;
+    }
+
+    const schema = cardSystem.getCardSchema(this.config.card_type);
+    if (!schema || Object.keys(schema).length === 0) {
+      return html`
+        <div class="empty-state">
+          <div class="empty-icon">
+            <ha-icon icon="mdi:check-circle-outline"></ha-icon>
+          </div>
+          <div>此卡片无需额外配置</div>
+        </div>
+      `;
     }
 
     return html`
       <form-builder
-        .schema=${this._selectedCard.CardClass.schema}
+        .schema=${schema}
         .config=${this.config}
         .hass=${this.hass}
         @config-changed=${this._handleConfigChange}
@@ -340,7 +386,11 @@ export class CardEditor extends LitElement {
    * 渲染块管理
    */
   _renderBlockManagement() {
-    const blocksConfig = this._selectedCard?.CardClass?.blocksConfig;
+    if (!this._selectedCard) {
+      return null;
+    }
+
+    const blocksConfig = cardSystem.getCardBlocksConfig(this.config.card_type);
     if (!blocksConfig) {
       return null;
     }
@@ -417,18 +467,17 @@ export class CardEditor extends LitElement {
           
           switch (section.id) {
             case 'card':
-              shouldShow = hasCards;
+              shouldShow = this._initialized;
               break;
             case 'theme':
-              shouldShow = hasCards && hasSelectedCard;
+              shouldShow = this._initialized && hasSelectedCard;
               break;
             case 'settings':
-              shouldShow = hasCards && hasSelectedCard && 
-                         this._selectedCard.CardClass.schema;
+              shouldShow = this._initialized && hasSelectedCard;
               break;
             case 'blocks':
-              shouldShow = hasCards && hasSelectedCard && 
-                         this._selectedCard.CardClass.blocksConfig;
+              shouldShow = this._initialized && hasSelectedCard && 
+                         cardSystem.getCardBlocksConfig(this.config.card_type);
               break;
           }
 
