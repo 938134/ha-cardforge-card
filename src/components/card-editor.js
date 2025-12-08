@@ -1,5 +1,5 @@
-// 卡片编辑器 - 标题文字优化
-import { LitElement, html, css } from 'https://unpkg.com/lit@2.8.0/index.js?module';
+// components/card-editor.js - 更新版
+import { LitElement, html, css } from 'https://unpkg.com/lit@3.0.0/index.js?module';
 import { cardSystem } from '../core/card-system.js';
 import { themeSystem } from '../core/theme-system.js';
 import { designSystem } from '../core/design-system.js';
@@ -14,7 +14,7 @@ class CardEditor extends LitElement {
     config: { type: Object },
     _cards: { state: true },
     _themes: { state: true },
-    _selectedCard: { state: true }
+    _selectedCardDef: { state: true }
   };
 
   static styles = [
@@ -74,7 +74,7 @@ class CardEditor extends LitElement {
     super();
     this._cards = [];
     this._themes = [];
-    this._selectedCard = null;
+    this._selectedCardDef = null;
   }
 
   async firstUpdated() {
@@ -94,22 +94,22 @@ class CardEditor extends LitElement {
     newConfig = this._ensureDefaultConfig(newConfig);
     
     this.config = newConfig;
-    this._selectedCard = cardSystem.getCard(this.config.card_type);
+    this._selectedCardDef = cardSystem.getCard(this.config.card_type);
   }
 
   _processInitialConfig() {
     if (!this.config.card_type && this._cards.length > 0) {
       const firstCard = this._cards[0];
       this.config = this._buildCardConfig(firstCard.id, {});
-      this._selectedCard = cardSystem.getCard(firstCard.id);
+      this._selectedCardDef = cardSystem.getCard(firstCard.id);
       this._notifyConfigChange();
     } else if (this.config.card_type) {
-      this._selectedCard = cardSystem.getCard(this.config.card_type);
+      this._selectedCardDef = cardSystem.getCard(this.config.card_type);
     }
   }
 
   render() {
-    const selectedCardDef = this._selectedCard;
+    const selectedCardDef = this._selectedCardDef;
     
     if (!this._cards.length) {
       return html`
@@ -198,7 +198,7 @@ class CardEditor extends LitElement {
       theme: this.config.theme || 'auto'
     });
     
-    this._selectedCard = cardSystem.getCard(cardId);
+    this._selectedCardDef = cardSystem.getCard(cardId);
     this.config = newConfig;
     this._notifyConfigChange();
   }
