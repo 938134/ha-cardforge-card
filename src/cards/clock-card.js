@@ -45,6 +45,7 @@ export class ClockCard extends BaseCard {
 
   // 卡片元数据
   static meta = {
+    id: 'clock',
     name: '时钟',
     description: '显示当前时间、日期和星期',
     icon: '⏰',
