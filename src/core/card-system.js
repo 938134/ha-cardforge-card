@@ -1,161 +1,222 @@
-// core/card-system.js - 卡片系统（支持类注册）
+/**
+ * 卡片系统 - 负责卡片注册、发现、实例管理
+ * 合并了原card-registry的功能
+ */
 class CardSystem {
   constructor() {
-    this.cards = new Map();
-    this.cardClasses = new Map(); // 新增：存储卡片类
+    this.cards = new Map(); // 卡片定义
+    this.instances = new Map(); // 卡片实例
+    this.categories = new Set(); // 卡片分类
     this._initialized = false;
   }
 
-  // 初始化
+  /**
+   * 初始化卡片系统
+   */
   async initialize() {
     if (this._initialized) return;
-    await this._discoverCards();
-    this._initialized = true;
+    
+    try {
+      // 动态发现卡片
+      await this._discoverCards();
+      this._initialized = true;
+      console.log(`卡片系统初始化完成，发现 ${this.cards.size} 个卡片`);
+    } catch (error) {
+      console.error('卡片系统初始化失败:', error);
+      throw error;
+    }
   }
 
-  // 动态发现卡片
+  /**
+   * 动态发现卡片
+   */
   async _discoverCards() {
+    // 卡片模块路径映射
     const cardModules = [
-      () => import('../cards/clock-card.js'),
-      () => import('../cards/week-card.js'),
-      () => import('../cards/welcome-card.js'),
-      () => import('../cards/poetry-card.js'),
-      () => import('../cards/dashboard-card.js')
+      { path: '../cards/clock-card.js', name: 'clock' },
+      { path: '../cards/week-card.js', name: 'week' },
+      { path: '../cards/welcome-card.js', name: 'welcome' },
+      { path: '../cards/poetry-card.js', name: 'poetry' },
+      { path: '../cards/dashboard-card.js', name: 'dashboard' }
     ];
 
-    for (const importFn of cardModules) {
+    for (const moduleInfo of cardModules) {
       try {
-        const module = await importFn();
-        this._registerCardModule(module);
+        const module = await import(moduleInfo.path);
+        if (module.CardClass && typeof module.CardClass === 'function') {
+          this.registerCard(moduleInfo.name, module.CardClass);
+        }
       } catch (error) {
-        console.warn(`卡片加载失败:`, error);
+        console.warn(`卡片加载失败 ${moduleInfo.name}:`, error);
       }
     }
   }
 
-  // 注册卡片模块（支持类和对象两种格式）
-  _registerCardModule(module) {
-    // 检查是否是卡片类（继承自 CardBase）
-    if (module.CardClass && module.CardClass.cardId && module.CardClass.cardId !== 'base') {
-      const cardClass = module.CardClass;
-      const definition = cardClass.getDefinition();
-      
-      this.cardClasses.set(cardClass.cardId, cardClass);
-      this.cards.set(cardClass.cardId, {
-        id: cardClass.cardId,
-        definition: definition
-      });
-      
-      console.debug(`卡片类已注册: ${cardClass.cardId}`);
-      return;
+  /**
+   * 注册卡片类型
+   */
+  registerCard(cardId, CardClass, meta = {}) {
+    if (this.cards.has(cardId)) {
+      console.warn(`卡片 ${cardId} 已存在，将被覆盖`);
+    }
+
+    const cardMeta = {
+      id: cardId,
+      name: meta.name || cardId,
+      description: meta.description || '',
+      icon: meta.icon || 'mdi:card-text-outline',
+      category: meta.category || '通用',
+      tags: meta.tags || [],
+      recommendedSize: meta.recommendedSize || 1,
+      ...meta
+    };
+
+    this.cards.set(cardId, { CardClass, meta: cardMeta });
+    
+    // 更新分类
+    if (cardMeta.category) {
+      this.categories.add(cardMeta.category);
     }
     
-    // 旧格式的卡片对象
-    if (module.card) {
-      const cardId = module.card.id;
-      if (!cardId) return;
-
-      this.cards.set(cardId, {
-        id: cardId,
-        definition: module.card
-      });
-    }
+    console.log(`卡片注册成功: ${cardId} (${cardMeta.name})`);
   }
 
-  // 注册卡片类（外部调用）
-  registerCardClass(cardClass) {
-    if (!cardClass || !cardClass.cardId || cardClass.cardId === 'base') {
-      console.warn('无效的卡片类:', cardClass);
-      return false;
-    }
-    
-    const definition = cardClass.getDefinition();
-    this.cardClasses.set(cardClass.cardId, cardClass);
-    this.cards.set(cardClass.cardId, {
-      id: cardClass.cardId,
-      definition: definition
-    });
-    
-    console.debug(`卡片类已注册: ${cardClass.cardId}`);
-    return true;
-  }
-
-  // 获取卡片定义
+  /**
+   * 获取卡片定义
+   */
   getCard(cardId) {
-    const cardData = this.cards.get(cardId);
-    return cardData?.definition || null;
+    return this.cards.get(cardId);
   }
 
-  // 获取卡片类
-  getCardClass(cardId) {
-    return this.cardClasses.get(cardId);
-  }
-
-  // 获取默认卡片
-  getDefaultCard() {
-    const defaultCards = ['clock', 'welcome', 'dashboard'];
-    for (const cardId of defaultCards) {
-      if (this.cards.has(cardId)) {
-        return this.getCard(cardId);
-      }
-    }
-    return this.cards.values().next().value?.definition;
-  }
-
-  // 获取所有卡片
+  /**
+   * 获取所有卡片
+   */
   getAllCards() {
     return Array.from(this.cards.values()).map(item => ({
-      id: item.id,
-      ...item.definition.meta,
-      schema: item.definition.schema || {},
-      blockType: item.definition.blockType || 'none'
+      ...item.meta,
+      hasSchema: !!item.CardClass.schema,
+      hasBlocks: !!item.CardClass.blocksConfig
     }));
   }
 
-  // 渲染卡片
-  renderCard(cardId, userConfig = {}, hass = null, themeVariables = {}) {
-    const card = this.getCard(cardId);
-    if (!card) {
-      throw new Error(`卡片不存在: ${cardId}`);
-    }
-
-    // 合并配置
-    const config = this._mergeConfig(card.schema || {}, userConfig);
-    
-    try {
-      const template = card.template(config, { hass, theme: themeVariables });
-      const styles = card.styles(config, themeVariables);
-      
-      return { template, styles, config };
-    } catch (error) {
-      throw new Error(`卡片渲染失败: ${error.message}`);
-    }
+  /**
+   * 获取卡片分类
+   */
+  getCategories() {
+    return Array.from(this.categories);
   }
 
-  // 合并配置
-  _mergeConfig(schema, userConfig) {
-    const config = { ...userConfig };
+  /**
+   * 按分类获取卡片
+   */
+  getCardsByCategory(category) {
+    return Array.from(this.cards.values())
+      .filter(item => item.meta.category === category)
+      .map(item => item.meta);
+  }
+
+  /**
+   * 创建卡片实例
+   */
+  createCardInstance(cardId, config = {}, hass = null) {
+    const cardDef = this.getCard(cardId);
+    if (!cardDef) {
+      throw new Error(`卡片类型不存在: ${cardId}`);
+    }
+
+    // 验证配置
+    const validatedConfig = this._validateConfig(cardDef.CardClass, config);
+    
+    // 创建实例
+    const instanceId = `${cardId}_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+    const instance = {
+      id: instanceId,
+      cardId,
+      config: validatedConfig,
+      hass,
+      timestamp: Date.now()
+    };
+
+    this.instances.set(instanceId, instance);
+    return instance;
+  }
+
+  /**
+   * 验证配置
+   */
+  _validateConfig(CardClass, userConfig) {
+    const schema = CardClass.schema || {};
+    const defaultConfig = {};
     
     // 应用schema中的默认值
-    if (schema) {
-      Object.entries(schema).forEach(([key, field]) => {
-        if (config[key] === undefined && field.default !== undefined) {
-          config[key] = field.default;
-        }
-      });
+    Object.entries(schema).forEach(([key, field]) => {
+      if (field.default !== undefined && userConfig[key] === undefined) {
+        defaultConfig[key] = field.default;
+      }
+    });
+
+    // 合并配置
+    return {
+      card_type: userConfig.card_type,
+      theme: userConfig.theme || 'auto',
+      ...defaultConfig,
+      ...userConfig
+    };
+  }
+
+  /**
+   * 获取卡片配置模式
+   */
+  getCardSchema(cardId) {
+    const cardDef = this.getCard(cardId);
+    if (!cardDef) return null;
+    
+    return cardDef.CardClass.schema || null;
+  }
+
+  /**
+   * 获取卡片块配置
+   */
+  getCardBlocksConfig(cardId) {
+    const cardDef = this.getCard(cardId);
+    if (!cardDef) return null;
+    
+    return cardDef.CardClass.blocksConfig || null;
+  }
+
+  /**
+   * 销毁卡片实例
+   */
+  destroyCardInstance(instanceId) {
+    if (this.instances.has(instanceId)) {
+      this.instances.delete(instanceId);
+      return true;
+    }
+    return false;
+  }
+
+  /**
+   * 清理过期的实例
+   */
+  cleanupInstances(maxAge = 3600000) { // 默认1小时
+    const now = Date.now();
+    let cleaned = 0;
+    
+    for (const [id, instance] of this.instances.entries()) {
+      if (now - instance.timestamp > maxAge) {
+        this.instances.delete(id);
+        cleaned++;
+      }
     }
     
-    // 确保有blocks字段
-    if (config.blocks === undefined) {
-      config.blocks = {};
-    }
-    
-    return config;
+    return cleaned;
   }
 }
 
-// 全局实例
+// 创建全局实例
 const cardSystem = new CardSystem();
-cardSystem.initialize();
 
-export { cardSystem, CardSystem };
+// 自动初始化
+cardSystem.initialize().catch(console.error);
+
+export { cardSystem };
