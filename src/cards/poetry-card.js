@@ -1,18 +1,37 @@
-// cards/poetry-card.js - 修复版
+// cards/poetry-card.js - 诗词卡片（类版本）
+import { CardBase } from '../core/card-base.js';
+import { html, unsafeHTML } from 'https://unpkg.com/lit@3.0.0/index.js?module';
 import { escapeHtml, formatPoetryContent, getEntityState } from '../core/card-tools.js';
-import { createCardStyles } from '../core/card-styles.js';
 
-export const card = {
-  id: 'poetry',
-  meta: {
+export class PoetryCard extends CardBase {
+  static cardId = 'poetry';
+  static meta = {
     name: '诗词',
     description: '显示经典诗词，支持标题、朝代、作者、全文、译文',
     icon: '📜',
     category: '文化'
-  },
+  };
   
-  blockType: 'preset',
-  presetBlocks: {
+  static schema = {
+    fontSize: {
+      type: 'select',
+      label: '字体大小',
+      options: [
+        { value: 'small', label: '小' },
+        { value: 'medium', label: '中' },
+        { value: 'large', label: '大' }
+      ],
+      default: 'medium'
+    },
+    showTranslation: {
+      type: 'boolean',
+      label: '显示译文',
+      default: true
+    }
+  };
+  
+  static blockType = 'preset';
+  static presetBlocks = {
     poetry_title: {
       defaultName: '诗词标题',
       defaultIcon: 'mdi:format-title',
@@ -38,41 +57,23 @@ export const card = {
       defaultIcon: 'mdi:translate',
       required: false
     }
-  },
+  };
   
-  schema: {
-    fontSize: {
-      type: 'select',
-      label: '字体大小',
-      options: [
-        { value: 'small', label: '小' },
-        { value: 'medium', label: '中' },
-        { value: 'large', label: '大' }
-      ],
-      default: 'medium'
-    },
-    showTranslation: {
-      type: 'boolean',
-      label: '显示译文',
-      default: true
-    }
-  },
-  
-  template: (config, data) => {
-    const blocks = config.blocks || {};
-    const defaultPoetry = getDefaultPoetry();
+  renderContent() {
+    const defaultPoetry = this._getDefaultPoetry();
+    const blocks = this.config.blocks || {};
     
     // 提取块内容
-    const title = _getBlockContent(blocks, 'poetry_title', defaultPoetry.title);
-    const dynasty = _getBlockContent(blocks, 'poetry_dynasty', defaultPoetry.dynasty);
-    const author = _getBlockContent(blocks, 'poetry_author', defaultPoetry.author);
-    const content = _getBlockContent(blocks, 'poetry_content', defaultPoetry.content);
-    const translation = config.showTranslation ? 
-      _getBlockContent(blocks, 'poetry_translation', defaultPoetry.translation) : '';
+    const title = this._getBlockContent(blocks, 'poetry_title', defaultPoetry.title);
+    const dynasty = this._getBlockContent(blocks, 'poetry_dynasty', defaultPoetry.dynasty);
+    const author = this._getBlockContent(blocks, 'poetry_author', defaultPoetry.author);
+    const content = this._getBlockContent(blocks, 'poetry_content', defaultPoetry.content);
+    const translation = this.getConfigValue('showTranslation', true) ? 
+      this._getBlockContent(blocks, 'poetry_translation', defaultPoetry.translation) : '';
     
     // 如果没有任何内容，显示空状态
     if (!title && !content) {
-      return `
+      return html`
         <div class="poetry-card">
           <div class="card-empty">
             <div class="card-empty-icon">📜</div>
@@ -82,29 +83,30 @@ export const card = {
       `;
     }
     
-    const formattedContent = content ? formatPoetryContent(content) : '';
-    const formattedTranslation = translation ? formatPoetryContent(translation) : '';
+    const formattedContent = content ? unsafeHTML(formatPoetryContent(content)) : '';
+    const formattedTranslation = translation ? unsafeHTML(formatPoetryContent(translation)) : '';
+    const fontSize = this.getConfigValue('fontSize', 'medium');
     
-    return `
-      <div class="poetry-card font-${config.fontSize}">
+    return html`
+      <div class="poetry-card font-${fontSize}">
         <div class="card-wrapper">
           <div class="card-content layout-center">
-            ${title ? `<div class="poetry-title card-emphasis">${escapeHtml(title)}</div>` : ''}
+            ${title ? html`<div class="poetry-title card-emphasis">${escapeHtml(title)}</div>` : ''}
             
-            ${(dynasty || author) ? `
+            ${(dynasty || author) ? html`
               <div class="poetry-meta layout-horizontal card-spacing-sm">
-                ${dynasty ? `<span class="meta-item dynasty">${escapeHtml(dynasty)}</span>` : ''}
-                ${dynasty && author ? `<span class="separator">·</span>` : ''}
-                ${author ? `<span class="meta-item author">${escapeHtml(author)}</span>` : ''}
+                ${dynasty ? html`<span class="meta-item dynasty">${escapeHtml(dynasty)}</span>` : ''}
+                ${dynasty && author ? html`<span class="separator">·</span>` : ''}
+                ${author ? html`<span class="meta-item author">${escapeHtml(author)}</span>` : ''}
               </div>
             ` : ''}
             
-            ${formattedContent ? `
+            ${formattedContent ? html`
               <div class="poetry-divider"></div>
               <div class="poetry-content">${formattedContent}</div>
             ` : ''}
             
-            ${formattedTranslation ? `
+            ${formattedTranslation ? html`
               <div class="translation-divider card-spacing-md"></div>
               <div class="translation-container">
                 <div class="translation-label">译文</div>
@@ -115,46 +117,44 @@ export const card = {
         </div>
       </div>
     `;
+  }
+  
+  _getBlockContent(blocks, blockId, defaultValue = '') {
+    const blockEntry = Object.entries(blocks).find(([id, block]) => 
+      block.presetKey === blockId
+    );
     
-    function _getBlockContent(blocks, blockId, defaultValue = '') {
-      const blockEntry = Object.entries(blocks).find(([id, block]) => 
-        block.presetKey === blockId
-      );
-      
-      if (blockEntry) {
-        const [_, block] = blockEntry;
-        if (block.entity) {
-          return getEntityState(data.hass, block.entity, defaultValue);
-        }
-        return defaultValue;
+    if (blockEntry) {
+      const [_, block] = blockEntry;
+      if (block.entity) {
+        return getEntityState(this.hass, block.entity, defaultValue);
       }
-      
       return defaultValue;
     }
     
-    function getDefaultPoetry() {
-      return {
-        title: '静夜思',
-        dynasty: '唐',
-        author: '李白',
-        content: '床前明月光，疑是地上霜。举头望明月，低头思故乡。',
-        translation: '明亮的月光洒在床前的窗户纸上，好像地上泛起了一层白霜。我抬起头来，看那天窗外空中的明月，不由得低头沉思，想起远方的家乡。'
-      };
-    }
-  },
+    return defaultValue;
+  }
   
-  styles: (config, theme) => {
-    // 只保留诗词卡片特有的样式
-    const customStyles = `
+  _getDefaultPoetry() {
+    return {
+      title: '静夜思',
+      dynasty: '唐',
+      author: '李白',
+      content: '床前明月光，疑是地上霜。举头望明月，低头思故乡。',
+      translation: '明亮的月光洒在床前的窗户纸上，好像地上泛起了一层白霜。我抬起头来，看那天窗外空中的明月，不由得低头沉思，想起远方的家乡。'
+    };
+  }
+  
+  getCustomStyles() {
+    return `
       .poetry-card {
-        min-height: 260px; /* 增加最小高度 */
+        min-height: 260px;
         font-family: 'ZCOOL XiaoWei', 'Ma Shan Zheng', 'Noto Serif SC', var(--cf-font-family-base, serif);
         background: var(--cf-surface);
         border-radius: var(--cf-radius-lg);
         box-shadow: var(--cf-shadow-sm);
       }
       
-      /* 字体大小控制 */
       .poetry-card.font-small { 
         font-size: 0.9em; 
       }
@@ -165,14 +165,12 @@ export const card = {
         font-size: 1.1em; 
       }
       
-      /* 标题样式 */
       .poetry-title {
         font-size: 1.8em;
         margin-bottom: var(--cf-spacing-xs);
         text-shadow: 0 1px 2px rgba(var(--cf-primary-color-rgb), 0.1);
       }
       
-      /* 元信息样式 */
       .poetry-meta {
         flex-wrap: wrap;
       }
@@ -186,7 +184,6 @@ export const card = {
         font-weight: var(--cf-font-weight-light);
       }
       
-      /* 分隔线 */
       .poetry-divider,
       .translation-divider {
         width: 60px;
@@ -196,7 +193,6 @@ export const card = {
         opacity: 0.5;
       }
       
-      /* 诗词内容 */
       .poetry-content {
         width: 100%;
         max-width: 600px;
@@ -211,7 +207,6 @@ export const card = {
         margin-bottom: var(--cf-spacing-xs);
       }
       
-      /* 译文区域 */
       .translation-container {
         width: 100%;
         max-width: 600px;
@@ -236,7 +231,6 @@ export const card = {
         font-style: normal;
       }
       
-      /* 诗词卡片特定的响应式 */
       @container cardforge-container (max-width: 600px) {
         .poetry-card {
           min-height: 220px;
@@ -319,8 +313,8 @@ export const card = {
         }
       }
     `;
-    
-    // 使用通用样式工具
-    return createCardStyles(customStyles);
   }
-};
+}
+
+// 导出卡片类用于注册
+export const CardClass = PoetryCard;
