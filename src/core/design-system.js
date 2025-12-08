@@ -1,17 +1,19 @@
-// 设计系统变量 - 更新版
-import { css } from 'https://unpkg.com/lit@3.0.0/index.js?module';
+import { css } from 'https://unpkg.com/lit@3.1.3/index.js?module';
 
+/**
+ * 设计系统 - 纯粹的CSS变量定义
+ * 不包含任何具体的样式规则
+ */
 export const designSystem = css`
   :host {
-    /* ===== 1. 基础设计变量 (原子) ===== */
-    
-    /* 主题色 */
+    /* ===== 色彩系统 ===== */
+    /* 主色调 */
     --cf-primary-color: var(--primary-color, #03a9f4);
     --cf-primary-color-rgb: 3, 169, 244;
     --cf-accent-color: var(--accent-color, #ff4081);
     --cf-accent-color-rgb: 255, 64, 129;
     
-    /* 中性色系 */
+    /* 中性色 */
     --cf-neutral-50: #fafafa;
     --cf-neutral-100: #f5f5f5;
     --cf-neutral-200: #eeeeee;
@@ -49,7 +51,7 @@ export const designSystem = css`
     --cf-focus-color: rgba(var(--cf-primary-color-rgb), 0.24);
     --cf-disabled-color: rgba(0, 0, 0, 0.12);
     
-    /* 间距系统 */
+    /* ===== 间距系统 ===== */
     --cf-spacing-xs: 4px;
     --cf-spacing-sm: 8px;
     --cf-spacing-md: 12px;
@@ -59,35 +61,71 @@ export const designSystem = css`
     --cf-spacing-3xl: 32px;
     --cf-spacing-4xl: 40px;
     
-    /* 圆角系统 */
+    /* ===== 圆角系统 ===== */
     --cf-radius-xs: 2px;
     --cf-radius-sm: 4px;
     --cf-radius-md: 8px;
     --cf-radius-lg: 12px;
     --cf-radius-xl: 16px;
     --cf-radius-pill: 999px;
+    --cf-radius-circle: 50%;
     
-    /* 阴影系统 */
+    /* ===== 阴影系统 ===== */
+    --cf-shadow-xs: 0 1px 2px rgba(0, 0, 0, 0.05);
     --cf-shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.12);
     --cf-shadow-md: 0 4px 6px rgba(0, 0, 0, 0.1);
     --cf-shadow-lg: 0 10px 20px rgba(0, 0, 0, 0.15);
     --cf-shadow-xl: 0 20px 40px rgba(0, 0, 0, 0.2);
     --cf-shadow-inner: inset 0 2px 4px rgba(0, 0, 0, 0.06);
+    --cf-shadow-outline: 0 0 0 3px rgba(var(--cf-primary-color-rgb), 0.2);
     
-    /* 动画系统 */
-    --cf-transition-duration-fast: 150ms;
-    --cf-transition-duration-normal: 250ms;
-    --cf-transition-duration-slow: 400ms;
+    /* ===== 动画系统 ===== */
+    --cf-transition-fast: 150ms cubic-bezier(0.4, 0, 0.2, 1);
+    --cf-transition-normal: 250ms cubic-bezier(0.4, 0, 0.2, 1);
+    --cf-transition-slow: 400ms cubic-bezier(0.4, 0, 0.2, 1);
+    --cf-transition-bounce: 400ms cubic-bezier(0.68, -0.55, 0.265, 1.55);
     
-    --cf-easing-standard: cubic-bezier(0.4, 0, 0.2, 1);
-    --cf-easing-emphasized: cubic-bezier(0.2, 0, 0, 1);
-    --cf-easing-decelerate: cubic-bezier(0, 0, 0.2, 1);
+    --cf-animation-fade-in: fadeIn var(--cf-transition-normal);
+    --cf-animation-slide-up: slideUp var(--cf-transition-normal);
+    --cf-animation-scale: scaleIn var(--cf-transition-normal);
     
-    /* 性能提示 */
-    --cf-will-change-transform: will-change transform;
-    --cf-will-change-opacity: will-change transform, opacity;
+    /* ===== 排版系统 ===== */
+    --cf-font-family-base: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 
+                          'Helvetica Neue', Arial, sans-serif, 'Noto Sans SC';
+    --cf-font-family-heading: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 
+                            'Helvetica Neue', Arial, sans-serif, 'Noto Sans SC';
+    --cf-font-family-mono: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, 
+                          Monaco, 'Courier New', monospace;
+    --cf-font-family-serif: 'Noto Serif SC', 'Source Han Serif SC', 'STZhongsong', 
+                           'SimSun', serif;
     
-    /* 层级系统 */
+    --cf-font-size-xs: 0.75rem;     /* 12px */
+    --cf-font-size-sm: 0.875rem;    /* 14px */
+    --cf-font-size-base: 1rem;      /* 16px */
+    --cf-font-size-lg: 1.125rem;    /* 18px */
+    --cf-font-size-xl: 1.25rem;     /* 20px */
+    --cf-font-size-2xl: 1.5rem;     /* 24px */
+    --cf-font-size-3xl: 1.875rem;   /* 30px */
+    --cf-font-size-4xl: 2.25rem;    /* 36px */
+    --cf-font-size-5xl: 3rem;       /* 48px */
+    
+    --cf-font-weight-light: 300;
+    --cf-font-weight-normal: 400;
+    --cf-font-weight-medium: 500;
+    --cf-font-weight-semibold: 600;
+    --cf-font-weight-bold: 700;
+    --cf-font-weight-extrabold: 800;
+    
+    --cf-line-height-tight: 1.25;
+    --cf-line-height-normal: 1.5;
+    --cf-line-height-relaxed: 1.75;
+    --cf-line-height-loose: 2;
+    
+    --cf-letter-spacing-tight: -0.025em;
+    --cf-letter-spacing-normal: 0;
+    --cf-letter-spacing-wide: 0.025em;
+    
+    /* ===== 层级系统 ===== */
     --cf-z-index-dropdown: 1000;
     --cf-z-index-sticky: 1020;
     --cf-z-index-fixed: 1030;
@@ -96,182 +134,19 @@ export const designSystem = css`
     --cf-z-index-popover: 1060;
     --cf-z-index-tooltip: 1070;
     
-    /* 排版系统 */
-    --cf-font-family-base: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
-    --cf-font-family-heading: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
-    --cf-font-family-mono: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
+    /* ===== 布局系统 ===== */
+    --cf-grid-columns: 12;
+    --cf-grid-gap: var(--cf-spacing-md);
+    --cf-container-max-width: 1200px;
+    --cf-container-padding: var(--cf-spacing-lg);
     
-    --cf-font-size-xs: 0.75rem;
-    --cf-font-size-sm: 0.875rem;
-    --cf-font-size-base: 1rem;
-    --cf-font-size-lg: 1.125rem;
-    --cf-font-size-xl: 1.25rem;
-    --cf-font-size-2xl: 1.5rem;
-    --cf-font-size-3xl: 1.875rem;
-    --cf-font-size-4xl: 2.25rem;
+    /* ===== 性能优化 ===== */
+    --cf-will-change-transform: will-change transform;
+    --cf-will-change-opacity: will-change transform, opacity;
+    --cf-will-change-contents: will-change contents;
     
-    --cf-font-weight-light: 300;
-    --cf-font-weight-normal: 400;
-    --cf-font-weight-medium: 500;
-    --cf-font-weight-semibold: 600;
-    --cf-font-weight-bold: 700;
-    
-    --cf-line-height-tight: 1.25;
-    --cf-line-height-normal: 1.5;
-    --cf-line-height-relaxed: 1.75;
-  }
-  
-  /* ===== 卡片基类相关样式 ===== */
-  .cardforge-container {
-    container-type: inline-size;
-    container-name: cardforge-container;
-  }
-  
-  .card-wrapper {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    width: 100%;
-    flex: 1;
-    min-height: 0;
-    position: relative;
-    z-index: 1;
-  }
-  
-  .card-content {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    flex: 1;
-    text-align: center;
-    padding: var(--cf-spacing-xl);
-    width: 100%;
-    box-sizing: border-box;
-  }
-  
-  .card-title {
-    font-size: var(--cf-font-size-2xl);
-    font-weight: var(--cf-font-weight-bold);
-    color: var(--cf-text-primary);
-    line-height: var(--cf-line-height-tight);
-    margin-bottom: var(--cf-spacing-sm);
-  }
-  
-  .card-subtitle {
-    font-size: var(--cf-font-size-lg);
-    font-weight: var(--cf-font-weight-medium);
-    color: var(--cf-text-secondary);
-    line-height: var(--cf-line-height-normal);
-    margin-top: var(--cf-spacing-xs);
-    margin-bottom: var(--cf-spacing-xs);
-  }
-  
-  .card-caption {
-    font-size: var(--cf-font-size-sm);
-    color: var(--cf-text-tertiary);
-    line-height: var(--cf-line-height-normal);
-    margin-top: var(--cf-spacing-xs);
-  }
-  
-  .card-emphasis {
-    color: var(--cf-primary-color);
-    font-weight: var(--cf-font-weight-bold);
-    margin: var(--cf-spacing-sm) 0;
-  }
-  
-  /* 通用空状态 */
-  .card-empty {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    text-align: center;
-    color: var(--cf-text-tertiary);
-    padding: var(--cf-spacing-2xl);
-    height: 100%;
-    flex: 1;
-  }
-  
-  .card-empty-icon {
-    font-size: 2.5em;
-    margin-bottom: var(--cf-spacing-md);
-    opacity: 0.4;
-  }
-  
-  .card-empty-text {
-    font-size: var(--cf-font-size-lg);
-    font-weight: var(--cf-font-weight-medium);
-  }
-  
-  /* 通用垂直间距工具 */
-  .card-spacing-sm {
-    margin-top: var(--cf-spacing-sm);
-    margin-bottom: var(--cf-spacing-sm);
-  }
-  
-  .card-spacing-md {
-    margin-top: var(--cf-spacing-md);
-    margin-bottom: var(--cf-spacing-md);
-  }
-  
-  .card-spacing-lg {
-    margin-top: var(--cf-spacing-lg);
-    margin-bottom: var(--cf-spacing-lg);
-  }
-  
-  /* 布局工具类 */
-  .layout-center {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    text-align: center;
-    width: 100%;
-  }
-  
-  .layout-flow {
-    display: flex;
-    flex-wrap: wrap;
-    gap: var(--cf-spacing-md);
-    justify-content: center;
-    width: 100%;
-  }
-  
-  .layout-grid {
-    display: grid;
-    gap: var(--cf-spacing-md);
-    width: 100%;
-  }
-  
-  .layout-horizontal {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: var(--cf-spacing-md);
-    width: 100%;
-  }
-  
-  .layout-vertical {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    gap: var(--cf-spacing-md);
-    width: 100%;
-  }
-  
-  .layout-between {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    width: 100%;
-  }
-  
-  /* 深色模式适配 */
-  @media (prefers-color-scheme: dark) {
-    :host {
+    /* ===== 深色模式变量 ===== */
+    @media (prefers-color-scheme: dark) {
       --cf-background: #1a1a1a;
       --cf-surface: #2d2d2d;
       --cf-surface-elevated: #3d3d3d;
@@ -288,86 +163,72 @@ export const designSystem = css`
       --cf-active-color: rgba(255, 255, 255, 0.16);
       --cf-focus-color: rgba(255, 255, 255, 0.24);
       --cf-disabled-color: rgba(255, 255, 255, 0.12);
+      
+      --cf-shadow-xs: 0 1px 2px rgba(0, 0, 0, 0.2);
+      --cf-shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.3);
+      --cf-shadow-md: 0 4px 6px rgba(0, 0, 0, 0.25);
+      --cf-shadow-lg: 0 10px 20px rgba(0, 0, 0, 0.3);
+      --cf-shadow-xl: 0 20px 40px rgba(0, 0, 0, 0.4);
+      --cf-shadow-inner: inset 0 2px 4px rgba(0, 0, 0, 0.15);
     }
   }
   
-  /* 响应式容器查询 */
-  @container cardforge-container (max-width: 768px) {
-    .card-content {
-      padding: var(--cf-spacing-lg);
+  /* ===== 动画关键帧定义 ===== */
+  @keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+  }
+  
+  @keyframes slideUp {
+    from {
+      opacity: 0;
+      transform: translateY(10px);
     }
-    
-    .card-title {
-      font-size: var(--cf-font-size-xl);
-      margin-bottom: var(--cf-spacing-xs);
-    }
-    
-    .card-subtitle {
-      font-size: var(--cf-font-size-md);
-      margin-top: var(--cf-spacing-xs);
-      margin-bottom: var(--cf-spacing-xs);
-    }
-    
-    .layout-grid {
-      gap: var(--cf-spacing-sm);
-    }
-    
-    .layout-flow {
-      gap: var(--cf-spacing-sm);
-    }
-    
-    .layout-horizontal {
-      gap: var(--cf-spacing-sm);
-    }
-    
-    .layout-vertical {
-      gap: var(--cf-spacing-sm);
+    to {
+      opacity: 1;
+      transform: translateY(0);
     }
   }
   
-  @container cardforge-container (max-width: 480px) {
-    .card-content {
-      padding: var(--cf-spacing-md);
+  @keyframes scaleIn {
+    from {
+      opacity: 0;
+      transform: scale(0.95);
     }
-    
-    .card-title {
-      font-size: var(--cf-font-size-lg);
+    to {
+      opacity: 1;
+      transform: scale(1);
     }
-    
-    .card-subtitle {
-      font-size: var(--cf-font-size-sm);
-    }
-    
-    .card-caption {
-      font-size: var(--cf-font-size-xs);
-    }
-    
-    .card-empty {
-      padding: var(--cf-spacing-xl);
-    }
-    
-    .card-empty-icon {
-      font-size: 2em;
-    }
-    
-    .card-empty-text {
-      font-size: var(--cf-font-size-md);
-    }
-    
-    .layout-grid {
-      gap: var(--cf-spacing-xs);
-    }
-    
-    .layout-flow {
-      gap: var(--cf-spacing-xs);
-    }
-    
-    .layout-horizontal {
-      gap: var(--cf-spacing-xs);
-    }
-    
-    .layout-vertical {
-      gap: var(--cf-spacing-xs);
-    }
+  }
+  
+  @keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.5; }
+  }
+  
+  @keyframes spin {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+  }
+  
+  /* ===== 工具类动画 ===== */
+  .cf-animate-fade-in {
+    animation: fadeIn var(--cf-transition-normal);
+  }
+  
+  .cf-animate-slide-up {
+    animation: slideUp var(--cf-transition-normal);
+  }
+  
+  .cf-animate-scale {
+    animation: scaleIn var(--cf-transition-normal);
+  }
+  
+  .cf-animate-pulse {
+    animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+  }
+  
+  .cf-animate-spin {
+    animation: spin 1s linear infinite;
   }
 `;
