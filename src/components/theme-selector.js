@@ -1,5 +1,5 @@
-// 主题选择器 - 方形紧凑版
-import { LitElement, html, css } from 'https://unpkg.com/lit@2.8.0/index.js?module';
+// components/theme-selector.js - 更新版
+import { LitElement, html, css } from 'https://unpkg.com/lit@3.0.0/index.js?module';
 import { designSystem } from '../core/design-system.js';
 
 export class ThemeSelector extends LitElement {
@@ -69,6 +69,11 @@ export class ThemeSelector extends LitElement {
         box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
       }
       
+      .theme-item.selected .theme-preview {
+        border-color: white;
+        box-shadow: 0 0 0 1px white;
+      }
+      
       .theme-preview {
         width: 48px;
         height: 32px;
@@ -80,11 +85,6 @@ export class ThemeSelector extends LitElement {
         display: flex;
         align-items: center;
         justify-content: center;
-      }
-      
-      .theme-item.selected .theme-preview {
-        border-color: white;
-        box-shadow: 0 0 0 1px white;
       }
       
       .theme-preview-content {
@@ -120,7 +120,6 @@ export class ThemeSelector extends LitElement {
         color: var(--cf-text-secondary);
       }
       
-      /* 响应式设计 */
       @media (max-width: 1024px) {
         .theme-grid {
           grid-template-columns: repeat(auto-fill, minmax(75px, 1fr));
