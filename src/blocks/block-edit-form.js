@@ -1,7 +1,7 @@
-// blocks/block-edit-form.js - 添加自动填充功能
-import { LitElement, html, css } from 'https://unpkg.com/lit@2.8.0/index.js?module';
+// blocks/block-edit-form.js - 更新版（完全使用lit）
+import { LitElement, html, css } from 'https://unpkg.com/lit@3.0.0/index.js?module';
 import { designSystem } from '../core/design-system.js';
-import { ENTITY_ICONS } from './block-config.js';  // 导入图标映射
+import { ENTITY_ICONS } from './block-config.js';
 
 export class BlockEditForm extends LitElement {
   static properties = {
@@ -33,7 +33,6 @@ export class BlockEditForm extends LitElement {
         gap: 6px;
       }
       
-      /* 固定区域提示 */
       .fixed-area-hint {
         padding: 8px 12px;
         background: rgba(0, 0, 0, 0.05);
@@ -81,12 +80,10 @@ export class BlockEditForm extends LitElement {
         opacity: 0.9;
       }
       
-      /* 表单控件使用内置标签 */
       ha-combo-box, ha-textfield, ha-icon-picker, ha-select {
         width: 100%;
       }
       
-      /* 深色模式适配 */
       @media (prefers-color-scheme: dark) {
         .fixed-area-hint {
           background: rgba(255, 255, 255, 0.05);
@@ -220,15 +217,11 @@ export class BlockEditForm extends LitElement {
 
   _handleEntityChange(e) {
     const entityId = e.detail.value;
-    
-    // 构建更新对象
     const updates = {};
     
-    // 如果有实体，尝试自动填充
     if (entityId && this.hass?.states?.[entityId]) {
       const entity = this.hass.states[entityId];
       
-      // 自动填充名称（如果当前为空）
       if (!this.block.name || this.block.name === '新块') {
         const friendlyName = entity.attributes?.friendly_name;
         if (friendlyName && friendlyName.trim()) {
@@ -236,7 +229,6 @@ export class BlockEditForm extends LitElement {
         }
       }
       
-      // 自动填充图标（如果当前是默认图标）
       if (!this.block.icon || this.block.icon === 'mdi:cube-outline') {
         const domain = entityId.split('.')[0];
         const defaultIcon = entity.attributes?.icon || ENTITY_ICONS[domain] || 'mdi:cube';
@@ -244,12 +236,11 @@ export class BlockEditForm extends LitElement {
       }
     }
     
-    // 分发事件
     this.dispatchEvent(new CustomEvent('field-change', {
       detail: {
         field: 'entity',
         value: entityId,
-        ...(Object.keys(updates).length > 0 && { updates }) // 如果有自动填充，包含更新
+        ...(Object.keys(updates).length > 0 && { updates })
       }
     }));
   }
@@ -274,7 +265,6 @@ export class BlockEditForm extends LitElement {
   }
 
   _handleAreaChange(areaId) {
-    // 如果是预设卡片，忽略区域变化
     const blockType = this.cardDefinition?.blockType || 'none';
     if (blockType === 'preset') {
       areaId = 'content';
