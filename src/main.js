@@ -1,54 +1,57 @@
-// main.js - 兼容模式主入口
+// 主入口文件 - 注册所有自定义元素
 import { HaCardForgeCard } from './components/ha-cardforge-card.js';
 import { CardEditor } from './components/card-editor.js';
+import { CardContainer } from './components/card-container.js';
+import { FormBuilder } from './components/form-builder.js';
+import { CardSelector } from './components/card-selector.js';
+import { ThemeSelector } from './components/theme-selector.js';
+import { BlockBase } from './blocks/block-base.js';
+import { BlockManagement } from './blocks/block-management.js';
+import { BlockEditForm } from './blocks/block-edit-form.js';
 
-// 全局注册函数
-function registerCardForge() {
-  console.log('正在注册 CardForge 卡片...');
-  
-  // 注册主卡片组件
-  if (!customElements.get('ha-cardforge-card')) {
-    customElements.define('ha-cardforge-card', HaCardForgeCard);
-    console.log('✅ 注册 ha-cardforge-card');
+// 注册所有自定义元素
+const elements = [
+  { name: 'ha-cardforge-card', class: HaCardForgeCard },
+  { name: 'card-editor', class: CardEditor },
+  { name: 'card-container', class: CardContainer },
+  { name: 'form-builder', class: FormBuilder },
+  { name: 'card-selector', class: CardSelector },
+  { name: 'theme-selector', class: ThemeSelector },
+  { name: 'block-base', class: BlockBase },
+  { name: 'block-management', class: BlockManagement },
+  { name: 'block-edit-form', class: BlockEditForm }
+];
+
+// 立即注册主要组件
+elements.forEach(({ name, class: ElementClass }) => {
+  if (!customElements.get(name)) {
+    customElements.define(name, ElementClass);
+    console.log(`注册自定义元素: ${name}`);
   }
+});
 
-  // 注册编辑器组件
-  if (!customElements.get('card-editor')) {
-    customElements.define('card-editor', CardEditor);
-    console.log('✅ 注册 card-editor');
-  }
-
-  // 注册到 Home Assistant 自定义卡片
-  if (window.customCards) {
-    window.customCards = window.customCards || [];
-    window.customCards.push({
-      type: 'custom:ha-cardforge-card',
-      name: '卡片工坊',
-      description: '基于统一卡片系统的卡片工坊',
-      preview: true
-    });
-    console.log('✅ 注册到 Home Assistant 自定义卡片');
-  } else {
-    console.warn('❌ window.customCards 未定义，请确保已加载自定义卡片插件');
-  }
-}
-
-// 等待 Home Assistant 加载完成
+// 注册到 Home Assistant 自定义卡片
 if (window.customCards) {
-  // 如果已加载，立即注册
-  registerCardForge();
-} else {
-  // 否则监听加载事件
-  window.addEventListener('load', registerCardForge);
-  // 设置超时备用
-  setTimeout(registerCardForge, 1000);
+  window.customCards.push({
+    type: 'ha-cardforge-card',
+    name: '卡片工坊',
+    description: '基于统一卡片系统的卡片工坊',
+    preview: true,
+    documentationURL: 'https://github.com/your-repo/cardforge'
+  });
 }
 
-// 导出供外部使用
-window.CardForge = {
+// 导出主要组件供外部使用
+export {
   HaCardForgeCard,
   CardEditor,
-  registerCardForge
+  CardContainer,
+  FormBuilder,
+  CardSelector,
+  ThemeSelector,
+  BlockBase,
+  BlockManagement,
+  BlockEditForm
 };
 
-console.log('CardForge 主入口加载完成');
+console.log('CardForge 系统初始化完成');
