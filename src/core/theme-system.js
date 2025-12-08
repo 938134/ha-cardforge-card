@@ -41,23 +41,23 @@ class ThemeSystem {
    * 动态发现主题
    */
   async _discoverThemes() {
-    // 主题模块路径映射
+    // 主题模块路径映射 - 使用函数包装动态导入
     const themeModules = [
-      { path: '../themes/auto-theme.js', id: 'auto' },
-      { path: '../themes/glass-theme.js', id: 'glass' },
-      { path: '../themes/gradient-theme.js', id: 'gradient' },
-      { path: '../themes/neon-theme.js', id: 'neon' },
-      { path: '../themes/inkwash-theme.js', id: 'inkwash' }
+      () => import('../themes/auto-theme.js'),
+      () => import('../themes/glass-theme.js'),
+      () => import('../themes/gradient-theme.js'),
+      () => import('../themes/neon-theme.js'),
+      () => import('../themes/inkwash-theme.js')
     ];
 
-    for (const moduleInfo of themeModules) {
+    for (const importFn of themeModules) {
       try {
-        const module = await import(moduleInfo.path);
+        const module = await importFn();
         if (module.theme) {
           this.registerTheme(module.theme);
         }
       } catch (error) {
-        console.warn(`主题加载失败 ${moduleInfo.id}:`, error);
+        console.warn(`主题加载失败:`, error);
       }
     }
   }
@@ -66,6 +66,12 @@ class ThemeSystem {
    * 创建样式元素
    */
   _createStyleElement() {
+    // 如果已存在样式元素，先移除
+    const existingStyle = document.getElementById('cardforge-theme-styles');
+    if (existingStyle) {
+      existingStyle.remove();
+    }
+    
     this._styleElement = document.createElement('style');
     this._styleElement.id = 'cardforge-theme-styles';
     document.head.appendChild(this._styleElement);
@@ -101,11 +107,23 @@ class ThemeSystem {
    * 获取主题
    */
   getTheme(themeId) {
+    // 处理自动主题
     if (themeId === 'auto') {
-      // 自动主题根据系统设置决定
       const isDark = this._darkModeMediaQuery.matches;
       return this.themes.get(isDark ? 'dark' : 'light') || this.themes.get('auto');
     }
+    
+    // 处理light/dark别名
+    if (themeId === 'light' || themeId === 'dark') {
+      const theme = this.themes.get(themeId);
+      if (theme) return theme;
+      
+      // 如果light/dark主题不存在，尝试查找类似的
+      for (const [id, t] of this.themes) {
+        if (id.includes(themeId)) return t;
+      }
+    }
+    
     return this.themes.get(themeId) || this.themes.get('auto');
   }
 
@@ -208,12 +226,61 @@ class ThemeSystem {
       callback(e.matches);
     });
   }
+
+  /**
+   * 添加默认主题
+   */
+  _addDefaultThemes() {
+    // 确保有auto主题
+    if (!this.themes.has('auto')) {
+      this.registerTheme({
+        id: 'auto',
+        name: '自动',
+        description: '跟随系统主题，无额外样式',
+        icon: '⚙️',
+        styles: `
+          /* 自动主题 - 仅使用设计系统变量，无额外样式 */
+          .cardforge-container {
+            background: var(--cf-background) !important;
+            border: 1px solid var(--cf-border) !important;
+            border-radius: var(--cf-radius-md) !important;
+          }
+          
+          /* 使用设计系统的文字颜色变量 */
+          .cardforge-container .card-title {
+            color: var(--cf-text-primary) !important;
+            font-weight: var(--cf-font-weight-bold);
+          }
+          
+          .cardforge-container .card-subtitle {
+            color: var(--cf-text-secondary) !important;
+            font-weight: var(--cf-font-weight-medium);
+          }
+          
+          .cardforge-container .card-caption {
+            color: var(--cf-text-tertiary) !important;
+          }
+          
+          .cardforge-container .card-emphasis {
+            color: var(--cf-primary-color) !important;
+            font-weight: var(--cf-font-weight-semibold);
+          }
+        `,
+        preview: {
+          background: 'var(--cf-background)',
+          border: '1px solid var(--cf-border)'
+        }
+      });
+    }
+  }
 }
 
 // 创建全局实例
 const themeSystem = new ThemeSystem();
 
-// 自动初始化
-themeSystem.initialize().catch(console.error);
+// 自动初始化并添加默认主题
+themeSystem.initialize().then(() => {
+  themeSystem._addDefaultThemes();
+}).catch(console.error);
 
 export { themeSystem };
