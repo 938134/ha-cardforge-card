@@ -1,5 +1,5 @@
-// blocks/block-management.js - 修复数据传递
-import { LitElement, html, css } from 'https://unpkg.com/lit@2.8.0/index.js?module';
+// blocks/block-management.js - 修复版（完全使用lit）
+import { LitElement, html, css } from 'https://unpkg.com/lit@3.0.0/index.js?module';
 import { designSystem } from '../core/design-system.js';
 import { BlockBase } from './block-base.js';
 import { BlockEditForm } from './block-edit-form.js';
@@ -11,7 +11,7 @@ export class BlockManagement extends LitElement {
     hass: { type: Object },
     cardDefinition: { type: Object },
     _editingBlockId: { state: true },
-    _currentBlocks: { state: true }  // 新增：缓存块数据
+    _currentBlocks: { state: true }
   };
 
   static styles = [
@@ -48,7 +48,6 @@ export class BlockManagement extends LitElement {
         background: rgba(0, 0, 0, 0.02);
       }
       
-      /* 区域标识 */
       .area-indicator {
         display: flex;
         flex-direction: column;
@@ -81,7 +80,6 @@ export class BlockManagement extends LitElement {
         opacity: 0.7;
       }
       
-      /* 块视图容器 */
       .block-view-container {
         padding: 0 12px;
         min-height: 60px;
@@ -89,7 +87,6 @@ export class BlockManagement extends LitElement {
         align-items: center;
       }
       
-      /* 块操作 */
       .block-actions {
         display: flex;
         gap: 4px;
@@ -122,7 +119,6 @@ export class BlockManagement extends LitElement {
         cursor: not-allowed;
       }
       
-      /* 添加块按钮 */
       .add-block-btn {
         width: 100%;
         padding: 12px;
@@ -152,7 +148,6 @@ export class BlockManagement extends LitElement {
         cursor: not-allowed;
       }
       
-      /* 空状态 */
       .empty-state {
         text-align: center;
         padding: 32px 20px;
@@ -167,7 +162,6 @@ export class BlockManagement extends LitElement {
         opacity: 0.5;
       }
       
-      /* 编辑表单容器 */
       .edit-form-container {
         margin-top: 12px;
         border: 1px solid var(--cf-primary-color);
@@ -175,7 +169,6 @@ export class BlockManagement extends LitElement {
         overflow: hidden;
       }
       
-      /* 响应式设计 */
       @media (max-width: 768px) {
         .block-item {
           grid-template-columns: 60px 1fr 70px;
@@ -227,7 +220,7 @@ export class BlockManagement extends LitElement {
     this.hass = null;
     this.cardDefinition = {};
     this._editingBlockId = null;
-    this._currentBlocks = [];  // 新增
+    this._currentBlocks = [];
   }
 
   willUpdate(changedProperties) {
@@ -258,21 +251,8 @@ export class BlockManagement extends LitElement {
     const blockType = this.cardDefinition?.blockType || 'none';
     const isPresetCard = blockType === 'preset';
     
-    // 区域处理：预设卡片固定为 content，其他使用配置的区域
     const area = isPresetCard ? 'content' : (block.area || 'content');
-    
-    // 权限判断
     const canDelete = blockType === 'custom' && !isPresetBlock;
-    
-    // 创建块配置的浅拷贝，确保是纯对象
-    const blockConfig = {
-      id: block.id,
-      entity: block.entity || '',
-      name: block.name || '',
-      icon: block.icon || 'mdi:cube-outline',
-      area: block.area || 'content',
-      presetKey: block.presetKey
-    };
     
     return html`
       <div class="block-item ${isPresetBlock ? 'preset-block' : ''}">
@@ -288,9 +268,8 @@ export class BlockManagement extends LitElement {
         
         <!-- 块视图 -->
         <div class="block-view-container">
-          <!-- 关键修复：确保传递纯对象，而不是JSON字符串 -->
           <block-base
-            .block=${blockConfig}
+            .block=${block}
             .hass=${this.hass}
             .compact=${true}
             .showName=${true}
@@ -319,7 +298,7 @@ export class BlockManagement extends LitElement {
       ${isEditing ? html`
         <div class="edit-form-container">
           <block-edit-form
-            .block=${blockConfig}
+            .block=${block}
             .hass=${this.hass}
             .cardDefinition=${this.cardDefinition}
             @field-change=${(e) => this._handleFieldChange(block.id, e.detail)}
@@ -374,7 +353,6 @@ export class BlockManagement extends LitElement {
     
     const blocks = [];
     Object.entries(this.config.blocks).forEach(([id, config]) => {
-      // 确保每个块都有正确的结构
       blocks.push({
         id,
         entity: config.entity || '',
@@ -410,16 +388,13 @@ export class BlockManagement extends LitElement {
     const currentBlocks = this.config.blocks || {};
     const currentBlock = currentBlocks[blockId] || {};
     
-    // 如果是预设卡片，强制区域为 content
     const blockType = this.cardDefinition?.blockType || 'none';
     if (blockType === 'preset' && field === 'area') {
       value = 'content';
     }
     
-    // 应用主要字段更新
     let newBlock = { ...currentBlock, [field]: value };
     
-    // 应用自动填充的更新（如果有）
     if (updates && typeof updates === 'object') {
       newBlock = { ...newBlock, ...updates };
     }
@@ -450,7 +425,6 @@ export class BlockManagement extends LitElement {
     
     const blockId = `block_${Date.now()}`;
     
-    // 简单的初始配置
     const newBlock = {
       entity: '',
       name: '新块',
@@ -471,7 +445,6 @@ export class BlockManagement extends LitElement {
     const blockType = this.cardDefinition?.blockType || 'none';
     const block = (this.config.blocks || {})[blockId];
     
-    // 检查权限
     if (blockType !== 'custom' || block?.presetKey) {
       alert('此块不能删除');
       return;
