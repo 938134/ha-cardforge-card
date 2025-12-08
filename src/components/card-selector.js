@@ -1,5 +1,5 @@
-// 卡片选择器 - 方形紧凑版
-import { LitElement, html, css } from 'https://unpkg.com/lit@2.8.0/index.js?module';
+// components/card-selector.js - 更新版
+import { LitElement, html, css } from 'https://unpkg.com/lit@3.0.0/index.js?module';
 import { designSystem } from '../core/design-system.js';
 
 export class CardSelector extends LitElement {
@@ -107,7 +107,6 @@ export class CardSelector extends LitElement {
         color: var(--cf-text-secondary);
       }
       
-      /* 响应式设计 */
       @media (max-width: 1024px) {
         .card-grid {
           grid-template-columns: repeat(auto-fill, minmax(75px, 1fr));
