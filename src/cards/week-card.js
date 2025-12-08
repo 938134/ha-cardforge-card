@@ -32,6 +32,7 @@ export class WeekCard extends BaseCard {
 
   // 卡片元数据
   static meta = {
+    id: 'week',
     name: '星期',
     description: '显示年进度、周进度和当前日期',
     icon: '📅',
