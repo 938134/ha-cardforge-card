@@ -1,6 +1,6 @@
 // 主卡片组件 - 完全使用 Lit 框架
 import { LitElement, html, css } from 'https://unpkg.com/lit@2.8.0/index.js?module';
-import { unsafeHTML } from 'lit/directives/unsafe-html.js';
+import { unsafeHTML } from 'https://unpkg.com/lit-html/directives/unsafe-html.js?module';
 import { cardSystem } from '../core/card-system.js';
 import { themeSystem } from '../core/theme-system.js';
 import { designSystem } from '../core/design-system.js';
