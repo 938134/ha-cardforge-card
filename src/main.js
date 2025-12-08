@@ -1,35 +1,59 @@
-// main.js - 主入口文件（更新）
+// 主入口文件 - 注册所有自定义元素
 import { HaCardForgeCard } from './components/ha-cardforge-card.js';
 import { CardEditor } from './components/card-editor.js';
-import { cardSystem } from './core/card-system.js';
-import { themeSystem } from './core/theme-system.js';
+import { CardContainer } from './components/card-container.js';
+import { FormBuilder } from './components/form-builder.js';
+import { CardSelector } from './components/card-selector.js';
+import { ThemeSelector } from './components/theme-selector.js';
+import { BlockBase } from './blocks/block-base.js';
+import { BlockManagement } from './blocks/block-management.js';
+import { BlockEditForm } from './blocks/block-edit-form.js';
 
-// 注册自定义元素
-if (!customElements.get('ha-cardforge-card')) {
-  customElements.define('ha-cardforge-card', HaCardForgeCard);
-}
+// 注册所有自定义元素
+const elements = [
+  { name: 'ha-cardforge-card', class: HaCardForgeCard },
+  { name: 'card-editor', class: CardEditor },
+  { name: 'card-container', class: CardContainer },
+  { name: 'form-builder', class: FormBuilder },
+  { name: 'card-selector', class: CardSelector },
+  { name: 'theme-selector', class: ThemeSelector },
+  { name: 'block-base', class: BlockBase },
+  { name: 'block-management', class: BlockManagement },
+  { name: 'block-edit-form', class: BlockEditForm }
+];
 
-if (!customElements.get('card-editor')) {
-  customElements.define('card-editor', CardEditor);
-}
+// 延迟注册以避免冲突
+setTimeout(() => {
+  elements.forEach(({ name, class: ElementClass }) => {
+    if (!customElements.get(name)) {
+      customElements.define(name, ElementClass);
+      console.log(`注册自定义元素: ${name}`);
+    }
+  });
+}, 0);
 
-// 注册到 Home Assistant
+// 注册到 Home Assistant 自定义卡片
 if (window.customCards) {
   window.customCards.push({
     type: 'ha-cardforge-card',
     name: '卡片工坊',
     description: '基于统一卡片系统的卡片工坊',
-    preview: true
+    preview: true,
+    documentationURL: 'https://github.com/your-repo/cardforge'
   });
 }
 
-// 初始化系统
-(async function init() {
-  try {
-    await cardSystem.initialize();
-    await themeSystem.initialize();
-    console.debug('卡片工坊系统初始化完成');
-  } catch (error) {
-    console.error('卡片工坊初始化失败:', error);
-  }
-})();
+// 导出主要组件供外部使用
+export {
+  HaCardForgeCard,
+  CardEditor,
+  CardContainer,
+  FormBuilder,
+  CardSelector,
+  ThemeSelector,
+  BlockBase,
+  BlockManagement,
+  BlockEditForm
+};
+
+console.log('CardForge 系统初始化完成');
