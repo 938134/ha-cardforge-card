@@ -1,17 +1,25 @@
-// cards/welcome-card.js - 欢迎卡片（类版本）
-import { CardBase } from '../core/card-base.js';
-import { html, unsafeHTML } from 'https://unpkg.com/lit@3.0.0/index.js?module';
-import { getGreetingByHour, formatTime, getDisplayName, escapeHtml, getDefaultQuote, getEntityState, getEntityIcon } from '../core/card-tools.js';
+import { BaseCard } from '../core/base-card.js';
+import { html, css } from 'https://unpkg.com/lit@3.1.3/index.js?module';
+import { 
+  getGreetingByHour, 
+  formatTime, 
+  getDisplayName,
+  getDefaultQuote,
+  getEntityState,
+  getEntityIcon 
+} from '../core/card-tools.js';
 
-export class WelcomeCard extends CardBase {
-  static cardId = 'welcome';
-  static meta = {
-    name: '欢迎',
-    description: '个性化欢迎信息',
-    icon: '👋',
-    category: '信息'
+/**
+ * 欢迎卡片 - 显示个性化欢迎信息和每日名言
+ */
+export class WelcomeCard extends BaseCard {
+  static properties = {
+    ...BaseCard.properties,
+    _currentTime: { state: true },
+    _quoteData: { state: true }
   };
-  
+
+  // 卡片配置模式
   static schema = {
     use24Hour: {
       type: 'boolean',
@@ -27,151 +35,97 @@ export class WelcomeCard extends CardBase {
       type: 'boolean',
       label: '显示每日一言',
       default: true
+    },
+    autoRefresh: {
+      type: 'boolean',
+      label: '自动刷新问候语',
+      default: true
     }
   };
-  
-  static blockType = 'preset';
-  static presetBlocks = {
-    daily_quote: {
-      defaultName: '每日一言',
-      defaultIcon: 'mdi:format-quote-close',
-      required: false,
-      description: '关联一个文本传感器实体显示每日名言'
+
+  // 块配置
+  static blocksConfig = {
+    type: 'preset',
+    blocks: {
+      daily_quote: {
+        name: '每日一言',
+        icon: 'mdi:format-quote-close',
+        required: false,
+        description: '关联一个文本传感器显示每日名言'
+      }
     }
   };
-  
-  _intervalId = null;
-  
-  connectedCallback() {
-    super.connectedCallback();
-    // 每分钟更新一次时间
-    this._intervalId = setInterval(() => {
-      this.requestUpdate();
-    }, 60 * 1000);
-  }
-  
-  disconnectedCallback() {
-    super.disconnectedCallback();
-    if (this._intervalId) {
-      clearInterval(this._intervalId);
-      this._intervalId = null;
-    }
-  }
-  
-  renderContent() {
-    const now = new Date();
-    const greeting = getGreetingByHour(now);
-    const userName = getDisplayName(this.hass, this.getConfigValue('greetingName', ''), '朋友');
-    const timeStr = formatTime(now, this.getConfigValue('use24Hour', true));
-    
-    // 获取每日一言
-    let quoteHtml = html``;
-    if (this.getConfigValue('showQuote', true)) {
-      const quoteContent = this._getQuoteContent(now);
-      if (quoteContent) {
-        const { content, icon, hasEntity } = quoteContent;
-        quoteHtml = html`
-          <div class="quote-wrapper">
-            <div class="quote-container ${hasEntity ? 'has-entity' : ''}">
-              <div class="quote-icon">
-                <ha-icon icon="${icon}"></ha-icon>
-              </div>
-              <div class="quote-content">${unsafeHTML(escapeHtml(content))}</div>
-            </div>
-          </div>
-        `;
-      }
-    }
-    
-    return html`
-      <div class="welcome-card">
-        <div class="card-wrapper">
-          <div class="card-content layout-center">
-            <div class="greeting card-title">${greeting}，${userName}！</div>
-            <div class="time card-emphasis">${timeStr}</div>
-            ${quoteHtml}
-          </div>
-        </div>
-      </div>
-    `;
-  }
-  
-  _getQuoteContent(now) {
-    let quoteContent = '';
-    let quoteIcon = 'mdi:format-quote-close';
-    let hasEntity = false;
-    
-    const blocks = this.config.blocks || {};
-    
-    // 查找每日一言块
-    Object.values(blocks).forEach(block => {
-      if (block.presetKey === 'daily_quote') {
-        if (block.icon) {
-          quoteIcon = block.icon;
-        }
-        
-        if (block.entity) {
-          hasEntity = true;
-          quoteContent = getEntityState(this.hass, block.entity, getDefaultQuote(now));
-          
-          const entityIcon = getEntityIcon(this.hass, block.entity, quoteIcon);
-          if (entityIcon !== 'mdi:cube') {
-            quoteIcon = entityIcon;
-          }
-        }
-      }
-    });
-    
-    // 如果没有关联实体，使用默认名言
-    if (!hasEntity) {
-      quoteContent = getDefaultQuote(now);
-    }
-    
-    if (quoteContent) {
-      return { content: quoteContent, icon: quoteIcon, hasEntity };
-    }
-    
-    return null;
-  }
-  
-  getCustomStyles() {
-    return `
+
+  // 卡片元数据
+  static meta = {
+    name: '欢迎',
+    description: '个性化欢迎信息，可显示每日名言',
+    icon: '👋',
+    category: '信息',
+    tags: ['欢迎', '问候', '名言'],
+    recommendedSize: 3
+  };
+
+  // 卡片特有样式
+  static styles = [
+    BaseCard.styles,
+    css`
       .welcome-card {
-        min-height: 220px;
-      }
-      
-      .greeting {
-        margin-bottom: var(--cf-spacing-md);
-      }
-      
-      .time {
-        font-size: 3.5em;
-        letter-spacing: 1px;
-        margin: var(--cf-spacing-lg) 0;
-      }
-      
-      .quote-wrapper {
-        width: 100%;
         display: flex;
+        flex-direction: column;
+        align-items: center;
         justify-content: center;
-        margin-top: var(--cf-spacing-md);
+        height: 100%;
+        padding: var(--cf-spacing-xl);
+        text-align: center;
       }
-      
-      .quote-container {
+
+      .greeting-section {
+        margin-bottom: var(--cf-spacing-xl);
+      }
+
+      .greeting-text {
+        font-size: var(--cf-font-size-2xl);
+        font-weight: var(--cf-font-weight-bold);
+        color: var(--cf-text-primary);
+        margin-bottom: var(--cf-spacing-sm);
+        line-height: 1.3;
+      }
+
+      .time-display {
+        font-size: var(--cf-font-size-4xl);
+        font-weight: var(--cf-font-weight-bold);
+        color: var(--cf-primary-color);
+        letter-spacing: 1px;
+        margin-top: var(--cf-spacing-md);
+        text-shadow: 0 2px 8px rgba(var(--cf-primary-color-rgb), 0.2);
+      }
+
+      .quote-section {
         width: 100%;
         max-width: 500px;
-        padding: var(--cf-spacing-md);
+        margin-top: var(--cf-spacing-lg);
+      }
+
+      .quote-container {
+        display: flex;
+        align-items: flex-start;
+        gap: var(--cf-spacing-md);
+        padding: var(--cf-spacing-lg);
         background: var(--cf-surface-elevated);
         border: 1px solid var(--cf-border);
-        border-left: 3px solid var(--cf-accent-color);
+        border-left: 4px solid var(--cf-accent-color);
         border-radius: var(--cf-radius-lg);
-        display: flex;
-        align-items: center;
-        gap: var(--cf-spacing-md);
-        transition: all var(--cf-transition-duration-fast);
         box-shadow: var(--cf-shadow-sm);
+        transition: all var(--cf-transition-normal);
       }
-      
+
+      .quote-container:hover {
+        transform: translateY(-2px);
+        box-shadow: var(--cf-shadow-md);
+        border-color: var(--cf-primary-color);
+      }
+
       .quote-icon {
         flex-shrink: 0;
         width: 48px;
@@ -179,132 +133,271 @@ export class WelcomeCard extends CardBase {
         display: flex;
         align-items: center;
         justify-content: center;
-        border-radius: var(--cf-radius-md);
-        background: transparent;
-        color: var(--cf-text-secondary);
-        font-size: 1.5em;
-        transition: all var(--cf-transition-duration-fast);
-      }
-      
-      .quote-container.has-entity .quote-icon {
+        background: rgba(var(--cf-accent-color-rgb), 0.1);
         color: var(--cf-accent-color);
+        border-radius: var(--cf-radius-md);
+        font-size: 1.5em;
       }
-      
+
       .quote-content {
         flex: 1;
-        min-width: 0;
-        font-size: 1.1em;
-        color: var(--cf-text-primary);
-        line-height: var(--cf-line-height-relaxed);
-        font-style: italic;
-        font-weight: var(--cf-font-weight-light);
-        word-break: break-word;
-        overflow-wrap: break-word;
-        white-space: normal;
         text-align: left;
-        margin: 0;
-        padding: 0;
-        display: flex;
-        align-items: center;
-      }
-      
-      .quote-container:hover {
-        background: var(--cf-hover-color);
-        border-color: var(--cf-primary-color);
-        transform: translateY(-2px);
-        box-shadow: var(--cf-shadow-md);
-      }
-      
-      .quote-container:hover .quote-icon {
-        transform: scale(1.05);
-        color: var(--cf-primary-color);
-      }
-      
-      .quote-container:hover .quote-content {
+        font-size: var(--cf-font-size-lg);
+        line-height: var(--cf-line-height-relaxed);
         color: var(--cf-text-primary);
+        font-style: italic;
       }
-      
+
+      .quote-source {
+        margin-top: var(--cf-spacing-sm);
+        font-size: var(--cf-font-size-sm);
+        color: var(--cf-text-tertiary);
+        text-align: right;
+      }
+
+      /* 响应式设计 */
       @container cardforge-container (max-width: 600px) {
-        .time {
-          font-size: 3em;
-          margin: var(--cf-spacing-md) 0;
+        .welcome-card {
+          padding: var(--cf-spacing-lg);
         }
-        
+
+        .greeting-text {
+          font-size: var(--cf-font-size-xl);
+        }
+
+        .time-display {
+          font-size: var(--cf-font-size-3xl);
+        }
+
         .quote-container {
-          max-width: 450px;
-          padding: var(--cf-spacing-sm);
+          padding: var(--cf-spacing-md);
           gap: var(--cf-spacing-sm);
         }
-        
+
         .quote-icon {
           width: 40px;
           height: 40px;
           font-size: 1.3em;
         }
-        
+
         .quote-content {
-          font-size: 1em;
+          font-size: var(--cf-font-size-md);
         }
       }
-      
-      @container cardforge-container (max-width: 480px) {
-        .welcome-card {
-          min-height: 200px;
+
+      @container cardforge-container (max-width: 400px) {
+        .greeting-text {
+          font-size: var(--cf-font-size-lg);
         }
-        
-        .time {
-          font-size: 2.5em;
-          margin: var(--cf-spacing-sm) 0;
+
+        .time-display {
+          font-size: var(--cf-font-size-2xl);
         }
-        
+
         .quote-container {
-          max-width: 100%;
-          padding: var(--cf-spacing-sm);
+          flex-direction: column;
+          align-items: center;
+          text-align: center;
         }
-        
-        .quote-icon {
-          width: 36px;
-          height: 36px;
-          font-size: 1.2em;
-        }
-        
+
         .quote-content {
-          font-size: 0.95em;
+          text-align: center;
         }
       }
-      
-      @container cardforge-container (max-width: 360px) {
-        .welcome-card {
-          min-height: 180px;
-        }
-        
-        .greeting {
-          font-size: 1.3em;
-        }
-        
-        .time {
-          font-size: 2.2em;
-          margin: var(--cf-spacing-xs) 0;
-        }
-        
-        .quote-container {
-          padding: var(--cf-spacing-xs) var(--cf-spacing-sm);
-          gap: var(--cf-spacing-sm);
-        }
-        
-        .quote-icon {
-          width: 32px;
-          height: 32px;
-          font-size: 1.1em;
-        }
-        
-        .quote-content {
-          font-size: 0.9em;
-        }
+
+      /* 动画效果 */
+      .greeting-text {
+        animation: fadeIn var(--cf-transition-slow);
       }
+
+      .time-display {
+        animation: slideUp var(--cf-transition-slow);
+      }
+
+      @keyframes fadeIn {
+        from { opacity: 0; transform: translateY(10px); }
+        to { opacity: 1; transform: translateY(0); }
+      }
+
+      @keyframes slideUp {
+        from { opacity: 0; transform: translateY(20px); }
+        to { opacity: 1; transform: translateY(0); }
+      }
+    `
+  ];
+
+  constructor() {
+    super();
+    this._currentTime = new Date();
+    this._quoteData = null;
+    this._updateTimer = null;
+  }
+
+  connectedCallback() {
+    super.connectedCallback();
+    if (this.config?.autoRefresh !== false) {
+      this._startAutoUpdate();
+    }
+  }
+
+  disconnectedCallback() {
+    super.disconnectedCallback();
+    this._stopAutoUpdate();
+  }
+
+  willUpdate(changedProperties) {
+    super.willUpdate(changedProperties);
+    if (changedProperties.has('hass') || changedProperties.has('config')) {
+      this._updateQuoteData();
+    }
+  }
+
+  /**
+   * 开始自动更新
+   */
+  _startAutoUpdate() {
+    this._updateTimer = setInterval(() => {
+      this._currentTime = new Date();
+      this.requestUpdate();
+    }, 60000); // 每分钟更新一次
+  }
+
+  /**
+   * 停止自动更新
+   */
+  _stopAutoUpdate() {
+    if (this._updateTimer) {
+      clearInterval(this._updateTimer);
+      this._updateTimer = null;
+    }
+  }
+
+  /**
+   * 更新名言数据
+   */
+  _updateQuoteData() {
+    const blocks = this.config?.blocks || {};
+    let quoteEntity = null;
+    let quoteIcon = 'mdi:format-quote-close';
+
+    // 查找名言实体
+    Object.values(blocks).forEach(block => {
+      if (block.presetKey === 'daily_quote' && block.entity) {
+        quoteEntity = block.entity;
+        quoteIcon = block.icon || quoteIcon;
+      }
+    });
+
+    this._quoteData = {
+      quoteEntity,
+      quoteIcon,
+      timestamp: Date.now()
+    };
+  }
+
+  /**
+   * 处理卡片数据
+   */
+  async processCardData() {
+    const { 
+      use24Hour = true, 
+      greetingName = '', 
+      showQuote = true 
+    } = this.config;
+
+    // 获取问候语和用户名
+    const greeting = getGreetingByHour(this._currentTime);
+    const userName = getDisplayName(this.hass, greetingName, '朋友');
+    const timeStr = formatTime(this._currentTime, use24Hour);
+
+    // 获取名言
+    let quote = null;
+    if (showQuote && this._quoteData) {
+      if (this._quoteData.quoteEntity && this.hass?.states) {
+        // 从实体获取名言
+        const entityState = getEntityState(
+          this.hass, 
+          this._quoteData.quoteEntity, 
+          getDefaultQuote(this._currentTime)
+        );
+        
+        // 获取实体图标
+        const entityIcon = getEntityIcon(
+          this.hass, 
+          this._quoteData.quoteEntity, 
+          this._quoteData.quoteIcon
+        );
+
+        quote = {
+          content: entityState,
+          icon: entityIcon,
+          source: '实体',
+          hasEntity: true
+        };
+      } else {
+        // 使用默认名言
+        quote = {
+          content: getDefaultQuote(this._currentTime),
+          icon: this._quoteData.quoteIcon,
+          source: '默认',
+          hasEntity: false
+        };
+      }
+    }
+
+    return {
+      greeting,
+      userName,
+      time: timeStr,
+      quote,
+      showQuote
+    };
+  }
+
+  /**
+   * 渲染卡片内容
+   */
+  renderCardContent() {
+    const { greeting, userName, time, quote, showQuote } = this.renderData;
+
+    return html`
+      <div class="welcome-card">
+        <div class="greeting-section">
+          <div class="greeting-text">${greeting}，${userName}！</div>
+          <div class="time-display">${time}</div>
+        </div>
+
+        ${showQuote && quote ? html`
+          <div class="quote-section">
+            <div class="quote-container">
+              <div class="quote-icon">
+                <ha-icon .icon=${quote.icon}></ha-icon>
+              </div>
+              <div class="quote-content">
+                ${quote.content}
+                ${quote.source === '实体' ? html`
+                  <div class="quote-source">—— 每日一言</div>
+                ` : ''}
+              </div>
+            </div>
+          </div>
+        ` : ''}
+      </div>
     `;
+  }
+
+  /**
+   * 获取卡片尺寸
+   */
+  getCardSize() {
+    return this.config?.card_size || 3;
   }
 }
 
-// 导出卡片类用于注册
-export const CardClass = WelcomeCard;
+// 注册卡片
+if (!customElements.get('welcome-card')) {
+  customElements.define('welcome-card', WelcomeCard);
+}
+
+// 导出卡片类供卡片系统使用
+export default WelcomeCard;
