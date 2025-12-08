@@ -1,4 +1,4 @@
-// 主题系统 - 修复版
+// core/theme-system.js - 修复版
 class ThemeSystem {
   constructor() {
     this.themes = new Map();
@@ -72,6 +72,11 @@ class ThemeSystem {
     }
     
     return styles;
+  }
+  
+  // 获取主题定义
+  getThemeDefinition(themeId) {
+    return this.getTheme(themeId);
   }
 }
 
