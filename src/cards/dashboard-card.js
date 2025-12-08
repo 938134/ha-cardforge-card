@@ -1,5 +1,5 @@
 // cards/dashboard-card.js - 仪表盘卡片（完全使用 Lit 模板）
-import { html, css } from 'lit';
+import { LitElement, html, css } from 'https://unpkg.com/lit@2.8.0/index.js?module';
 import { createCardStyles } from '../core/card-styles.js';
 import { BlockBase } from '../blocks/block-base.js';
 

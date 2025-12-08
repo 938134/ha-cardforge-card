@@ -1,5 +1,5 @@
 // themes/gradient-theme.js - 修复版（使用 CSSResult）
-import { css } from 'lit';
+import { LitElement, html, css } from 'https://unpkg.com/lit@2.8.0/index.js?module';
 
 export const theme = {
   id: 'gradient',

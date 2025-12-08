@@ -1,5 +1,5 @@
 // blocks/block-management.js - 修复数据传递（完全使用 Lit 框架）
-import { LitElement, html, css } from 'lit';
+import { LitElement, html, css } from 'https://unpkg.com/lit@2.8.0/index.js?module';
 import { designSystem } from '../core/design-system.js';
 import { BlockBase } from './block-base.js';
 import { BlockEditForm } from './block-edit-form.js';

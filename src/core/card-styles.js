@@ -1,5 +1,5 @@
 // core/card-styles.js - 完全使用 Lit 框架
-import { css } from 'lit';
+import { LitElement, html, css } from 'https://unpkg.com/lit@2.8.0/index.js?module';
 
 /**
  * 基础卡片样式 - 所有卡片共享

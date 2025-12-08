@@ -1,5 +1,5 @@
 // 主题系统 - 完全使用 Lit 框架
-import { css } from 'lit';
+import { LitElement, html, css } from 'https://unpkg.com/lit@2.8.0/index.js?module';
 
 class ThemeSystem {
   constructor() {

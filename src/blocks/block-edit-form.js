@@ -1,5 +1,5 @@
 // blocks/block-edit-form.js - 添加自动填充功能（完全使用 Lit 框架）
-import { LitElement, html, css } from 'lit';
+import { LitElement, html, css } from 'https://unpkg.com/lit@2.8.0/index.js?module';
 import { designSystem } from '../core/design-system.js';
 import { ENTITY_ICONS } from './block-config.js';
 

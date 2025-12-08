@@ -1,5 +1,5 @@
 // 设计系统变量 - 包含块样式完整版
-import { css } from 'lit';
+import { LitElement, html, css } from 'https://unpkg.com/lit@2.8.0/index.js?module';
 
 export const designSystem = css`
   :host {

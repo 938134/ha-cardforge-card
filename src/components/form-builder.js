@@ -1,5 +1,5 @@
 // 表单构建器 - 智能多列布局（完全使用 Lit 框架）
-import { LitElement, html, css } from 'lit';
+import { LitElement, html, css } from 'https://unpkg.com/lit@2.8.0/index.js?module';
 import { designSystem } from '../core/design-system.js';
 
 class FormBuilder extends LitElement {

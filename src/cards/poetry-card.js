@@ -1,5 +1,5 @@
 // cards/poetry-card.js - 完全使用 Lit 模板
-import { html, css } from 'lit';
+import { LitElement, html, css } from 'https://unpkg.com/lit@2.8.0/index.js?module';
 import { escapeHtml, formatPoetryContent, getEntityState } from '../core/card-tools.js';
 import { createCardStyles } from '../core/card-styles.js';
 
