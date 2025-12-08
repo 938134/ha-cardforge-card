@@ -1,4 +1,4 @@
-// core/card-tools.js - 卡片工坊核心工具库（重命名版）
+// core/card-tools.js - 卡片工坊核心工具库（更新版）
 // 所有函数都是纯函数，无副作用，便于测试和维护
 
 /**
@@ -290,6 +290,39 @@ export function getEntityIcon(hass, entityId, defaultIcon = 'mdi:cube') {
   }
   
   return defaultIcon;
+}
+
+/**
+ * 获取实体单位
+ * @param {Object} hass - Home Assistant对象
+ * @param {string} entityId - 实体ID
+ * @returns {string} 单位
+ */
+export function getEntityUnit(hass, entityId) {
+  if (!hass?.states || !entityId) return '';
+  
+  const entity = hass.states[entityId];
+  if (!entity) return '';
+  
+  return entity.attributes?.unit_of_measurement || '';
+}
+
+/**
+ * 获取带单位的实体状态
+ * @param {Object} hass - Home Assistant对象
+ * @param {string} entityId - 实体ID
+ * @param {string} defaultValue - 默认值
+ * @returns {string} 带单位的状态值
+ */
+export function getEntityStateWithUnit(hass, entityId, defaultValue = '') {
+  const state = getEntityState(hass, entityId, defaultValue);
+  const unit = getEntityUnit(hass, entityId);
+  
+  if (unit && state !== defaultValue) {
+    return `${state} ${unit}`;
+  }
+  
+  return state;
 }
 
 /**
