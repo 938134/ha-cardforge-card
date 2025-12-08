@@ -1,17 +1,18 @@
-// cards/clock-card.js - 修复版
+// cards/clock-card.js - 时钟卡片（类版本）
+import { CardBase } from '../core/card-base.js';
+import { html } from 'https://unpkg.com/lit@3.0.0/index.js?module';
 import { formatTime, formatDate, getWeekday } from '../core/card-tools.js';
-import { createCardStyles } from '../core/card-styles.js';
 
-export const card = {
-  id: 'clock',
-  meta: {
+export class ClockCard extends CardBase {
+  static cardId = 'clock';
+  static meta = {
     name: '时钟',
     description: '显示当前时间和日期',
     icon: '⏰',
     category: '时间'
-  },
+  };
   
-  schema: {
+  static schema = {
     use24Hour: {
       type: 'boolean',
       label: '24小时制',
@@ -32,28 +33,58 @@ export const card = {
       label: '显示秒数',
       default: false
     }
-  },
+  };
   
-  template: (config, data) => {
+  // 更新时间
+  _intervalId = null;
+  
+  connectedCallback() {
+    super.connectedCallback();
+    this._startTimer();
+  }
+  
+  disconnectedCallback() {
+    super.disconnectedCallback();
+    this._stopTimer();
+  }
+  
+  _startTimer() {
+    this._stopTimer();
+    this._intervalId = setInterval(() => {
+      this.requestUpdate();
+    }, 1000);
+  }
+  
+  _stopTimer() {
+    if (this._intervalId) {
+      clearInterval(this._intervalId);
+      this._intervalId = null;
+    }
+  }
+  
+  renderContent() {
     const now = new Date();
+    const showSeconds = this.getConfigValue('showSeconds', false);
+    const use24Hour = this.getConfigValue('use24Hour', true);
+    const showDate = this.getConfigValue('showDate', true);
+    const showWeekday = this.getConfigValue('showWeekday', true);
     
-    // 使用工具库函数
-    let timeHtml = '';
-    if (config.showSeconds) {
-      const baseTime = formatTime(now, config.use24Hour);
+    let timeHtml;
+    if (showSeconds) {
+      const baseTime = formatTime(now, use24Hour);
       const seconds = now.getSeconds().toString().padStart(2, '0');
-      timeHtml = `<div class="clock-time card-emphasis">${baseTime}:${seconds}</div>`;
+      timeHtml = html`<div class="clock-time card-emphasis">${baseTime}:${seconds}</div>`;
     } else {
-      timeHtml = `<div class="clock-time card-emphasis">${formatTime(now, config.use24Hour)}</div>`;
+      timeHtml = html`<div class="clock-time card-emphasis">${formatTime(now, use24Hour)}</div>`;
     }
     
-    const dateHtml = config.showDate ? 
-      `<div class="clock-date card-subtitle">${formatDate(now)}</div>` : '';
+    const dateHtml = showDate ? 
+      html`<div class="clock-date card-subtitle">${formatDate(now)}</div>` : '';
     
-    const weekdayHtml = config.showWeekday ? 
-      `<div class="clock-weekday card-caption">${getWeekday(now)}</div>` : '';
+    const weekdayHtml = showWeekday ? 
+      html`<div class="clock-weekday card-caption">${getWeekday(now)}</div>` : '';
     
-    return `
+    return html`
       <div class="clock-card">
         <div class="card-wrapper">
           <div class="card-content layout-center">
@@ -64,19 +95,18 @@ export const card = {
         </div>
       </div>
     `;
-  },
+  }
   
-  styles: (config) => {
-    // 只保留时钟卡片特有的样式
-    const customStyles = `
+  getCustomStyles() {
+    return `
       .clock-card {
-        min-height: 160px; /* 增加最小高度 */
+        min-height: 160px;
       }
       
       .clock-time {
         font-size: var(--cf-font-size-4xl);
         letter-spacing: 1px;
-        margin: var(--cf-spacing-md) 0; /* 增加上下间距 */
+        margin: var(--cf-spacing-md) 0;
       }
       
       .clock-date {
@@ -88,7 +118,6 @@ export const card = {
         margin-top: var(--cf-spacing-xs);
       }
       
-      /* 时钟卡片特定的响应式 */
       @container cardforge-container (max-width: 400px) {
         .clock-time {
           font-size: var(--cf-font-size-3xl);
@@ -103,8 +132,8 @@ export const card = {
         }
       }
     `;
-    
-    // 使用通用样式工具
-    return createCardStyles(customStyles);
   }
-};
+}
+
+// 导出卡片类用于注册
+export const CardClass = ClockCard;
