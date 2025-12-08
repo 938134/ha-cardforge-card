@@ -1,6 +1,6 @@
-// 主卡片组件 - 修复版
-import { LitElement, html, css } from 'https://unpkg.com/lit@2.8.0/index.js?module';
-import { unsafeHTML } from 'https://unpkg.com/lit-html/directives/unsafe-html.js?module';
+// 主卡片组件 - 完全使用 Lit 框架
+import { LitElement, html, css } from 'lit';
+import { unsafeHTML } from 'lit/directives/unsafe-html.js';
 import { cardSystem } from '../core/card-system.js';
 import { themeSystem } from '../core/theme-system.js';
 import { designSystem } from '../core/design-system.js';
@@ -126,7 +126,6 @@ class HaCardForgeCard extends LitElement {
         this.config.card_type,
         this.config,
         this.hass
-        // 不再传递 themeVariables 参数
       );
     } catch (error) {
       throw new Error(`卡片渲染失败: ${error.message}`);

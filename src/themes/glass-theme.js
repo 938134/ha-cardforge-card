@@ -1,11 +1,13 @@
-// themes/glass-theme.js - 修复版
+// themes/glass-theme.js - 修复版（使用 CSSResult）
+import { css } from 'lit';
+
 export const theme = {
   id: 'glass',
   name: '毛玻璃',
   description: '半透明磨砂玻璃效果',
   icon: '🔮',
   
-  styles: `
+  styles: css`
     /* 毛玻璃主题 - 卡片容器 */
     .cardforge-container {
       background: linear-gradient(135deg, 

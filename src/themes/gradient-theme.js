@@ -1,11 +1,13 @@
-// themes/gradient-theme.js - 修复版
+// themes/gradient-theme.js - 修复版（使用 CSSResult）
+import { css } from 'lit';
+
 export const theme = {
   id: 'gradient',
   name: '渐变',
   description: '时尚渐变背景，Material Design配色',
   icon: '🌈',
   
-  styles: `
+  styles: css`
     /* 渐变主题 - 卡片容器 */
     .cardforge-container {
       background: linear-gradient(135deg, 

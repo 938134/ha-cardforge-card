@@ -1,4 +1,6 @@
-// 主题系统 - 修复版
+// 主题系统 - 完全使用 Lit 框架
+import { css } from 'lit';
+
 class ThemeSystem {
   constructor() {
     this.themes = new Map();
@@ -56,7 +58,7 @@ class ThemeSystem {
     }));
   }
 
-  // 获取主题样式 - 修复版
+  // 获取主题样式 - 返回 CSSResult
   getThemeStyles(themeId) {
     const theme = this.getTheme(themeId);
     if (!theme) {
@@ -64,14 +66,15 @@ class ThemeSystem {
       return this.getThemeStyles('auto');
     }
     
-    let styles = '';
+    let stylesString = '';
     
     // 添加主题样式
     if (theme.styles) {
-      styles += theme.styles;
+      stylesString = theme.styles;
     }
     
-    return styles;
+    // 将字符串转换为 CSSResult
+    return css([stylesString]);
   }
 }
 

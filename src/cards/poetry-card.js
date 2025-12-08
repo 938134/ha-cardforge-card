@@ -1,4 +1,5 @@
-// cards/poetry-card.js - 修复版
+// cards/poetry-card.js - 完全使用 Lit 模板
+import { html, css } from 'lit';
 import { escapeHtml, formatPoetryContent, getEntityState } from '../core/card-tools.js';
 import { createCardStyles } from '../core/card-styles.js';
 
@@ -62,61 +63,8 @@ export const card = {
     const blocks = config.blocks || {};
     const defaultPoetry = getDefaultPoetry();
     
-    // 提取块内容
-    const title = _getBlockContent(blocks, 'poetry_title', defaultPoetry.title);
-    const dynasty = _getBlockContent(blocks, 'poetry_dynasty', defaultPoetry.dynasty);
-    const author = _getBlockContent(blocks, 'poetry_author', defaultPoetry.author);
-    const content = _getBlockContent(blocks, 'poetry_content', defaultPoetry.content);
-    const translation = config.showTranslation ? 
-      _getBlockContent(blocks, 'poetry_translation', defaultPoetry.translation) : '';
-    
-    // 如果没有任何内容，显示空状态
-    if (!title && !content) {
-      return `
-        <div class="poetry-card">
-          <div class="card-empty">
-            <div class="card-empty-icon">📜</div>
-            <div class="card-empty-text">诗词卡片需要配置内容</div>
-          </div>
-        </div>
-      `;
-    }
-    
-    const formattedContent = content ? formatPoetryContent(content) : '';
-    const formattedTranslation = translation ? formatPoetryContent(translation) : '';
-    
-    return `
-      <div class="poetry-card font-${config.fontSize}">
-        <div class="card-wrapper">
-          <div class="card-content layout-center">
-            ${title ? `<div class="poetry-title card-emphasis">${escapeHtml(title)}</div>` : ''}
-            
-            ${(dynasty || author) ? `
-              <div class="poetry-meta layout-horizontal card-spacing-sm">
-                ${dynasty ? `<span class="meta-item dynasty">${escapeHtml(dynasty)}</span>` : ''}
-                ${dynasty && author ? `<span class="separator">·</span>` : ''}
-                ${author ? `<span class="meta-item author">${escapeHtml(author)}</span>` : ''}
-              </div>
-            ` : ''}
-            
-            ${formattedContent ? `
-              <div class="poetry-divider"></div>
-              <div class="poetry-content">${formattedContent}</div>
-            ` : ''}
-            
-            ${formattedTranslation ? `
-              <div class="translation-divider card-spacing-md"></div>
-              <div class="translation-container">
-                <div class="translation-label">译文</div>
-                <div class="translation-content">${formattedTranslation}</div>
-              </div>
-            ` : ''}
-          </div>
-        </div>
-      </div>
-    `;
-    
-    function _getBlockContent(blocks, blockId, defaultValue = '') {
+    // 提取块内容的辅助函数
+    const getBlockContent = (blockId, defaultValue = '') => {
       const blockEntry = Object.entries(blocks).find(([id, block]) => 
         block.presetKey === blockId
       );
@@ -130,7 +78,60 @@ export const card = {
       }
       
       return defaultValue;
+    };
+    
+    const title = getBlockContent('poetry_title', defaultPoetry.title);
+    const dynasty = getBlockContent('poetry_dynasty', defaultPoetry.dynasty);
+    const author = getBlockContent('poetry_author', defaultPoetry.author);
+    const content = getBlockContent('poetry_content', defaultPoetry.content);
+    const translation = config.showTranslation ? 
+      getBlockContent('poetry_translation', defaultPoetry.translation) : '';
+    
+    // 如果没有任何内容，显示空状态
+    if (!title && !content) {
+      return html`
+        <div class="poetry-card">
+          <div class="card-empty">
+            <div class="card-empty-icon">📜</div>
+            <div class="card-empty-text">诗词卡片需要配置内容</div>
+          </div>
+        </div>
+      `;
     }
+    
+    const formattedContent = content ? formatPoetryContent(content) : '';
+    const formattedTranslation = translation ? formatPoetryContent(translation) : '';
+    
+    return html`
+      <div class="poetry-card font-${config.fontSize}">
+        <div class="card-wrapper">
+          <div class="card-content layout-center">
+            ${title ? html`<div class="poetry-title card-emphasis">${title}</div>` : ''}
+            
+            ${(dynasty || author) ? html`
+              <div class="poetry-meta layout-horizontal card-spacing-sm">
+                ${dynasty ? html`<span class="meta-item dynasty">${dynasty}</span>` : ''}
+                ${dynasty && author ? html`<span class="separator">·</span>` : ''}
+                ${author ? html`<span class="meta-item author">${author}</span>` : ''}
+              </div>
+            ` : ''}
+            
+            ${formattedContent ? html`
+              <div class="poetry-divider"></div>
+              <div class="poetry-content">${formattedContent}</div>
+            ` : ''}
+            
+            ${formattedTranslation ? html`
+              <div class="translation-divider card-spacing-md"></div>
+              <div class="translation-container">
+                <div class="translation-label">译文</div>
+                <div class="translation-content">${formattedTranslation}</div>
+              </div>
+            ` : ''}
+          </div>
+        </div>
+      </div>
+    `;
     
     function getDefaultPoetry() {
       return {
@@ -144,10 +145,9 @@ export const card = {
   },
   
   styles: (config, theme) => {
-    // 只保留诗词卡片特有的样式
-    const customStyles = `
+    const customStyles = css`
       .poetry-card {
-        min-height: 260px; /* 增加最小高度 */
+        min-height: 260px;
         font-family: 'ZCOOL XiaoWei', 'Ma Shan Zheng', 'Noto Serif SC', var(--cf-font-family-base, serif);
         background: var(--cf-surface);
         border-radius: var(--cf-radius-lg);
@@ -320,7 +320,6 @@ export const card = {
       }
     `;
     
-    // 使用通用样式工具
     return createCardStyles(customStyles);
   }
 };

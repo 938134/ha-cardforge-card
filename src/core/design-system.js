@@ -1,5 +1,5 @@
 // 设计系统变量 - 包含块样式完整版
-import { css } from 'https://unpkg.com/lit@2.8.0/index.js?module';
+import { css } from 'lit';
 
 export const designSystem = css`
   :host {
@@ -74,7 +74,7 @@ export const designSystem = css`
     --cf-shadow-xl: 0 20px 40px rgba(0, 0, 0, 0.2);
     --cf-shadow-inner: inset 0 2px 4px rgba(0, 0, 0, 0.06);
     
-    /* 动画系统 - 仅保留时长和缓动函数 */
+    /* 动画系统 */
     --cf-transition-duration-fast: 150ms;
     --cf-transition-duration-normal: 250ms;
     --cf-transition-duration-slow: 400ms;
@@ -120,33 +120,66 @@ export const designSystem = css`
     --cf-line-height-normal: 1.5;
     --cf-line-height-relaxed: 1.75;
     
-    /* ===== 2. 布局模式 (分子) ===== */
+    /* ===== 2. 布局模式 ===== */
     
-    /* 水平布局 - 用于标题块和页脚块 */
-    --cf-layout-horizontal: {
+    /* 水平布局 */
+    .layout-horizontal {
       display: flex;
       align-items: center;
       gap: var(--cf-spacing-md);
       flex-wrap: nowrap;
       text-align: left;
       width: 100%;
-    };
+    }
     
-    /* 垂直布局 - 用于内容块垂直模式 */
-    --cf-layout-vertical: {
+    /* 垂直布局 */
+    .layout-vertical {
       display: flex;
       flex-direction: column;
       align-items: center;
       gap: var(--cf-spacing-sm);
       text-align: center;
       width: 100%;
-    };
+    }
     
-    /* ===== 3. 块组件配方 (有机体) ===== */
+    /* 居中布局 */
+    .layout-center {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      width: 100%;
+    }
     
-    /* 标题块配方 */
-    --cf-recipe-header-block: {
-      @apply --cf-layout-horizontal;
+    /* 两端对齐 */
+    .layout-between {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      width: 100%;
+    }
+    
+    /* 流式布局 */
+    .layout-flow {
+      display: flex;
+      flex-wrap: wrap;
+      gap: var(--cf-spacing-md);
+      justify-content: flex-start;
+      width: 100%;
+    }
+    
+    /* 网格布局 */
+    .layout-grid {
+      display: grid;
+      gap: var(--cf-spacing-md);
+      width: 100%;
+    }
+    
+    /* ===== 3. 块组件配方 ===== */
+    
+    /* 标题块样式 */
+    .header-block {
       padding: var(--cf-spacing-md);
       background: rgba(var(--cf-primary-color-rgb), 0.08);
       border-left: 3px solid var(--cf-primary-color);
@@ -154,56 +187,40 @@ export const designSystem = css`
       border: 1px solid rgba(var(--cf-primary-color-rgb), 0.3);
       min-height: 60px;
       transition: all var(--cf-transition-duration-fast) var(--cf-easing-standard);
-    };
+    }
     
-    /* 内容块配方 - 基础 */
-    --cf-recipe-content-block: {
+    /* 内容块样式 */
+    .content-block {
       padding: var(--cf-spacing-lg);
       background: var(--cf-surface);
       border: 1px solid var(--cf-border);
       border-radius: var(--cf-radius-md);
       min-height: 70px;
       transition: all var(--cf-transition-duration-fast) var(--cf-easing-standard);
-    };
+    }
     
-    /* 内容块 - 水平变体 */
-    --cf-recipe-content-block-horizontal: {
-      @apply --cf-layout-horizontal;
-      @apply --cf-recipe-content-block;
-    };
-    
-    /* 内容块 - 垂直变体 */
-    --cf-recipe-content-block-vertical: {
-      @apply --cf-layout-vertical;
-      @apply --cf-recipe-content-block;
-    };
-    
-    /* 页脚块配方 */
-    --cf-recipe-footer-block: {
-      @apply --cf-layout-horizontal;
+    /* 页脚块样式 */
+    .footer-block {
       padding: var(--cf-spacing-sm);
       background: rgba(var(--cf-accent-color-rgb), 0.05);
       border-top: 1px solid var(--cf-border);
       border-radius: var(--cf-radius-md);
       min-height: 50px;
       transition: all var(--cf-transition-duration-fast) var(--cf-easing-standard);
-    };
+    }
     
     /* 块通用交互状态 */
-    --cf-block-hover-state: {
+    .header-block:hover,
+    .content-block:hover,
+    .footer-block:hover {
       background: var(--cf-hover-color);
       border-color: var(--cf-primary-color);
       transform: translateY(-2px);
       box-shadow: var(--cf-shadow-md);
-    };
-    
-    --cf-block-active-state: {
-      transform: translateY(-1px);
-      box-shadow: var(--cf-shadow-sm);
-    };
+    }
     
     /* 块图标样式 */
-    --cf-block-icon-base: {
+    .block-icon-base {
       flex-shrink: 0;
       width: 48px;
       height: 48px;
@@ -215,15 +232,15 @@ export const designSystem = css`
       color: var(--cf-text-secondary);
       font-size: 1.5em;
       transition: all var(--cf-transition-duration-fast) var(--cf-easing-standard);
-    };
+    }
     
-    --cf-block-icon-hover: {
+    .block-icon-base:hover {
       color: var(--cf-primary-color);
       background: rgba(var(--cf-primary-color-rgb), 0.15);
       transform: scale(1.05);
-    };
+    }
     
-    /* ===== 4. 工具类 (实用程序) ===== */
+    /* ===== 4. 工具类 ===== */
     
     /* 布局工具 */
     .cf-flex-center {
@@ -313,31 +330,24 @@ export const designSystem = css`
     }
     
     /* 深色模式下的块样式调整 */
-    :host {
-      --cf-recipe-header-block: {
-        @apply --cf-layout-horizontal;
-        padding: var(--cf-spacing-md);
-        background: rgba(var(--cf-primary-color-rgb), 0.12);
-        border-left: 3px solid var(--cf-primary-color);
-        border-color: rgba(var(--cf-primary-color-rgb), 0.4);
-        border-radius: var(--cf-radius-md);
-        min-height: 60px;
-      };
-      
-      --cf-recipe-content-block: {
-        background: rgba(255, 255, 255, 0.08);
-        border-color: rgba(255, 255, 255, 0.15);
-      };
-      
-      --cf-recipe-footer-block: {
-        background: rgba(var(--cf-accent-color-rgb), 0.08);
-        border-top-color: rgba(255, 255, 255, 0.2);
-      };
-      
-      --cf-block-icon-base: {
-        background: rgba(var(--cf-primary-color-rgb), 0.2);
-        color: var(--cf-text-tertiary);
-      };
+    .header-block {
+      background: rgba(var(--cf-primary-color-rgb), 0.12);
+      border-color: rgba(var(--cf-primary-color-rgb), 0.4);
+    }
+    
+    .content-block {
+      background: rgba(255, 255, 255, 0.08);
+      border-color: rgba(255, 255, 255, 0.15);
+    }
+    
+    .footer-block {
+      background: rgba(var(--cf-accent-color-rgb), 0.08);
+      border-top-color: rgba(255, 255, 255, 0.2);
+    }
+    
+    .block-icon-base {
+      background: rgba(var(--cf-primary-color-rgb), 0.2);
+      color: var(--cf-text-tertiary);
     }
   }
   

@@ -1,5 +1,5 @@
-// 表单构建器 - 智能多列布局
-import { LitElement, html, css } from 'https://unpkg.com/lit@2.8.0/index.js?module';
+// 表单构建器 - 智能多列布局（完全使用 Lit 框架）
+import { LitElement, html, css } from 'lit';
 import { designSystem } from '../core/design-system.js';
 
 class FormBuilder extends LitElement {
@@ -30,16 +30,12 @@ class FormBuilder extends LitElement {
         display: flex;
         flex-direction: column;
         gap: 4px;
-        min-width: 0; /* 防止内容溢出 */
+        min-width: 0;
       }
       
       /* 字段宽度类别 */
       .field-wide {
-        grid-column: 1 / -1; /* 占满整行 */
-      }
-      
-      .field-medium {
-        /* 默认宽度，由grid控制 */
+        grid-column: 1 / -1;
       }
       
       .field-narrow {
@@ -51,7 +47,7 @@ class FormBuilder extends LitElement {
         color: var(--cf-text-secondary);
         margin-top: 2px;
         line-height: 1.4;
-        grid-column: 1 / -1; /* 描述文字占满整行 */
+        grid-column: 1 / -1;
       }
       
       /* 布尔字段组保持原有布局 */
@@ -138,7 +134,6 @@ class FormBuilder extends LitElement {
       `;
     }
 
-    // 分离布尔字段和其他字段
     const booleanFields = [];
     const otherFields = [];
     
@@ -183,16 +178,13 @@ class FormBuilder extends LitElement {
     `;
   }
 
-  // 判断字段宽度类别
   _getFieldWidthClass(field) {
     switch (field.type) {
       case 'entity':
       case 'text':
-        // 实体选择和文本输入通常需要较宽
         return 'field-wide';
         
       case 'select':
-        // 选择器根据选项数量判断
         const options = field.options || [];
         if (options.length <= 3) {
           return 'field-narrow';
@@ -201,7 +193,6 @@ class FormBuilder extends LitElement {
         
       case 'number':
       case 'icon':
-        // 数字和图标选择器通常较窄
         return 'field-narrow';
         
       default:

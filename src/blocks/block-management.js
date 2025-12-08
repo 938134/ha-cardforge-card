@@ -1,5 +1,5 @@
-// blocks/block-management.js - 修复数据传递
-import { LitElement, html, css } from 'https://unpkg.com/lit@2.8.0/index.js?module';
+// blocks/block-management.js - 修复数据传递（完全使用 Lit 框架）
+import { LitElement, html, css } from 'lit';
 import { designSystem } from '../core/design-system.js';
 import { BlockBase } from './block-base.js';
 import { BlockEditForm } from './block-edit-form.js';
@@ -11,7 +11,7 @@ export class BlockManagement extends LitElement {
     hass: { type: Object },
     cardDefinition: { type: Object },
     _editingBlockId: { state: true },
-    _currentBlocks: { state: true }  // 新增：缓存块数据
+    _currentBlocks: { state: true }
   };
 
   static styles = [
@@ -227,7 +227,7 @@ export class BlockManagement extends LitElement {
     this.hass = null;
     this.cardDefinition = {};
     this._editingBlockId = null;
-    this._currentBlocks = [];  // 新增
+    this._currentBlocks = [];
   }
 
   willUpdate(changedProperties) {
@@ -288,7 +288,6 @@ export class BlockManagement extends LitElement {
         
         <!-- 块视图 -->
         <div class="block-view-container">
-          <!-- 关键修复：确保传递纯对象，而不是JSON字符串 -->
           <block-base
             .block=${blockConfig}
             .hass=${this.hass}
@@ -374,7 +373,6 @@ export class BlockManagement extends LitElement {
     
     const blocks = [];
     Object.entries(this.config.blocks).forEach(([id, config]) => {
-      // 确保每个块都有正确的结构
       blocks.push({
         id,
         entity: config.entity || '',
@@ -410,16 +408,13 @@ export class BlockManagement extends LitElement {
     const currentBlocks = this.config.blocks || {};
     const currentBlock = currentBlocks[blockId] || {};
     
-    // 如果是预设卡片，强制区域为 content
     const blockType = this.cardDefinition?.blockType || 'none';
     if (blockType === 'preset' && field === 'area') {
       value = 'content';
     }
     
-    // 应用主要字段更新
     let newBlock = { ...currentBlock, [field]: value };
     
-    // 应用自动填充的更新（如果有）
     if (updates && typeof updates === 'object') {
       newBlock = { ...newBlock, ...updates };
     }
@@ -450,7 +445,6 @@ export class BlockManagement extends LitElement {
     
     const blockId = `block_${Date.now()}`;
     
-    // 简单的初始配置
     const newBlock = {
       entity: '',
       name: '新块',
@@ -471,7 +465,6 @@ export class BlockManagement extends LitElement {
     const blockType = this.cardDefinition?.blockType || 'none';
     const block = (this.config.blocks || {})[blockId];
     
-    // 检查权限
     if (blockType !== 'custom' || block?.presetKey) {
       alert('此块不能删除');
       return;

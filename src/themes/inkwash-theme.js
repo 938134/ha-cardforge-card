@@ -1,11 +1,13 @@
-// themes/inkwash-theme.js - 修复版
+// themes/inkwash-theme.js - 修复版（使用 CSSResult）
+import { css } from 'lit';
+
 export const theme = {
   id: 'inkwash',
   name: '水墨',
   description: '手工宣纸质感，温暖书卷气息',
   icon: '🖌️',
   
-  styles: `
+  styles: css`
     /* 水墨主题 - 卡片容器 */
     .cardforge-container {
       /* 宣纸底色 */

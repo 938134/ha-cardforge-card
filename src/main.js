@@ -1,4 +1,4 @@
-// 主入口文件
+// 主入口文件（完全使用 Lit 框架）
 import { HaCardForgeCard } from './components/ha-cardforge-card.js';
 import { CardEditor } from './components/card-editor.js';
 import { cardSystem } from './core/card-system.js';

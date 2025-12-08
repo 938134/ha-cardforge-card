@@ -1,5 +1,5 @@
-// 主题选择器 - 方形紧凑版
-import { LitElement, html, css } from 'https://unpkg.com/lit@2.8.0/index.js?module';
+// 主题选择器 - 方形紧凑版（完全使用 Lit 框架）
+import { LitElement, html, css } from 'lit';
 import { designSystem } from '../core/design-system.js';
 
 export class ThemeSelector extends LitElement {

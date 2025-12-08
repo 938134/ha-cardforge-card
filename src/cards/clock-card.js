@@ -1,4 +1,5 @@
-// cards/clock-card.js - 修复版
+// cards/clock-card.js - 完全使用 Lit 模板
+import { html, css } from 'lit';
 import { formatTime, formatDate, getWeekday } from '../core/card-tools.js';
 import { createCardStyles } from '../core/card-styles.js';
 
@@ -38,28 +39,34 @@ export const card = {
     const now = new Date();
     
     // 使用工具库函数
-    let timeHtml = '';
-    if (config.showSeconds) {
-      const baseTime = formatTime(now, config.use24Hour);
-      const seconds = now.getSeconds().toString().padStart(2, '0');
-      timeHtml = `<div class="clock-time card-emphasis">${baseTime}:${seconds}</div>`;
-    } else {
-      timeHtml = `<div class="clock-time card-emphasis">${formatTime(now, config.use24Hour)}</div>`;
-    }
+    const timeStr = formatTime(now, config.use24Hour);
+    const dateStr = formatDate(now);
+    const weekdayStr = getWeekday(now);
     
-    const dateHtml = config.showDate ? 
-      `<div class="clock-date card-subtitle">${formatDate(now)}</div>` : '';
-    
-    const weekdayHtml = config.showWeekday ? 
-      `<div class="clock-weekday card-caption">${getWeekday(now)}</div>` : '';
-    
-    return `
+    return html`
       <div class="clock-card">
         <div class="card-wrapper">
           <div class="card-content layout-center">
-            ${timeHtml}
-            ${dateHtml}
-            ${weekdayHtml}
+            ${config.showSeconds 
+              ? html`
+                  <div class="clock-time card-emphasis">
+                    ${timeStr}:${now.getSeconds().toString().padStart(2, '0')}
+                  </div>
+                `
+              : html`
+                  <div class="clock-time card-emphasis">${timeStr}</div>
+                `
+            }
+            
+            ${config.showDate 
+              ? html`<div class="clock-date card-subtitle">${dateStr}</div>` 
+              : ''
+            }
+            
+            ${config.showWeekday 
+              ? html`<div class="clock-weekday card-caption">${weekdayStr}</div>` 
+              : ''
+            }
           </div>
         </div>
       </div>
@@ -67,16 +74,15 @@ export const card = {
   },
   
   styles: (config) => {
-    // 只保留时钟卡片特有的样式
-    const customStyles = `
+    const customStyles = css`
       .clock-card {
-        min-height: 160px; /* 增加最小高度 */
+        min-height: 160px;
       }
       
       .clock-time {
         font-size: var(--cf-font-size-4xl);
         letter-spacing: 1px;
-        margin: var(--cf-spacing-md) 0; /* 增加上下间距 */
+        margin: var(--cf-spacing-md) 0;
       }
       
       .clock-date {

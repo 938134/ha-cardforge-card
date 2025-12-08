@@ -1,4 +1,5 @@
-// cards/dashboard-card.js - 仪表盘卡片
+// cards/dashboard-card.js - 仪表盘卡片（完全使用 Lit 模板）
+import { html, css } from 'lit';
 import { createCardStyles } from '../core/card-styles.js';
 import { BlockBase } from '../blocks/block-base.js';
 
@@ -12,7 +13,6 @@ export const card = {
   },
   
   schema: {
-    // 标题区域
     showHeader: {
       type: 'boolean',
       label: '显示标题区域',
@@ -29,7 +29,6 @@ export const card = {
       default: 'left'
     },
     
-    // 内容区域
     contentLayout: {
       type: 'select',
       label: '内容布局模式',
@@ -53,7 +52,6 @@ export const card = {
       default: 'compact'
     },
     
-    // 页脚区域
     showFooter: {
       type: 'boolean',
       label: '显示页脚区域',
@@ -74,7 +72,6 @@ export const card = {
   blockType: 'custom',
   
   template: (config, { hass }) => {
-    // 获取所有块配置
     const blocks = config.blocks || {};
     
     // 分离不同区域的块
@@ -95,25 +92,25 @@ export const card = {
       }
     });
     
-    return `
+    return html`
       <div class="dashboard-card">
         <!-- 标题区域 -->
-        ${config.showHeader ? `
+        ${config.showHeader ? html`
           <div class="dashboard-header align-${config.headerAlign}">
             <div class="header-content">
-              ${headerBlocks.map(block => `
+              ${headerBlocks.map(block => html`
                 <block-base 
                   class="dashboard-block header-block"
-                  .block="${JSON.stringify(block)}"
-                  .hass="${JSON.stringify(hass)}"
-                  .showName="${true}"
-                  .showValue="${true}"
+                  .block=${block}
+                  .hass=${hass}
+                  .showName=${true}
+                  .showValue=${true}
                   .layoutMode="horizontal"
                   .blockStyle="horizontal"
-                  .areaAlign="${config.headerAlign}"
+                  .areaAlign=${config.headerAlign}
                 ></block-base>
-              `).join('')}
-              ${headerBlocks.length === 0 ? `
+              `)}
+              ${headerBlocks.length === 0 ? html`
                 <div class="empty-area">标题区域 - 可在此添加块</div>
               ` : ''}
             </div>
@@ -123,41 +120,41 @@ export const card = {
         <!-- 内容区域 -->
         <div class="dashboard-content layout-${config.contentLayout} block-style-${config.contentBlockStyle}">
           <div class="content-container">
-            ${contentBlocks.map(block => `
+            ${contentBlocks.map(block => html`
               <block-base 
                 class="dashboard-block content-block"
-                .block="${JSON.stringify(block)}"
-                .hass="${JSON.stringify(hass)}"
-                .showName="${true}"
-                .showValue="${true}"
-                .layoutMode="${config.contentLayout}"
-                .blockStyle="${config.contentBlockStyle}"
+                .block=${block}
+                .hass=${hass}
+                .showName=${true}
+                .showValue=${true}
+                .layoutMode=${config.contentLayout}
+                .blockStyle=${config.contentBlockStyle}
                 .areaAlign="center"
               ></block-base>
-            `).join('')}
-            ${contentBlocks.length === 0 ? `
+            `)}
+            ${contentBlocks.length === 0 ? html`
               <div class="empty-area">内容区域 - 请在此添加块</div>
             ` : ''}
           </div>
         </div>
         
         <!-- 页脚区域 -->
-        ${config.showFooter ? `
+        ${config.showFooter ? html`
           <div class="dashboard-footer align-${config.footerAlign}">
             <div class="footer-content">
-              ${footerBlocks.map(block => `
+              ${footerBlocks.map(block => html`
                 <block-base 
                   class="dashboard-block footer-block"
-                  .block="${JSON.stringify(block)}"
-                  .hass="${JSON.stringify(hass)}"
-                  .showName="${true}"
-                  .showValue="${true}"
+                  .block=${block}
+                  .hass=${hass}
+                  .showName=${true}
+                  .showValue=${true}
                   .layoutMode="horizontal"
                   .blockStyle="horizontal"
-                  .areaAlign="${config.footerAlign}"
+                  .areaAlign=${config.footerAlign}
                 ></block-base>
-              `).join('')}
-              ${footerBlocks.length === 0 ? `
+              `)}
+              ${footerBlocks.length === 0 ? html`
                 <div class="empty-area">页脚区域 - 可在此添加块</div>
               ` : ''}
             </div>
@@ -168,7 +165,7 @@ export const card = {
   },
   
   styles: (config) => {
-    const customStyles = `
+    const customStyles = css`
       /* 仪表盘卡片容器 */
       .dashboard-card {
         display: flex;
@@ -269,19 +266,6 @@ export const card = {
       .dashboard-block {
         width: 100%;
         height: 100%;
-      }
-      
-      /* 块样式差异处理 */
-      .content-block.block-style-compact {
-        /* 紧凑样式已在block-base中定义 */
-      }
-      
-      .content-block.block-style-horizontal {
-        /* 水平样式调整 */
-      }
-      
-      .content-block.block-style-vertical {
-        /* 垂直样式调整 */
       }
       
       /* 空区域提示 */

@@ -1,11 +1,13 @@
-// themes/auto-theme.js - 修复版
+// themes/auto-theme.js - 修复版（使用 CSSResult）
+import { css } from 'lit';
+
 export const theme = {
   id: 'auto',
   name: '自动',
   description: '跟随系统主题，无额外样式',
   icon: '⚙️',
   
-  styles: `
+  styles: css`
     /* 自动主题 - 仅使用设计系统变量，无额外样式 */
     .cardforge-container {
       background: var(--cf-background) !important;

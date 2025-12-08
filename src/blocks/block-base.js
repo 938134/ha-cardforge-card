@@ -1,5 +1,5 @@
-// blocks/block-base.js - 简化安全版
-import { LitElement, html, css } from 'https://unpkg.com/lit@2.8.0/index.js?module';
+// blocks/block-base.js - 简化安全版（完全使用 Lit 框架）
+import { LitElement, html, css } from 'lit';
 import { designSystem } from '../core/design-system.js';
 import { AREAS, ENTITY_ICONS } from './block-config.js';
 

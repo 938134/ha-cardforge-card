@@ -1,4 +1,5 @@
-// cards/welcome-card.js - 修复版
+// cards/welcome-card.js - 完全使用 Lit 模板
+import { html, css } from 'lit';
 import { getGreetingByHour, formatTime, getDisplayName, escapeHtml, getDefaultQuote, getEntityState, getEntityIcon } from '../core/card-tools.js';
 import { createCardStyles } from '../core/card-styles.js';
 
@@ -41,68 +42,58 @@ export const card = {
   
   template: (config, data) => {
     const now = new Date();
-    
-    // 使用工具库函数
     const greeting = getGreetingByHour(now);
     const userName = getDisplayName(data.hass, config.greetingName, '朋友');
     const timeStr = formatTime(now, config.use24Hour);
     
     // 获取每日一言
-    let quoteHtml = '';
-    if (config.showQuote) {
-      let quoteContent = '';
-      let quoteIcon = 'mdi:format-quote-close';
-      let hasEntity = false;
-      
-      const blocks = config.blocks || {};
-      
-      // 查找每日一言块
-      Object.values(blocks).forEach(block => {
-        if (block.presetKey === 'daily_quote') {
-          if (block.icon) {
-            quoteIcon = block.icon;
-          }
+    let quoteContent = '';
+    let quoteIcon = 'mdi:format-quote-close';
+    let hasEntity = false;
+    
+    const blocks = config.blocks || {};
+    
+    // 查找每日一言块
+    Object.values(blocks).forEach(block => {
+      if (block.presetKey === 'daily_quote') {
+        if (block.icon) {
+          quoteIcon = block.icon;
+        }
+        
+        if (block.entity) {
+          hasEntity = true;
+          quoteContent = getEntityState(data.hass, block.entity, getDefaultQuote(now));
           
-          if (block.entity) {
-            hasEntity = true;
-            // 使用工具库获取实体状态
-            quoteContent = getEntityState(data.hass, block.entity, getDefaultQuote(now));
-            
-            // 使用工具库获取实体图标
-            const entityIcon = getEntityIcon(data.hass, block.entity, quoteIcon);
-            if (entityIcon !== 'mdi:cube') {
-              quoteIcon = entityIcon;
-            }
+          const entityIcon = getEntityIcon(data.hass, block.entity, quoteIcon);
+          if (entityIcon !== 'mdi:cube') {
+            quoteIcon = entityIcon;
           }
         }
-      });
-      
-      // 如果没有关联实体，使用默认名言
-      if (!hasEntity) {
-        quoteContent = getDefaultQuote(now);
       }
-      
-      if (quoteContent) {
-        quoteHtml = `
-          <div class="quote-wrapper">
-            <div class="quote-container ${hasEntity ? 'has-entity' : ''}">
-              <div class="quote-icon">
-                <ha-icon icon="${quoteIcon}"></ha-icon>
-              </div>
-              <div class="quote-content">${escapeHtml(quoteContent)}</div>
-            </div>
-          </div>
-        `;
-      }
+    });
+    
+    // 如果没有关联实体，使用默认名言
+    if (!hasEntity && quoteContent === '') {
+      quoteContent = getDefaultQuote(now);
     }
     
-    return `
+    return html`
       <div class="welcome-card">
         <div class="card-wrapper">
           <div class="card-content layout-center">
-            <div class="greeting card-title">${escapeHtml(greeting + '，' + userName + '！')}</div>
+            <div class="greeting card-title">${greeting}，${userName}！</div>
             <div class="time card-emphasis">${timeStr}</div>
-            ${quoteHtml}
+            
+            ${config.showQuote && quoteContent ? html`
+              <div class="quote-wrapper">
+                <div class="quote-container ${hasEntity ? 'has-entity' : ''}">
+                  <div class="quote-icon">
+                    <ha-icon icon="${quoteIcon}"></ha-icon>
+                  </div>
+                  <div class="quote-content">${quoteContent}</div>
+                </div>
+              </div>
+            ` : ''}
           </div>
         </div>
       </div>
@@ -110,10 +101,9 @@ export const card = {
   },
   
   styles: (config, theme) => {
-    // 只保留欢迎卡片特有的样式
-    const customStyles = `
+    const customStyles = css`
       .welcome-card {
-        min-height: 220px; /* 增加最小高度 */
+        min-height: 220px;
       }
       
       .greeting {
@@ -123,10 +113,10 @@ export const card = {
       .time {
         font-size: 3.5em;
         letter-spacing: 1px;
-        margin: var(--cf-spacing-lg) 0; /* 增加上下间距 */
+        margin: var(--cf-spacing-lg) 0;
       }
       
-      /* 每日一言包装器 - 新增：确保开关时保持居中 */
+      /* 每日一言包装器 */
       .quote-wrapper {
         width: 100%;
         display: flex;
@@ -286,7 +276,6 @@ export const card = {
       }
     `;
     
-    // 使用通用样式工具
     return createCardStyles(customStyles);
   }
 };

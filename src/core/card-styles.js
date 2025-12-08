@@ -1,11 +1,10 @@
-// core/card-styles.js - 完整版
-// 卡片通用样式工具
-// 处理通用深色模式和响应式，不针对具体卡片
+// core/card-styles.js - 完全使用 Lit 框架
+import { css } from 'lit';
 
 /**
  * 基础卡片样式 - 所有卡片共享
  */
-export const cardBaseStyles = `
+export const cardBaseStyles = css`
   /* === 基础卡片容器 === */
   .cardforge-container {
     height: 100%;
@@ -205,7 +204,7 @@ export const cardBaseStyles = `
 /**
  * 布局工具样式
  */
-export const layoutStyles = `
+export const layoutStyles = css`
   /* 居中布局 */
   .layout-center {
     display: flex;
@@ -299,13 +298,22 @@ export const layoutStyles = `
 
 /**
  * 生成卡片样式 - 组合通用样式和自定义样式
- * @param {string} customStyles - 卡片特有的自定义样式
- * @returns {string} 完整的样式字符串
+ * @param {CSSResult} customStyles - 卡片特有的自定义样式
+ * @returns {CSSResult} 完整的样式字符串
  */
-export function createCardStyles(customStyles = '') {
-  return `
-    ${cardBaseStyles}
-    ${layoutStyles}
-    ${customStyles}
-  `;
+export function createCardStyles(customStyles) {
+  // 合并样式
+  const mergedStyles = [
+    cardBaseStyles,
+    layoutStyles,
+    customStyles || css``
+  ];
+  
+  // 将所有样式合并为一个 CSSResult
+  return mergedStyles.reduce((result, style) => {
+    if (style && style.cssText) {
+      return css([result, style]);
+    }
+    return result;
+  }, css``);
 }

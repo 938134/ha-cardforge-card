@@ -1,11 +1,13 @@
-// themes/neon-theme.js - 修复版
+// themes/neon-theme.js - 修复版（使用 CSSResult）
+import { css } from 'lit';
+
 export const theme = {
   id: 'neon',
   name: '霓虹',
   description: '霓虹灯光效果，赛博朋克风格',
   icon: '💡',
   
-  styles: `
+  styles: css`
     /* 霓虹主题 - 卡片容器 */
     .cardforge-container {
       /* 霓虹渐变背景 */

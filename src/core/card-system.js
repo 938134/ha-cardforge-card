@@ -1,4 +1,4 @@
-// 卡片系统
+// 卡片系统 - 完全使用 Lit 框架
 class CardSystem {
   constructor() {
     this.cards = new Map();
@@ -71,7 +71,7 @@ class CardSystem {
     }));
   }
 
-  // 渲染卡片
+  // 渲染卡片 - 修正：返回 TemplateResult 和 CSSResult
   renderCard(cardId, userConfig = {}, hass = null, themeVariables = {}) {
     const card = this.getCard(cardId);
     if (!card) {
@@ -82,7 +82,7 @@ class CardSystem {
     const config = this._mergeConfig(card.schema || {}, userConfig);
     
     try {
-      // 修正：统一传递正确的参数结构
+      // 调用卡片的 template 和 styles 方法
       const template = card.template(config, { hass, theme: themeVariables });
       const styles = card.styles(config, themeVariables);
       
