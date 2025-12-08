@@ -1,4 +1,4 @@
-// 主入口文件
+// main.js - 主入口文件（更新）
 import { HaCardForgeCard } from './components/ha-cardforge-card.js';
 import { CardEditor } from './components/card-editor.js';
 import { cardSystem } from './core/card-system.js';
@@ -22,3 +22,14 @@ if (window.customCards) {
     preview: true
   });
 }
+
+// 初始化系统
+(async function init() {
+  try {
+    await cardSystem.initialize();
+    await themeSystem.initialize();
+    console.debug('卡片工坊系统初始化完成');
+  } catch (error) {
+    console.error('卡片工坊初始化失败:', error);
+  }
+})();
