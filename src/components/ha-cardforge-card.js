@@ -11,10 +11,11 @@ export class HaCardForgeCard extends LitElement {
   static properties = {
     hass: { type: Object },
     config: { type: Object },
-    _cardInstance: { state: true },
+    _cardElement: { state: true },
     _themeId: { state: true },
     _error: { state: true },
-    _loading: { state: true }
+    _loading: { state: true },
+    _systemsInitialized: { state: true }
   };
 
   static styles = [
@@ -77,15 +78,35 @@ export class HaCardForgeCard extends LitElement {
         overflow: auto;
         text-align: left;
       }
+
+      .retry-button {
+        margin-top: var(--cf-spacing-md);
+        padding: var(--cf-spacing-sm) var(--cf-spacing-lg);
+        background: var(--cf-primary-color);
+        color: white;
+        border: none;
+        border-radius: var(--cf-radius-md);
+        cursor: pointer;
+        font-weight: var(--cf-font-weight-medium);
+        transition: all var(--cf-transition-fast);
+      }
+
+      .retry-button:hover {
+        opacity: 0.9;
+        transform: translateY(-1px);
+      }
     `
   ];
 
   constructor() {
     super();
-    this._cardInstance = null;
+    this.hass = null;
+    this.config = {};
+    this._cardElement = null;
     this._themeId = 'auto';
     this._error = null;
     this._loading = true;
+    this._systemsInitialized = false;
   }
 
   async setConfig(config) {
@@ -103,8 +124,8 @@ export class HaCardForgeCard extends LitElement {
       // 应用主题
       await this._applyTheme();
 
-      // 创建卡片实例
-      await this._createCardInstance();
+      // 渲染卡片
+      await this._renderCard();
 
     } catch (error) {
       this._error = error.message || '配置错误';
@@ -140,11 +161,15 @@ export class HaCardForgeCard extends LitElement {
    * 确保系统已初始化
    */
   async _ensureSystemsInitialized() {
+    if (this._systemsInitialized) return;
+    
     try {
       await Promise.all([
         cardSystem.initialize(),
         themeSystem.initialize()
       ]);
+      
+      this._systemsInitialized = true;
     } catch (error) {
       throw new Error(`系统初始化失败: ${error.message}`);
     }
@@ -162,9 +187,15 @@ export class HaCardForgeCard extends LitElement {
   }
 
   /**
-   * 创建卡片实例
+   * 渲染卡片
    */
-  async _createCardInstance() {
+  async _renderCard() {
+    // 清理旧的卡片元素
+    if (this._cardElement) {
+      this._cardElement.remove();
+      this._cardElement = null;
+    }
+
     const cardId = this.config.card_type;
     const cardDef = cardSystem.getCard(cardId);
 
@@ -172,92 +203,44 @@ export class HaCardForgeCard extends LitElement {
       throw new Error(`卡片类型不存在: ${cardId}`);
     }
 
-    // 销毁旧实例
-    if (this._cardInstance) {
-      this._cleanupCardInstance();
-    }
+    const { CardClass } = cardDef;
 
-    // 创建新实例
     try {
-      const instance = cardSystem.createCardInstance(
-        cardId,
-        this.config,
-        this.hass
-      );
+      // 检查是否已注册
+      const elementName = `${cardId}-card`;
+      if (!customElements.get(elementName)) {
+        customElements.define(elementName, CardClass);
+      }
 
-      this._cardInstance = {
-        id: instance.id,
-        cardId,
-        CardClass: cardDef.CardClass,
-        element: null
-      };
+      // 创建新元素
+      const cardElement = document.createElement(elementName);
+      cardElement.config = this.config;
+      cardElement.hass = this.hass;
+
+      // 等待元素渲染
+      await customElements.whenDefined(elementName);
+      
+      this._cardElement = cardElement;
 
     } catch (error) {
       throw new Error(`卡片创建失败: ${error.message}`);
     }
   }
 
-  /**
-   * 清理卡片实例
-   */
-  _cleanupCardInstance() {
-    if (this._cardInstance?.element) {
-      this._cardInstance.element.remove();
-    }
-    this._cardInstance = null;
-  }
-
   updated(changedProperties) {
     super.updated(changedProperties);
     
-    if (changedProperties.has('hass') && this._cardInstance?.element) {
+    if (changedProperties.has('hass') && this._cardElement) {
       // 更新HASS对象
-      this._cardInstance.element.hass = this.hass;
+      this._cardElement.hass = this.hass;
     }
-  }
-
-  firstUpdated() {
-    this._renderCardElement();
   }
 
   /**
-   * 渲染卡片元素
+   * 重试加载
    */
-  async _renderCardElement() {
-    if (!this._cardInstance || this._loading || this._error) {
-      return;
-    }
-
-    try {
-      const { CardClass, cardId } = this._cardInstance;
-      
-      // 检查是否已注册
-      if (!customElements.get(`${cardId}-card`)) {
-        // 使用动态注册
-        customElements.define(`${cardId}-card`, CardClass);
-      }
-
-      // 创建卡片元素
-      const cardElement = document.createElement(`${cardId}-card`);
-      cardElement.config = this.config;
-      cardElement.hass = this.hass;
-
-      // 添加到容器
-      const container = this.shadowRoot.querySelector('.cardforge-main');
-      if (container) {
-        // 移除旧的
-        if (this._cardInstance.element) {
-          this._cardInstance.element.remove();
-        }
-        
-        container.appendChild(cardElement);
-        this._cardInstance.element = cardElement;
-      }
-
-    } catch (error) {
-      console.error('卡片渲染失败:', error);
-      this._error = `卡片渲染失败: ${error.message}`;
-    }
+  _handleRetry() {
+    this.setConfig(this.config);
   }
 
   render() {
@@ -281,13 +264,16 @@ export class HaCardForgeCard extends LitElement {
               主题: ${this.config.theme || 'auto'}
             </div>
           ` : ''}
+          <button class="retry-button" @click=${this._handleRetry}>
+            重试加载
+          </button>
         </div>
       `;
     }
 
     return html`
       <div class="cardforge-main">
-        <!-- 卡片实例将在这里动态渲染 -->
+        ${this._cardElement}
       </div>
     `;
   }
@@ -296,8 +282,8 @@ export class HaCardForgeCard extends LitElement {
    * 获取卡片尺寸（用于Home Assistant布局）
    */
   getCardSize() {
-    if (this._cardInstance?.element?.getCardSize) {
-      return this._cardInstance.element.getCardSize();
+    if (this._cardElement?.getCardSize) {
+      return this._cardElement.getCardSize();
     }
     
     // 从卡片定义获取推荐尺寸
