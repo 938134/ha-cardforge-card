@@ -1,5 +1,5 @@
-// 设计系统变量 - 包含块样式完整版
-import { css } from 'https://unpkg.com/lit@2.8.0/index.js?module';
+// 设计系统变量 - 更新版
+import { css } from 'https://unpkg.com/lit@3.0.0/index.js?module';
 
 export const designSystem = css`
   :host {
@@ -74,7 +74,7 @@ export const designSystem = css`
     --cf-shadow-xl: 0 20px 40px rgba(0, 0, 0, 0.2);
     --cf-shadow-inner: inset 0 2px 4px rgba(0, 0, 0, 0.06);
     
-    /* 动画系统 - 仅保留时长和缓动函数 */
+    /* 动画系统 */
     --cf-transition-duration-fast: 150ms;
     --cf-transition-duration-normal: 250ms;
     --cf-transition-duration-slow: 400ms;
@@ -119,179 +119,157 @@ export const designSystem = css`
     --cf-line-height-tight: 1.25;
     --cf-line-height-normal: 1.5;
     --cf-line-height-relaxed: 1.75;
-    
-    /* ===== 2. 布局模式 (分子) ===== */
-    
-    /* 水平布局 - 用于标题块和页脚块 */
-    --cf-layout-horizontal: {
-      display: flex;
-      align-items: center;
-      gap: var(--cf-spacing-md);
-      flex-wrap: nowrap;
-      text-align: left;
-      width: 100%;
-    };
-    
-    /* 垂直布局 - 用于内容块垂直模式 */
-    --cf-layout-vertical: {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      gap: var(--cf-spacing-sm);
-      text-align: center;
-      width: 100%;
-    };
-    
-    /* ===== 3. 块组件配方 (有机体) ===== */
-    
-    /* 标题块配方 */
-    --cf-recipe-header-block: {
-      @apply --cf-layout-horizontal;
-      padding: var(--cf-spacing-md);
-      background: rgba(var(--cf-primary-color-rgb), 0.08);
-      border-left: 3px solid var(--cf-primary-color);
-      border-radius: var(--cf-radius-md);
-      border: 1px solid rgba(var(--cf-primary-color-rgb), 0.3);
-      min-height: 60px;
-      transition: all var(--cf-transition-duration-fast) var(--cf-easing-standard);
-    };
-    
-    /* 内容块配方 - 基础 */
-    --cf-recipe-content-block: {
-      padding: var(--cf-spacing-lg);
-      background: var(--cf-surface);
-      border: 1px solid var(--cf-border);
-      border-radius: var(--cf-radius-md);
-      min-height: 70px;
-      transition: all var(--cf-transition-duration-fast) var(--cf-easing-standard);
-    };
-    
-    /* 内容块 - 水平变体 */
-    --cf-recipe-content-block-horizontal: {
-      @apply --cf-layout-horizontal;
-      @apply --cf-recipe-content-block;
-    };
-    
-    /* 内容块 - 垂直变体 */
-    --cf-recipe-content-block-vertical: {
-      @apply --cf-layout-vertical;
-      @apply --cf-recipe-content-block;
-    };
-    
-    /* 页脚块配方 */
-    --cf-recipe-footer-block: {
-      @apply --cf-layout-horizontal;
-      padding: var(--cf-spacing-sm);
-      background: rgba(var(--cf-accent-color-rgb), 0.05);
-      border-top: 1px solid var(--cf-border);
-      border-radius: var(--cf-radius-md);
-      min-height: 50px;
-      transition: all var(--cf-transition-duration-fast) var(--cf-easing-standard);
-    };
-    
-    /* 块通用交互状态 */
-    --cf-block-hover-state: {
-      background: var(--cf-hover-color);
-      border-color: var(--cf-primary-color);
-      transform: translateY(-2px);
-      box-shadow: var(--cf-shadow-md);
-    };
-    
-    --cf-block-active-state: {
-      transform: translateY(-1px);
-      box-shadow: var(--cf-shadow-sm);
-    };
-    
-    /* 块图标样式 */
-    --cf-block-icon-base: {
-      flex-shrink: 0;
-      width: 48px;
-      height: 48px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      border-radius: var(--cf-radius-md);
-      background: rgba(var(--cf-primary-color-rgb), 0.1);
-      color: var(--cf-text-secondary);
-      font-size: 1.5em;
-      transition: all var(--cf-transition-duration-fast) var(--cf-easing-standard);
-    };
-    
-    --cf-block-icon-hover: {
-      color: var(--cf-primary-color);
-      background: rgba(var(--cf-primary-color-rgb), 0.15);
-      transform: scale(1.05);
-    };
-    
-    /* ===== 4. 工具类 (实用程序) ===== */
-    
-    /* 布局工具 */
-    .cf-flex-center {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-    }
-    
-    .cf-flex-between {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-    }
-    
-    .cf-flex-column {
-      display: flex;
-      flex-direction: column;
-    }
-    
-    .cf-grid-auto-fit {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-      gap: var(--cf-spacing-md);
-    }
-    
-    /* 间距工具 */
-    .cf-mt-sm { margin-top: var(--cf-spacing-sm); }
-    .cf-mt-md { margin-top: var(--cf-spacing-md); }
-    .cf-mt-lg { margin-top: var(--cf-spacing-lg); }
-    
-    .cf-mb-sm { margin-bottom: var(--cf-spacing-sm); }
-    .cf-mb-md { margin-bottom: var(--cf-spacing-md); }
-    .cf-mb-lg { margin-bottom: var(--cf-spacing-lg); }
-    
-    .cf-p-sm { padding: var(--cf-spacing-sm); }
-    .cf-p-md { padding: var(--cf-spacing-md); }
-    .cf-p-lg { padding: var(--cf-spacing-lg); }
-    
-    /* 文本工具 */
-    .cf-text-center { text-align: center; }
-    .cf-text-left { text-align: left; }
-    .cf-text-right { text-align: right; }
-    
-    .cf-text-primary { color: var(--cf-text-primary); }
-    .cf-text-secondary { color: var(--cf-text-secondary); }
-    .cf-text-tertiary { color: var(--cf-text-tertiary); }
-    
-    /* 阴影工具 */
-    .cf-shadow-sm { box-shadow: var(--cf-shadow-sm); }
-    .cf-shadow-md { box-shadow: var(--cf-shadow-md); }
-    .cf-shadow-lg { box-shadow: var(--cf-shadow-lg); }
-    
-    /* 圆角工具 */
-    .cf-rounded-sm { border-radius: var(--cf-radius-sm); }
-    .cf-rounded-md { border-radius: var(--cf-radius-md); }
-    .cf-rounded-lg { border-radius: var(--cf-radius-lg); }
-    
-    /* 过渡工具 */
-    .cf-transition-fast {
-      transition: all var(--cf-transition-duration-fast) var(--cf-easing-standard);
-    }
-    
-    .cf-transition-normal {
-      transition: all var(--cf-transition-duration-normal) var(--cf-easing-standard);
-    }
   }
   
-  /* ===== 深色模式适配 ===== */
+  /* ===== 卡片基类相关样式 ===== */
+  .cardforge-container {
+    container-type: inline-size;
+    container-name: cardforge-container;
+  }
+  
+  .card-wrapper {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    flex: 1;
+    min-height: 0;
+    position: relative;
+    z-index: 1;
+  }
+  
+  .card-content {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    flex: 1;
+    text-align: center;
+    padding: var(--cf-spacing-xl);
+    width: 100%;
+    box-sizing: border-box;
+  }
+  
+  .card-title {
+    font-size: var(--cf-font-size-2xl);
+    font-weight: var(--cf-font-weight-bold);
+    color: var(--cf-text-primary);
+    line-height: var(--cf-line-height-tight);
+    margin-bottom: var(--cf-spacing-sm);
+  }
+  
+  .card-subtitle {
+    font-size: var(--cf-font-size-lg);
+    font-weight: var(--cf-font-weight-medium);
+    color: var(--cf-text-secondary);
+    line-height: var(--cf-line-height-normal);
+    margin-top: var(--cf-spacing-xs);
+    margin-bottom: var(--cf-spacing-xs);
+  }
+  
+  .card-caption {
+    font-size: var(--cf-font-size-sm);
+    color: var(--cf-text-tertiary);
+    line-height: var(--cf-line-height-normal);
+    margin-top: var(--cf-spacing-xs);
+  }
+  
+  .card-emphasis {
+    color: var(--cf-primary-color);
+    font-weight: var(--cf-font-weight-bold);
+    margin: var(--cf-spacing-sm) 0;
+  }
+  
+  /* 通用空状态 */
+  .card-empty {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    color: var(--cf-text-tertiary);
+    padding: var(--cf-spacing-2xl);
+    height: 100%;
+    flex: 1;
+  }
+  
+  .card-empty-icon {
+    font-size: 2.5em;
+    margin-bottom: var(--cf-spacing-md);
+    opacity: 0.4;
+  }
+  
+  .card-empty-text {
+    font-size: var(--cf-font-size-lg);
+    font-weight: var(--cf-font-weight-medium);
+  }
+  
+  /* 通用垂直间距工具 */
+  .card-spacing-sm {
+    margin-top: var(--cf-spacing-sm);
+    margin-bottom: var(--cf-spacing-sm);
+  }
+  
+  .card-spacing-md {
+    margin-top: var(--cf-spacing-md);
+    margin-bottom: var(--cf-spacing-md);
+  }
+  
+  .card-spacing-lg {
+    margin-top: var(--cf-spacing-lg);
+    margin-bottom: var(--cf-spacing-lg);
+  }
+  
+  /* 布局工具类 */
+  .layout-center {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    width: 100%;
+  }
+  
+  .layout-flow {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--cf-spacing-md);
+    justify-content: center;
+    width: 100%;
+  }
+  
+  .layout-grid {
+    display: grid;
+    gap: var(--cf-spacing-md);
+    width: 100%;
+  }
+  
+  .layout-horizontal {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: var(--cf-spacing-md);
+    width: 100%;
+  }
+  
+  .layout-vertical {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: var(--cf-spacing-md);
+    width: 100%;
+  }
+  
+  .layout-between {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
+  }
+  
+  /* 深色模式适配 */
   @media (prefers-color-scheme: dark) {
     :host {
       --cf-background: #1a1a1a;
@@ -311,39 +289,85 @@ export const designSystem = css`
       --cf-focus-color: rgba(255, 255, 255, 0.24);
       --cf-disabled-color: rgba(255, 255, 255, 0.12);
     }
+  }
+  
+  /* 响应式容器查询 */
+  @container cardforge-container (max-width: 768px) {
+    .card-content {
+      padding: var(--cf-spacing-lg);
+    }
     
-    /* 深色模式下的块样式调整 */
-    :host {
-      --cf-recipe-header-block: {
-        @apply --cf-layout-horizontal;
-        padding: var(--cf-spacing-md);
-        background: rgba(var(--cf-primary-color-rgb), 0.12);
-        border-left: 3px solid var(--cf-primary-color);
-        border-color: rgba(var(--cf-primary-color-rgb), 0.4);
-        border-radius: var(--cf-radius-md);
-        min-height: 60px;
-      };
-      
-      --cf-recipe-content-block: {
-        background: rgba(255, 255, 255, 0.08);
-        border-color: rgba(255, 255, 255, 0.15);
-      };
-      
-      --cf-recipe-footer-block: {
-        background: rgba(var(--cf-accent-color-rgb), 0.08);
-        border-top-color: rgba(255, 255, 255, 0.2);
-      };
-      
-      --cf-block-icon-base: {
-        background: rgba(var(--cf-primary-color-rgb), 0.2);
-        color: var(--cf-text-tertiary);
-      };
+    .card-title {
+      font-size: var(--cf-font-size-xl);
+      margin-bottom: var(--cf-spacing-xs);
+    }
+    
+    .card-subtitle {
+      font-size: var(--cf-font-size-md);
+      margin-top: var(--cf-spacing-xs);
+      margin-bottom: var(--cf-spacing-xs);
+    }
+    
+    .layout-grid {
+      gap: var(--cf-spacing-sm);
+    }
+    
+    .layout-flow {
+      gap: var(--cf-spacing-sm);
+    }
+    
+    .layout-horizontal {
+      gap: var(--cf-spacing-sm);
+    }
+    
+    .layout-vertical {
+      gap: var(--cf-spacing-sm);
     }
   }
   
-  /* ===== 容器查询 ===== */
-  .cardforge-container {
-    container-type: inline-size;
-    container-name: cardforge-container;
+  @container cardforge-container (max-width: 480px) {
+    .card-content {
+      padding: var(--cf-spacing-md);
+    }
+    
+    .card-title {
+      font-size: var(--cf-font-size-lg);
+    }
+    
+    .card-subtitle {
+      font-size: var(--cf-font-size-sm);
+    }
+    
+    .card-caption {
+      font-size: var(--cf-font-size-xs);
+    }
+    
+    .card-empty {
+      padding: var(--cf-spacing-xl);
+    }
+    
+    .card-empty-icon {
+      font-size: 2em;
+    }
+    
+    .card-empty-text {
+      font-size: var(--cf-font-size-md);
+    }
+    
+    .layout-grid {
+      gap: var(--cf-spacing-xs);
+    }
+    
+    .layout-flow {
+      gap: var(--cf-spacing-xs);
+    }
+    
+    .layout-horizontal {
+      gap: var(--cf-spacing-xs);
+    }
+    
+    .layout-vertical {
+      gap: var(--cf-spacing-xs);
+    }
   }
 `;
