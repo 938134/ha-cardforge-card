@@ -1,7 +1,6 @@
-// cards/dashboard-card.js - 修复版
+// cards/dashboard-card.js - 简化测试版
 import { html, css } from 'https://unpkg.com/lit@2.8.0/index.js?module';
 import { createCardStyles } from '../core/card-styles.js';
-import { BlockBase } from '../blocks/block-base.js';
 
 export const card = {
   id: 'dashboard',
@@ -41,113 +40,40 @@ export const card = {
       ],
       default: 'flow'
     },
-    contentBlockStyle: {
-      type: 'select',
-      label: '块样式',
-      options: [
-        { value: 'compact', label: '紧凑样式' },
-        { value: 'horizontal', label: '水平样式' },
-        { value: 'vertical', label: '垂直样式' }
-      ],
-      default: 'compact'
-    },
     
     showFooter: {
       type: 'boolean',
       label: '显示页脚区域',
       default: false
-    },
-    footerAlign: {
-      type: 'select',
-      label: '页脚对齐方式',
-      options: [
-        { value: 'left', label: '左对齐' },
-        { value: 'center', label: '居中对齐' },
-        { value: 'right', label: '右对齐' }
-      ],
-      default: 'right'
     }
   },
   
   blockType: 'custom',
   
   template: (config, { hass }) => {
-    const blocks = config.blocks || {};
-    
-    // 分离不同区域的块
-    const headerBlocks = [];
-    const contentBlocks = [];
-    const footerBlocks = [];
-    
-    Object.entries(blocks).forEach(([id, block]) => {
-      const area = block.area || 'content';
-      const blockData = { id, ...block };
-      
-      if (area === 'header') {
-        headerBlocks.push(blockData);
-      } else if (area === 'footer') {
-        footerBlocks.push(blockData);
-      } else {
-        contentBlocks.push(blockData);
-      }
-    });
-    
     return html`
       <div class="dashboard-card">
         <!-- 标题区域 -->
         ${config.showHeader ? html`
           <div class="dashboard-header align-${config.headerAlign}">
             <div class="header-content">
-              ${headerBlocks.map(block => html`
-                <block-base 
-                  class="dashboard-block header-block"
-                  .block=${block}
-                  .hass=${hass}
-                  .showName=${true}
-                  .showValue=${true}
-                ></block-base>
-              `)}
-              ${headerBlocks.length === 0 ? html`
-                <div class="empty-area">标题区域 - 可在此添加块</div>
-              ` : ''}
+              <div class="empty-area">标题区域 - 可在此添加块</div>
             </div>
           </div>
         ` : ''}
         
         <!-- 内容区域 -->
-        <div class="dashboard-content layout-${config.contentLayout} block-style-${config.contentBlockStyle}">
+        <div class="dashboard-content layout-${config.contentLayout}">
           <div class="content-container">
-            ${contentBlocks.map(block => html`
-              <block-base 
-                class="dashboard-block content-block"
-                .block=${block}
-                .hass=${hass}
-                .showName=${true}
-                .showValue=${true}
-              ></block-base>
-            `)}
-            ${contentBlocks.length === 0 ? html`
-              <div class="empty-area">内容区域 - 请在此添加块</div>
-            ` : ''}
+            <div class="empty-area">内容区域 - 请在此添加块</div>
           </div>
         </div>
         
         <!-- 页脚区域 -->
         ${config.showFooter ? html`
-          <div class="dashboard-footer align-${config.footerAlign}">
+          <div class="dashboard-footer align-right">
             <div class="footer-content">
-              ${footerBlocks.map(block => html`
-                <block-base 
-                  class="dashboard-block footer-block"
-                  .block=${block}
-                  .hass=${hass}
-                  .showName=${true}
-                  .showValue=${true}
-                ></block-base>
-              `)}
-              ${footerBlocks.length === 0 ? html`
-                <div class="empty-area">页脚区域 - 可在此添加块</div>
-              ` : ''}
+              <div class="empty-area">页脚区域 - 可在此添加块</div>
             </div>
           </div>
         ` : ''}
@@ -196,8 +122,6 @@ export const card = {
         align-items: center;
         gap: 12px;
         flex-wrap: nowrap;
-        overflow-x: auto;
-        overflow-y: hidden;
         width: 100%;
       }
       
@@ -209,7 +133,6 @@ export const card = {
         align-items: center;
         justify-content: center;
         padding: 16px;
-        overflow: auto;
       }
       
       .content-container {
@@ -260,48 +183,6 @@ export const card = {
         font-size: 0.9em;
         padding: 16px;
         width: 100%;
-      }
-      
-      /* 响应式设计 */
-      @container cardforge-container (max-width: 768px) {
-        .dashboard-header,
-        .dashboard-footer {
-          min-height: 50px;
-          padding: 6px 10px;
-        }
-        
-        .layout-grid-3 .content-container,
-        .layout-grid-4 .content-container {
-          grid-template-columns: repeat(2, 1fr);
-        }
-        
-        .header-content,
-        .footer-content {
-          gap: 8px;
-        }
-      }
-      
-      @container cardforge-container (max-width: 480px) {
-        .dashboard-header,
-        .dashboard-footer {
-          min-height: 45px;
-          padding: 4px 8px;
-        }
-        
-        .layout-grid-2 .content-container,
-        .layout-grid-3 .content-container,
-        .layout-grid-4 .content-container {
-          grid-template-columns: 1fr;
-        }
-        
-        .layout-flow .content-container {
-          justify-content: center;
-        }
-        
-        .header-content,
-        .footer-content {
-          gap: 6px;
-        }
       }
     `;
     
