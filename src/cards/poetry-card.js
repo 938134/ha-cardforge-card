@@ -1,6 +1,6 @@
-// cards/poetry-card.js - 完全使用 Lit 模板
-import { LitElement, html, css } from 'https://unpkg.com/lit@2.8.0/index.js?module';
-import { escapeHtml, formatPoetryContent, getEntityState } from '../core/card-tools.js';
+// cards/poetry-card.js - 修复版
+import { html, css } from 'https://unpkg.com/lit@2.8.0/index.js?module';
+import { formatPoetryContent, getEntityState } from '../core/card-tools.js';
 import { createCardStyles } from '../core/card-styles.js';
 
 export const card = {
@@ -59,7 +59,7 @@ export const card = {
     }
   },
   
-  template: (config, data) => {
+  template: (config, { hass }) => {
     const blocks = config.blocks || {};
     const defaultPoetry = getDefaultPoetry();
     
@@ -72,7 +72,7 @@ export const card = {
       if (blockEntry) {
         const [_, block] = blockEntry;
         if (block.entity) {
-          return getEntityState(data.hass, block.entity, defaultValue);
+          return getEntityState(hass, block.entity, defaultValue);
         }
         return defaultValue;
       }
@@ -144,7 +144,7 @@ export const card = {
     }
   },
   
-  styles: (config, theme) => {
+  styles: (config) => {
     const customStyles = css`
       .poetry-card {
         min-height: 260px;
@@ -236,7 +236,7 @@ export const card = {
         font-style: normal;
       }
       
-      /* 诗词卡片特定的响应式 */
+      /* 响应式 */
       @container cardforge-container (max-width: 600px) {
         .poetry-card {
           min-height: 220px;
@@ -260,62 +260,6 @@ export const card = {
         .poetry-divider,
         .translation-divider {
           margin: var(--cf-spacing-xs) 0;
-        }
-      }
-      
-      @container cardforge-container (max-width: 480px) {
-        .poetry-card {
-          min-height: 200px;
-        }
-        
-        .poetry-title {
-          font-size: 1.4em;
-        }
-        
-        .poetry-line {
-          font-size: 1.1em;
-          line-height: 1.8;
-        }
-        
-        .poetry-divider,
-        .translation-divider {
-          width: 40px;
-          margin: var(--cf-spacing-xs) 0;
-        }
-      }
-      
-      @container cardforge-container (max-width: 360px) {
-        .poetry-card {
-          min-height: 180px;
-        }
-        
-        .poetry-title {
-          font-size: 1.3em;
-        }
-        
-        .poetry-card.font-small .poetry-title {
-          font-size: 1.2em;
-        }
-        
-        .poetry-card.font-large .poetry-title {
-          font-size: 1.5em;
-        }
-        
-        .poetry-line {
-          font-size: 1em;
-        }
-        
-        .translation-label {
-          font-size: 0.8em;
-        }
-        
-        .translation-content {
-          font-size: 0.9em;
-        }
-        
-        .poetry-divider,
-        .translation-divider {
-          width: 30px;
         }
       }
     `;
