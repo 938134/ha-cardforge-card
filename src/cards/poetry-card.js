@@ -1,6 +1,6 @@
-// cards/poetry-card.js - 完整布局版
+// cards/poetry-card.js - 完整布局版（修复诗词显示问题）
 import { html, css } from 'https://unpkg.com/lit@2.8.0/index.js?module';
-import { escapeHtml, formatPoetryContent, getEntityState } from '../core/card-tools.js';
+import { getEntityState } from '../core/card-tools.js';
 import { createCardStyles } from '../core/card-styles.js';
 
 export const card = {
@@ -83,29 +83,30 @@ export const card = {
       `;
     }
     
-    const formattedContent = content ? formatPoetryContent(content) : '';
-    const formattedTranslation = translation ? formatPoetryContent(translation) : '';
+    // 渲染格式化内容
+    const formattedContent = content ? _renderFormattedContent(content) : html``;
+    const formattedTranslation = translation ? _renderFormattedContent(translation) : html``;
     
     return html`
       <div class="poetry-card font-${config.fontSize}">
         <div class="card-wrapper">
           <div class="card-content layout-center">
-            ${title ? html`<div class="poetry-title card-emphasis">${escapeHtml(title)}</div>` : ''}
+            ${title ? html`<div class="poetry-title card-emphasis">${title}</div>` : ''}
             
             ${(dynasty || author) ? html`
               <div class="poetry-meta layout-horizontal card-spacing-sm">
-                ${dynasty ? html`<span class="meta-item dynasty">${escapeHtml(dynasty)}</span>` : ''}
+                ${dynasty ? html`<span class="meta-item dynasty">${dynasty}</span>` : ''}
                 ${dynasty && author ? html`<span class="separator">·</span>` : ''}
-                ${author ? html`<span class="meta-item author">${escapeHtml(author)}</span>` : ''}
+                ${author ? html`<span class="meta-item author">${author}</span>` : ''}
               </div>
             ` : ''}
             
-            ${formattedContent ? html`
+            ${content ? html`
               <div class="poetry-divider"></div>
               <div class="poetry-content">${formattedContent}</div>
             ` : ''}
             
-            ${formattedTranslation ? html`
+            ${translation ? html`
               <div class="translation-divider card-spacing-md"></div>
               <div class="translation-container">
                 <div class="translation-label">译文</div>
@@ -117,6 +118,7 @@ export const card = {
       </div>
     `;
     
+    // 获取块内容
     function _getBlockContent(blocks, blockId, defaultValue = '') {
       const blockEntry = Object.entries(blocks).find(([id, block]) => 
         block.presetKey === blockId
@@ -133,6 +135,44 @@ export const card = {
       return defaultValue;
     }
     
+    // 渲染格式化内容
+    function _renderFormattedContent(text) {
+      if (!text || typeof text !== 'string') return html``;
+      
+      // 尝试按标点符号拆分
+      const sentences = text.split(/([。！？])/).filter(s => s.trim());
+      const lines = [];
+      let currentLine = '';
+      
+      // 构建行数组
+      for (let i = 0; i < sentences.length; i++) {
+        const segment = sentences[i];
+        currentLine += segment;
+        
+        // 如果遇到标点符号，结束当前行
+        if (/[。！？]/.test(segment)) {
+          lines.push(currentLine.trim());
+          currentLine = '';
+        }
+      }
+      
+      // 处理最后一行
+      if (currentLine.trim()) {
+        lines.push(currentLine.trim());
+      }
+      
+      // 如果没有成功拆分，使用原始文本
+      if (lines.length === 0) {
+        lines.push(text.trim());
+      }
+      
+      // 渲染为多行
+      return html`
+        ${lines.map(line => html`<div class="poetry-line">${line}</div>`)}
+      `;
+    }
+    
+    // 默认诗词数据
     function getDefaultPoetry() {
       return {
         title: '静夜思',
