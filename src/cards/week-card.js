@@ -1,5 +1,5 @@
-// cards/week-card.js - 优化间距版（完全使用 Lit 模板）
-import { LitElement, html, css } from 'https://unpkg.com/lit@2.8.0/index.js?module';
+// cards/week-card.js - 修复版
+import { html, css } from 'https://unpkg.com/lit@2.8.0/index.js?module';
 import { getYearProgress, getWeekNumber } from '../core/card-tools.js';
 import { createCardStyles } from '../core/card-styles.js';
 
@@ -25,7 +25,7 @@ export const card = {
     }
   },
   
-  template: (config) => {
+  template: (config, { hass }) => {
     const now = new Date();
     const yearProgress = getYearProgress(now);
     const weekNumber = getWeekNumber(now);
@@ -64,7 +64,6 @@ export const card = {
               <div class="year-section layout-horizontal">
                 <div class="progress-ring">
                   <svg width="${size}" height="${size}" viewBox="0 0 ${size} ${size}">
-                    <!-- 渐变定义 -->
                     <defs>
                       <linearGradient id="year-gradient" x1="0%" y1="0%" x2="100%" y2="0%">
                         <stop offset="0%" stop-color="var(--cf-primary-color)" />
@@ -135,7 +134,7 @@ export const card = {
     `;
   },
   
-  styles: (config, theme) => {
+  styles: (config) => {
     const customStyles = css`
       .week-card {
         min-height: 180px;
@@ -224,12 +223,10 @@ export const card = {
         border-right: none;
       }
       
-      /* 已过去的日子 */
       .week-bar.past {
         background: var(--cf-neutral-200);
       }
       
-      /* 当前日 */
       .week-bar.current {
         background: var(--cf-accent-color);
         transform: scaleY(1.1);
@@ -238,7 +235,6 @@ export const card = {
         position: relative;
       }
       
-      /* 未来的日子 */
       .week-bar.future {
         background: var(--cf-primary-color);
       }
@@ -255,7 +251,6 @@ export const card = {
         font-size: var(--cf-font-size-sm);
       }
       
-      /* 标签颜色与进度条对应 */
       .day-label.past {
         color: var(--cf-neutral-400);
       }
@@ -295,39 +290,6 @@ export const card = {
         }
       }
       
-      @container cardforge-container (max-width: 400px) {
-        .week-card {
-          min-height: 150px;
-        }
-        
-        .week-card .card-content {
-          gap: var(--cf-spacing-sm);
-        }
-        
-        .year-section {
-          max-width: 260px;
-          margin: 6px 0;
-        }
-        
-        .date-info {
-          min-width: auto;
-        }
-        
-        .week-section {
-          max-width: 260px;
-          margin: 6px 0;
-        }
-        
-        .progress-bars {
-          height: 12px;
-          margin-bottom: 6px;
-        }
-        
-        .week-label {
-          margin-bottom: 1px;
-        }
-      }
-      
       @container cardforge-container (max-width: 300px) {
         .year-section {
           flex-direction: column;
@@ -340,36 +302,6 @@ export const card = {
         .progress-ring svg {
           width: 60px;
           height: 60px;
-        }
-        
-        .progress-bars {
-          height: 10px;
-          border-radius: var(--cf-radius-md);
-          margin-bottom: 4px;
-        }
-        
-        .week-section {
-          max-width: 240px;
-          margin: 6px 0;
-        }
-      }
-      
-      /* 超小屏幕 */
-      @container cardforge-container (max-width: 280px) {
-        .week-card {
-          min-height: 140px;
-        }
-        
-        .week-card .card-content {
-          gap: 8px;
-        }
-        
-        .year-section {
-          margin: 4px 0;
-        }
-        
-        .week-section {
-          margin: 4px 0;
         }
       }
     `;
