@@ -1,7 +1,5 @@
-// cards/clock-card.js - 完全使用 Lit 模板
-import { LitElement, html, css } from 'https://unpkg.com/lit@2.8.0/index.js?module';
-import { formatTime, formatDate, getWeekday } from '../core/card-tools.js';
-import { createCardStyles } from '../core/card-styles.js';
+// cards/clock-card.js - 修复版确保能工作
+import { html, css } from 'https://unpkg.com/lit@2.8.0/index.js?module';
 
 export const card = {
   id: 'clock',
@@ -13,104 +11,75 @@ export const card = {
   },
   
   schema: {
-    use24Hour: {
-      type: 'boolean',
-      label: '24小时制',
-      default: true
-    },
-    showDate: {
-      type: 'boolean',
-      label: '显示日期',
-      default: true
-    },
-    showWeekday: {
-      type: 'boolean',
-      label: '显示星期',
-      default: true
-    },
-    showSeconds: {
-      type: 'boolean',
-      label: '显示秒数',
-      default: false
-    }
+    use24Hour: { type: 'boolean', label: '24小时制', default: true },
+    showDate: { type: 'boolean', label: '显示日期', default: true },
+    showWeekday: { type: 'boolean', label: '显示星期', default: true },
+    showSeconds: { type: 'boolean', label: '显示秒数', default: false }
   },
   
-  template: (config, data) => {
+  template: (config, { hass }) => {
+    console.log('⏰ 时钟卡片模板被调用，配置:', config);
+    
     const now = new Date();
+    const hours = now.getHours().toString().padStart(2, '0');
+    const minutes = now.getMinutes().toString().padStart(2, '0');
+    const seconds = now.getSeconds().toString().padStart(2, '0');
     
-    // 使用工具库函数
-    const timeStr = formatTime(now, config.use24Hour);
-    const dateStr = formatDate(now);
-    const weekdayStr = getWeekday(now);
-    
+    // 确保返回的是 html 模板
     return html`
+      <!-- 时钟卡片 -->
       <div class="clock-card">
-        <div class="card-wrapper">
-          <div class="card-content layout-center">
-            ${config.showSeconds 
-              ? html`
-                  <div class="clock-time card-emphasis">
-                    ${timeStr}:${now.getSeconds().toString().padStart(2, '0')}
-                  </div>
-                `
-              : html`
-                  <div class="clock-time card-emphasis">${timeStr}</div>
-                `
-            }
-            
-            ${config.showDate 
-              ? html`<div class="clock-date card-subtitle">${dateStr}</div>` 
-              : ''
-            }
-            
-            ${config.showWeekday 
-              ? html`<div class="clock-weekday card-caption">${weekdayStr}</div>` 
-              : ''
-            }
-          </div>
+        <div class="clock-time card-emphasis">
+          ${hours}:${minutes}${config.showSeconds ? `:${seconds}` : ''}
         </div>
+        ${config.showDate ? html`
+          <div class="clock-date card-subtitle">
+            ${now.getFullYear()}年${now.getMonth() + 1}月${now.getDate()}日
+          </div>
+        ` : ''}
+        ${config.showWeekday ? html`
+          <div class="clock-weekday card-caption">
+            ${['星期日', '星期一', '星期二', '星期三', '星期四', '星期五', '星期六'][now.getDay()]}
+          </div>
+        ` : ''}
       </div>
     `;
   },
   
   styles: (config) => {
-    const customStyles = css`
+    console.log('🎨 时钟卡片样式被调用');
+    // 返回有效的 CSSResult
+    return css`
       .clock-card {
-        min-height: 160px;
+        height: 100%;
+        min-height: 140px;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        padding: 20px;
+        box-sizing: border-box;
       }
       
       .clock-time {
-        font-size: var(--cf-font-size-4xl);
-        letter-spacing: 1px;
-        margin: var(--cf-spacing-md) 0;
+        font-size: 3em;
+        font-weight: bold;
+        color: var(--cf-primary-color);
+        margin-bottom: 10px;
+        text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
       }
       
       .clock-date {
-        margin-top: var(--cf-spacing-sm);
-        margin-bottom: var(--cf-spacing-xs);
+        font-size: 1.2em;
+        color: var(--cf-text-secondary);
+        margin-bottom: 5px;
       }
       
       .clock-weekday {
-        margin-top: var(--cf-spacing-xs);
-      }
-      
-      /* 时钟卡片特定的响应式 */
-      @container cardforge-container (max-width: 400px) {
-        .clock-time {
-          font-size: var(--cf-font-size-3xl);
-          margin: var(--cf-spacing-sm) 0;
-        }
-      }
-      
-      @container cardforge-container (max-width: 300px) {
-        .clock-time {
-          font-size: var(--cf-font-size-2xl);
-          margin: var(--cf-spacing-xs) 0;
-        }
+        font-size: 1em;
+        color: var(--cf-text-tertiary);
+        font-style: italic;
       }
     `;
-    
-    // 使用通用样式工具
-    return createCardStyles(customStyles);
   }
 };
