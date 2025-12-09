@@ -1,5 +1,5 @@
-// core/card-styles.js - 完全使用 Lit 框架
-import { LitElement, html, css } from 'https://unpkg.com/lit@2.8.0/index.js?module';
+// core/card-styles.js - 修复版
+import { css } from 'https://unpkg.com/lit@2.8.0/index.js?module';
 
 /**
  * 基础卡片样式 - 所有卡片共享
@@ -302,18 +302,20 @@ export const layoutStyles = css`
  * @returns {CSSResult} 完整的样式字符串
  */
 export function createCardStyles(customStyles) {
-  // 合并样式
-  const mergedStyles = [
-    cardBaseStyles,
-    layoutStyles,
-    customStyles || css``
-  ];
+  // 如果 customStyles 是字符串，转换为 css
+  if (typeof customStyles === 'string') {
+    customStyles = css([customStyles]);
+  }
   
-  // 将所有样式合并为一个 CSSResult
-  return mergedStyles.reduce((result, style) => {
-    if (style && style.cssText) {
-      return css([result, style]);
-    }
-    return result;
-  }, css``);
+  // 如果 customStyles 是 undefined 或 null，使用空样式
+  if (!customStyles) {
+    customStyles = css``;
+  }
+  
+  // 合并样式
+  return css`
+    ${cardBaseStyles}
+    ${layoutStyles}
+    ${customStyles}
+  `;
 }
