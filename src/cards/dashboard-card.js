@@ -1,5 +1,5 @@
-// cards/dashboard-card.js - 仪表盘卡片（完全使用 Lit 模板）
-import { LitElement, html, css } from 'https://unpkg.com/lit@2.8.0/index.js?module';
+// cards/dashboard-card.js - 修复版
+import { html, css } from 'https://unpkg.com/lit@2.8.0/index.js?module';
 import { createCardStyles } from '../core/card-styles.js';
 import { BlockBase } from '../blocks/block-base.js';
 
@@ -105,9 +105,6 @@ export const card = {
                   .hass=${hass}
                   .showName=${true}
                   .showValue=${true}
-                  .layoutMode="horizontal"
-                  .blockStyle="horizontal"
-                  .areaAlign=${config.headerAlign}
                 ></block-base>
               `)}
               ${headerBlocks.length === 0 ? html`
@@ -127,9 +124,6 @@ export const card = {
                 .hass=${hass}
                 .showName=${true}
                 .showValue=${true}
-                .layoutMode=${config.contentLayout}
-                .blockStyle=${config.contentBlockStyle}
-                .areaAlign="center"
               ></block-base>
             `)}
             ${contentBlocks.length === 0 ? html`
@@ -149,9 +143,6 @@ export const card = {
                   .hass=${hass}
                   .showName=${true}
                   .showValue=${true}
-                  .layoutMode="horizontal"
-                  .blockStyle="horizontal"
-                  .areaAlign=${config.footerAlign}
                 ></block-base>
               `)}
               ${footerBlocks.length === 0 ? html`
@@ -230,20 +221,17 @@ export const card = {
       }
       
       /* 布局模式 */
-      /* 流式布局 */
       .layout-flow .content-container {
         flex-wrap: wrap;
         gap: 12px;
         justify-content: flex-start;
       }
       
-      /* 堆叠布局 */
       .layout-stack .content-container {
         flex-direction: column;
         gap: 12px;
       }
       
-      /* 网格布局 */
       .layout-grid-2 .content-container {
         display: grid;
         grid-template-columns: repeat(2, 1fr);
@@ -260,12 +248,6 @@ export const card = {
         display: grid;
         grid-template-columns: repeat(4, 1fr);
         gap: 12px;
-      }
-      
-      /* 仪表盘块样式 */
-      .dashboard-block {
-        width: 100%;
-        height: 100%;
       }
       
       /* 空区域提示 */
@@ -319,39 +301,6 @@ export const card = {
         .header-content,
         .footer-content {
           gap: 6px;
-        }
-      }
-      
-      /* 滚动条样式 */
-      .header-content::-webkit-scrollbar,
-      .footer-content::-webkit-scrollbar {
-        height: 4px;
-      }
-      
-      .header-content::-webkit-scrollbar-track,
-      .footer-content::-webkit-scrollbar-track {
-        background: rgba(0, 0, 0, 0.05);
-        border-radius: 2px;
-      }
-      
-      .header-content::-webkit-scrollbar-thumb,
-      .footer-content::-webkit-scrollbar-thumb {
-        background: rgba(var(--cf-primary-color-rgb), 0.3);
-        border-radius: 2px;
-      }
-      
-      /* 深色模式适配 */
-      @media (prefers-color-scheme: dark) {
-        .dashboard-header {
-          background: rgba(var(--cf-primary-color-rgb), 0.1);
-        }
-        
-        .dashboard-footer {
-          background: rgba(var(--cf-accent-color-rgb), 0.1);
-        }
-        
-        .empty-area {
-          color: var(--cf-text-tertiary);
         }
       }
     `;
