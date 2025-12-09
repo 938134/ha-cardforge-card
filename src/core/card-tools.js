@@ -197,13 +197,20 @@ export function getDefaultQuote(date) {
 }
 
 /**
- * 格式化诗词内容（添加换行）
- * @param {string} content - 原始诗词内容
+ * 格式化诗词内容（智能处理）
+ * @param {string} content - 原始诗词内容（可能已包含HTML标记）
  * @returns {string} 格式化后的HTML
  */
 export function formatPoetryContent(content) {
   if (!content || typeof content !== 'string') return '';
   
+  // 如果内容已经包含 poetry-line 类，说明已经格式化过
+  if (content.includes('poetry-line')) {
+    // 提取现有的HTML内容
+    return content;
+  }
+  
+  // 否则进行原始格式化
   const sentences = content.split(/([。！？])/);
   let result = '';
   let currentSentence = '';
