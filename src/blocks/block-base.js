@@ -1,7 +1,7 @@
-// blocks/block-base.js - 简化安全版（完全使用 Lit 框架）
+// blocks/block-base.js - 兼容版
 import { LitElement, html, css } from 'https://unpkg.com/lit@2.8.0/index.js?module';
 import { designSystem } from '../core/design-system.js';
-import { AREAS, ENTITY_ICONS } from './block-config.js';
+import { ENTITY_ICONS } from './block-config.js';
 
 export class BlockBase extends LitElement {
   static properties = {
@@ -9,40 +9,60 @@ export class BlockBase extends LitElement {
     hass: { type: Object },
     showName: { type: Boolean },
     showValue: { type: Boolean },
-    compact: { type: Boolean }
+    compact: { type: Boolean },
+    layoutMode: { type: String },
+    blockStyle: { type: String },
+    areaAlign: { type: String }
   };
 
   static styles = [
     designSystem,
     css`
-      :host { display: block; }
+      :host { 
+        display: block; 
+      }
       
       /* 基础块容器 */
       .block-base {
         width: 100%;
         transition: all var(--cf-transition-duration-fast) var(--cf-easing-standard);
+        min-height: 60px;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+      }
+      
+      /* 紧凑模式 */
+      .compact.block-base {
         display: grid;
         grid-template-columns: auto 1fr;
         grid-template-rows: auto auto;
         gap: 2px 8px;
         align-items: center;
-        min-height: 60px;
-        padding: 8px;
+        min-height: 50px;
+        padding: 6px;
       }
       
-      .compact.block-base {
-        min-height: 50px;
-        grid-template-columns: 32px 1fr;
-        gap: 1px 6px;
-        padding: 6px;
+      /* 水平模式 */
+      .horizontal.block-base {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 8px 12px;
+      }
+      
+      /* 垂直模式 */
+      .vertical.block-base {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        text-align: center;
+        padding: 12px;
+        gap: 4px;
       }
       
       /* 块图标 */
       .block-icon {
-        grid-column: 1;
-        grid-row: 1 / span 2;
-        width: 40px;
-        height: 40px;
         display: flex;
         align-items: center;
         justify-content: center;
@@ -51,19 +71,51 @@ export class BlockBase extends LitElement {
         color: var(--cf-text-secondary);
         font-size: 1.3em;
         transition: all var(--cf-transition-duration-fast) var(--cf-easing-standard);
-        align-self: center;
       }
       
       .compact .block-icon {
+        grid-column: 1;
+        grid-row: 1 / span 2;
         width: 32px;
         height: 32px;
         font-size: 1.1em;
       }
       
+      .horizontal .block-icon {
+        width: 36px;
+        height: 36px;
+        flex-shrink: 0;
+      }
+      
+      .vertical .block-icon {
+        width: 40px;
+        height: 40px;
+        margin-bottom: 4px;
+        font-size: 1.4em;
+      }
+      
+      /* 块内容 */
+      .block-content {
+        display: flex;
+        flex-direction: column;
+        min-width: 0;
+      }
+      
+      .compact .block-content {
+        grid-column: 2;
+        grid-row: 1 / span 2;
+      }
+      
+      .horizontal .block-content {
+        flex: 1;
+      }
+      
+      .vertical .block-content {
+        width: 100%;
+      }
+      
       /* 块名称 */
       .block-name {
-        grid-column: 2;
-        grid-row: 1;
         font-size: var(--cf-font-size-sm);
         color: var(--cf-text-secondary);
         font-weight: var(--cf-font-weight-medium);
@@ -71,12 +123,21 @@ export class BlockBase extends LitElement {
         text-overflow: ellipsis;
         white-space: nowrap;
         line-height: var(--cf-line-height-tight);
-        align-self: end;
       }
       
       .compact .block-name {
         font-size: var(--cf-font-size-xs);
         color: var(--cf-text-tertiary);
+        align-self: end;
+      }
+      
+      .horizontal .block-name {
+        margin-bottom: 2px;
+      }
+      
+      .vertical .block-name {
+        margin-bottom: 4px;
+        font-size: var(--cf-font-size-xs);
       }
       
       .block-name:empty {
@@ -85,8 +146,6 @@ export class BlockBase extends LitElement {
       
       /* 块值 */
       .block-value {
-        grid-column: 2;
-        grid-row: 2;
         font-size: var(--cf-font-size-lg);
         font-weight: var(--cf-font-weight-bold);
         color: var(--cf-text-primary);
@@ -94,12 +153,21 @@ export class BlockBase extends LitElement {
         overflow: hidden;
         text-overflow: ellipsis;
         white-space: nowrap;
-        align-self: start;
       }
       
       .compact .block-value {
         font-size: var(--cf-font-size-md);
         font-weight: var(--cf-font-weight-semibold);
+        align-self: start;
+      }
+      
+      .horizontal .block-value {
+        font-size: var(--cf-font-size-md);
+      }
+      
+      .vertical .block-value {
+        font-size: var(--cf-font-size-lg);
+        margin-top: 2px;
       }
       
       .block-value:empty {
@@ -143,24 +211,38 @@ export class BlockBase extends LitElement {
       
       /* 响应式设计 */
       @container cardforge-container (max-width: 320px) {
-        .block-base {
+        .compact.block-base {
           grid-template-columns: 28px 1fr;
           gap: 1px 4px;
           padding: 4px;
         }
         
-        .block-icon {
+        .compact .block-icon {
           width: 28px;
           height: 28px;
           font-size: 1em;
         }
         
-        .block-name {
+        .compact .block-name {
           font-size: 0.7em;
         }
         
-        .block-value {
+        .compact .block-value {
           font-size: 0.85em;
+        }
+        
+        .horizontal.block-base {
+          padding: 4px 6px;
+          gap: 4px;
+        }
+        
+        .horizontal .block-icon {
+          width: 30px;
+          height: 30px;
+        }
+        
+        .vertical.block-base {
+          padding: 8px;
         }
       }
     `
@@ -173,7 +255,6 @@ export class BlockBase extends LitElement {
       if (this.block && typeof this.block === 'object') {
         block = this.block;
       } else if (typeof this.block === 'string') {
-        // 如果是字符串，尝试解析
         block = JSON.parse(this.block);
       }
     } catch (e) {
@@ -211,19 +292,84 @@ export class BlockBase extends LitElement {
       icon = ENTITY_ICONS[domain] || 'mdi:cube';
     }
     
+    // 确定显示样式
+    let displayStyle = 'compact';
+    if (this.blockStyle) {
+      displayStyle = this.blockStyle;
+    } else if (this.compact) {
+      displayStyle = 'compact';
+    }
+    
+    // 根据样式渲染不同的HTML结构
+    if (displayStyle === 'compact') {
+      return this._renderCompact(area, icon, displayName, displayValue);
+    } else if (displayStyle === 'horizontal') {
+      return this._renderHorizontal(area, icon, displayName, displayValue);
+    } else if (displayStyle === 'vertical') {
+      return this._renderVertical(area, icon, displayName, displayValue);
+    } else {
+      return this._renderCompact(area, icon, displayName, displayValue);
+    }
+  }
+
+  _renderCompact(area, icon, name, value) {
     return html`
-      <div class="block-base ${this.compact ? 'compact' : ''} area-${area}">
+      <div class="block-base compact area-${area}">
+        <div class="block-icon">
+          <ha-icon .icon=${icon}></ha-icon>
+        </div>
+        
+        <div class="block-content">
+          ${this.showName ? html`
+            <div class="block-name">${name}</div>
+          ` : ''}
+          
+          ${this.showValue ? html`
+            <div class="block-value">
+              ${value || html`<span class="empty-state">未配置实体</span>`}
+            </div>
+          ` : ''}
+        </div>
+      </div>
+    `;
+  }
+
+  _renderHorizontal(area, icon, name, value) {
+    return html`
+      <div class="block-base horizontal area-${area}">
+        <div class="block-icon">
+          <ha-icon .icon=${icon}></ha-icon>
+        </div>
+        
+        <div class="block-content">
+          ${this.showName ? html`
+            <div class="block-name">${name}</div>
+          ` : ''}
+          
+          ${this.showValue ? html`
+            <div class="block-value">
+              ${value || html`<span class="empty-state">未配置实体</span>`}
+            </div>
+          ` : ''}
+        </div>
+      </div>
+    `;
+  }
+
+  _renderVertical(area, icon, name, value) {
+    return html`
+      <div class="block-base vertical area-${area}">
         <div class="block-icon">
           <ha-icon .icon=${icon}></ha-icon>
         </div>
         
         ${this.showName ? html`
-          <div class="block-name">${displayName}</div>
+          <div class="block-name">${name}</div>
         ` : ''}
         
         ${this.showValue ? html`
           <div class="block-value">
-            ${displayValue || html`<span class="empty-state">未配置实体</span>`}
+            ${value || html`<span class="empty-state">未配置实体</span>`}
           </div>
         ` : ''}
       </div>

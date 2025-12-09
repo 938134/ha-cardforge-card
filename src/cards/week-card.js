@@ -1,4 +1,4 @@
-// cards/week-card.js - 使用 ha-circular-progress 版
+// cards/week-card.js - 完整布局版
 import { html, css } from 'https://unpkg.com/lit@2.8.0/index.js?module';
 import { getYearProgress, getWeekNumber } from '../core/card-tools.js';
 import { createCardStyles } from '../core/card-styles.js';
@@ -7,7 +7,7 @@ export const card = {
   id: 'week',
   meta: {
     name: '星期',
-    description: '显示年进度和周进度，使用HA原生进度条',
+    description: '显示年进度和周进度',
     icon: '📅',
     category: '时间'
   },
@@ -29,15 +29,22 @@ export const card = {
     const now = new Date();
     const yearProgress = getYearProgress(now);
     const weekNumber = getWeekNumber(now);
-    const currentDay = now.getDay(); // 0=周日, 1=周一...
+    const currentDay = now.getDay();
     
     const month = now.getMonth() + 1;
     const day = now.getDate();
+    
+    // 构建进度条SVG
+    const size = 80;
+    const strokeWidth = 4;
+    const radius = (size / 2) - strokeWidth;
+    const circumference = 2 * Math.PI * radius;
+    const dashOffset = circumference * (1 - yearProgress / 100);
+    
+    // 构建周进度条
     const weekDays = ['日', '一', '二', '三', '四', '五', '六'];
     
-    // 计算周进度百分比
-    const weekProgress = (currentDay / 7) * 100;
-    
+    // 如果没有显示任何内容，显示空状态
     if (!config.showYearProgress && !config.showWeekProgress) {
       return html`
         <div class="week-card">
@@ -54,18 +61,40 @@ export const card = {
         <div class="card-wrapper">
           <div class="card-content layout-center">
             ${config.showYearProgress ? html`
-              <div class="year-section">
-                <div class="progress-container">
-                  <ha-circular-progress
-                    .progress=${yearProgress / 100}
-                    size="large"
-                    stroke-width="4"
-                    class="year-progress"
-                  ></ha-circular-progress>
-                  <div class="progress-text">
-                    <div class="progress-value">${Math.round(yearProgress)}%</div>
-                    <div class="progress-label">年进度</div>
-                  </div>
+              <div class="year-section layout-horizontal">
+                <div class="progress-ring">
+                  <svg width="${size}" height="${size}" viewBox="0 0 ${size} ${size}">
+                    <!-- 渐变定义 -->
+                    <defs>
+                      <linearGradient id="year-gradient" x1="0%" y1="0%" x2="100%" y2="0%">
+                        <stop offset="0%" stop-color="var(--cf-primary-color)" />
+                        <stop offset="100%" stop-color="var(--cf-accent-color)" />
+                      </linearGradient>
+                    </defs>
+                    <circle 
+                      cx="${size/2}" 
+                      cy="${size/2}" 
+                      r="${radius}" 
+                      class="progress-bg" 
+                      stroke-width="${strokeWidth}" />
+                    <circle 
+                      cx="${size/2}" 
+                      cy="${size/2}" 
+                      r="${radius}" 
+                      class="progress-fill"
+                      stroke-width="${strokeWidth}"
+                      stroke-dasharray="${circumference}"
+                      stroke-dashoffset="${dashOffset}"
+                      stroke="url(#year-gradient)"
+                      transform="rotate(-90 ${size/2} ${size/2})" />
+                    <text 
+                      x="${size/2}" 
+                      y="${size/2 + 5}" 
+                      text-anchor="middle" 
+                      class="progress-text">
+                      ${Math.round(yearProgress)}<tspan class="progress-percent">%</tspan>
+                    </text>
+                  </svg>
                 </div>
                 <div class="date-info">
                   <div class="week-label card-emphasis">第 ${weekNumber} 周</div>
@@ -76,49 +105,27 @@ export const card = {
             
             ${config.showWeekProgress ? html`
               <div class="week-section">
-                <!-- 周进度条 -->
-                <div class="week-progress-container">
-                  <ha-circular-progress
-                    .progress=${weekProgress / 100}
-                    size="medium"
-                    stroke-width="3"
-                    class="week-progress"
-                  ></ha-circular-progress>
-                  <div class="week-progress-text">
-                    <div class="current-day">${weekDays[currentDay]}</div>
-                    <div class="week-progress-label">周进度</div>
-                  </div>
-                </div>
-                
-                <!-- 星期指示器 -->
-                <div class="week-indicator">
+                <div class="progress-bars">
                   ${weekDays.map((dayLabel, i) => {
                     const isPast = i < currentDay;
                     const isCurrent = i === currentDay;
-                    const isWeekend = i === 0 || i === 6;
-                    
-                    let dayClass = 'day-item';
-                    if (isCurrent) dayClass += ' current';
-                    if (isPast) dayClass += ' past';
-                    if (isWeekend) dayClass += ' weekend';
+                    const colorClass = isCurrent ? 'current' : (isPast ? 'past' : 'future');
                     
                     return html`
-                      <div class="${dayClass}" title="${dayLabel}">
-                        ${isCurrent ? html`
-                          <ha-icon icon="mdi:circle-small" class="current-icon"></ha-icon>
-                        ` : ''}
-                        <div class="day-name">${dayLabel}</div>
-                        ${isPast ? html`
-                          <ha-icon icon="mdi:check-circle" class="past-icon"></ha-icon>
-                        ` : ''}
-                      </div>
+                      <div class="week-bar ${colorClass}" data-day="${dayLabel}"></div>
                     `;
                   })}
                 </div>
-                
-                <!-- 周进度信息 -->
-                <div class="week-info card-caption">
-                  本周已过 ${currentDay} 天，剩余 ${7 - currentDay} 天
+                <div class="day-labels layout-horizontal">
+                  ${weekDays.map((dayLabel, i) => {
+                    const isPast = i < currentDay;
+                    const isCurrent = i === currentDay;
+                    const colorClass = isCurrent ? 'current' : (isPast ? 'past' : 'future');
+                    
+                    return html`
+                      <div class="day-label ${colorClass}">${dayLabel}</div>
+                    `;
+                  })}
                 </div>
               </div>
             ` : ''}
@@ -135,52 +142,40 @@ export const card = {
       }
       
       .week-card .card-content {
-        gap: var(--cf-spacing-xl);
+        gap: var(--cf-spacing-lg);
         justify-content: center;
       }
       
       /* 年进度区域 */
       .year-section {
-        display: flex;
-        align-items: center;
-        gap: var(--cf-spacing-xl);
-        max-width: 320px;
-      }
-      
-      .progress-container {
-        position: relative;
-        width: 80px;
-        height: 80px;
-      }
-      
-      .year-progress {
-        --mdc-theme-primary: var(--primary-color);
         width: 100%;
-        height: 100%;
+        max-width: 320px;
+        margin: var(--cf-spacing-sm) 0;
+      }
+      
+      .progress-bg {
+        stroke: var(--cf-neutral-200);
+        fill: none;
+      }
+      
+      .progress-fill {
+        fill: none;
+        stroke-linecap: round;
+        transition: stroke-dashoffset var(--cf-transition-duration-slow);
       }
       
       .progress-text {
-        position: absolute;
-        top: 50%;
-        left: 50%;
-        transform: translate(-50%, -50%);
-        text-align: center;
-        z-index: 1;
-      }
-      
-      .progress-value {
+        fill: var(--cf-text-primary);
         font-size: var(--cf-font-size-xl);
         font-weight: var(--cf-font-weight-bold);
-        color: var(--primary-color);
-        line-height: 1.2;
       }
       
-      .progress-label {
-        font-size: var(--cf-font-size-xs);
-        color: var(--secondary-text-color);
-        margin-top: 2px;
+      .progress-percent {
+        font-size: var(--cf-font-size-sm);
+        fill: var(--cf-text-secondary);
       }
       
+      /* 日期信息 */
       .date-info {
         display: flex;
         flex-direction: column;
@@ -190,227 +185,92 @@ export const card = {
       
       .week-label {
         line-height: var(--cf-line-height-tight);
-        margin-bottom: 4px;
+        margin-bottom: 2px;
         white-space: nowrap;
-        color: var(--primary-color);
       }
       
       .month-day {
         line-height: var(--cf-line-height-tight);
         white-space: nowrap;
-        color: var(--secondary-text-color);
       }
       
       /* 周进度区域 */
       .week-section {
-        max-width: 400px;
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        gap: var(--cf-spacing-md);
-      }
-      
-      .week-progress-container {
-        position: relative;
-        width: 60px;
-        height: 60px;
-      }
-      
-      .week-progress {
-        --mdc-theme-primary: var(--accent-color);
         width: 100%;
+        max-width: 300px;
+        margin: var(--cf-spacing-sm) 0;
+      }
+      
+      .progress-bars {
+        display: flex;
+        width: 100%;
+        height: var(--cf-spacing-lg);
+        background: var(--cf-surface);
+        border-radius: var(--cf-radius-pill);
+        overflow: hidden;
+        margin-bottom: var(--cf-spacing-sm);
+        border: 1px solid var(--cf-border);
+        box-shadow: var(--cf-shadow-inner);
+      }
+      
+      .week-bar {
+        flex: 1;
         height: 100%;
+        transition: all var(--cf-transition-duration-normal);
+        border-right: 1px solid var(--cf-border-light);
       }
       
-      .week-progress-text {
-        position: absolute;
-        top: 50%;
-        left: 50%;
-        transform: translate(-50%, -50%);
-        text-align: center;
+      .week-bar:last-child {
+        border-right: none;
+      }
+      
+      /* 已过去的日子 - 中性色 */
+      .week-bar.past {
+        background: var(--cf-neutral-200);
+      }
+      
+      /* 当前日 - 强调色 */
+      .week-bar.current {
+        background: var(--cf-accent-color);
+        transform: scaleY(1.1);
+        box-shadow: 0 0 8px rgba(var(--cf-accent-color-rgb), 0.3);
         z-index: 1;
+        position: relative;
       }
       
-      .current-day {
-        font-size: var(--cf-font-size-lg);
-        font-weight: var(--cf-font-weight-bold);
-        color: var(--accent-color);
-        line-height: 1.2;
+      /* 未来的日子 - 主色 */
+      .week-bar.future {
+        background: var(--cf-primary-color);
       }
       
-      .week-progress-label {
-        font-size: var(--cf-font-size-xs);
-        color: var(--secondary-text-color);
-        margin-top: 2px;
-      }
-      
-      /* 星期指示器 */
-      .week-indicator {
-        display: flex;
-        gap: 6px;
-        width: 100%;
+      /* 标签样式 */
+      .day-labels {
         justify-content: space-between;
       }
       
-      .day-item {
-        flex: 1;
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        padding: 6px 2px;
-        border-radius: var(--cf-radius-sm);
-        transition: all var(--cf-transition-duration-fast);
-        position: relative;
-        min-height: 50px;
-      }
-      
-      .day-name {
-        font-size: var(--cf-font-size-sm);
+      .day-label {
         font-weight: var(--cf-font-weight-medium);
-        margin-bottom: 4px;
-        transition: all var(--cf-transition-duration-fast);
+        text-align: center;
+        flex: 1;
+        font-size: var(--cf-font-size-sm);
       }
       
-      .current-icon {
-        color: var(--accent-color);
-        font-size: 1.5em;
-        margin-bottom: 4px;
-        filter: drop-shadow(0 2px 3px rgba(0, 0, 0, 0.2));
+      /* 标签颜色与进度条对应 */
+      .day-label.past {
+        color: var(--cf-neutral-400);
       }
       
-      .past-icon {
-        color: var(--primary-color);
-        font-size: 0.9em;
-        opacity: 0.7;
-        margin-top: 2px;
-      }
-      
-      /* 当前日样式 */
-      .day-item.current {
-        background: rgba(var(--accent-color-rgb), 0.1);
-        border: 1px solid rgba(var(--accent-color-rgb), 0.3);
-      }
-      
-      .day-item.current .day-name {
-        color: var(--accent-color);
+      .day-label.current {
+        color: var(--cf-accent-color);
         font-weight: var(--cf-font-weight-bold);
       }
       
-      /* 已过日样式 */
-      .day-item.past {
-        background: rgba(var(--primary-color-rgb), 0.05);
-      }
-      
-      .day-item.past .day-name {
-        color: var(--primary-color);
-      }
-      
-      /* 未来日样式 */
-      .day-item:not(.current):not(.past) .day-name {
-        color: var(--secondary-text-color);
-      }
-      
-      /* 周末样式 */
-      .day-item.weekend .day-name {
-        color: var(--error-color, #f44336);
-      }
-      
-      .day-item.current.weekend .day-name {
-        color: color-mix(in srgb, var(--accent-color) 70%, var(--error-color) 30%);
-      }
-      
-      /* 周信息 */
-      .week-info {
-        text-align: center;
-        color: var(--secondary-text-color);
-        font-size: var(--cf-font-size-xs);
-        padding: 4px 8px;
-        background: rgba(var(--primary-color-rgb), 0.05);
-        border-radius: var(--cf-radius-sm);
-        width: 100%;
+      .day-label.future {
+        color: var(--cf-primary-color);
       }
       
       /* 响应式设计 */
       @container cardforge-container (max-width: 500px) {
-        .week-card .card-content {
-          gap: var(--cf-spacing-lg);
-        }
-        
-        .year-section {
-          max-width: 280px;
-          gap: var(--cf-spacing-lg);
-        }
-        
-        .progress-container {
-          width: 70px;
-          height: 70px;
-        }
-        
-        .progress-value {
-          font-size: var(--cf-font-size-lg);
-        }
-        
-        .date-info {
-          min-width: 80px;
-        }
-        
-        .week-section {
-          max-width: 320px;
-        }
-        
-        .week-progress-container {
-          width: 50px;
-          height: 50px;
-        }
-        
-        .current-day {
-          font-size: var(--cf-font-size-md);
-        }
-        
-        .day-item {
-          padding: 4px 1px;
-          min-height: 45px;
-        }
-        
-        .day-name {
-          font-size: var(--cf-font-size-xs);
-        }
-        
-        .current-icon {
-          font-size: 1.2em;
-        }
-        
-        .past-icon {
-          font-size: 0.8em;
-        }
-      }
-      
-      @container cardforge-container (max-width: 400px) {
-        .year-section {
-          flex-direction: column;
-          text-align: center;
-          gap: var(--cf-spacing-md);
-        }
-        
-        .progress-container {
-          margin-bottom: 8px;
-        }
-        
-        .week-indicator {
-          gap: 4px;
-        }
-        
-        .day-item {
-          padding: 3px 1px;
-          min-height: 40px;
-        }
-        
-        .day-name {
-          font-size: 0.7em;
-        }
-      }
-      
-      @container cardforge-container (max-width: 300px) {
         .week-card {
           min-height: 160px;
         }
@@ -419,26 +279,97 @@ export const card = {
           gap: var(--cf-spacing-md);
         }
         
-        .progress-container {
+        .year-section {
+          max-width: 280px;
+          margin: 8px 0;
+        }
+        
+        .week-section {
+          max-width: 280px;
+          margin: 8px 0;
+        }
+        
+        .progress-bars {
+          height: var(--cf-spacing-md);
+          margin-bottom: var(--cf-spacing-xs);
+        }
+      }
+      
+      @container cardforge-container (max-width: 400px) {
+        .week-card {
+          min-height: 150px;
+        }
+        
+        .week-card .card-content {
+          gap: var(--cf-spacing-sm);
+        }
+        
+        .year-section {
+          max-width: 260px;
+          margin: 6px 0;
+        }
+        
+        .date-info {
+          min-width: auto;
+        }
+        
+        .week-section {
+          max-width: 260px;
+          margin: 6px 0;
+        }
+        
+        .progress-bars {
+          height: 12px;
+          margin-bottom: 6px;
+        }
+        
+        .week-label {
+          margin-bottom: 1px;
+        }
+      }
+      
+      @container cardforge-container (max-width: 300px) {
+        .year-section {
+          flex-direction: column;
+          text-align: center;
+          max-width: 240px;
+          gap: var(--cf-spacing-sm);
+          margin: 6px 0;
+        }
+        
+        .progress-ring svg {
           width: 60px;
           height: 60px;
         }
         
-        .progress-value {
-          font-size: var(--cf-font-size-md);
+        .progress-bars {
+          height: 10px;
+          border-radius: var(--cf-radius-md);
+          margin-bottom: 4px;
         }
         
-        .week-progress-container {
-          width: 45px;
-          height: 45px;
+        .week-section {
+          max-width: 240px;
+          margin: 6px 0;
+        }
+      }
+      
+      /* 超小屏幕 */
+      @container cardforge-container (max-width: 280px) {
+        .week-card {
+          min-height: 140px;
         }
         
-        .current-day {
-          font-size: var(--cf-font-size-sm);
+        .week-card .card-content {
+          gap: 8px;
         }
         
-        .day-item {
-          min-height: 35px;
+        .year-section {
+          margin: 4px 0;
+        }
+        
+        .week-section {
+          margin: 4px 0;
         }
       }
     `;

@@ -1,22 +1,43 @@
-// cards/poetry-card.js - 简化测试版
+// cards/poetry-card.js - 完整布局版
 import { html, css } from 'https://unpkg.com/lit@2.8.0/index.js?module';
+import { escapeHtml, formatPoetryContent, getEntityState } from '../core/card-tools.js';
 import { createCardStyles } from '../core/card-styles.js';
 
 export const card = {
   id: 'poetry',
   meta: {
     name: '诗词',
-    description: '显示经典诗词',
+    description: '显示经典诗词，支持标题、朝代、作者、全文、译文',
     icon: '📜',
     category: '文化'
   },
   
   blockType: 'preset',
   presetBlocks: {
+    poetry_title: {
+      defaultName: '诗词标题',
+      defaultIcon: 'mdi:format-title',
+      required: true
+    },
+    poetry_dynasty: {
+      defaultName: '朝代',
+      defaultIcon: 'mdi:calendar-clock',
+      required: false
+    },
+    poetry_author: {
+      defaultName: '作者',
+      defaultIcon: 'mdi:account',
+      required: false
+    },
     poetry_content: {
       defaultName: '诗词全文',
       defaultIcon: 'mdi:format-quote-close',
       required: true
+    },
+    poetry_translation: {
+      defaultName: '诗词译文',
+      defaultIcon: 'mdi:translate',
+      required: false
     }
   },
   
@@ -30,36 +51,87 @@ export const card = {
         { value: 'large', label: '大' }
       ],
       default: 'medium'
+    },
+    showTranslation: {
+      type: 'boolean',
+      label: '显示译文',
+      default: true
     }
   },
   
   template: (config, { hass }) => {
+    const blocks = config.blocks || {};
     const defaultPoetry = getDefaultPoetry();
+    
+    // 提取块内容
+    const title = _getBlockContent(blocks, 'poetry_title', defaultPoetry.title);
+    const dynasty = _getBlockContent(blocks, 'poetry_dynasty', defaultPoetry.dynasty);
+    const author = _getBlockContent(blocks, 'poetry_author', defaultPoetry.author);
+    const content = _getBlockContent(blocks, 'poetry_content', defaultPoetry.content);
+    const translation = config.showTranslation ? 
+      _getBlockContent(blocks, 'poetry_translation', defaultPoetry.translation) : '';
+    
+    // 如果没有任何内容，显示空状态
+    if (!title && !content) {
+      return html`
+        <div class="poetry-card">
+          <div class="card-empty">
+            <div class="card-empty-icon">📜</div>
+            <div class="card-empty-text">诗词卡片需要配置内容</div>
+          </div>
+        </div>
+      `;
+    }
+    
+    const formattedContent = content ? formatPoetryContent(content) : '';
+    const formattedTranslation = translation ? formatPoetryContent(translation) : '';
     
     return html`
       <div class="poetry-card font-${config.fontSize}">
         <div class="card-wrapper">
           <div class="card-content layout-center">
-            <div class="poetry-title card-emphasis">${defaultPoetry.title}</div>
+            ${title ? html`<div class="poetry-title card-emphasis">${escapeHtml(title)}</div>` : ''}
             
-            <div class="poetry-meta layout-horizontal card-spacing-sm">
-              <span class="meta-item dynasty">${defaultPoetry.dynasty}</span>
-              <span class="separator">·</span>
-              <span class="meta-item author">${defaultPoetry.author}</span>
-            </div>
+            ${(dynasty || author) ? html`
+              <div class="poetry-meta layout-horizontal card-spacing-sm">
+                ${dynasty ? html`<span class="meta-item dynasty">${escapeHtml(dynasty)}</span>` : ''}
+                ${dynasty && author ? html`<span class="separator">·</span>` : ''}
+                ${author ? html`<span class="meta-item author">${escapeHtml(author)}</span>` : ''}
+              </div>
+            ` : ''}
             
-            <div class="poetry-divider"></div>
-            <div class="poetry-content">${defaultPoetry.content}</div>
+            ${formattedContent ? html`
+              <div class="poetry-divider"></div>
+              <div class="poetry-content">${formattedContent}</div>
+            ` : ''}
             
-            <div class="translation-divider card-spacing-md"></div>
-            <div class="translation-container">
-              <div class="translation-label">译文</div>
-              <div class="translation-content">${defaultPoetry.translation}</div>
-            </div>
+            ${formattedTranslation ? html`
+              <div class="translation-divider card-spacing-md"></div>
+              <div class="translation-container">
+                <div class="translation-label">译文</div>
+                <div class="translation-content">${formattedTranslation}</div>
+              </div>
+            ` : ''}
           </div>
         </div>
       </div>
     `;
+    
+    function _getBlockContent(blocks, blockId, defaultValue = '') {
+      const blockEntry = Object.entries(blocks).find(([id, block]) => 
+        block.presetKey === blockId
+      );
+      
+      if (blockEntry) {
+        const [_, block] = blockEntry;
+        if (block.entity) {
+          return getEntityState(hass, block.entity, defaultValue);
+        }
+        return defaultValue;
+      }
+      
+      return defaultValue;
+    }
     
     function getDefaultPoetry() {
       return {
@@ -76,7 +148,7 @@ export const card = {
     const customStyles = css`
       .poetry-card {
         min-height: 260px;
-        font-family: var(--cf-font-family-base, serif);
+        font-family: 'ZCOOL XiaoWei', 'Ma Shan Zheng', 'Noto Serif SC', var(--cf-font-family-base, serif);
         background: var(--cf-surface);
         border-radius: var(--cf-radius-lg);
         box-shadow: var(--cf-shadow-sm);
@@ -130,9 +202,13 @@ export const card = {
         max-width: 600px;
         margin-top: var(--cf-spacing-xs);
         margin-bottom: var(--cf-spacing-xs);
+      }
+      
+      .poetry-line {
         font-size: 1.2em;
         line-height: 2.0;
         color: var(--cf-text-primary);
+        margin-bottom: var(--cf-spacing-xs);
       }
       
       /* 译文区域 */
@@ -158,6 +234,89 @@ export const card = {
         line-height: var(--cf-line-height-relaxed);
         color: var(--cf-text-secondary);
         font-style: normal;
+      }
+      
+      /* 诗词卡片特定的响应式 */
+      @container cardforge-container (max-width: 600px) {
+        .poetry-card {
+          min-height: 220px;
+        }
+        
+        .poetry-title {
+          font-size: 1.6em;
+          margin-bottom: 0;
+        }
+        
+        .poetry-content,
+        .translation-container {
+          max-width: 100%;
+        }
+        
+        .translation-container {
+          padding: var(--cf-spacing-sm);
+          margin-top: var(--cf-spacing-xs);
+        }
+        
+        .poetry-divider,
+        .translation-divider {
+          margin: var(--cf-spacing-xs) 0;
+        }
+      }
+      
+      @container cardforge-container (max-width: 480px) {
+        .poetry-card {
+          min-height: 200px;
+        }
+        
+        .poetry-title {
+          font-size: 1.4em;
+        }
+        
+        .poetry-line {
+          font-size: 1.1em;
+          line-height: 1.8;
+        }
+        
+        .poetry-divider,
+        .translation-divider {
+          width: 40px;
+          margin: var(--cf-spacing-xs) 0;
+        }
+      }
+      
+      @container cardforge-container (max-width: 360px) {
+        .poetry-card {
+          min-height: 180px;
+        }
+        
+        .poetry-title {
+          font-size: 1.3em;
+        }
+        
+        .poetry-card.font-small .poetry-title {
+          font-size: 1.2em;
+        }
+        
+        .poetry-card.font-large .poetry-title {
+          font-size: 1.5em;
+        }
+        
+        .poetry-line {
+          font-size: 1em;
+        }
+        
+        .translation-label {
+          font-size: 0.8em;
+        }
+        
+        .translation-content {
+          font-size: 0.9em;
+        }
+        
+        .poetry-divider,
+        .translation-divider {
+          width: 30px;
+        }
       }
     `;
     
