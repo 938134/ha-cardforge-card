@@ -1,6 +1,6 @@
-// cards/welcome-card.js - 完全使用 Lit 模板
-import { LitElement, html, css } from 'https://unpkg.com/lit@2.8.0/index.js?module';
-import { getGreetingByHour, formatTime, getDisplayName, escapeHtml, getDefaultQuote, getEntityState, getEntityIcon } from '../core/card-tools.js';
+// cards/welcome-card.js - 修复版
+import { html, css } from 'https://unpkg.com/lit@2.8.0/index.js?module';
+import { getGreetingByHour, formatTime, getDisplayName, getDefaultQuote, getEntityState, getEntityIcon } from '../core/card-tools.js';
 import { createCardStyles } from '../core/card-styles.js';
 
 export const card = {
@@ -40,16 +40,15 @@ export const card = {
     }
   },
   
-  template: (config, data) => {
+  template: (config, { hass }) => {
     const now = new Date();
     const greeting = getGreetingByHour(now);
-    const userName = getDisplayName(data.hass, config.greetingName, '朋友');
+    const userName = getDisplayName(hass, config.greetingName, '朋友');
     const timeStr = formatTime(now, config.use24Hour);
     
     // 获取每日一言
     let quoteContent = '';
     let quoteIcon = 'mdi:format-quote-close';
-    let hasEntity = false;
     
     const blocks = config.blocks || {};
     
@@ -61,10 +60,8 @@ export const card = {
         }
         
         if (block.entity) {
-          hasEntity = true;
-          quoteContent = getEntityState(data.hass, block.entity, getDefaultQuote(now));
-          
-          const entityIcon = getEntityIcon(data.hass, block.entity, quoteIcon);
+          quoteContent = getEntityState(hass, block.entity, getDefaultQuote(now));
+          const entityIcon = getEntityIcon(hass, block.entity, quoteIcon);
           if (entityIcon !== 'mdi:cube') {
             quoteIcon = entityIcon;
           }
@@ -73,7 +70,7 @@ export const card = {
     });
     
     // 如果没有关联实体，使用默认名言
-    if (!hasEntity && quoteContent === '') {
+    if (!quoteContent) {
       quoteContent = getDefaultQuote(now);
     }
     
@@ -86,7 +83,7 @@ export const card = {
             
             ${config.showQuote && quoteContent ? html`
               <div class="quote-wrapper">
-                <div class="quote-container ${hasEntity ? 'has-entity' : ''}">
+                <div class="quote-container">
                   <div class="quote-icon">
                     <ha-icon icon="${quoteIcon}"></ha-icon>
                   </div>
@@ -100,7 +97,7 @@ export const card = {
     `;
   },
   
-  styles: (config, theme) => {
+  styles: (config) => {
     const customStyles = css`
       .welcome-card {
         min-height: 220px;
@@ -155,10 +152,6 @@ export const card = {
         transition: all var(--cf-transition-duration-fast);
       }
       
-      .quote-container.has-entity .quote-icon {
-        color: var(--cf-accent-color);
-      }
-      
       /* 内容区域 */
       .quote-content {
         flex: 1;
@@ -191,11 +184,7 @@ export const card = {
         color: var(--cf-primary-color);
       }
       
-      .quote-container:hover .quote-content {
-        color: var(--cf-text-primary);
-      }
-      
-      /* 欢迎卡片特定的响应式 */
+      /* 响应式 */
       @container cardforge-container (max-width: 600px) {
         .time {
           font-size: 3em;
@@ -242,36 +231,6 @@ export const card = {
         
         .quote-content {
           font-size: 0.95em;
-        }
-      }
-      
-      @container cardforge-container (max-width: 360px) {
-        .welcome-card {
-          min-height: 180px;
-        }
-        
-        .greeting {
-          font-size: 1.3em;
-        }
-        
-        .time {
-          font-size: 2.2em;
-          margin: var(--cf-spacing-xs) 0;
-        }
-        
-        .quote-container {
-          padding: var(--cf-spacing-xs) var(--cf-spacing-sm);
-          gap: var(--cf-spacing-sm);
-        }
-        
-        .quote-icon {
-          width: 32px;
-          height: 32px;
-          font-size: 1.1em;
-        }
-        
-        .quote-content {
-          font-size: 0.9em;
         }
       }
     `;
