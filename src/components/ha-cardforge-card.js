@@ -1,4 +1,4 @@
-// 主卡片组件 - 修复模板渲染问题
+// 主卡片组件 - 修复状态管理
 import { LitElement, html, css } from 'https://unpkg.com/lit@2.8.0/index.js?module';
 import { cardSystem } from '../core/card-system.js';
 import { themeSystem } from '../core/theme-system.js';
@@ -13,8 +13,7 @@ class HaCardForgeCard extends LitElement {
     _themeStyles: { state: true },
     _cardStyles: { state: true },
     _isRendering: { state: true },
-    _renderCount: { state: true },
-    _debugInfo: { state: true }
+    _renderPhase: { state: true }
   };
 
   static styles = [
@@ -58,7 +57,7 @@ class HaCardForgeCard extends LitElement {
         justify-content: center;
         height: 100%;
         min-height: 100px;
-        color: var(--cf-text-secondary;
+        color: var(--cf-text-secondary);
       }
     `
   ];
@@ -68,20 +67,22 @@ class HaCardForgeCard extends LitElement {
     this.config = null;
     this._cardData = null;
     this._error = null;
-    this._themeStyles = css``;
-    this._cardStyles = css``;
+    this._themeStyles = null;
+    this._cardStyles = null;
     this._isRendering = false;
-    this._renderCount = 0;
-    this._debugInfo = '未初始化';
+    this._renderPhase = 'init'; // init → loading → ready → error
   }
 
   async setConfig(config) {
     console.log('📋 收到配置:', config);
-    this._debugInfo = '开始处理配置';
     
-    // 标记为正在渲染
+    // 重置状态
+    this._renderPhase = 'loading';
     this._isRendering = true;
     this._error = null;
+    this._cardData = null;
+    this._themeStyles = null;
+    this._cardStyles = null;
     
     // 立即更新UI显示加载状态
     this.requestUpdate();
@@ -93,7 +94,6 @@ class HaCardForgeCard extends LitElement {
       
       // 设置配置
       this.config = validatedConfig;
-      this._debugInfo = `配置验证完成: ${this.config.card_type}`;
       
       // 确保系统已初始化
       await this._ensureSystemsInitialized();
@@ -101,17 +101,17 @@ class HaCardForgeCard extends LitElement {
       // 渲染卡片
       await this._renderCard();
       
+      // 渲染成功
+      this._renderPhase = 'ready';
       console.log('🎉 卡片渲染完成');
-      this._debugInfo = `渲染完成: ${this.config.card_type}`;
       
     } catch (error) {
       console.error('❌ 卡片配置错误:', error);
       this._error = error.message || '未知错误';
-      this._debugInfo = `错误: ${error.message}`;
+      this._renderPhase = 'error';
     } finally {
       // 渲染完成
       this._isRendering = false;
-      this._renderCount++;
       // 触发UI更新
       this.requestUpdate();
     }
@@ -123,9 +123,6 @@ class HaCardForgeCard extends LitElement {
       return this.constructor.getStubConfig();
     }
     
-    // 获取卡片定义
-    const cardType = userConfig.card_type || 'clock';
-    
     // 确保卡片系统已初始化
     try {
       await cardSystem.initialize();
@@ -133,6 +130,8 @@ class HaCardForgeCard extends LitElement {
       console.error('卡片系统初始化失败:', error);
     }
     
+    // 获取卡片定义
+    const cardType = userConfig.card_type || 'clock';
     const card = cardSystem.getCard(cardType);
     
     if (!card) {
@@ -212,20 +211,6 @@ class HaCardForgeCard extends LitElement {
         hasStyles: !!cardResult.styles
       });
       
-      // 验证模板是否是有效的 TemplateResult
-      if (!cardResult.template || typeof cardResult.template !== 'object') {
-        throw new Error('卡片模板无效');
-      }
-      
-      // 验证模板是否有 Lit 的标记
-      if (!cardResult.template._$litType$ && !cardResult.template.strings) {
-        console.warn('⚠️ 模板可能不是有效的 Lit TemplateResult，尝试渲染为纯文本');
-        // 如果模板是字符串，转换为 html
-        if (typeof cardResult.template === 'string') {
-          cardResult.template = html`<div>${cardResult.template}</div>`;
-        }
-      }
-      
       this._cardData = cardResult;
       
       // 获取主题样式
@@ -239,122 +224,140 @@ class HaCardForgeCard extends LitElement {
       console.error('❌ 卡片渲染失败:', error);
       this._error = `卡片渲染失败: ${error.message}`;
       this._cardData = null;
+      throw error; // 重新抛出错误，让外层catch处理
     }
   }
 
   render() {
-    console.log(`🖌️ 渲染组件 (第${this._renderCount}次):`, {
-      isRendering: this._isRendering,
-      hasError: !!this._error,
-      hasCardData: !!this._cardData,
+    console.log('🖌️ 渲染组件，阶段:', this._renderPhase, {
       config: this.config,
-      cardType: this.config?.card_type,
-      debugInfo: this._debugInfo
+      hasCardData: !!this._cardData,
+      hasError: !!this._error
     });
     
-    // 正在渲染中
-    if (this._isRendering) {
-      return html`
-        <ha-card>
-          <div class="cardforge-container">
-            <div class="cardforge-loading">
-              <ha-circular-progress indeterminate></ha-circular-progress>
-              <div>加载卡片中...</div>
-              <div style="font-size: 0.8em; margin-top: 10px; color: var(--secondary-text-color);">
-                ${this._debugInfo}
+    // 根据渲染阶段显示不同内容
+    switch (this._renderPhase) {
+      case 'init':
+        // 初始状态，还没收到配置
+        return html`
+          <ha-card>
+            <div class="cardforge-container">
+              <div class="cardforge-loading">
+                <ha-circular-progress indeterminate></ha-circular-progress>
+                <div>等待配置...</div>
               </div>
             </div>
-          </div>
-        </ha-card>
-      `;
-    }
-    
-    // 有错误
-    if (this._error) {
-      return html`
-        <ha-card>
-          <div class="cardforge-container">
-            <div class="cardforge-error">
-              <div class="error-icon">❌</div>
-              <div class="error-message">${this._error}</div>
-              <div style="font-size: 0.8em; margin-top: 10px; color: var(--disabled-text-color);">
-                ${this._debugInfo}
+          </ha-card>
+        `;
+        
+      case 'loading':
+        // 正在加载和渲染
+        return html`
+          <ha-card>
+            <div class="cardforge-container">
+              <div class="cardforge-loading">
+                <ha-circular-progress indeterminate></ha-circular-progress>
+                <div>加载卡片中...</div>
               </div>
             </div>
-          </div>
-        </ha-card>
-      `;
-    }
-    
-    // 没有卡片数据
-    if (!this._cardData || !this._cardData.template) {
-      return html`
-        <ha-card>
-          <div class="cardforge-container">
-            <div class="cardforge-loading">
-              <ha-circular-progress indeterminate></ha-circular-progress>
-              <div>准备显示卡片...</div>
-              <div style="font-size: 0.8em; margin-top: 10px; color: var(--secondary-text-color);">
-                卡片数据: ${this._cardData ? '有' : '无'}
+          </ha-card>
+        `;
+        
+      case 'error':
+        // 有错误
+        return html`
+          <ha-card>
+            <div class="cardforge-container">
+              <div class="cardforge-error">
+                <div class="error-icon">❌</div>
+                <div class="error-message">${this._error || '未知错误'}</div>
               </div>
             </div>
-          </div>
-        </ha-card>
-      `;
-    }
-    
-    // 正常渲染卡片
-    try {
-      console.log('🎨 渲染卡片模板:', {
-        template: this._cardData.template,
-        hasTemplate: !!this._cardData.template,
-        templateType: typeof this._cardData.template,
-        templateKeys: Object.keys(this._cardData.template || {})
-      });
-      
-      // 关键：直接渲染模板，不要包裹额外的 div
-      const cardTemplate = this._cardData.template;
-      
-      return html`
-        <ha-card>
-          <div class="cardforge-container">
-            ${cardTemplate}
-          </div>
-        </ha-card>
-        <style>
-          /* 注入主题样式 */
-          ${this._themeStyles}
-          
-          /* 注入卡片特定样式 */
-          ${this._cardStyles}
-        </style>
-      `;
-    } catch (error) {
-      console.error('❌ 模板渲染错误:', error);
-      return html`
-        <ha-card>
-          <div class="cardforge-container">
-            <div class="cardforge-error">
-              <div class="error-icon">⚠️</div>
-              <div class="error-message">模板渲染错误: ${error.message}</div>
-              <div style="font-size: 0.8em; margin-top: 10px; color: var(--disabled-text-color);">
-                错误详情: ${error.stack || error.toString()}
+          </ha-card>
+        `;
+        
+      case 'ready':
+        // 正常渲染卡片
+        if (!this._cardData || !this._cardData.template) {
+          return html`
+            <ha-card>
+              <div class="cardforge-container">
+                <div class="cardforge-error">
+                  <div class="error-icon">⚠️</div>
+                  <div class="error-message">卡片数据无效</div>
+                </div>
+              </div>
+            </ha-card>
+          `;
+        }
+        
+        try {
+          return html`
+            <ha-card>
+              <div class="cardforge-container">
+                ${this._cardData.template}
+              </div>
+            </ha-card>
+            <style>
+              /* 注入主题样式 */
+              ${this._themeStyles}
+              
+              /* 注入卡片特定样式 */
+              ${this._cardStyles}
+            </style>
+          `;
+        } catch (error) {
+          console.error('❌ 模板渲染错误:', error);
+          return html`
+            <ha-card>
+              <div class="cardforge-container">
+                <div class="cardforge-error">
+                  <div class="error-icon">⚠️</div>
+                  <div class="error-message">模板错误: ${error.message}</div>
+                </div>
+              </div>
+            </ha-card>
+          `;
+        }
+        
+      default:
+        // 未知阶段
+        return html`
+          <ha-card>
+            <div class="cardforge-container">
+              <div class="cardforge-error">
+                <div class="error-icon">❓</div>
+                <div class="error-message">未知状态: ${this._renderPhase}</div>
               </div>
             </div>
-          </div>
-        </ha-card>
-      `;
+          </ha-card>
+        `;
     }
   }
 
   updated(changedProperties) {
-    // 只有当 hass 改变且已经有卡片数据时才重新渲染
-    if (changedProperties.has('hass') && this._cardData && !this._isRendering) {
+    console.log('🔄 组件更新:', {
+      configChanged: changedProperties.has('config'),
+      hassChanged: changedProperties.has('hass'),
+      renderPhaseChanged: changedProperties.has('_renderPhase')
+    });
+    
+    // 只有当 hass 改变且已经准备好时才重新渲染
+    if (changedProperties.has('hass') && 
+        this._renderPhase === 'ready' && 
+        !this._isRendering) {
       console.log('🔄 hass 变化，重新渲染卡片');
       this._isRendering = true;
+      this._renderPhase = 'loading';
       this.requestUpdate();
       
       this._renderCard().then(() => {
+        this._renderPhase = 'ready';
+        this._isRendering = false;
+        this.requestUpdate();
+      }).catch(error => {
+        this._error = error.message;
+        this._renderPhase = 'error';
         this._isRendering = false;
         this.requestUpdate();
       });
@@ -368,7 +371,6 @@ class HaCardForgeCard extends LitElement {
       card_type: 'clock',
       theme: 'auto',
       blocks: {},
-      use24Hour: true,
       showYearProgress: true,
       showWeekProgress: true
     };
