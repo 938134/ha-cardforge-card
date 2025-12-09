@@ -1,5 +1,5 @@
-// cards/week-card.js - 优化间距版（完全使用 Lit 模板）
-import { html, css } from 'lit';
+// cards/week-card.js - 简化测试版
+import { html, css } from 'https://unpkg.com/lit@2.8.0/index.js?module';
 import { getYearProgress, getWeekNumber } from '../core/card-tools.js';
 import { createCardStyles } from '../core/card-styles.js';
 
@@ -25,7 +25,7 @@ export const card = {
     }
   },
   
-  template: (config) => {
+  template: (config, { hass }) => {
     const now = new Date();
     const yearProgress = getYearProgress(now);
     const weekNumber = getWeekNumber(now);
@@ -33,16 +33,6 @@ export const card = {
     
     const month = now.getMonth() + 1;
     const day = now.getDate();
-    
-    // 构建进度条SVG
-    const size = 80;
-    const strokeWidth = 4;
-    const radius = (size / 2) - strokeWidth;
-    const circumference = 2 * Math.PI * radius;
-    const dashOffset = circumference * (1 - yearProgress / 100);
-    
-    // 构建周进度条
-    const weekDays = ['日', '一', '二', '三', '四', '五', '六'];
     
     // 如果没有显示任何内容，显示空状态
     if (!config.showYearProgress && !config.showWeekProgress) {
@@ -62,40 +52,7 @@ export const card = {
           <div class="card-content layout-center">
             ${config.showYearProgress ? html`
               <div class="year-section layout-horizontal">
-                <div class="progress-ring">
-                  <svg width="${size}" height="${size}" viewBox="0 0 ${size} ${size}">
-                    <!-- 渐变定义 -->
-                    <defs>
-                      <linearGradient id="year-gradient" x1="0%" y1="0%" x2="100%" y2="0%">
-                        <stop offset="0%" stop-color="var(--cf-primary-color)" />
-                        <stop offset="100%" stop-color="var(--cf-accent-color)" />
-                      </linearGradient>
-                    </defs>
-                    <circle 
-                      cx="${size/2}" 
-                      cy="${size/2}" 
-                      r="${radius}" 
-                      class="progress-bg" 
-                      stroke-width="${strokeWidth}" />
-                    <circle 
-                      cx="${size/2}" 
-                      cy="${size/2}" 
-                      r="${radius}" 
-                      class="progress-fill"
-                      stroke-width="${strokeWidth}"
-                      stroke-dasharray="${circumference}"
-                      stroke-dashoffset="${dashOffset}"
-                      stroke="url(#year-gradient)"
-                      transform="rotate(-90 ${size/2} ${size/2})" />
-                    <text 
-                      x="${size/2}" 
-                      y="${size/2 + 5}" 
-                      text-anchor="middle" 
-                      class="progress-text">
-                      ${Math.round(yearProgress)}<tspan class="progress-percent">%</tspan>
-                    </text>
-                  </svg>
-                </div>
+                <div class="progress-text card-emphasis">${Math.round(yearProgress)}%</div>
                 <div class="date-info">
                   <div class="week-label card-emphasis">第 ${weekNumber} 周</div>
                   <div class="month-day card-subtitle">${month}月${day}日</div>
@@ -106,18 +63,18 @@ export const card = {
             ${config.showWeekProgress ? html`
               <div class="week-section">
                 <div class="progress-bars">
-                  ${weekDays.map((dayLabel, i) => {
+                  ${['日', '一', '二', '三', '四', '五', '六'].map((dayLabel, i) => {
                     const isPast = i < currentDay;
                     const isCurrent = i === currentDay;
                     const colorClass = isCurrent ? 'current' : (isPast ? 'past' : 'future');
                     
                     return html`
-                      <div class="week-bar ${colorClass}" data-day="${dayLabel}"></div>
+                      <div class="week-bar ${colorClass}" title="${dayLabel}"></div>
                     `;
                   })}
                 </div>
                 <div class="day-labels layout-horizontal">
-                  ${weekDays.map((dayLabel, i) => {
+                  ${['日', '一', '二', '三', '四', '五', '六'].map((dayLabel, i) => {
                     const isPast = i < currentDay;
                     const isCurrent = i === currentDay;
                     const colorClass = isCurrent ? 'current' : (isPast ? 'past' : 'future');
@@ -135,7 +92,7 @@ export const card = {
     `;
   },
   
-  styles: (config, theme) => {
+  styles: (config) => {
     const customStyles = css`
       .week-card {
         min-height: 180px;
@@ -153,26 +110,9 @@ export const card = {
         margin: var(--cf-spacing-sm) 0;
       }
       
-      .progress-bg {
-        stroke: var(--cf-neutral-200);
-        fill: none;
-      }
-      
-      .progress-fill {
-        fill: none;
-        stroke-linecap: round;
-        transition: stroke-dashoffset var(--cf-transition-duration-slow);
-      }
-      
       .progress-text {
-        fill: var(--cf-text-primary);
-        font-size: var(--cf-font-size-xl);
+        font-size: var(--cf-font-size-2xl);
         font-weight: var(--cf-font-weight-bold);
-      }
-      
-      .progress-percent {
-        font-size: var(--cf-font-size-sm);
-        fill: var(--cf-text-secondary);
       }
       
       /* 日期信息 */
@@ -224,12 +164,10 @@ export const card = {
         border-right: none;
       }
       
-      /* 已过去的日子 */
       .week-bar.past {
         background: var(--cf-neutral-200);
       }
       
-      /* 当前日 */
       .week-bar.current {
         background: var(--cf-accent-color);
         transform: scaleY(1.1);
@@ -238,7 +176,6 @@ export const card = {
         position: relative;
       }
       
-      /* 未来的日子 */
       .week-bar.future {
         background: var(--cf-primary-color);
       }
@@ -255,7 +192,6 @@ export const card = {
         font-size: var(--cf-font-size-sm);
       }
       
-      /* 标签颜色与进度条对应 */
       .day-label.past {
         color: var(--cf-neutral-400);
       }
@@ -267,110 +203,6 @@ export const card = {
       
       .day-label.future {
         color: var(--cf-primary-color);
-      }
-      
-      /* 响应式设计 */
-      @container cardforge-container (max-width: 500px) {
-        .week-card {
-          min-height: 160px;
-        }
-        
-        .week-card .card-content {
-          gap: var(--cf-spacing-md);
-        }
-        
-        .year-section {
-          max-width: 280px;
-          margin: 8px 0;
-        }
-        
-        .week-section {
-          max-width: 280px;
-          margin: 8px 0;
-        }
-        
-        .progress-bars {
-          height: var(--cf-spacing-md);
-          margin-bottom: var(--cf-spacing-xs);
-        }
-      }
-      
-      @container cardforge-container (max-width: 400px) {
-        .week-card {
-          min-height: 150px;
-        }
-        
-        .week-card .card-content {
-          gap: var(--cf-spacing-sm);
-        }
-        
-        .year-section {
-          max-width: 260px;
-          margin: 6px 0;
-        }
-        
-        .date-info {
-          min-width: auto;
-        }
-        
-        .week-section {
-          max-width: 260px;
-          margin: 6px 0;
-        }
-        
-        .progress-bars {
-          height: 12px;
-          margin-bottom: 6px;
-        }
-        
-        .week-label {
-          margin-bottom: 1px;
-        }
-      }
-      
-      @container cardforge-container (max-width: 300px) {
-        .year-section {
-          flex-direction: column;
-          text-align: center;
-          max-width: 240px;
-          gap: var(--cf-spacing-sm);
-          margin: 6px 0;
-        }
-        
-        .progress-ring svg {
-          width: 60px;
-          height: 60px;
-        }
-        
-        .progress-bars {
-          height: 10px;
-          border-radius: var(--cf-radius-md);
-          margin-bottom: 4px;
-        }
-        
-        .week-section {
-          max-width: 240px;
-          margin: 6px 0;
-        }
-      }
-      
-      /* 超小屏幕 */
-      @container cardforge-container (max-width: 280px) {
-        .week-card {
-          min-height: 140px;
-        }
-        
-        .week-card .card-content {
-          gap: 8px;
-        }
-        
-        .year-section {
-          margin: 4px 0;
-        }
-        
-        .week-section {
-          margin: 4px 0;
-        }
       }
     `;
     
