@@ -1,4 +1,4 @@
-// blocks/block-edit-form.js - 添加自动填充功能（完全使用 Lit 框架）
+// blocks/block-edit-form.js - 自动填充优化版
 import { LitElement, html, css } from 'https://unpkg.com/lit@2.8.0/index.js?module';
 import { designSystem } from '../core/design-system.js';
 import { ENTITY_ICONS } from './block-config.js';
@@ -9,7 +9,8 @@ export class BlockEditForm extends LitElement {
     hass: { type: Object },
     cardDefinition: { type: Object },
     presetDef: { type: Object },
-    _availableEntities: { state: true }
+    _availableEntities: { state: true },
+    _currentBlock: { state: true }
   };
 
   static styles = [
@@ -31,18 +32,6 @@ export class BlockEditForm extends LitElement {
         display: flex;
         flex-direction: column;
         gap: 6px;
-      }
-      
-      /* 固定区域提示 */
-      .fixed-area-hint {
-        padding: 8px 12px;
-        background: rgba(0, 0, 0, 0.05);
-        border-radius: var(--cf-radius-sm);
-        display: flex;
-        align-items: center;
-        gap: 8px;
-        font-size: 0.9em;
-        color: var(--cf-text-tertiary);
       }
       
       .form-actions {
@@ -81,16 +70,9 @@ export class BlockEditForm extends LitElement {
         opacity: 0.9;
       }
       
-      /* 表单控件使用内置标签 */
+      /* 表单控件 */
       ha-combo-box, ha-textfield, ha-icon-picker, ha-select {
         width: 100%;
-      }
-      
-      /* 深色模式适配 */
-      @media (prefers-color-scheme: dark) {
-        .fixed-area-hint {
-          background: rgba(255, 255, 255, 0.05);
-        }
       }
     `
   ];
@@ -102,18 +84,20 @@ export class BlockEditForm extends LitElement {
     this.cardDefinition = {};
     this.presetDef = null;
     this._availableEntities = [];
+    this._currentBlock = { ...this.block };
   }
 
   willUpdate(changedProperties) {
     if (changedProperties.has('hass')) {
       this._updateAvailableEntities();
     }
+    if (changedProperties.has('block')) {
+      this._currentBlock = { ...this.block };
+    }
   }
 
   render() {
     const isRequired = this.presetDef?.required || false;
-    const blockType = this.cardDefinition?.blockType || 'none';
-    const isPresetCard = blockType === 'preset';
     
     return html`
       <div class="edit-form">
@@ -123,7 +107,7 @@ export class BlockEditForm extends LitElement {
             ${this._availableEntities.length > 0 ? html`
               <ha-combo-box
                 .items=${this._availableEntities}
-                .value=${this.block.entity || ''}
+                .value=${this._currentBlock.entity || ''}
                 @value-changed=${this._handleEntityChange}
                 allow-custom-value
                 label="选择实体"
@@ -133,7 +117,7 @@ export class BlockEditForm extends LitElement {
               ></ha-combo-box>
             ` : html`
               <ha-textfield
-                .value=${this.block.entity || ''}
+                .value=${this._currentBlock.entity || ''}
                 @input=${this._handleEntityInput}
                 label="实体ID"
                 placeholder="例如: sensor.example"
@@ -146,7 +130,7 @@ export class BlockEditForm extends LitElement {
           <!-- 显示名称 -->
           <div class="form-field">
             <ha-textfield
-              .value=${this.block.name || ''}
+              .value=${this._currentBlock.name || ''}
               @input=${this._handleNameChange}
               label="显示名称"
               placeholder="如果不填，将使用实体友好名称"
@@ -157,7 +141,7 @@ export class BlockEditForm extends LitElement {
           <!-- 图标 -->
           <div class="form-field">
             <ha-icon-picker
-              .value=${this.block.icon || ''}
+              .value=${this._currentBlock.icon || ''}
               @value-changed=${this._handleIconChange}
               label="自定义图标"
               fullwidth
@@ -166,14 +150,14 @@ export class BlockEditForm extends LitElement {
           
           <!-- 区域选择 -->
           <div class="form-field">
-            ${isPresetCard ? html`
+            ${this.cardDefinition?.blockType === 'preset' ? html`
               <div class="fixed-area-hint">
                 <ha-icon icon="mdi:lock"></ha-icon>
                 <span>固定为内容区域（预设卡片）</span>
               </div>
             ` : html`
               <ha-select
-                .value=${this.block.area || 'content'}
+                .value=${this._currentBlock.area || 'content'}
                 @closed=${e => e.stopPropagation()}
                 @change=${e => this._handleAreaChange(e.target.value)}
                 label="所属区域"
@@ -221,51 +205,54 @@ export class BlockEditForm extends LitElement {
   _handleEntityChange(e) {
     const entityId = e.detail.value;
     
-    const updates = {};
+    // 更新当前块
+    this._currentBlock = { ...this._currentBlock, entity: entityId };
     
+    // 如果选择了有效实体，尝试自动填充
     if (entityId && this.hass?.states?.[entityId]) {
       const entity = this.hass.states[entityId];
+      const updates = {};
       
-      if (!this.block.name || this.block.name === '新块') {
+      // 自动填充名称（如果名称为空或为默认值）
+      const currentName = this._currentBlock.name || '';
+      if (!currentName || currentName === '新块' || currentName === '实体块') {
         const friendlyName = entity.attributes?.friendly_name;
         if (friendlyName && friendlyName.trim()) {
           updates.name = friendlyName;
         }
       }
       
-      if (!this.block.icon || this.block.icon === 'mdi:cube-outline') {
+      // 自动填充图标（如果图标为空或为默认值）
+      const currentIcon = this._currentBlock.icon || '';
+      if (!currentIcon || currentIcon === 'mdi:cube-outline' || currentIcon === 'mdi:cube') {
         const domain = entityId.split('.')[0];
         const defaultIcon = entity.attributes?.icon || ENTITY_ICONS[domain] || 'mdi:cube';
         updates.icon = defaultIcon;
       }
+      
+      // 应用自动填充
+      if (Object.keys(updates).length > 0) {
+        this._currentBlock = { ...this._currentBlock, ...updates };
+        this.requestUpdate();
+      }
     }
     
-    this.dispatchEvent(new CustomEvent('field-change', {
-      detail: {
-        field: 'entity',
-        value: entityId,
-        ...(Object.keys(updates).length > 0 && { updates })
-      }
-    }));
+    // 立即更新UI
+    this.requestUpdate();
   }
 
   _handleEntityInput(e) {
     const entityId = e.target.value;
-    this.dispatchEvent(new CustomEvent('field-change', {
-      detail: { field: 'entity', value: entityId }
-    }));
+    this._currentBlock = { ...this._currentBlock, entity: entityId };
+    this.requestUpdate();
   }
 
   _handleNameChange(e) {
-    this.dispatchEvent(new CustomEvent('field-change', {
-      detail: { field: 'name', value: e.target.value }
-    }));
+    this._currentBlock = { ...this._currentBlock, name: e.target.value };
   }
 
   _handleIconChange(e) {
-    this.dispatchEvent(new CustomEvent('field-change', {
-      detail: { field: 'icon', value: e.detail.value }
-    }));
+    this._currentBlock = { ...this._currentBlock, icon: e.detail.value };
   }
 
   _handleAreaChange(areaId) {
@@ -274,9 +261,7 @@ export class BlockEditForm extends LitElement {
       areaId = 'content';
     }
     
-    this.dispatchEvent(new CustomEvent('field-change', {
-      detail: { field: 'area', value: areaId }
-    }));
+    this._currentBlock = { ...this._currentBlock, area: areaId };
   }
 
   _handleCancel() {
@@ -284,6 +269,15 @@ export class BlockEditForm extends LitElement {
   }
 
   _handleSave() {
+    // 发送更新事件，包含当前块的所有修改
+    this.dispatchEvent(new CustomEvent('field-change', {
+      detail: {
+        field: 'all',
+        value: '',
+        updates: { ...this._currentBlock }
+      }
+    }));
+    
     this.dispatchEvent(new CustomEvent('save'));
   }
 }
