@@ -1,4 +1,4 @@
-// blocks/block-management.js - 修复事件传递
+// blocks/block-management.js - 简化事件处理
 import { LitElement, html, css } from 'https://unpkg.com/lit@2.8.0/index.js?module';
 import { designSystem } from '../core/design-system.js';
 import { BlockBase } from './block-base.js';
@@ -188,7 +188,6 @@ export class BlockManagement extends LitElement {
   willUpdate(changedProperties) {
     if (changedProperties.has('config')) {
       this._currentBlocks = this._getAllBlocks();
-      console.log('BlockManagement: 块列表更新', this._currentBlocks);
     }
   }
 
@@ -229,12 +228,6 @@ export class BlockManagement extends LitElement {
       area: block.area || 'content',
       presetKey: block.presetKey
     };
-    
-    console.log('BlockManagement: 渲染块项目', {
-      id: block.id,
-      isEditing,
-      blockConfig
-    });
     
     return html`
       <div class="block-item ${isPresetBlock ? 'preset-block' : ''}">
@@ -330,54 +323,28 @@ export class BlockManagement extends LitElement {
     return labelMap[areaId] || '内容';
   }
 
-  _handleFieldChange(blockId, { field, value, updates }) {
-    console.log('BlockManagement: 字段变化', { blockId, field, value, updates });
+  _handleFieldChange(blockId, detail) {
+    const { updates } = detail;
     
     const currentBlocks = this.config.blocks || {};
     const currentBlock = currentBlocks[blockId] || {};
     
-    const blockType = this.cardDefinition?.blockType || 'none';
-    if (blockType === 'preset' && field === 'area') {
-      value = 'content';
-    }
-    
-    let newBlock = { ...currentBlock };
-    
-    if (field === 'all' && updates) {
-      // 处理完整更新
-      newBlock = { ...newBlock, ...updates };
-    } else if (field) {
-      // 处理单个字段更新
-      newBlock = { ...newBlock, [field]: value };
-      if (updates) {
-        newBlock = { ...newBlock, ...updates };
-      }
-    }
-    
+    // 直接使用表单提交的完整更新
+    const newBlock = { ...currentBlock, ...updates };
     const newBlocks = { ...currentBlocks, [blockId]: newBlock };
-    
-    console.log('BlockManagement: 更新块配置', {
-      blockId,
-      oldBlock: currentBlock,
-      newBlock,
-      newBlocks
-    });
     
     this._fireConfigChange({ blocks: newBlocks });
   }
 
   _startEdit(blockId) {
-    console.log('BlockManagement: 开始编辑块', blockId);
     this._editingBlockId = blockId;
   }
 
   _cancelEdit() {
-    console.log('BlockManagement: 取消编辑');
     this._editingBlockId = null;
   }
 
   _finishEdit() {
-    console.log('BlockManagement: 完成编辑');
     this._editingBlockId = null;
   }
 
@@ -400,8 +367,6 @@ export class BlockManagement extends LitElement {
     const currentBlocks = this.config.blocks || {};
     const newBlocks = { ...currentBlocks, [blockId]: newBlock };
     
-    console.log('BlockManagement: 添加新块', { blockId, newBlock });
-    
     this._fireConfigChange({ blocks: newBlocks });
     this._editingBlockId = blockId;
   }
@@ -422,8 +387,6 @@ export class BlockManagement extends LitElement {
     const currentBlocks = { ...this.config.blocks };
     delete currentBlocks[blockId];
     
-    console.log('BlockManagement: 删除块', blockId);
-    
     this._fireConfigChange({ blocks: currentBlocks });
     
     if (this._editingBlockId === blockId) {
@@ -433,7 +396,6 @@ export class BlockManagement extends LitElement {
 
   _fireConfigChange(updates) {
     const newConfig = { ...this.config, ...updates };
-    console.log('BlockManagement: 触发配置变化', { updates, newConfig });
     
     this.dispatchEvent(new CustomEvent('config-changed', {
       bubbles: true,

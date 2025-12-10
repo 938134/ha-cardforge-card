@@ -1,4 +1,4 @@
-// blocks/block-edit-form.js - 修复属性传递问题
+// blocks/block-edit-form.js - 修复数据清空和名称保存问题
 import { LitElement, html, css } from 'https://unpkg.com/lit@2.8.0/index.js?module';
 import { designSystem } from '../core/design-system.js';
 import { ENTITY_ICONS } from './block-config.js';
@@ -10,9 +10,7 @@ export class BlockEditForm extends LitElement {
     cardDefinition: { type: Object },
     presetDef: { type: Object },
     _availableEntities: { state: true },
-    _currentBlock: { state: true },
-    _userModifiedName: { state: true },
-    _userModifiedIcon: { state: true }
+    _currentBlock: { state: true }
   };
 
   static styles = [
@@ -96,23 +94,9 @@ export class BlockEditForm extends LitElement {
         width: 100%;
       }
       
-      .auto-fill-hint {
-        font-size: 0.8em;
-        color: var(--cf-text-tertiary);
-        margin-top: 2px;
-        font-style: italic;
-      }
-      
       .field-required::after {
         content: " *";
         color: #f44336;
-      }
-      
-      /* 错误状态 */
-      .error-message {
-        font-size: 0.8em;
-        color: #f44336;
-        margin-top: 4px;
       }
     `
   ];
@@ -125,39 +109,17 @@ export class BlockEditForm extends LitElement {
     this.presetDef = null;
     this._availableEntities = [];
     this._currentBlock = {};
-    this._userModifiedName = false;
-    this._userModifiedIcon = false;
   }
 
   willUpdate(changedProperties) {
     // 当 block 属性变化时，更新内部状态
     if (changedProperties.has('block')) {
+      console.log('BlockEditForm: block 属性变化', this.block);
       this._currentBlock = { ...this.block };
-      
-      // 重置用户修改标记
-      const hasName = this.block.name && this.block.name.trim() !== '';
-      const defaultName = !hasName || 
-                         this.block.name === '新块' || 
-                         this.block.name === '实体块';
-      
-      const hasIcon = this.block.icon && this.block.icon.trim() !== '';
-      const defaultIcon = !hasIcon || 
-                         this.block.icon === 'mdi:cube-outline' || 
-                         this.block.icon === 'mdi:cube';
-      
-      this._userModifiedName = hasName && !defaultName;
-      this._userModifiedIcon = hasIcon && !defaultIcon;
     }
     
     if (changedProperties.has('hass')) {
       this._updateAvailableEntities();
-    }
-  }
-
-  updated(changedProperties) {
-    // 确保表单正确初始化
-    if (changedProperties.has('block') && this.block) {
-      console.log('BlockEditForm: 块数据更新', this.block);
     }
   }
 
@@ -178,14 +140,6 @@ export class BlockEditForm extends LitElement {
   render() {
     const isRequired = this.presetDef?.required || false;
     const blockName = this._currentBlock.name || '未命名块';
-    const hasEntity = this._currentBlock.entity && this.hass?.states?.[this._currentBlock.entity];
-    
-    console.log('BlockEditForm: 渲染表单', {
-      block: this._currentBlock,
-      hasEntity,
-      userModifiedName: this._userModifiedName,
-      userModifiedIcon: this._userModifiedIcon
-    });
     
     return html`
       <div class="edit-form">
@@ -231,9 +185,6 @@ export class BlockEditForm extends LitElement {
               placeholder="如果不填，将使用实体友好名称"
               fullwidth
             ></ha-textfield>
-            <div class="auto-fill-hint">
-              ${this._userModifiedName ? '用户输入的名称将优先保存' : '将自动使用实体友好名称'}
-            </div>
           </div>
           
           <!-- 图标 -->
@@ -245,9 +196,6 @@ export class BlockEditForm extends LitElement {
               label="图标"
               fullwidth
             ></ha-icon-picker>
-            <div class="auto-fill-hint">
-              ${this._userModifiedIcon ? '用户选择的图标将优先保存' : '将自动使用实体默认图标'}
-            </div>
           </div>
           
           <!-- 区域选择 -->
@@ -304,40 +252,11 @@ export class BlockEditForm extends LitElement {
     const entityId = e.detail.value;
     console.log('BlockEditForm: 实体选择变化', entityId);
     
-    // 更新当前块
-    this._currentBlock = { ...this._currentBlock, entity: entityId };
-    
-    // 如果选择了有效实体，且用户没有修改过名称/图标，则自动填充
-    if (entityId && this.hass?.states?.[entityId]) {
-      const entity = this.hass.states[entityId];
-      const updates = {};
-      
-      // 自动填充名称（仅当用户没有修改过且名称为空）
-      if (!this._userModifiedName && (!this._currentBlock.name || 
-          this._currentBlock.name === '新块' || 
-          this._currentBlock.name === '实体块')) {
-        const friendlyName = entity.attributes?.friendly_name;
-        if (friendlyName && friendlyName.trim()) {
-          updates.name = friendlyName;
-          console.log('BlockEditForm: 自动填充名称', friendlyName);
-        }
-      }
-      
-      // 自动填充图标（仅当用户没有修改过且图标为默认值）
-      if (!this._userModifiedIcon && (!this._currentBlock.icon || 
-          this._currentBlock.icon === 'mdi:cube-outline' || 
-          this._currentBlock.icon === 'mdi:cube')) {
-        const domain = entityId.split('.')[0];
-        const defaultIcon = entity.attributes?.icon || ENTITY_ICONS[domain] || 'mdi:cube';
-        updates.icon = defaultIcon;
-        console.log('BlockEditForm: 自动填充图标', defaultIcon);
-      }
-      
-      // 应用自动填充
-      if (Object.keys(updates).length > 0) {
-        this._currentBlock = { ...this._currentBlock, ...updates };
-      }
-    }
+    // 只更新实体ID，不自动填充名称
+    this._currentBlock = { 
+      ...this._currentBlock, 
+      entity: entityId 
+    };
     
     this.requestUpdate();
   }
@@ -352,28 +271,12 @@ export class BlockEditForm extends LitElement {
     const newName = e.target.value;
     console.log('BlockEditForm: 名称变化', newName);
     this._currentBlock = { ...this._currentBlock, name: newName };
-    
-    // 标记用户已修改名称（只要不是空的且不是默认值）
-    if (newName.trim() !== '' && 
-        newName !== '新块' && 
-        newName !== '实体块') {
-      this._userModifiedName = true;
-    } else {
-      this._userModifiedName = false;
-    }
   }
 
   _handleIconChange(e) {
     const newIcon = e.detail.value;
     console.log('BlockEditForm: 图标变化', newIcon);
     this._currentBlock = { ...this._currentBlock, icon: newIcon };
-    
-    // 标记用户已修改图标
-    if (newIcon && newIcon !== 'mdi:cube-outline' && newIcon !== 'mdi:cube') {
-      this._userModifiedIcon = true;
-    } else {
-      this._userModifiedIcon = false;
-    }
   }
 
   _handleAreaChange(areaId) {
@@ -393,30 +296,18 @@ export class BlockEditForm extends LitElement {
   _handleSave() {
     console.log('BlockEditForm: 保存编辑', this._currentBlock);
     
-    // 最终保存逻辑：始终以用户输入为准
+    // 最终保存逻辑：使用用户输入的值
     const finalBlock = { ...this._currentBlock };
     
-    // 如果名称为空，使用友好名称
+    // 确保有必要的字段
     if (!finalBlock.name || finalBlock.name.trim() === '') {
-      if (finalBlock.entity && this.hass?.states?.[finalBlock.entity]) {
-        const entity = this.hass.states[finalBlock.entity];
-        finalBlock.name = entity.attributes?.friendly_name || finalBlock.entity;
-      } else {
-        finalBlock.name = '新块';
-      }
+      finalBlock.name = '新块';
     }
     
-    // 如果图标为空，使用默认图标
     if (!finalBlock.icon || finalBlock.icon.trim() === '') {
-      if (finalBlock.entity) {
-        const domain = finalBlock.entity.split('.')[0];
-        finalBlock.icon = ENTITY_ICONS[domain] || 'mdi:cube';
-      } else {
-        finalBlock.icon = 'mdi:cube-outline';
-      }
+      finalBlock.icon = 'mdi:cube-outline';
     }
     
-    // 确保区域正确
     if (!finalBlock.area) {
       finalBlock.area = 'content';
     }
@@ -429,7 +320,6 @@ export class BlockEditForm extends LitElement {
       composed: true,
       detail: {
         field: 'all',
-        value: '',
         updates: finalBlock
       }
     }));
@@ -439,8 +329,4 @@ export class BlockEditForm extends LitElement {
       composed: true
     }));
   }
-}
-
-if (!customElements.get('block-edit-form')) {
-  customElements.define('block-edit-form', BlockEditForm);
 }

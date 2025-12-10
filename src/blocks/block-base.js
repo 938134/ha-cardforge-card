@@ -1,4 +1,4 @@
-// blocks/block-base.js - 修复版（移除竖线，优化布局）
+// blocks/block-base.js - 修复名称显示优先级
 import { LitElement, html, css } from 'https://unpkg.com/lit@2.8.0/index.js?module';
 import { designSystem } from '../core/design-system.js';
 import { ENTITY_ICONS } from './block-config.js';
@@ -13,7 +13,7 @@ export class BlockBase extends LitElement {
     blockStyle: { type: String, attribute: 'block-style' },
     areaAlign: { type: String, attribute: 'area-align' },
     fillWidth: { type: Boolean, attribute: 'fill-width' },
-    _friendlyName: { state: true },
+    _displayName: { state: true },
     _stateValue: { state: true },
     _icon: { state: true }
   };
@@ -244,52 +244,6 @@ export class BlockBase extends LitElement {
         background: transparent !important;
         transform: none !important;
       }
-      
-      /* 响应式设计 */
-      @container cardforge-container (max-width: 480px) {
-        .block-base.layout-horizontal {
-          padding: 4px 6px;
-          gap: 6px;
-        }
-        
-        .block-base.layout-horizontal .block-icon {
-          width: 24px;
-          height: 24px;
-          font-size: 1em;
-        }
-        
-        .block-base.layout-horizontal .block-value {
-          font-size: var(--cf-font-size-xs);
-        }
-        
-        .block-base.layout-vertical {
-          padding: 8px 6px;
-          min-height: 60px;
-        }
-        
-        .block-base.layout-vertical .block-icon {
-          width: 32px;
-          height: 32px;
-          font-size: 1.2em;
-        }
-        
-        .block-base.layout-compact {
-          grid-template-columns: 32px 1fr;
-          padding: 4px;
-          min-height: 48px;
-          gap: 1px 6px;
-        }
-        
-        .block-base.layout-compact .block-icon {
-          width: 32px;
-          height: 32px;
-          font-size: 1.1em;
-        }
-        
-        .block-base.layout-compact .block-value {
-          font-size: var(--cf-font-size-md);
-        }
-      }
     `
   ];
 
@@ -316,13 +270,26 @@ export class BlockBase extends LitElement {
     const entityId = block.entity || '';
     const hasEntity = entityId && this.hass?.states?.[entityId];
     
-    // 获取友好名称
-    if (hasEntity) {
+    // 关键修改：优先使用块的 name 属性，而不是实体友好名称
+    // 1. 如果块有自定义名称，使用它
+    if (block.name && block.name.trim() !== '' && block.name !== '新块' && block.name !== '实体块') {
+      this._displayName = block.name;
+    } 
+    // 2. 如果块没有名称但有实体，使用实体友好名称
+    else if (hasEntity) {
       const entity = this.hass.states[entityId];
-      this._friendlyName = entity.attributes?.friendly_name || entityId.split('.')[1] || entityId;
-    } else {
-      this._friendlyName = block.name || (block.entity ? '实体块' : '新块');
+      this._displayName = entity.attributes?.friendly_name || entityId.split('.')[1] || entityId;
+    } 
+    // 3. 否则使用默认名称
+    else {
+      this._displayName = block.name || (block.entity ? '实体块' : '新块');
     }
+    
+    console.log('BlockBase: 显示名称计算', {
+      blockName: block.name,
+      displayName: this._displayName,
+      hasEntity
+    });
     
     // 获取状态值（移除单位）
     if (hasEntity) {
@@ -389,8 +356,8 @@ export class BlockBase extends LitElement {
       </div>
       
       <div class="block-content">
-        ${showName && this._friendlyName ? html`
-          <span class="block-name">${this._friendlyName}</span>
+        ${showName && this._displayName ? html`
+          <span class="block-name">${this._displayName}</span>
           ${showValue && this._stateValue ? html`<span class="block-separator">:</span>` : ''}
         ` : ''}
         
@@ -409,8 +376,8 @@ export class BlockBase extends LitElement {
         <ha-icon .icon=${this._icon}></ha-icon>
       </div>
       
-      ${showName && this._friendlyName ? html`
-        <div class="block-name">${this._friendlyName}</div>
+      ${showName && this._displayName ? html`
+        <div class="block-name">${this._displayName}</div>
       ` : ''}
       
       ${showValue ? html`
@@ -428,7 +395,7 @@ export class BlockBase extends LitElement {
       </div>
       
       ${showName ? html`
-        <div class="block-name">${this._friendlyName || html`<span class="empty-state">未命名</span>`}</div>
+        <div class="block-name">${this._displayName || html`<span class="empty-state">未命名</span>`}</div>
       ` : ''}
       
       ${showValue ? html`
