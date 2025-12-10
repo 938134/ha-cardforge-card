@@ -1,4 +1,4 @@
-// blocks/block-base.js - 简化名称显示优先级（添加 useEntityName 配置）
+// blocks/block-base.js - 简化名称显示逻辑
 import { LitElement, html, css } from 'https://unpkg.com/lit@2.8.0/index.js?module';
 import { designSystem } from '../core/design-system.js';
 import { ENTITY_ICONS } from './block-config.js';
@@ -9,7 +9,6 @@ export class BlockBase extends LitElement {
     hass: { type: Object },
     showName: { type: Boolean, attribute: 'show-name' },
     showValue: { type: Boolean, attribute: 'show-value' },
-    useEntityName: { type: Boolean, attribute: 'use-entity-name' }, // 新增：是否使用实体名称
     compact: { type: Boolean },
     blockStyle: { type: String, attribute: 'block-style' },
     areaAlign: { type: String, attribute: 'area-align' },
@@ -119,6 +118,7 @@ export class BlockBase extends LitElement {
         grid-template-columns: 36px 1fr;
         grid-template-rows: 1fr;
         align-items: center;
+        min-height: 42px;
       }
       
       /* 填充宽度模式 */
@@ -173,6 +173,7 @@ export class BlockBase extends LitElement {
       .block-base.layout-compact.no-name .block-value {
         align-self: center;
         font-size: var(--cf-font-size-xl);
+        font-weight: var(--cf-font-weight-bold);
       }
       
       /* 空状态 */
@@ -214,10 +215,24 @@ export class BlockBase extends LitElement {
     `
   ];
 
+  constructor() {
+    super();
+    this.block = {};
+    this.hass = null;
+    this.showName = true;
+    this.showValue = true;
+    this.compact = false;
+    this.blockStyle = '';
+    this.areaAlign = 'left';
+    this.fillWidth = false;
+    this._displayName = '';
+    this._stateValue = '';
+    this._icon = 'mdi:cube-outline';
+    this._hasName = false;
+  }
+
   willUpdate(changedProperties) {
-    if (changedProperties.has('block') || 
-        changedProperties.has('hass') || 
-        changedProperties.has('useEntityName')) {
+    if (changedProperties.has('block') || changedProperties.has('hass')) {
       this._updateDisplayData();
     }
   }
@@ -239,31 +254,27 @@ export class BlockBase extends LitElement {
     const entityId = block.entity || '';
     const hasEntity = entityId && this.hass?.states?.[entityId];
     const blockName = block.name || '';
-    const useEntityName = this.useEntityName !== false; // 默认 true
     
-    // 关键修改：支持配置
+    // 关键修改：简化逻辑
+    // 只有 block.name 有值时才显示名称
+    // 否则不显示任何名称
     this._hasName = blockName && blockName.trim() !== '';
     
     if (this._hasName) {
       // 有自定义名称，使用它
       this._displayName = blockName;
-    } else if (useEntityName && hasEntity) {
-      // 没有自定义名称，但配置了使用实体名称，使用实体友好名称
-      const entity = this.hass.states[entityId];
-      this._displayName = entity.attributes?.friendly_name || 
-                         entityId.split('.')[1]?.replace(/_/g, ' ') || 
-                         entityId;
     } else {
-      // 不显示名称
+      // 没有自定义名称，不显示任何名称
       this._displayName = '';
     }
     
     console.log('BlockBase: 显示名称计算', {
+      entityId,
       blockName: block.name,
       displayName: this._displayName,
       hasEntity,
       hasName: this._hasName,
-      useEntityName
+      entityFriendlyName: hasEntity ? this.hass.states[entityId].attributes?.friendly_name : '无实体'
     });
     
     // 获取状态值（移除单位）
@@ -302,17 +313,16 @@ export class BlockBase extends LitElement {
     
     // 判断是否有名称
     const hasName = this._hasName && showName;
-    const hasDisplayName = this._displayName && this._displayName.trim() !== '' && showName;
     
     return html`
       <div class="block-base 
                   layout-${layout} 
-                  ${!hasDisplayName && layout === 'compact' ? 'no-name' : ''}
+                  ${!hasName && layout === 'compact' ? 'no-name' : ''}
                   align-${align} 
                   area-${area}
                   ${fillWidth ? 'fill-width' : ''}
                   ${noHover ? 'no-hover' : ''}">
-        ${this._renderLayout(layout, hasDisplayName, showValue)}
+        ${this._renderLayout(layout, hasName, showValue)}
       </div>
     `;
   }

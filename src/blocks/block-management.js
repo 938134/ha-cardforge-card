@@ -249,7 +249,6 @@ _renderBlockItem(block) {
           block-style="compact"
           fill-width
           show-name=${true}
-          use-entity-name=${false}  <!-- 关键修改：名称为空时不使用实体名称 -->
           show-value=${true}
         ></block-base>
       </div>

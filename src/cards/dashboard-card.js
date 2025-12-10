@@ -110,70 +110,58 @@ template: (config, { hass }) => {
   
   return html`
     <div class="dashboard-card">
-      <!-- 标题区域 - 强制使用水平布局 -->
-      ${config.showHeader ? html`
-        <div class="dashboard-header align-${config.headerAlign}">
-          <div class="header-content">
-            ${headerBlocks.map(block => html`
-              <block-base 
-                .block=${block}
-                .hass=${hass}
-                block-style="horizontal"
-                area-align="${config.headerAlign}"
-                fill-width
-                show-name=${true}
-                use-entity-name=${false}  <!-- 关键修改：名称为空时不使用实体名称 -->
-                show-value=${true}
-              ></block-base>
-            `)}
-            ${headerBlocks.length === 0 ? html`
-              <div class="empty-area">标题区域 - 可在此添加块</div>
-            ` : ''}
-          </div>
-        </div>
+// 标题区域 - 强制使用水平布局
+${config.showHeader ? html`
+  <div class="dashboard-header align-${config.headerAlign}">
+    <div class="header-content">
+      ${headerBlocks.map(block => html`
+        <block-base 
+          .block=${block}
+          .hass=${hass}
+          block-style="horizontal"
+          area-align="${config.headerAlign}"
+          fill-width
+          show-name=${true}  <!-- 注意：这里保持 true，但 block-base 内部会判断是否有名称 -->
+          show-value=${true}
+        ></block-base>
+      `)}
+      ${headerBlocks.length === 0 ? html`
+        <div class="empty-area">标题区域 - 可在此添加块</div>
       ` : ''}
-      
-      <!-- 内容区域 -->
-      <div class="dashboard-content">
-        <div class="content-container ${getContentContainerClass()}">
-          ${contentBlocks.map(block => html`
-            <block-base 
-              .block=${block}
-              .hass=${hass}
-              block-style="${contentBlockStyle}"
-              show-name=${true}
-              use-entity-name=${false}  <!-- 关键修改：名称为空时不使用实体名称 -->
-              show-value=${true}
-            ></block-base>
-          `)}
-          ${contentBlocks.length === 0 ? html`
-            <div class="empty-area">内容区域 - 请在此添加块</div>
-          ` : ''}
-        </div>
-      </div>
-      
-      <!-- 页脚区域 - 强制使用水平布局，状态值允许换行 -->
-      ${config.showFooter ? html`
-        <div class="dashboard-footer align-${config.footerAlign}">
-          <div class="footer-content">
-            ${footerBlocks.map(block => html`
-              <block-base 
-                .block=${block}
-                .hass=${hass}
-                block-style="horizontal"
-                area-align="${config.footerAlign}"
-                fill-width
-                show-name=${false}  <!-- 页脚通常不显示名称 -->
-                use-entity-name=${false}  <!-- 关键修改：名称为空时不使用实体名称 -->
-                show-value=${true}
-              ></block-base>
-            `)}
-            ${footerBlocks.length === 0 ? html`
-              <div class="empty-area">页脚区域 - 可在此添加块</div>
-            ` : ''}
-          </div>
-        </div>
+    </div>
+  </div>
+` : ''}
+
+// 内容区域
+<block-base 
+  .block=${block}
+  .hass=${hass}
+  block-style="${contentBlockStyle}"
+  show-name=${true}  <!-- 注意：这里保持 true，但 block-base 内部会判断是否有名称 -->
+  show-value=${true}
+></block-base>
+
+// 页脚区域 - 强制使用水平布局，状态值允许换行
+${config.showFooter ? html`
+  <div class="dashboard-footer align-${config.footerAlign}">
+    <div class="footer-content">
+      ${footerBlocks.map(block => html`
+        <block-base 
+          .block=${block}
+          .hass=${hass}
+          block-style="horizontal"
+          area-align="${config.footerAlign}"
+          fill-width
+          show-name=${false}  <!-- 页脚通常不显示名称 -->
+          show-value=${true}
+        ></block-base>
+      `)}
+      ${footerBlocks.length === 0 ? html`
+        <div class="empty-area">页脚区域 - 可在此添加块</div>
       ` : ''}
+    </div>
+  </div>
+` : ''}
     </div>
   `;
 },
