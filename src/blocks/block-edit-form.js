@@ -1,4 +1,4 @@
-// blocks/block-edit-form.js - 修复表单显示问题（简化版）
+// blocks/block-edit-form.js - 优化自动填充逻辑
 import { LitElement, html, css } from 'https://unpkg.com/lit@2.8.0/index.js?module';
 import { designSystem } from '../core/design-system.js';
 import { ENTITY_ICONS } from './block-config.js';
@@ -238,8 +238,9 @@ export class BlockEditForm extends LitElement {
     
     const isRequired = this.presetDef?.required || false;
     const isPresetBlock = !!this.block.presetKey;
-    const blockName = this._currentBlock.name || '未命名块';
+    const blockName = this._currentBlock.name || '';
     const blockIcon = this._currentBlock.icon || 'mdi:cube-outline';
+    const displayName = blockName || '未命名块';
     
     return html`
       <div class="edit-form">
@@ -248,7 +249,7 @@ export class BlockEditForm extends LitElement {
           <div>
             <div class="form-title">
               <ha-icon .icon=${blockIcon}></ha-icon>
-              编辑块: ${blockName}
+              编辑块: ${displayName}
             </div>
             ${isPresetBlock ? html`
               <div class="form-subtitle">
@@ -299,7 +300,7 @@ export class BlockEditForm extends LitElement {
               .value=${this._currentBlock.name || ''}
               @input=${this._handleNameChange}
               label="自定义显示名称"
-              placeholder="留空将使用实体友好名称"
+              placeholder="留空将直接显示状态值"
               fullwidth
             ></ha-textfield>
           </div>
@@ -383,31 +384,26 @@ export class BlockEditForm extends LitElement {
     if (entityId && this.hass?.states?.[entityId]) {
       const entity = this.hass.states[entityId];
       
-      // 自动填充名称（只有当名称为空或默认值时才填充）
-      const currentName = this._currentBlock.name || '';
-      const shouldAutoFillName = !currentName || 
-                                currentName === '新块' || 
-                                currentName === '实体块' ||
-                                currentName === this._currentBlock.entity;
+      // 始终自动填充名称（覆盖用户已有的输入）
+      updatedBlock.name = entity.attributes?.friendly_name || 
+                        entityId.split('.')[1]?.replace(/_/g, ' ') || 
+                        entityId;
       
-      if (shouldAutoFillName) {
-        updatedBlock.name = entity.attributes?.friendly_name || 
-                          entityId.split('.')[1]?.replace(/_/g, ' ') || 
-                          entityId;
-      }
+      // 始终自动填充图标（覆盖用户已有的输入）
+      const domain = entityId.split('.')[0];
+      updatedBlock.icon = entity.attributes?.icon || 
+                        ENTITY_ICONS[domain] || 
+                        'mdi:cube';
       
-      // 自动填充图标（只有当图标是默认值时才填充）
-      const currentIcon = this._currentBlock.icon || '';
-      const shouldAutoFillIcon = !currentIcon || 
-                                currentIcon === 'mdi:cube-outline' ||
-                                currentIcon === 'mdi:cube';
-      
-      if (shouldAutoFillIcon) {
-        const domain = entityId.split('.')[0];
-        updatedBlock.icon = entity.attributes?.icon || 
-                          ENTITY_ICONS[domain] || 
-                          'mdi:cube';
-      }
+      console.log('BlockEditForm: 自动填充', {
+        entityId,
+        name: updatedBlock.name,
+        icon: updatedBlock.icon
+      });
+    } else if (entityId) {
+      // 如果是自定义实体ID，设置默认图标
+      const domain = entityId.split('.')[0];
+      updatedBlock.icon = ENTITY_ICONS[domain] || 'mdi:cube-outline';
     }
     
     // 更新本地状态
@@ -419,6 +415,9 @@ export class BlockEditForm extends LitElement {
       name: updatedBlock.name,
       icon: updatedBlock.icon
     });
+    
+    // 重新渲染
+    this.requestUpdate();
   }
 
   _handleEntityInput(e) {
@@ -432,22 +431,20 @@ export class BlockEditForm extends LitElement {
     if (entityId && entityId.trim() && this.hass?.states?.[entityId]) {
       const entity = this.hass.states[entityId];
       
-      // 只有当当前名称为空或默认值时，才自动填充
-      const currentName = this._currentBlock.name || '';
-      if (!currentName || currentName === '新块' || currentName === '实体块') {
-        updatedBlock.name = entity.attributes?.friendly_name || 
-                          entityId.split('.')[1]?.replace(/_/g, ' ') || 
-                          entityId;
-      }
+      // 自动填充名称
+      updatedBlock.name = entity.attributes?.friendly_name || 
+                        entityId.split('.')[1]?.replace(/_/g, ' ') || 
+                        entityId;
       
-      // 只有当当前图标是默认值时，才自动填充
-      const currentIcon = this._currentBlock.icon || '';
-      if (!currentIcon || currentIcon === 'mdi:cube-outline' || currentIcon === 'mdi:cube') {
-        const domain = entityId.split('.')[0];
-        updatedBlock.icon = entity.attributes?.icon || 
-                          ENTITY_ICONS[domain] || 
-                          'mdi:cube';
-      }
+      // 自动填充图标
+      const domain = entityId.split('.')[0];
+      updatedBlock.icon = entity.attributes?.icon || 
+                        ENTITY_ICONS[domain] || 
+                        'mdi:cube';
+    } else if (entityId) {
+      // 自定义实体ID，设置默认图标
+      const domain = entityId.split('.')[0];
+      updatedBlock.icon = ENTITY_ICONS[domain] || 'mdi:cube-outline';
     }
     
     this._currentBlock = updatedBlock;
@@ -508,28 +505,21 @@ export class BlockEditForm extends LitElement {
     // 准备保存的数据
     const savedBlock = { ...this._currentBlock };
     
-    // 关键修复：优先使用用户输入的名称
-    // 1. 如果用户输入了名称，使用它
-    // 2. 如果用户清空了名称，但有实体，使用实体友好名称
-    // 3. 否则使用默认名称
-    
+    // 关键逻辑：允许名称为空，直接显示状态值
+    // 如果用户输入了名称，使用它
+    // 如果用户清空了名称，就保存为空字符串
     const userEnteredName = savedBlock.name || '';
     const hasEntity = savedBlock.entity && this.hass?.states?.[savedBlock.entity];
     
     if (userEnteredName.trim() !== '') {
-      // 使用用户输入的名称
+      // 使用用户输入的名称（允许用户清空名称）
       savedBlock.name = userEnteredName.trim();
     } else if (hasEntity) {
-      // 用户清空了名称，但有实体，使用实体友好名称
-      const entity = this.hass.states[savedBlock.entity];
-      savedBlock.name = entity.attributes?.friendly_name || 
-                       savedBlock.entity.split('.')[1]?.replace(/_/g, ' ') || 
-                       savedBlock.entity;
+      // 用户清空了名称，但有实体，名称保持为空（让 BlockBase 显示状态值）
+      savedBlock.name = '';
     } else {
-      // 既没有用户输入的名称，也没有实体，使用默认名称
-      savedBlock.name = savedBlock.presetKey ? 
-                       this.presetDef?.defaultName || '预设块' : 
-                       '新块';
+      // 既没有用户输入的名称，也没有实体，名称保持为空
+      savedBlock.name = '';
     }
     
     // 如果图标为空，提供默认值
