@@ -1,4 +1,4 @@
-// 设计系统变量 - 包含块样式完整版
+// 设计系统变量 - 新增块布局样式
 import { LitElement, html, css } from 'https://unpkg.com/lit@2.8.0/index.js?module';
 
 export const designSystem = css`
@@ -120,183 +120,115 @@ export const designSystem = css`
     --cf-line-height-normal: 1.5;
     --cf-line-height-relaxed: 1.75;
     
-    /* ===== 2. 布局模式 ===== */
+    /* ===== 2. 块布局系统 ===== */
     
-    /* 水平布局 */
-    .layout-horizontal {
-      display: flex;
-      align-items: center;
-      gap: var(--cf-spacing-md);
-      flex-wrap: nowrap;
-      text-align: left;
-      width: 100%;
+    /* 紧凑网格布局（默认） */
+    .cf-layout-compact-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+      gap: 4px;
+      width: fit-content;
+      max-width: 100%;
     }
     
-    /* 垂直布局 */
-    .layout-vertical {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      gap: var(--cf-spacing-sm);
-      text-align: center;
-      width: 100%;
-    }
-    
-    /* 居中布局 */
-    .layout-center {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      text-align: center;
-      width: 100%;
-    }
-    
-    /* 两端对齐 */
-    .layout-between {
+    /* 水平填充布局 */
+    .cf-layout-horizontal-fill {
       display: flex;
       align-items: center;
-      justify-content: space-between;
-      width: 100%;
-    }
-    
-    /* 流式布局 */
-    .layout-flow {
-      display: flex;
       flex-wrap: wrap;
-      gap: var(--cf-spacing-md);
-      justify-content: flex-start;
+      gap: 4px;
       width: 100%;
     }
     
-    /* 网格布局 */
-    .layout-grid {
-      display: grid;
-      gap: var(--cf-spacing-md);
-      width: 100%;
+    .cf-layout-horizontal-fill > * {
+      flex: 1;
+      min-width: 120px;
     }
     
-    /* ===== 3. 块组件配方 ===== */
-    
-    /* 标题块样式 */
-    .header-block {
-      padding: var(--cf-spacing-md);
-      background: rgba(var(--cf-primary-color-rgb), 0.08);
-      border-left: 3px solid var(--cf-primary-color);
-      border-radius: var(--cf-radius-md);
-      border: 1px solid rgba(var(--cf-primary-color-rgb), 0.3);
-      min-height: 60px;
-      transition: all var(--cf-transition-duration-fast) var(--cf-easing-standard);
-    }
-    
-    /* 内容块样式 */
-    .content-block {
-      padding: var(--cf-spacing-lg);
-      background: var(--cf-surface);
-      border: 1px solid var(--cf-border);
-      border-radius: var(--cf-radius-md);
-      min-height: 70px;
-      transition: all var(--cf-transition-duration-fast) var(--cf-easing-standard);
-    }
-    
-    /* 页脚块样式 */
-    .footer-block {
-      padding: var(--cf-spacing-sm);
-      background: rgba(var(--cf-accent-color-rgb), 0.05);
-      border-top: 1px solid var(--cf-border);
-      border-radius: var(--cf-radius-md);
-      min-height: 50px;
-      transition: all var(--cf-transition-duration-fast) var(--cf-easing-standard);
-    }
-    
-    /* 块通用交互状态 */
-    .header-block:hover,
-    .content-block:hover,
-    .footer-block:hover {
-      background: var(--cf-hover-color);
-      border-color: var(--cf-primary-color);
-      transform: translateY(-2px);
-      box-shadow: var(--cf-shadow-md);
-    }
-    
-    /* 块图标样式 */
-    .block-icon-base {
-      flex-shrink: 0;
-      width: 48px;
-      height: 48px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      border-radius: var(--cf-radius-md);
-      background: rgba(var(--cf-primary-color-rgb), 0.1);
-      color: var(--cf-text-secondary);
-      font-size: 1.5em;
-      transition: all var(--cf-transition-duration-fast) var(--cf-easing-standard);
-    }
-    
-    .block-icon-base:hover {
-      color: var(--cf-primary-color);
-      background: rgba(var(--cf-primary-color-rgb), 0.15);
-      transform: scale(1.05);
-    }
-    
-    /* ===== 4. 工具类 ===== */
-    
-    /* 布局工具 */
-    .cf-flex-center {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-    }
-    
-    .cf-flex-between {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-    }
-    
-    .cf-flex-column {
+    /* 垂直堆叠布局 */
+    .cf-layout-vertical-stack {
       display: flex;
       flex-direction: column;
+      align-items: center;
+      gap: 6px;
+      width: fit-content;
+      max-width: 100%;
     }
     
-    .cf-grid-auto-fit {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-      gap: var(--cf-spacing-md);
+    /* 块通用基础样式 */
+    .cf-block-base {
+      transition: all var(--cf-transition-duration-fast) var(--cf-easing-standard);
     }
+    
+    /* 紧凑块样式 */
+    .cf-block-compact {
+      display: grid;
+      grid-template-areas:
+        "icon name"
+        "icon value";
+      grid-template-columns: 32px 1fr;
+      grid-template-rows: auto auto;
+      gap: 2px 6px;
+      padding: 4px;
+      min-height: 48px;
+      width: fit-content;
+      max-width: 160px;
+    }
+    
+    /* 水平块样式 */
+    .cf-block-horizontal {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      padding: 4px 8px;
+      min-height: 32px;
+      flex: 1;
+      min-width: 120px;
+    }
+    
+    /* 垂直块样式 */
+    .cf-block-vertical {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      text-align: center;
+      padding: 6px 8px;
+      min-height: 60px;
+      width: 100%;
+      min-width: 100px;
+      gap: 3px;
+    }
+    
+    /* ===== 3. 工具类 ===== */
     
     /* 间距工具 */
-    .cf-mt-sm { margin-top: var(--cf-spacing-sm); }
-    .cf-mt-md { margin-top: var(--cf-spacing-md); }
-    .cf-mt-lg { margin-top: var(--cf-spacing-lg); }
+    .cf-gap-xs { gap: var(--cf-spacing-xs); }
+    .cf-gap-sm { gap: var(--cf-spacing-sm); }
+    .cf-gap-md { gap: var(--cf-spacing-md); }
     
-    .cf-mb-sm { margin-bottom: var(--cf-spacing-sm); }
-    .cf-mb-md { margin-bottom: var(--cf-spacing-md); }
-    .cf-mb-lg { margin-bottom: var(--cf-spacing-lg); }
-    
+    .cf-p-xs { padding: var(--cf-spacing-xs); }
     .cf-p-sm { padding: var(--cf-spacing-sm); }
     .cf-p-md { padding: var(--cf-spacing-md); }
-    .cf-p-lg { padding: var(--cf-spacing-lg); }
     
     /* 文本工具 */
+    .cf-text-truncate {
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    
     .cf-text-center { text-align: center; }
     .cf-text-left { text-align: left; }
     .cf-text-right { text-align: right; }
     
-    .cf-text-primary { color: var(--cf-text-primary); }
-    .cf-text-secondary { color: var(--cf-text-secondary); }
-    .cf-text-tertiary { color: var(--cf-text-tertiary); }
+    /* 尺寸工具 */
+    .cf-w-fit { width: fit-content; }
+    .cf-w-full { width: 100%; }
+    .cf-w-auto { width: auto; }
     
-    /* 阴影工具 */
-    .cf-shadow-sm { box-shadow: var(--cf-shadow-sm); }
-    .cf-shadow-md { box-shadow: var(--cf-shadow-md); }
-    .cf-shadow-lg { box-shadow: var(--cf-shadow-lg); }
-    
-    /* 圆角工具 */
-    .cf-rounded-sm { border-radius: var(--cf-radius-sm); }
-    .cf-rounded-md { border-radius: var(--cf-radius-md); }
-    .cf-rounded-lg { border-radius: var(--cf-radius-lg); }
+    .cf-h-fit { height: fit-content; }
+    .cf-h-full { height: 100%; }
+    .cf-h-auto { height: auto; }
     
     /* 过渡工具 */
     .cf-transition-fast {
@@ -327,27 +259,6 @@ export const designSystem = css`
       --cf-active-color: rgba(255, 255, 255, 0.16);
       --cf-focus-color: rgba(255, 255, 255, 0.24);
       --cf-disabled-color: rgba(255, 255, 255, 0.12);
-    }
-    
-    /* 深色模式下的块样式调整 */
-    .header-block {
-      background: rgba(var(--cf-primary-color-rgb), 0.12);
-      border-color: rgba(var(--cf-primary-color-rgb), 0.4);
-    }
-    
-    .content-block {
-      background: rgba(255, 255, 255, 0.08);
-      border-color: rgba(255, 255, 255, 0.15);
-    }
-    
-    .footer-block {
-      background: rgba(var(--cf-accent-color-rgb), 0.08);
-      border-top-color: rgba(255, 255, 255, 0.2);
-    }
-    
-    .block-icon-base {
-      background: rgba(var(--cf-primary-color-rgb), 0.2);
-      color: var(--cf-text-tertiary);
     }
   }
   
