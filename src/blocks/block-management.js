@@ -207,6 +207,7 @@ export class BlockManagement extends LitElement {
     `;
   }
  
+// 修改 _renderBlockItem 方法中的块视图部分：
 _renderBlockItem(block) {
   const isEditing = this._editingBlockId === block.id;
   const isPresetBlock = block.presetKey;

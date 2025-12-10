@@ -1,4 +1,4 @@
-// blocks/block-base.js - 简化名称显示逻辑
+// blocks/block-base.js - 简化名称显示优先级
 import { LitElement, html, css } from 'https://unpkg.com/lit@2.8.0/index.js?module';
 import { designSystem } from '../core/design-system.js';
 import { ENTITY_ICONS } from './block-config.js';
@@ -118,7 +118,6 @@ export class BlockBase extends LitElement {
         grid-template-columns: 36px 1fr;
         grid-template-rows: 1fr;
         align-items: center;
-        min-height: 42px;
       }
       
       /* 填充宽度模式 */
@@ -173,7 +172,6 @@ export class BlockBase extends LitElement {
       .block-base.layout-compact.no-name .block-value {
         align-self: center;
         font-size: var(--cf-font-size-xl);
-        font-weight: var(--cf-font-weight-bold);
       }
       
       /* 空状态 */
@@ -255,9 +253,9 @@ export class BlockBase extends LitElement {
     const hasEntity = entityId && this.hass?.states?.[entityId];
     const blockName = block.name || '';
     
-    // 关键修改：简化逻辑
-    // 只有 block.name 有值时才显示名称
-    // 否则不显示任何名称
+    // 简化逻辑：只检查是否有名称
+    // 如果有自定义名称，显示它
+    // 如果没有自定义名称，显示空字符串（不显示任何名称）
     this._hasName = blockName && blockName.trim() !== '';
     
     if (this._hasName) {
@@ -313,16 +311,17 @@ export class BlockBase extends LitElement {
     
     // 判断是否有名称
     const hasName = this._hasName && showName;
+    const hasDisplayName = this._displayName && this._displayName.trim() !== '' && showName;
     
     return html`
       <div class="block-base 
                   layout-${layout} 
-                  ${!hasName && layout === 'compact' ? 'no-name' : ''}
+                  ${!hasDisplayName && layout === 'compact' ? 'no-name' : ''}
                   align-${align} 
                   area-${area}
                   ${fillWidth ? 'fill-width' : ''}
                   ${noHover ? 'no-hover' : ''}">
-        ${this._renderLayout(layout, hasName, showValue)}
+        ${this._renderLayout(layout, hasDisplayName, showValue)}
       </div>
     `;
   }

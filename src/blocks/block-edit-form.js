@@ -386,7 +386,7 @@ export class BlockEditForm extends LitElement {
       
       // 自动填充名称（总是填充，用户可以修改）
       updatedBlock.name = entity.attributes?.friendly_name || 
-                        entityId.split('.')[1]?.replace(/_/g, ' ') || 
+                        entityId.split('.')[1] || 
                         entityId;
       
       // 自动填充图标
@@ -424,7 +424,7 @@ export class BlockEditForm extends LitElement {
       
       // 自动填充名称
       updatedBlock.name = entity.attributes?.friendly_name || 
-                        entityId.split('.')[1]?.replace(/_/g, ' ') || 
+                        entityId.split('.')[1] || 
                         entityId;
       
       // 自动填充图标
@@ -490,46 +490,39 @@ export class BlockEditForm extends LitElement {
     }));
   }
 
-_handleSave() {
-  console.log('BlockEditForm: 保存编辑', this._currentBlock);
-  
-  // 准备保存的数据 - 直接保存当前状态
-  const savedBlock = {
-    entity: this._currentBlock.entity || '',
-    name: this._currentBlock.name || '', // 关键：直接保存，允许空字符串
-    icon: this._currentBlock.icon || 'mdi:cube-outline',
-    area: this._currentBlock.area || 'content'
-  };
-  
-  // 确保名称是字符串，去掉首尾空格
-  if (typeof savedBlock.name === 'string') {
-    savedBlock.name = savedBlock.name.trim();
-  } else {
-    savedBlock.name = '';
-  }
-  
-  // 如果是预设块，保留预设键
-  if (this._currentBlock.presetKey) {
-    savedBlock.presetKey = this._currentBlock.presetKey;
-  }
-  
-  console.log('BlockEditForm: 最终保存的数据', savedBlock);
-  
-  // 发送保存事件
-  this.dispatchEvent(new CustomEvent('field-change', {
-    bubbles: true,
-    composed: true,
-    detail: {
-      field: 'all',
-      updates: savedBlock
+  _handleSave() {
+    console.log('BlockEditForm: 保存编辑', this._currentBlock);
+    
+    // 准备保存的数据 - 直接保存当前状态
+    const savedBlock = {
+      entity: this._currentBlock.entity || '',
+      name: (this._currentBlock.name || '').trim(), // 允许空字符串
+      icon: this._currentBlock.icon || 'mdi:cube-outline',
+      area: this._currentBlock.area || 'content'
+    };
+    
+    // 如果是预设块，保留预设键
+    if (this._currentBlock.presetKey) {
+      savedBlock.presetKey = this._currentBlock.presetKey;
     }
-  }));
-  
-  this.dispatchEvent(new CustomEvent('save', {
-    bubbles: true,
-    composed: true
-  }));
-}
+    
+    console.log('BlockEditForm: 最终保存的数据', savedBlock);
+    
+    // 发送保存事件
+    this.dispatchEvent(new CustomEvent('field-change', {
+      bubbles: true,
+      composed: true,
+      detail: {
+        field: 'all',
+        updates: savedBlock
+      }
+    }));
+    
+    this.dispatchEvent(new CustomEvent('save', {
+      bubbles: true,
+      composed: true
+    }));
+  }
 
   _fireFieldUpdate(updates) {
     this.dispatchEvent(new CustomEvent('field-change', {
