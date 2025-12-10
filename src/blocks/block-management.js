@@ -1,4 +1,4 @@
-// blocks/block-management.js - 紧凑优化版
+// blocks/block-management.js - 完整修复版
 import { LitElement, html, css } from 'https://unpkg.com/lit@2.8.0/index.js?module';
 import { designSystem } from '../core/design-system.js';
 import { BlockBase } from './block-base.js';
@@ -24,20 +24,20 @@ export class BlockManagement extends LitElement {
       .block-list {
         display: flex;
         flex-direction: column;
-        gap: 8px; /* 减少间隙 */
+        gap: 8px;
       }
       
       .block-item {
         display: grid;
-        grid-template-columns: 60px 1fr 70px; /* 更紧凑 */
+        grid-template-columns: 60px 1fr 70px;
         align-items: center;
         background: var(--cf-surface);
         border: 1px solid var(--cf-border);
         border-radius: var(--cf-radius-md);
         overflow: hidden;
         transition: all var(--cf-transition-fast);
-        padding: 6px 0; /* 减少内边距 */
-        min-height: 50px; /* 减小高度 */
+        padding: 6px 0;
+        min-height: 50px;
       }
       
       .block-item:hover {
@@ -49,16 +49,16 @@ export class BlockManagement extends LitElement {
         background: rgba(0, 0, 0, 0.02);
       }
       
-      /* 区域标识 - 更紧凑 */
+      /* 区域标识 */
       .area-indicator {
         display: flex;
         flex-direction: column;
         align-items: center;
         justify-content: center;
-        gap: 2px; /* 减少间隙 */
-        padding: 0 6px; /* 减少内边距 */
+        gap: 2px;
+        padding: 0 6px;
         height: 100%;
-        min-height: 40px; /* 减小高度 */
+        min-height: 40px;
         border-right: 1px solid var(--cf-border);
       }
       
@@ -67,45 +67,42 @@ export class BlockManagement extends LitElement {
       }
       
       .area-icon {
-        font-size: 1em; /* 减小图标 */
+        font-size: 1em;
         margin-bottom: 1px;
       }
       
       .area-label {
-        font-size: 0.7em; /* 减小字体 */
+        font-size: 0.7em;
         font-weight: 600;
         text-align: center;
         line-height: 1.1;
       }
       
-      .preset-block .area-icon {
-        opacity: 0.7;
-      }
-      
-      /* 块视图容器 - 紧凑 */
+      /* 块视图容器 - 使用紧凑布局 */
       .block-view-container {
-        padding: 0 8px; /* 减少内边距 */
-        min-height: 40px; /* 减小高度 */
+        padding: 0 8px;
+        min-height: 40px;
         display: flex;
         align-items: center;
+        width: 100%;
       }
       
-      /* 块视图内部 - 使用紧凑布局 */
+      /* 块列表中的块使用紧凑布局，填充宽度 */
       .block-view-container block-base {
         width: 100%;
-        max-width: 180px;
+        max-width: none;
       }
       
-      /* 块操作 - 更小 */
+      /* 块操作 */
       .block-actions {
         display: flex;
-        gap: 3px; /* 减少间隙 */
-        padding: 0 8px; /* 减少内边距 */
+        gap: 3px;
+        padding: 0 8px;
         justify-content: flex-end;
       }
       
       .block-action {
-        width: 28px; /* 减小尺寸 */
+        width: 28px;
         height: 28px;
         border-radius: var(--cf-radius-sm);
         display: flex;
@@ -133,7 +130,7 @@ export class BlockManagement extends LitElement {
       /* 添加块按钮 */
       .add-block-btn {
         width: 100%;
-        padding: 8px 12px; /* 减小内边距 */
+        padding: 8px 12px;
         border: 2px dashed var(--cf-border);
         border-radius: var(--cf-radius-md);
         background: transparent;
@@ -163,14 +160,14 @@ export class BlockManagement extends LitElement {
       /* 空状态 */
       .empty-state {
         text-align: center;
-        padding: 24px 16px; /* 减小内边距 */
+        padding: 24px 16px;
         color: var(--cf-text-secondary);
         border: 2px dashed var(--cf-border);
         border-radius: var(--cf-radius-md);
       }
       
       .empty-icon {
-        font-size: 1.8em; /* 减小图标 */
+        font-size: 1.8em;
         margin-bottom: 8px;
         opacity: 0.5;
       }
@@ -200,10 +197,6 @@ export class BlockManagement extends LitElement {
         
         .block-view-container {
           padding: 0 6px;
-        }
-        
-        .block-view-container block-base {
-          max-width: 160px;
         }
         
         .block-actions {
@@ -237,10 +230,6 @@ export class BlockManagement extends LitElement {
         
         .block-view-container {
           min-height: 35px;
-        }
-        
-        .block-view-container block-base {
-          max-width: 140px;
         }
         
         .block-action {
@@ -321,14 +310,15 @@ export class BlockManagement extends LitElement {
           </div>
         </div>
         
-        <!-- 块视图 - 使用紧凑布局 -->
+        <!-- 块视图 - 使用紧凑布局，填充宽度 -->
         <div class="block-view-container">
           <block-base
             .block=${blockConfig}
             .hass=${this.hass}
-            .blockStyle="compact" /* 强制紧凑布局 */
-            .showName=${true}
-            .showValue=${true}
+            block-style="compact"
+            fill-width
+            show-name=${true}
+            show-value=${true}
           ></block-base>
         </div>
         
@@ -448,10 +438,15 @@ export class BlockManagement extends LitElement {
       value = 'content';
     }
     
-    let newBlock = { ...currentBlock, [field]: value };
+    let newBlock = { ...currentBlock };
     
-    if (updates && typeof updates === 'object') {
+    if (field === 'all' && updates) {
       newBlock = { ...newBlock, ...updates };
+    } else if (field) {
+      newBlock = { ...newBlock, [field]: value };
+      if (updates) {
+        newBlock = { ...newBlock, ...updates };
+      }
     }
     
     const newBlocks = { ...currentBlocks, [blockId]: newBlock };

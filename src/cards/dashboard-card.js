@@ -1,4 +1,4 @@
-// cards/dashboard-card.js - 修复对齐和网格布局
+// cards/dashboard-card.js - 完整修复版
 import { html, css } from 'https://unpkg.com/lit@2.8.0/index.js?module';
 import { createCardStyles } from '../core/card-styles.js';
 import { BlockBase } from '../blocks/block-base.js';
@@ -119,6 +119,7 @@ export const card = {
                   .hass=${hass}
                   block-style="horizontal"
                   area-align="${config.headerAlign}"
+                  fill-width
                   show-name=${true}
                   show-value=${true}
                 ></block-base>
@@ -148,7 +149,7 @@ export const card = {
           </div>
         </div>
         
-        <!-- 页脚区域 - 强制使用水平布局 -->
+        <!-- 页脚区域 - 强制使用水平布局，状态值允许换行 -->
         ${config.showFooter ? html`
           <div class="dashboard-footer align-${config.footerAlign}">
             <div class="footer-content">
@@ -158,6 +159,7 @@ export const card = {
                   .hass=${hass}
                   block-style="horizontal"
                   area-align="${config.footerAlign}"
+                  fill-width
                   show-name=${false}  /* 页脚通常不显示名称 */
                   show-value=${true}
                 ></block-base>
@@ -225,7 +227,7 @@ export const card = {
         width: 100%;
       }
       
-      /* 标题/页脚块样式 */
+      /* 标题/页脚块样式 - 填充剩余空间，移除鼠标动画 */
       .header-content block-base,
       .footer-content block-base {
         flex: 1;
@@ -235,10 +237,11 @@ export const card = {
         box-shadow: none !important;
       }
       
+      /* 移除标题/页脚块的鼠标悬停效果 */
       .header-content block-base:hover,
       .footer-content block-base:hover {
-        background: rgba(var(--cf-primary-color-rgb), 0.05) !important;
-        border-radius: var(--cf-radius-sm);
+        background: transparent !important;
+        transform: none !important;
       }
       
       /* ===== 内容区域 ===== */
@@ -369,6 +372,11 @@ export const card = {
         .content-grid-4 {
           grid-template-columns: repeat(2, 1fr) !important;
         }
+        
+        .empty-area {
+          padding: 10px;
+          font-size: 0.8em;
+        }
       }
       
       @container cardforge-container (max-width: 480px) {
@@ -399,6 +407,38 @@ export const card = {
         .content-grid-3,
         .content-grid-4 {
           grid-template-columns: 1fr !important;
+        }
+        
+        .empty-area {
+          padding: 8px;
+          font-size: 0.75em;
+        }
+      }
+      
+      @container cardforge-container (max-width: 360px) {
+        .dashboard-header,
+        .dashboard-footer {
+          min-height: 32px;
+          padding: 3px 4px;
+        }
+        
+        .header-content block-base,
+        .footer-content block-base {
+          min-width: 80px;
+        }
+        
+        .dashboard-content {
+          padding: 6px;
+        }
+        
+        .content-flow,
+        .content-stack {
+          gap: 4px;
+        }
+        
+        .empty-area {
+          padding: 6px;
+          font-size: 0.7em;
         }
       }
       

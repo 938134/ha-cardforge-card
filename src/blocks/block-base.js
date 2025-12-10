@@ -1,4 +1,4 @@
-// blocks/block-base.js - 重新优化的三种布局
+// blocks/block-base.js - 修复版（移除竖线，优化布局）
 import { LitElement, html, css } from 'https://unpkg.com/lit@2.8.0/index.js?module';
 import { designSystem } from '../core/design-system.js';
 import { ENTITY_ICONS } from './block-config.js';
@@ -12,6 +12,7 @@ export class BlockBase extends LitElement {
     compact: { type: Boolean },
     blockStyle: { type: String, attribute: 'block-style' },
     areaAlign: { type: String, attribute: 'area-align' },
+    fillWidth: { type: Boolean, attribute: 'fill-width' },
     _friendlyName: { state: true },
     _stateValue: { state: true },
     _icon: { state: true }
@@ -38,6 +39,11 @@ export class BlockBase extends LitElement {
         padding: 6px 8px;
         min-height: 36px;
         width: 100%;
+      }
+      
+      /* 填充宽度模式 */
+      .block-base.fill-width {
+        flex: 1;
       }
       
       .block-base.layout-horizontal .block-icon {
@@ -69,21 +75,25 @@ export class BlockBase extends LitElement {
         text-overflow: ellipsis;
         white-space: nowrap;
         line-height: 1.2;
+        flex-shrink: 0;
       }
       
       .block-base.layout-horizontal .block-value {
         font-size: var(--cf-font-size-sm);
         font-weight: var(--cf-font-weight-semibold);
         color: var(--cf-text-primary);
-        overflow: hidden;
-        text-overflow: ellipsis;
-        white-space: nowrap;
+        overflow-wrap: break-word;
+        word-break: break-word;
+        white-space: normal;
         line-height: 1.2;
+        min-width: 0;
+        flex: 1;
       }
       
       .block-base.layout-horizontal .block-separator {
         color: var(--cf-border);
         margin: 0 2px;
+        flex-shrink: 0;
       }
       
       /* ===== 2. 垂直布局（内容区域使用） ===== */
@@ -135,7 +145,7 @@ export class BlockBase extends LitElement {
         line-height: 1.2;
       }
       
-      /* ===== 3. 紧凑布局（内容区域默认） ===== */
+      /* ===== 3. 紧凑布局（块列表和内容区域默认） ===== */
       .block-base.layout-compact {
         display: grid;
         grid-template-areas:
@@ -146,8 +156,14 @@ export class BlockBase extends LitElement {
         gap: 2px 8px;
         padding: 6px;
         min-height: 52px;
-        min-width: 120px;
         width: 100%;
+        box-sizing: border-box;
+      }
+      
+      /* 填充宽度模式 */
+      .block-base.layout-compact.fill-width {
+        flex: 1;
+        min-width: 0;
       }
       
       .block-base.layout-compact .block-icon {
@@ -175,6 +191,7 @@ export class BlockBase extends LitElement {
         align-self: end;
         line-height: 1.2;
         text-align: left;
+        min-width: 0;
       }
       
       .block-base.layout-compact .block-value {
@@ -188,6 +205,7 @@ export class BlockBase extends LitElement {
         align-self: start;
         line-height: 1.2;
         text-align: left;
+        min-width: 0;
       }
       
       /* 空状态 */
@@ -214,17 +232,17 @@ export class BlockBase extends LitElement {
         text-align: right;
       }
       
-      /* 区域样式 */
-      .block-base.area-header {
-        border-left: 2px solid var(--cf-primary-color);
-      }
-      
-      .block-base.area-content {
-        /* 内容区域无特殊样式 */
-      }
-      
+      /* 移除区域特殊样式（去掉竖线） */
+      .block-base.area-header,
+      .block-base.area-content,
       .block-base.area-footer {
-        border-right: 2px solid var(--cf-accent-color);
+        /* 不再添加竖线边框 */
+      }
+      
+      /* 移除标题/页脚鼠标动画 */
+      .block-base.no-hover:hover {
+        background: transparent !important;
+        transform: none !important;
       }
       
       /* 响应式设计 */
@@ -238,6 +256,10 @@ export class BlockBase extends LitElement {
           width: 24px;
           height: 24px;
           font-size: 1em;
+        }
+        
+        .block-base.layout-horizontal .block-value {
+          font-size: var(--cf-font-size-xs);
         }
         
         .block-base.layout-vertical {
@@ -266,35 +288,6 @@ export class BlockBase extends LitElement {
         
         .block-base.layout-compact .block-value {
           font-size: var(--cf-font-size-md);
-        }
-      }
-      
-      @container cardforge-container (max-width: 360px) {
-        .block-base.layout-horizontal {
-          padding: 3px 4px;
-          gap: 4px;
-        }
-        
-        .block-base.layout-horizontal .block-icon {
-          width: 20px;
-          height: 20px;
-          font-size: 0.9em;
-        }
-        
-        .block-base.layout-horizontal .block-name,
-        .block-base.layout-horizontal .block-value {
-          font-size: var(--cf-font-size-xs);
-        }
-        
-        .block-base.layout-compact {
-          grid-template-columns: 28px 1fr;
-          min-height: 44px;
-        }
-        
-        .block-base.layout-compact .block-icon {
-          width: 28px;
-          height: 28px;
-          font-size: 1em;
         }
       }
     `
@@ -358,13 +351,20 @@ export class BlockBase extends LitElement {
     const area = this.block?.area || 'content';
     const layout = this.blockStyle || (this.compact ? 'compact' : 'horizontal');
     const align = this.areaAlign || 'left';
+    const fillWidth = this.fillWidth || false;
+    const noHover = area === 'header' || area === 'footer';
     
     // 确定要显示的内容
     const showName = this.showName !== false;
     const showValue = this.showValue !== false;
     
     return html`
-      <div class="block-base layout-${layout} align-${align} area-${area}">
+      <div class="block-base 
+                  layout-${layout} 
+                  align-${align} 
+                  area-${area}
+                  ${fillWidth ? 'fill-width' : ''}
+                  ${noHover ? 'no-hover' : ''}">
         ${this._renderLayout(layout, showName, showValue)}
       </div>
     `;
