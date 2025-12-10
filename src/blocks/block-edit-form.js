@@ -1,4 +1,4 @@
-// blocks/block-edit-form.js - 修复数据清空和名称保存问题
+// blocks/block-edit-form.js - 修复表单显示问题
 import { LitElement, html, css } from 'https://unpkg.com/lit@2.8.0/index.js?module';
 import { designSystem } from '../core/design-system.js';
 import { ENTITY_ICONS } from './block-config.js';
@@ -10,73 +10,110 @@ export class BlockEditForm extends LitElement {
     cardDefinition: { type: Object },
     presetDef: { type: Object },
     _availableEntities: { state: true },
-    _currentBlock: { state: true }
+    _currentBlock: { state: true },
+    _formReady: { state: true }
   };
 
   static styles = [
     designSystem,
     css`
+      :host {
+        display: block;
+        animation: fadeIn 0.2s ease-out;
+      }
+      
+      @keyframes fadeIn {
+        from { opacity: 0; transform: translateY(-10px); }
+        to { opacity: 1; transform: translateY(0); }
+      }
+      
       .edit-form {
         background: var(--cf-surface);
         border-radius: var(--cf-radius-md);
         padding: 16px;
         border: 1px solid var(--cf-primary-color);
+        box-shadow: var(--cf-shadow-md);
+      }
+      
+      .form-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-bottom: 20px;
+        padding-bottom: 12px;
+        border-bottom: 1px solid var(--cf-border);
       }
       
       .form-title {
-        font-size: 1em;
+        font-size: 1.1em;
         font-weight: 600;
         color: var(--cf-primary-color);
-        margin-bottom: 16px;
-        padding-bottom: 8px;
-        border-bottom: 1px solid var(--cf-border);
         display: flex;
         align-items: center;
         gap: 8px;
       }
       
+      .form-subtitle {
+        font-size: 0.85em;
+        color: var(--cf-text-secondary);
+        margin-top: 4px;
+      }
+      
       .form-grid {
         display: grid;
         grid-template-columns: 1fr;
-        gap: 16px;
+        gap: 20px;
       }
       
       .form-field {
         display: flex;
         flex-direction: column;
+        gap: 8px;
+      }
+      
+      .field-label {
+        font-size: 0.9em;
+        font-weight: 500;
+        color: var(--cf-text-secondary);
+        display: flex;
+        align-items: center;
         gap: 6px;
       }
       
-      .form-label {
-        font-size: 0.85em;
-        font-weight: 500;
-        color: var(--cf-text-secondary);
+      .field-label.required::after {
+        content: " *";
+        color: #f44336;
       }
       
       .form-actions {
         display: flex;
-        gap: 8px;
+        gap: 12px;
         justify-content: flex-end;
-        margin-top: 20px;
+        margin-top: 24px;
         padding-top: 16px;
         border-top: 1px solid var(--cf-border);
       }
       
       .action-btn {
-        padding: 8px 16px;
+        padding: 10px 20px;
         border: 1px solid var(--cf-border);
         border-radius: var(--cf-radius-sm);
         background: var(--cf-surface);
         color: var(--cf-text-primary);
         cursor: pointer;
-        font-size: 0.85em;
+        font-size: 0.9em;
         font-weight: 500;
-        min-width: 70px;
+        min-width: 80px;
         transition: all var(--cf-transition-fast);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 6px;
       }
       
       .action-btn:hover {
         background: var(--cf-background);
+        border-color: var(--cf-text-tertiary);
       }
       
       .action-btn.primary {
@@ -86,17 +123,50 @@ export class BlockEditForm extends LitElement {
       }
       
       .action-btn.primary:hover {
-        opacity: 0.9;
+        background: color-mix(in srgb, var(--cf-primary-color), black 10%);
+        border-color: color-mix(in srgb, var(--cf-primary-color), black 10%);
       }
       
-      /* 表单控件 */
+      /* 表单控件样式 */
       ha-combo-box, ha-textfield, ha-icon-picker, ha-select {
         width: 100%;
       }
       
-      .field-required::after {
-        content: " *";
-        color: #f44336;
+      /* 预设块提示 */
+      .preset-hint {
+        padding: 10px 12px;
+        background: rgba(var(--cf-primary-color-rgb), 0.08);
+        border-radius: var(--cf-radius-sm);
+        color: var(--cf-text-secondary);
+        font-size: 0.85em;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        margin-top: 4px;
+      }
+      
+      /* 加载状态 */
+      .loading-state {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        padding: 40px 20px;
+        color: var(--cf-text-tertiary);
+      }
+      
+      .loading-spinner {
+        width: 40px;
+        height: 40px;
+        border: 3px solid var(--cf-border);
+        border-top-color: var(--cf-primary-color);
+        border-radius: 50%;
+        animation: spin 1s linear infinite;
+        margin-bottom: 16px;
+      }
+      
+      @keyframes spin {
+        to { transform: rotate(360deg); }
       }
     `
   ];
@@ -109,15 +179,31 @@ export class BlockEditForm extends LitElement {
     this.presetDef = null;
     this._availableEntities = [];
     this._currentBlock = {};
+    this._formReady = false;
+  }
+
+  firstUpdated() {
+    // 确保表单完全渲染后标记为就绪
+    setTimeout(() => {
+      this._formReady = true;
+    }, 100);
   }
 
   willUpdate(changedProperties) {
     // 当 block 属性变化时，更新内部状态
     if (changedProperties.has('block')) {
-      console.log('BlockEditForm: block 属性变化', this.block);
-      this._currentBlock = { ...this.block };
+      console.log('BlockEditForm: 收到块数据', this.block);
+      this._currentBlock = { 
+        entity: this.block.entity || '',
+        name: this.block.name || '',
+        icon: this.block.icon || 'mdi:cube-outline',
+        area: this.block.area || 'content',
+        ...this.block 
+      };
+      this._formReady = true;
     }
     
+    // 当 hass 属性变化时，更新可用实体列表
     if (changedProperties.has('hass')) {
       this._updateAvailableEntities();
     }
@@ -135,31 +221,59 @@ export class BlockEditForm extends LitElement {
         label: `${state.attributes?.friendly_name || entityId} (${entityId})`
       }))
       .sort((a, b) => a.label.localeCompare(b.label));
+    
+    console.log('BlockEditForm: 可用实体数量', this._availableEntities.length);
   }
 
   render() {
+    // 如果表单还没准备好，显示加载状态
+    if (!this._formReady) {
+      return html`
+        <div class="loading-state">
+          <div class="loading-spinner"></div>
+          <div>加载表单中...</div>
+        </div>
+      `;
+    }
+    
     const isRequired = this.presetDef?.required || false;
+    const isPresetBlock = !!this.block.presetKey;
     const blockName = this._currentBlock.name || '未命名块';
+    const blockIcon = this._currentBlock.icon || 'mdi:cube-outline';
     
     return html`
       <div class="edit-form">
-        <div class="form-title">
-          <ha-icon icon="mdi:pencil"></ha-icon>
-          编辑块: ${blockName}
+        <!-- 表单头部 -->
+        <div class="form-header">
+          <div>
+            <div class="form-title">
+              <ha-icon .icon=${blockIcon}></ha-icon>
+              编辑块: ${blockName}
+            </div>
+            ${isPresetBlock ? html`
+              <div class="form-subtitle">
+                预设块: ${this.presetDef?.defaultName || this.block.presetKey}
+              </div>
+            ` : ''}
+          </div>
         </div>
         
+        <!-- 表单内容 -->
         <div class="form-grid">
           <!-- 实体选择 -->
           <div class="form-field">
-            <div class="form-label ${isRequired ? 'field-required' : ''}">选择实体</div>
+            <div class="field-label ${isRequired ? 'required' : ''}">
+              <ha-icon icon="mdi:tag-outline" style="font-size: 0.9em;"></ha-icon>
+              选择实体
+            </div>
             ${this._availableEntities.length > 0 ? html`
               <ha-combo-box
                 .items=${this._availableEntities}
                 .value=${this._currentBlock.entity || ''}
                 @value-changed=${this._handleEntityChange}
                 allow-custom-value
-                label="实体ID"
-                placeholder="输入或选择实体ID"
+                label="输入或选择实体ID"
+                placeholder="例如: sensor.temperature"
                 ?required=${isRequired}
                 fullwidth
               ></ha-combo-box>
@@ -168,7 +282,7 @@ export class BlockEditForm extends LitElement {
                 .value=${this._currentBlock.entity || ''}
                 @input=${this._handleEntityInput}
                 label="实体ID"
-                placeholder="例如: sensor.example"
+                placeholder="例如: sensor.temperature"
                 ?required=${isRequired}
                 fullwidth
               ></ha-textfield>
@@ -177,50 +291,50 @@ export class BlockEditForm extends LitElement {
           
           <!-- 显示名称 -->
           <div class="form-field">
-            <div class="form-label">显示名称</div>
+            <div class="field-label">
+              <ha-icon icon="mdi:format-text" style="font-size: 0.9em;"></ha-icon>
+              显示名称
+            </div>
             <ha-textfield
               .value=${this._currentBlock.name || ''}
               @input=${this._handleNameChange}
-              label="显示名称"
-              placeholder="如果不填，将使用实体友好名称"
+              label="自定义显示名称"
+              placeholder="留空将使用实体友好名称"
               fullwidth
             ></ha-textfield>
           </div>
           
           <!-- 图标 -->
           <div class="form-field">
-            <div class="form-label">自定义图标</div>
+            <div class="field-label">
+              <ha-icon icon="mdi:palette" style="font-size: 0.9em;"></ha-icon>
+              图标
+            </div>
             <ha-icon-picker
               .value=${this._currentBlock.icon || ''}
               @value-changed=${this._handleIconChange}
-              label="图标"
+              label="选择图标"
               fullwidth
             ></ha-icon-picker>
           </div>
           
           <!-- 区域选择 -->
           <div class="form-field">
-            <div class="form-label">所属区域</div>
+            <div class="field-label">
+              <ha-icon icon="mdi:view-grid" style="font-size: 0.9em;"></ha-icon>
+              所属区域
+            </div>
             ${this.cardDefinition?.blockType === 'preset' ? html`
-              <div style="
-                padding: 8px 12px;
-                background: rgba(var(--cf-primary-color-rgb), 0.05);
-                border-radius: var(--cf-radius-sm);
-                color: var(--cf-text-secondary);
-                font-size: 0.9em;
-                display: flex;
-                align-items: center;
-                gap: 8px;
-              ">
+              <div class="preset-hint">
                 <ha-icon icon="mdi:lock"></ha-icon>
-                <span>固定为内容区域（预设卡片）</span>
+                <span>预设块固定为内容区域</span>
               </div>
             ` : html`
               <ha-select
                 .value=${this._currentBlock.area || 'content'}
                 @closed=${e => e.stopPropagation()}
                 @change=${e => this._handleAreaChange(e.target.value)}
-                label="选择区域"
+                label="选择显示区域"
                 fullwidth
               >
                 <ha-list-item value="header">
@@ -240,9 +354,16 @@ export class BlockEditForm extends LitElement {
           </div>
         </div>
         
+        <!-- 表单操作 -->
         <div class="form-actions">
-          <button class="action-btn" @click=${this._handleCancel}>取消</button>
-          <button class="action-btn primary" @click=${this._handleSave}>保存</button>
+          <button class="action-btn" @click=${this._handleCancel}>
+            <ha-icon icon="mdi:close"></ha-icon>
+            取消
+          </button>
+          <button class="action-btn primary" @click=${this._handleSave}>
+            <ha-icon icon="mdi:check"></ha-icon>
+            保存
+          </button>
         </div>
       </div>
     `;
@@ -250,9 +371,9 @@ export class BlockEditForm extends LitElement {
 
   _handleEntityChange(e) {
     const entityId = e.detail.value;
-    console.log('BlockEditForm: 实体选择变化', entityId);
+    console.log('BlockEditForm: 实体选择', entityId);
     
-    // 只更新实体ID，不自动填充名称
+    // 只更新实体字段
     this._currentBlock = { 
       ...this._currentBlock, 
       entity: entityId 
@@ -263,64 +384,74 @@ export class BlockEditForm extends LitElement {
 
   _handleEntityInput(e) {
     const entityId = e.target.value;
-    this._currentBlock = { ...this._currentBlock, entity: entityId };
-    this.requestUpdate();
+    this._currentBlock = { 
+      ...this._currentBlock, 
+      entity: entityId 
+    };
   }
 
   _handleNameChange(e) {
     const newName = e.target.value;
-    console.log('BlockEditForm: 名称变化', newName);
-    this._currentBlock = { ...this._currentBlock, name: newName };
+    console.log('BlockEditForm: 名称输入', newName);
+    this._currentBlock = { 
+      ...this._currentBlock, 
+      name: newName 
+    };
   }
 
   _handleIconChange(e) {
     const newIcon = e.detail.value;
-    console.log('BlockEditForm: 图标变化', newIcon);
-    this._currentBlock = { ...this._currentBlock, icon: newIcon };
+    console.log('BlockEditForm: 图标选择', newIcon);
+    this._currentBlock = { 
+      ...this._currentBlock, 
+      icon: newIcon 
+    };
   }
 
   _handleAreaChange(areaId) {
-    const blockType = this.cardDefinition?.blockType || 'none';
-    if (blockType === 'preset') {
-      areaId = 'content';
-    }
-    
-    this._currentBlock = { ...this._currentBlock, area: areaId };
+    console.log('BlockEditForm: 区域选择', areaId);
+    this._currentBlock = { 
+      ...this._currentBlock, 
+      area: areaId 
+    };
   }
 
   _handleCancel() {
     console.log('BlockEditForm: 取消编辑');
-    this.dispatchEvent(new CustomEvent('cancel'));
+    this.dispatchEvent(new CustomEvent('cancel', {
+      bubbles: true,
+      composed: true
+    }));
   }
 
   _handleSave() {
     console.log('BlockEditForm: 保存编辑', this._currentBlock);
     
-    // 最终保存逻辑：使用用户输入的值
-    const finalBlock = { ...this._currentBlock };
+    // 准备保存的数据
+    const savedBlock = { ...this._currentBlock };
     
-    // 确保有必要的字段
-    if (!finalBlock.name || finalBlock.name.trim() === '') {
-      finalBlock.name = '新块';
+    // 如果名称为空，提供默认值
+    if (!savedBlock.name || savedBlock.name.trim() === '') {
+      savedBlock.name = '新块';
     }
     
-    if (!finalBlock.icon || finalBlock.icon.trim() === '') {
-      finalBlock.icon = 'mdi:cube-outline';
+    // 如果图标为空，提供默认值
+    if (!savedBlock.icon || savedBlock.icon.trim() === '') {
+      savedBlock.icon = 'mdi:cube-outline';
     }
     
-    if (!finalBlock.area) {
-      finalBlock.area = 'content';
+    // 确保区域有值
+    if (!savedBlock.area) {
+      savedBlock.area = 'content';
     }
     
-    console.log('BlockEditForm: 最终保存数据', finalBlock);
-    
-    // 发送更新事件
+    // 发送保存事件
     this.dispatchEvent(new CustomEvent('field-change', {
       bubbles: true,
       composed: true,
       detail: {
         field: 'all',
-        updates: finalBlock
+        updates: savedBlock
       }
     }));
     
@@ -329,4 +460,8 @@ export class BlockEditForm extends LitElement {
       composed: true
     }));
   }
+}
+
+if (!customElements.get('block-edit-form')) {
+  customElements.define('block-edit-form', BlockEditForm);
 }
