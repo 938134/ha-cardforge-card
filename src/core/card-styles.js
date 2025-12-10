@@ -1,4 +1,4 @@
-// core/card-styles.js - 修复版
+// core/card-styles.js - 修复版（新增布局优化）
 import { css } from 'https://unpkg.com/lit@2.8.0/index.js?module';
 
 /**
@@ -114,6 +114,69 @@ export const cardBaseStyles = css`
     margin-bottom: var(--cf-spacing-lg);
   }
 
+  /* === 块布局样式优化 === */
+  
+  /* 水平布局 - 填充剩余宽度 */
+  .layout-horizontal-fill {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 4px;
+    width: 100%;
+  }
+  
+  .layout-horizontal-fill .block-item {
+    flex: 1;
+    min-width: 120px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 8px;
+    min-height: 32px;
+  }
+  
+  /* 紧凑布局 - 自适应宽度 */
+  .layout-compact-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+    gap: 4px;
+    width: fit-content;
+    max-width: 100%;
+  }
+  
+  .layout-compact-grid .block-item {
+    display: grid;
+    grid-template-areas:
+      "icon name"
+      "icon value";
+    grid-template-columns: 32px 1fr;
+    grid-template-rows: auto auto;
+    gap: 2px 6px;
+    padding: 4px;
+    min-height: 48px;
+    width: fit-content;
+  }
+  
+  /* 垂直布局 - 自适应宽度 */
+  .layout-vertical-stack {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+    width: fit-content;
+    max-width: 100%;
+  }
+  
+  .layout-vertical-stack .block-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 6px 8px;
+    min-height: 60px;
+    width: 100%;
+    min-width: 100px;
+  }
+
   /* === 深色模式适配（通用）=== */
   @media (prefers-color-scheme: dark) {
     .cardforge-container {
@@ -147,6 +210,10 @@ export const cardBaseStyles = css`
       font-size: var(--cf-font-size-md);
       margin-top: var(--cf-spacing-xs);
       margin-bottom: var(--cf-spacing-xs);
+    }
+    
+    .layout-compact-grid {
+      grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
     }
   }
 
@@ -183,6 +250,23 @@ export const cardBaseStyles = css`
     .card-empty-text {
       font-size: var(--cf-font-size-md);
     }
+    
+    .layout-horizontal-fill .block-item {
+      min-width: 100px;
+      padding: 3px 6px;
+      gap: 4px;
+    }
+    
+    .layout-compact-grid {
+      grid-template-columns: repeat(auto-fill, minmax(90px, 1fr));
+      gap: 3px;
+    }
+    
+    .layout-compact-grid .block-item {
+      grid-template-columns: 28px 1fr;
+      padding: 3px;
+      min-height: 42px;
+    }
   }
 
   /* 小屏手机 */
@@ -197,6 +281,14 @@ export const cardBaseStyles = css`
     
     .card-empty {
       padding: var(--cf-spacing-lg);
+    }
+    
+    .layout-horizontal-fill .block-item {
+      min-width: 80px;
+    }
+    
+    .layout-compact-grid {
+      grid-template-columns: repeat(auto-fill, minmax(80px, 1fr));
     }
   }
 `;
