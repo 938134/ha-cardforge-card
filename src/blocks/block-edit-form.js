@@ -11,7 +11,8 @@ export class BlockEditForm extends LitElement {
     presetDef: { type: Object },
     _availableEntities: { state: true },
     _currentBlock: { state: true },
-    _formReady: { state: true }
+    _formReady: { state: true },
+    _entityChangeTimer: { state: true }
   };
 
   static styles = [
@@ -180,6 +181,7 @@ export class BlockEditForm extends LitElement {
     this._availableEntities = [];
     this._currentBlock = {};
     this._formReady = false;
+    this._entityChangeTimer = null;
   }
 
   firstUpdated() {
@@ -373,51 +375,176 @@ export class BlockEditForm extends LitElement {
     const entityId = e.detail.value;
     console.log('BlockEditForm: 实体选择', entityId);
     
-    // 只更新实体字段
-    this._currentBlock = { 
+    // 清除之前的定时器
+    if (this._entityChangeTimer) {
+      clearTimeout(this._entityChangeTimer);
+    }
+    
+    // 立即更新实体字段
+    const updatedBlock = { 
       ...this._currentBlock, 
       entity: entityId 
     };
+    
+    // 如果有实体ID，自动填充名称和图标
+    if (entityId && entityId.trim() && this.hass?.states?.[entityId]) {
+      const entity = this.hass.states[entityId];
+      
+      // 只有当当前名称为空或者是默认值时，才自动填充
+      const currentName = this._currentBlock.name || '';
+      const shouldAutoFillName = !currentName || 
+                                currentName === '新块' || 
+                                currentName === '实体块' ||
+                                currentName === '';
+      
+      // 只有当当前图标是默认值时，才自动填充
+      const currentIcon = this._currentBlock.icon || '';
+      const shouldAutoFillIcon = !currentIcon || 
+                                currentIcon === 'mdi:cube-outline' ||
+                                currentIcon === 'mdi:cube';
+      
+      if (shouldAutoFillName) {
+        // 使用实体友好名称
+        updatedBlock.name = entity.attributes?.friendly_name || 
+                          entityId.split('.')[1]?.replace(/_/g, ' ') || 
+                          entityId;
+      }
+      
+      if (shouldAutoFillIcon) {
+        // 使用实体图标或根据域猜测图标
+        const domain = entityId.split('.')[0];
+        updatedBlock.icon = entity.attributes?.icon || 
+                          ENTITY_ICONS[domain] || 
+                          'mdi:cube';
+      }
+      
+      console.log('BlockEditForm: 自动填充', {
+        entityId,
+        name: updatedBlock.name,
+        icon: updatedBlock.icon,
+        shouldAutoFillName,
+        shouldAutoFillIcon
+      });
+    }
+    
+    // 更新本地状态
+    this._currentBlock = updatedBlock;
+    
+    // 延迟触发配置更新，避免频繁更新
+    this._entityChangeTimer = setTimeout(() => {
+      this._fireFieldUpdate({ entity: entityId });
+    }, 300);
     
     this.requestUpdate();
   }
 
   _handleEntityInput(e) {
     const entityId = e.target.value;
-    this._currentBlock = { 
+    const updatedBlock = { 
       ...this._currentBlock, 
       entity: entityId 
     };
+    
+    // 如果输入了有效的实体ID，尝试自动填充
+    if (entityId && entityId.trim() && this.hass?.states?.[entityId]) {
+      const entity = this.hass.states[entityId];
+      
+      // 只有当当前名称为空或默认值时，才自动填充
+      const currentName = this._currentBlock.name || '';
+      if (!currentName || currentName === '新块' || currentName === '实体块') {
+        updatedBlock.name = entity.attributes?.friendly_name || 
+                          entityId.split('.')[1]?.replace(/_/g, ' ') || 
+                          entityId;
+      }
+      
+      // 只有当当前图标是默认值时，才自动填充
+      const currentIcon = this._currentBlock.icon || '';
+      if (!currentIcon || currentIcon === 'mdi:cube-outline' || currentIcon === 'mdi:cube') {
+        const domain = entityId.split('.')[0];
+        updatedBlock.icon = entity.attributes?.icon || 
+                          ENTITY_ICONS[domain] || 
+                          'mdi:cube';
+      }
+    }
+    
+    this._currentBlock = updatedBlock;
+    this._fireFieldUpdate({ entity: entityId });
   }
 
   _handleNameChange(e) {
     const newName = e.target.value;
     console.log('BlockEditForm: 名称输入', newName);
-    this._currentBlock = { 
+    
+    // 清除之前的定时器
+    if (this._entityChangeTimer) {
+      clearTimeout(this._entityChangeTimer);
+    }
+    
+    const updatedBlock = { 
       ...this._currentBlock, 
       name: newName 
     };
+    
+    this._currentBlock = updatedBlock;
+    
+    // 延迟触发配置更新
+    this._entityChangeTimer = setTimeout(() => {
+      this._fireFieldUpdate({ name: newName });
+    }, 300);
   }
 
   _handleIconChange(e) {
     const newIcon = e.detail.value;
     console.log('BlockEditForm: 图标选择', newIcon);
-    this._currentBlock = { 
+    
+    // 清除之前的定时器
+    if (this._entityChangeTimer) {
+      clearTimeout(this._entityChangeTimer);
+    }
+    
+    const updatedBlock = { 
       ...this._currentBlock, 
       icon: newIcon 
     };
+    
+    this._currentBlock = updatedBlock;
+    
+    // 延迟触发配置更新
+    this._entityChangeTimer = setTimeout(() => {
+      this._fireFieldUpdate({ icon: newIcon });
+    }, 300);
   }
 
   _handleAreaChange(areaId) {
     console.log('BlockEditForm: 区域选择', areaId);
-    this._currentBlock = { 
+    
+    // 清除之前的定时器
+    if (this._entityChangeTimer) {
+      clearTimeout(this._entityChangeTimer);
+    }
+    
+    const updatedBlock = { 
       ...this._currentBlock, 
       area: areaId 
     };
+    
+    this._currentBlock = updatedBlock;
+    
+    // 延迟触发配置更新
+    this._entityChangeTimer = setTimeout(() => {
+      this._fireFieldUpdate({ area: areaId });
+    }, 300);
   }
 
   _handleCancel() {
     console.log('BlockEditForm: 取消编辑');
+    
+    // 清除定时器
+    if (this._entityChangeTimer) {
+      clearTimeout(this._entityChangeTimer);
+      this._entityChangeTimer = null;
+    }
+    
     this.dispatchEvent(new CustomEvent('cancel', {
       bubbles: true,
       composed: true
@@ -427,23 +554,55 @@ export class BlockEditForm extends LitElement {
   _handleSave() {
     console.log('BlockEditForm: 保存编辑', this._currentBlock);
     
+    // 清除定时器
+    if (this._entityChangeTimer) {
+      clearTimeout(this._entityChangeTimer);
+      this._entityChangeTimer = null;
+    }
+    
     // 准备保存的数据
     const savedBlock = { ...this._currentBlock };
     
-    // 如果名称为空，提供默认值
-    if (!savedBlock.name || savedBlock.name.trim() === '') {
-      savedBlock.name = '新块';
+    // 关键修复：优先使用用户输入的名称
+    // 1. 如果用户输入了名称，使用它
+    // 2. 如果用户清空了名称，但有实体，使用实体友好名称
+    // 3. 否则使用默认名称
+    
+    const userEnteredName = savedBlock.name || '';
+    const hasEntity = savedBlock.entity && this.hass?.states?.[savedBlock.entity];
+    
+    if (userEnteredName.trim() !== '') {
+      // 使用用户输入的名称
+      savedBlock.name = userEnteredName.trim();
+    } else if (hasEntity) {
+      // 用户清空了名称，但有实体，使用实体友好名称
+      const entity = this.hass.states[savedBlock.entity];
+      savedBlock.name = entity.attributes?.friendly_name || 
+                       savedBlock.entity.split('.')[1]?.replace(/_/g, ' ') || 
+                       savedBlock.entity;
+    } else {
+      // 既没有用户输入的名称，也没有实体，使用默认名称
+      savedBlock.name = savedBlock.presetKey ? 
+                       this.presetDef?.defaultName || '预设块' : 
+                       '新块';
     }
     
     // 如果图标为空，提供默认值
     if (!savedBlock.icon || savedBlock.icon.trim() === '') {
-      savedBlock.icon = 'mdi:cube-outline';
+      if (hasEntity) {
+        const domain = savedBlock.entity.split('.')[0];
+        savedBlock.icon = ENTITY_ICONS[domain] || 'mdi:cube-outline';
+      } else {
+        savedBlock.icon = 'mdi:cube-outline';
+      }
     }
     
     // 确保区域有值
     if (!savedBlock.area) {
-      savedBlock.area = 'content';
+      savedBlock.area = this.cardDefinition?.blockType === 'preset' ? 'content' : 'content';
     }
+    
+    console.log('BlockEditForm: 最终保存的数据', savedBlock);
     
     // 发送保存事件
     this.dispatchEvent(new CustomEvent('field-change', {
@@ -458,6 +617,17 @@ export class BlockEditForm extends LitElement {
     this.dispatchEvent(new CustomEvent('save', {
       bubbles: true,
       composed: true
+    }));
+  }
+
+  _fireFieldUpdate(updates) {
+    this.dispatchEvent(new CustomEvent('field-change', {
+      bubbles: true,
+      composed: true,
+      detail: {
+        field: 'partial',
+        updates
+      }
     }));
   }
 }

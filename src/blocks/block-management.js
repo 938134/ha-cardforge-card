@@ -323,19 +323,30 @@ export class BlockManagement extends LitElement {
     return labelMap[areaId] || '内容';
   }
 
-  _handleFieldChange(blockId, detail) {
-    const { updates } = detail;
-    
-    const currentBlocks = this.config.blocks || {};
-    const currentBlock = currentBlocks[blockId] || {};
-    
-    // 直接使用表单提交的完整更新
-    const newBlock = { ...currentBlock, ...updates };
-    const newBlocks = { ...currentBlocks, [blockId]: newBlock };
-    
-    this._fireConfigChange({ blocks: newBlocks });
-  }
-
+ 
+_handleFieldChange(blockId, detail) {
+  const { field, updates } = detail;
+  
+  const currentBlocks = this.config.blocks || {};
+  const currentBlock = currentBlocks[blockId] || {};
+  
+  // 如果是部分更新，只更新指定字段
+  // 如果是完整更新，替换整个块
+  const newBlock = field === 'all' ? updates : { ...currentBlock, ...updates };
+  const newBlocks = { ...currentBlocks, [blockId]: newBlock };
+  
+  console.log('BlockManagement: 更新块', {
+    blockId,
+    field,
+    updates,
+    newBlock
+  });
+  
+  this._fireConfigChange({ blocks: newBlocks });
+  
+  // 立即更新本地状态，避免重置
+  this._currentBlocks = this._getAllBlocks();
+}
   _startEdit(blockId) {
     this._editingBlockId = blockId;
   }
