@@ -1,4 +1,4 @@
-// blocks/block-management.js - 完整修复版
+// blocks/block-management.js - 修复事件传递
 import { LitElement, html, css } from 'https://unpkg.com/lit@2.8.0/index.js?module';
 import { designSystem } from '../core/design-system.js';
 import { BlockBase } from './block-base.js';
@@ -78,19 +78,13 @@ export class BlockManagement extends LitElement {
         line-height: 1.1;
       }
       
-      /* 块视图容器 - 使用紧凑布局 */
+      /* 块视图容器 */
       .block-view-container {
         padding: 0 8px;
         min-height: 40px;
         display: flex;
         align-items: center;
         width: 100%;
-      }
-      
-      /* 块列表中的块使用紧凑布局，填充宽度 */
-      .block-view-container block-base {
-        width: 100%;
-        max-width: none;
       }
       
       /* 块操作 */
@@ -125,6 +119,14 @@ export class BlockManagement extends LitElement {
       .block-action.disabled {
         opacity: 0.5;
         cursor: not-allowed;
+      }
+      
+      /* 编辑表单容器 */
+      .edit-form-container {
+        margin-top: 8px;
+        border: 1px solid var(--cf-primary-color);
+        border-radius: var(--cf-radius-md);
+        overflow: hidden;
       }
       
       /* 添加块按钮 */
@@ -171,77 +173,6 @@ export class BlockManagement extends LitElement {
         margin-bottom: 8px;
         opacity: 0.5;
       }
-      
-      /* 编辑表单容器 */
-      .edit-form-container {
-        margin-top: 8px;
-        border: 1px solid var(--cf-primary-color);
-        border-radius: var(--cf-radius-md);
-        overflow: hidden;
-      }
-      
-      /* 响应式设计 */
-      @media (max-width: 768px) {
-        .block-item {
-          grid-template-columns: 50px 1fr 60px;
-          padding: 4px 0;
-        }
-        
-        .area-indicator {
-          padding: 0 4px;
-        }
-        
-        .area-label {
-          font-size: 0.65em;
-        }
-        
-        .block-view-container {
-          padding: 0 6px;
-        }
-        
-        .block-actions {
-          padding: 0 6px;
-        }
-        
-        .block-action {
-          width: 24px;
-          height: 24px;
-        }
-      }
-      
-      @media (max-width: 480px) {
-        .block-list {
-          gap: 6px;
-        }
-        
-        .block-item {
-          grid-template-columns: 45px 1fr 50px;
-          padding: 3px 0;
-          min-height: 45px;
-        }
-        
-        .area-indicator {
-          min-height: 35px;
-        }
-        
-        .area-icon {
-          font-size: 0.9em;
-        }
-        
-        .block-view-container {
-          min-height: 35px;
-        }
-        
-        .block-action {
-          width: 22px;
-          height: 22px;
-        }
-        
-        .add-block-btn {
-          padding: 6px 10px;
-          font-size: 0.8em;
-        }
-      }
     `
   ];
 
@@ -257,6 +188,7 @@ export class BlockManagement extends LitElement {
   willUpdate(changedProperties) {
     if (changedProperties.has('config')) {
       this._currentBlocks = this._getAllBlocks();
+      console.log('BlockManagement: 块列表更新', this._currentBlocks);
     }
   }
 
@@ -298,6 +230,12 @@ export class BlockManagement extends LitElement {
       presetKey: block.presetKey
     };
     
+    console.log('BlockManagement: 渲染块项目', {
+      id: block.id,
+      isEditing,
+      blockConfig
+    });
+    
     return html`
       <div class="block-item ${isPresetBlock ? 'preset-block' : ''}">
         <!-- 区域标识 -->
@@ -310,7 +248,7 @@ export class BlockManagement extends LitElement {
           </div>
         </div>
         
-        <!-- 块视图 - 使用紧凑布局，填充宽度 -->
+        <!-- 块视图 -->
         <div class="block-view-container">
           <block-base
             .block=${blockConfig}
@@ -346,50 +284,13 @@ export class BlockManagement extends LitElement {
             .block=${blockConfig}
             .hass=${this.hass}
             .cardDefinition=${this.cardDefinition}
+            .presetDef=${isPresetBlock ? this.cardDefinition?.presetBlocks?.[block.presetKey] : null}
             @field-change=${(e) => this._handleFieldChange(block.id, e.detail)}
             @cancel=${this._cancelEdit}
             @save=${this._finishEdit}
           ></block-edit-form>
         </div>
       ` : ''}
-    `;
-  }
-
-  _renderAddButton() {
-    const blockType = this.cardDefinition?.blockType || 'none';
-    const canAddNew = blockType === 'custom';
-    
-    if (!canAddNew) return '';
-    
-    return html`
-      <button class="add-block-btn" @click=${this._addBlock}>
-        <ha-icon icon="mdi:plus-circle-outline"></ha-icon>
-        添加新块
-      </button>
-    `;
-  }
-
-  _renderEmptyState() {
-    const blockType = this.cardDefinition?.blockType || 'none';
-    const isPresetCard = blockType === 'preset';
-    
-    const message = isPresetCard 
-      ? '此卡片使用预设块结构'
-      : '还没有添加任何块';
-    
-    const description = isPresetCard
-      ? '请为每个预设块配置对应的实体'
-      : '块可以显示实体的状态值';
-    
-    return html`
-      <div class="empty-state">
-        <div class="empty-icon">
-          <ha-icon icon="mdi:cube-outline"></ha-icon>
-        </div>
-        <div style="font-weight: 600; margin-bottom: 6px; font-size: 0.9em;">${message}</div>
-        <div style="font-size: 0.8em; margin-bottom: 12px;">${description}</div>
-        ${this._renderAddButton()}
-      </div>
     `;
   }
 
@@ -430,6 +331,8 @@ export class BlockManagement extends LitElement {
   }
 
   _handleFieldChange(blockId, { field, value, updates }) {
+    console.log('BlockManagement: 字段变化', { blockId, field, value, updates });
+    
     const currentBlocks = this.config.blocks || {};
     const currentBlock = currentBlocks[blockId] || {};
     
@@ -441,8 +344,10 @@ export class BlockManagement extends LitElement {
     let newBlock = { ...currentBlock };
     
     if (field === 'all' && updates) {
+      // 处理完整更新
       newBlock = { ...newBlock, ...updates };
     } else if (field) {
+      // 处理单个字段更新
       newBlock = { ...newBlock, [field]: value };
       if (updates) {
         newBlock = { ...newBlock, ...updates };
@@ -451,18 +356,28 @@ export class BlockManagement extends LitElement {
     
     const newBlocks = { ...currentBlocks, [blockId]: newBlock };
     
+    console.log('BlockManagement: 更新块配置', {
+      blockId,
+      oldBlock: currentBlock,
+      newBlock,
+      newBlocks
+    });
+    
     this._fireConfigChange({ blocks: newBlocks });
   }
 
   _startEdit(blockId) {
+    console.log('BlockManagement: 开始编辑块', blockId);
     this._editingBlockId = blockId;
   }
 
   _cancelEdit() {
+    console.log('BlockManagement: 取消编辑');
     this._editingBlockId = null;
   }
 
   _finishEdit() {
+    console.log('BlockManagement: 完成编辑');
     this._editingBlockId = null;
   }
 
@@ -485,6 +400,8 @@ export class BlockManagement extends LitElement {
     const currentBlocks = this.config.blocks || {};
     const newBlocks = { ...currentBlocks, [blockId]: newBlock };
     
+    console.log('BlockManagement: 添加新块', { blockId, newBlock });
+    
     this._fireConfigChange({ blocks: newBlocks });
     this._editingBlockId = blockId;
   }
@@ -505,6 +422,8 @@ export class BlockManagement extends LitElement {
     const currentBlocks = { ...this.config.blocks };
     delete currentBlocks[blockId];
     
+    console.log('BlockManagement: 删除块', blockId);
+    
     this._fireConfigChange({ blocks: currentBlocks });
     
     if (this._editingBlockId === blockId) {
@@ -514,9 +433,51 @@ export class BlockManagement extends LitElement {
 
   _fireConfigChange(updates) {
     const newConfig = { ...this.config, ...updates };
+    console.log('BlockManagement: 触发配置变化', { updates, newConfig });
+    
     this.dispatchEvent(new CustomEvent('config-changed', {
+      bubbles: true,
+      composed: true,
       detail: { config: newConfig }
     }));
+  }
+
+  _renderAddButton() {
+    const blockType = this.cardDefinition?.blockType || 'none';
+    const canAddNew = blockType === 'custom';
+    
+    if (!canAddNew) return '';
+    
+    return html`
+      <button class="add-block-btn" @click=${this._addBlock}>
+        <ha-icon icon="mdi:plus-circle-outline"></ha-icon>
+        添加新块
+      </button>
+    `;
+  }
+
+  _renderEmptyState() {
+    const blockType = this.cardDefinition?.blockType || 'none';
+    const isPresetCard = blockType === 'preset';
+    
+    const message = isPresetCard 
+      ? '此卡片使用预设块结构'
+      : '还没有添加任何块';
+    
+    const description = isPresetCard
+      ? '请为每个预设块配置对应的实体'
+      : '块可以显示实体的状态值';
+    
+    return html`
+      <div class="empty-state">
+        <div class="empty-icon">
+          <ha-icon icon="mdi:cube-outline"></ha-icon>
+        </div>
+        <div style="font-weight: 600; margin-bottom: 6px; font-size: 0.9em;">${message}</div>
+        <div style="font-size: 0.8em; margin-bottom: 12px;">${description}</div>
+        ${this._renderAddButton()}
+      </div>
+    `;
   }
 }
 
