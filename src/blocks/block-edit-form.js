@@ -1,4 +1,4 @@
-// blocks/block-edit-form.js - 修复表单显示问题
+// blocks/block-edit-form.js - 修复表单显示问题（简化版）
 import { LitElement, html, css } from 'https://unpkg.com/lit@2.8.0/index.js?module';
 import { designSystem } from '../core/design-system.js';
 import { ENTITY_ICONS } from './block-config.js';
@@ -11,8 +11,7 @@ export class BlockEditForm extends LitElement {
     presetDef: { type: Object },
     _availableEntities: { state: true },
     _currentBlock: { state: true },
-    _formReady: { state: true },
-    _entityChangeTimer: { state: true }
+    _formReady: { state: true }
   };
 
   static styles = [
@@ -181,7 +180,6 @@ export class BlockEditForm extends LitElement {
     this._availableEntities = [];
     this._currentBlock = {};
     this._formReady = false;
-    this._entityChangeTimer = null;
   }
 
   firstUpdated() {
@@ -375,67 +373,52 @@ export class BlockEditForm extends LitElement {
     const entityId = e.detail.value;
     console.log('BlockEditForm: 实体选择', entityId);
     
-    // 清除之前的定时器
-    if (this._entityChangeTimer) {
-      clearTimeout(this._entityChangeTimer);
-    }
-    
-    // 立即更新实体字段
+    // 只更新实体字段
     const updatedBlock = { 
       ...this._currentBlock, 
       entity: entityId 
     };
     
-    // 如果有实体ID，自动填充名称和图标
-    if (entityId && entityId.trim() && this.hass?.states?.[entityId]) {
+    // 如果实体存在，自动填充名称和图标
+    if (entityId && this.hass?.states?.[entityId]) {
       const entity = this.hass.states[entityId];
       
-      // 只有当当前名称为空或者是默认值时，才自动填充
+      // 自动填充名称（只有当名称为空或默认值时才填充）
       const currentName = this._currentBlock.name || '';
       const shouldAutoFillName = !currentName || 
                                 currentName === '新块' || 
                                 currentName === '实体块' ||
-                                currentName === '';
-      
-      // 只有当当前图标是默认值时，才自动填充
-      const currentIcon = this._currentBlock.icon || '';
-      const shouldAutoFillIcon = !currentIcon || 
-                                currentIcon === 'mdi:cube-outline' ||
-                                currentIcon === 'mdi:cube';
+                                currentName === this._currentBlock.entity;
       
       if (shouldAutoFillName) {
-        // 使用实体友好名称
         updatedBlock.name = entity.attributes?.friendly_name || 
                           entityId.split('.')[1]?.replace(/_/g, ' ') || 
                           entityId;
       }
       
+      // 自动填充图标（只有当图标是默认值时才填充）
+      const currentIcon = this._currentBlock.icon || '';
+      const shouldAutoFillIcon = !currentIcon || 
+                                currentIcon === 'mdi:cube-outline' ||
+                                currentIcon === 'mdi:cube';
+      
       if (shouldAutoFillIcon) {
-        // 使用实体图标或根据域猜测图标
         const domain = entityId.split('.')[0];
         updatedBlock.icon = entity.attributes?.icon || 
                           ENTITY_ICONS[domain] || 
                           'mdi:cube';
       }
-      
-      console.log('BlockEditForm: 自动填充', {
-        entityId,
-        name: updatedBlock.name,
-        icon: updatedBlock.icon,
-        shouldAutoFillName,
-        shouldAutoFillIcon
-      });
     }
     
     // 更新本地状态
     this._currentBlock = updatedBlock;
     
-    // 延迟触发配置更新，避免频繁更新
-    this._entityChangeTimer = setTimeout(() => {
-      this._fireFieldUpdate({ entity: entityId });
-    }, 300);
-    
-    this.requestUpdate();
+    // 触发配置更新
+    this._fireFieldUpdate({ 
+      entity: entityId,
+      name: updatedBlock.name,
+      icon: updatedBlock.icon
+    });
   }
 
   _handleEntityInput(e) {
@@ -468,82 +451,50 @@ export class BlockEditForm extends LitElement {
     }
     
     this._currentBlock = updatedBlock;
-    this._fireFieldUpdate({ entity: entityId });
+    this._fireFieldUpdate({ 
+      entity: entityId,
+      name: updatedBlock.name,
+      icon: updatedBlock.icon
+    });
   }
 
   _handleNameChange(e) {
     const newName = e.target.value;
     console.log('BlockEditForm: 名称输入', newName);
     
-    // 清除之前的定时器
-    if (this._entityChangeTimer) {
-      clearTimeout(this._entityChangeTimer);
-    }
-    
-    const updatedBlock = { 
+    this._currentBlock = { 
       ...this._currentBlock, 
       name: newName 
     };
     
-    this._currentBlock = updatedBlock;
-    
-    // 延迟触发配置更新
-    this._entityChangeTimer = setTimeout(() => {
-      this._fireFieldUpdate({ name: newName });
-    }, 300);
+    this._fireFieldUpdate({ name: newName });
   }
 
   _handleIconChange(e) {
     const newIcon = e.detail.value;
     console.log('BlockEditForm: 图标选择', newIcon);
     
-    // 清除之前的定时器
-    if (this._entityChangeTimer) {
-      clearTimeout(this._entityChangeTimer);
-    }
-    
-    const updatedBlock = { 
+    this._currentBlock = { 
       ...this._currentBlock, 
       icon: newIcon 
     };
     
-    this._currentBlock = updatedBlock;
-    
-    // 延迟触发配置更新
-    this._entityChangeTimer = setTimeout(() => {
-      this._fireFieldUpdate({ icon: newIcon });
-    }, 300);
+    this._fireFieldUpdate({ icon: newIcon });
   }
 
   _handleAreaChange(areaId) {
     console.log('BlockEditForm: 区域选择', areaId);
     
-    // 清除之前的定时器
-    if (this._entityChangeTimer) {
-      clearTimeout(this._entityChangeTimer);
-    }
-    
-    const updatedBlock = { 
+    this._currentBlock = { 
       ...this._currentBlock, 
       area: areaId 
     };
     
-    this._currentBlock = updatedBlock;
-    
-    // 延迟触发配置更新
-    this._entityChangeTimer = setTimeout(() => {
-      this._fireFieldUpdate({ area: areaId });
-    }, 300);
+    this._fireFieldUpdate({ area: areaId });
   }
 
   _handleCancel() {
     console.log('BlockEditForm: 取消编辑');
-    
-    // 清除定时器
-    if (this._entityChangeTimer) {
-      clearTimeout(this._entityChangeTimer);
-      this._entityChangeTimer = null;
-    }
     
     this.dispatchEvent(new CustomEvent('cancel', {
       bubbles: true,
@@ -553,12 +504,6 @@ export class BlockEditForm extends LitElement {
 
   _handleSave() {
     console.log('BlockEditForm: 保存编辑', this._currentBlock);
-    
-    // 清除定时器
-    if (this._entityChangeTimer) {
-      clearTimeout(this._entityChangeTimer);
-      this._entityChangeTimer = null;
-    }
     
     // 准备保存的数据
     const savedBlock = { ...this._currentBlock };
