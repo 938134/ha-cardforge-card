@@ -113,17 +113,22 @@ export const card = {
         ${config.showHeader ? html`
           <div class="dashboard-header align-${config.headerAlign}">
             <div class="header-content">
-              ${headerBlocks.map(block => html`
-                <block-base 
-                  .block=${block}
-                  .hass=${hass}
-                  block-style="horizontal"
-                  area-align="${config.headerAlign}"
-                  fill-width
-                  show-name=${true}
-                  show-value=${true}
-                ></block-base>
-              `)}
+              ${headerBlocks.map(block => {
+                // 判断块是否有名称
+                const hasName = block.name && block.name.trim() !== '';
+                
+                return html`
+                  <block-base 
+                    .block=${block}
+                    .hass=${this.hass}
+                    block-style="horizontal"
+                    area-align="${config.headerAlign}"
+                    fill-width
+                    show-name=${hasName}  // 关键：根据是否有名称决定显示
+                    show-value=${true}
+                  ></block-base>
+                `;
+              })}
               ${headerBlocks.length === 0 ? html`
                 <div class="empty-area">标题区域 - 可在此添加块</div>
               ` : ''}
@@ -153,17 +158,22 @@ export const card = {
         ${config.showFooter ? html`
           <div class="dashboard-footer align-${config.footerAlign}">
             <div class="footer-content">
-              ${footerBlocks.map(block => html`
-                <block-base 
-                  .block=${block}
-                  .hass=${hass}
-                  block-style="horizontal"
-                  area-align="${config.footerAlign}"
-                  fill-width
-                  show-name=${false}  /* 页脚通常不显示名称 */
-                  show-value=${true}
-                ></block-base>
-              `)}
+              ${footerBlocks.map(block => {
+                // 判断块是否有名称
+                const hasName = block.name && block.name.trim() !== '';
+                
+                return html`
+                  <block-base 
+                    .block=${block}
+                    .hass=${this.hass}
+                    block-style="horizontal"
+                    area-align="${config.footerAlign}"
+                    fill-width
+                    show-name=${hasName}  // 关键：根据是否有名称决定显示
+                    show-value=${true}
+                  ></block-base>
+                `;
+              })}
               ${footerBlocks.length === 0 ? html`
                 <div class="empty-area">页脚区域 - 可在此添加块</div>
               ` : ''}

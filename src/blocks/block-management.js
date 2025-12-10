@@ -207,85 +207,88 @@ export class BlockManagement extends LitElement {
     `;
   }
 
-  _renderBlockItem(block) {
-    const isEditing = this._editingBlockId === block.id;
-    const isPresetBlock = block.presetKey;
-    const blockType = this.cardDefinition?.blockType || 'none';
-    const isPresetCard = blockType === 'preset';
-    
-    // 区域处理：预设卡片固定为 content，其他使用配置的区域
-    const area = isPresetCard ? 'content' : (block.area || 'content');
-    
-    // 权限判断
-    const canDelete = blockType === 'custom' && !isPresetBlock;
-    
-    // 创建块配置
-    const blockConfig = {
-      id: block.id,
-      entity: block.entity || '',
-      name: block.name || '',
-      icon: block.icon || 'mdi:cube-outline',
-      area: block.area || 'content',
-      presetKey: block.presetKey
-    };
-    
-    return html`
-      <div class="block-item ${isPresetBlock ? 'preset-block' : ''}">
-        <!-- 区域标识 -->
-        <div class="area-indicator">
-          <div class="area-icon">
-            <ha-icon icon="${this._getAreaIcon(area)}"></ha-icon>
-          </div>
-          <div class="area-label">
-            ${this._getAreaLabel(area)}
-          </div>
+_renderBlockItem(block) {
+  const isEditing = this._editingBlockId === block.id;
+  const isPresetBlock = block.presetKey;
+  const blockType = this.cardDefinition?.blockType || 'none';
+  const isPresetCard = blockType === 'preset';
+  
+  // 区域处理：预设卡片固定为 content，其他使用配置的区域
+  const area = isPresetCard ? 'content' : (block.area || 'content');
+  
+  // 权限判断
+  const canDelete = blockType === 'custom' && !isPresetBlock;
+  
+  // 创建块配置
+  const blockConfig = {
+    id: block.id,
+    entity: block.entity || '',
+    name: block.name || '', // 直接传递名称，允许为空
+    icon: block.icon || 'mdi:cube-outline',
+    area: block.area || 'content',
+    presetKey: block.presetKey
+  };
+  
+  // 判断是否有名称
+  const hasName = block.name && block.name.trim() !== '';
+  
+  return html`
+    <div class="block-item ${isPresetBlock ? 'preset-block' : ''}">
+      <!-- 区域标识 -->
+      <div class="area-indicator">
+        <div class="area-icon">
+          <ha-icon icon="${this._getAreaIcon(area)}"></ha-icon>
         </div>
-        
-        <!-- 块视图 -->
-        <div class="block-view-container">
-          <block-base
-            .block=${blockConfig}
-            .hass=${this.hass}
-            block-style="compact"
-            fill-width
-            show-name=${true}
-            show-value=${true}
-          ></block-base>
-        </div>
-        
-        <!-- 操作按钮 -->
-        <div class="block-actions">
-          <div class="block-action" @click=${() => this._startEdit(block.id)} title="编辑">
-            <ha-icon icon="mdi:pencil"></ha-icon>
-          </div>
-          
-          ${canDelete ? html`
-            <div class="block-action" @click=${(e) => this._deleteBlock(e, block.id)} title="删除">
-              <ha-icon icon="mdi:delete"></ha-icon>
-            </div>
-          ` : html`
-            <div class="block-action disabled" title="预设块不能删除">
-              <ha-icon icon="mdi:delete-outline"></ha-icon>
-            </div>
-          `}
+        <div class="area-label">
+          ${this._getAreaLabel(area)}
         </div>
       </div>
       
-      ${isEditing ? html`
-        <div class="edit-form-container">
-          <block-edit-form
-            .block=${blockConfig}
-            .hass=${this.hass}
-            .cardDefinition=${this.cardDefinition}
-            .presetDef=${isPresetBlock ? this.cardDefinition?.presetBlocks?.[block.presetKey] : null}
-            @field-change=${(e) => this._handleFieldChange(block.id, e.detail)}
-            @cancel=${this._cancelEdit}
-            @save=${this._finishEdit}
-          ></block-edit-form>
+      <!-- 块视图 -->
+      <div class="block-view-container">
+        <block-base
+          .block=${blockConfig}
+          .hass=${this.hass}
+          block-style="compact"
+          fill-width
+          show-name=${hasName}  // 关键修改：根据是否有名称决定是否显示名称
+          show-value=${true}
+        ></block-base>
+      </div>
+      
+      <!-- 操作按钮 -->
+      <div class="block-actions">
+        <div class="block-action" @click=${() => this._startEdit(block.id)} title="编辑">
+          <ha-icon icon="mdi:pencil"></ha-icon>
         </div>
-      ` : ''}
-    `;
-  }
+        
+        ${canDelete ? html`
+          <div class="block-action" @click=${(e) => this._deleteBlock(e, block.id)} title="删除">
+            <ha-icon icon="mdi:delete"></ha-icon>
+          </div>
+        ` : html`
+          <div class="block-action disabled" title="预设块不能删除">
+            <ha-icon icon="mdi:delete-outline"></ha-icon>
+          </div>
+        `}
+      </div>
+    </div>
+    
+    ${isEditing ? html`
+      <div class="edit-form-container">
+        <block-edit-form
+          .block=${blockConfig}
+          .hass=${this.hass}
+          .cardDefinition=${this.cardDefinition}
+          .presetDef=${isPresetBlock ? this.cardDefinition?.presetBlocks?.[block.presetKey] : null}
+          @field-change=${(e) => this._handleFieldChange(block.id, e.detail)}
+          @cancel=${this._cancelEdit}
+          @save=${this._finishEdit}
+        ></block-edit-form>
+      </div>
+    ` : ''}
+  `;
+}
 
   _getAllBlocks() {
     if (!this.config?.blocks) return [];

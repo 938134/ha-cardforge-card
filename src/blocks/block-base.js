@@ -1,4 +1,4 @@
-// blocks/block-base.js - 修复名称显示优先级
+// blocks/block-base.js - 简化名称显示优先级
 import { LitElement, html, css } from 'https://unpkg.com/lit@2.8.0/index.js?module';
 import { designSystem } from '../core/design-system.js';
 import { ENTITY_ICONS } from './block-config.js';
@@ -15,7 +15,8 @@ export class BlockBase extends LitElement {
     fillWidth: { type: Boolean, attribute: 'fill-width' },
     _displayName: { state: true },
     _stateValue: { state: true },
-    _icon: { state: true }
+    _icon: { state: true },
+    _hasName: { state: true }
   };
 
   static styles = [
@@ -96,56 +97,7 @@ export class BlockBase extends LitElement {
         flex-shrink: 0;
       }
       
-      /* ===== 2. 垂直布局（内容区域使用） ===== */
-      .block-base.layout-vertical {
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        justify-content: center;
-        text-align: center;
-        padding: 10px 8px;
-        min-height: 70px;
-        min-width: 100px;
-        gap: 4px;
-        width: 100%;
-      }
-      
-      .block-base.layout-vertical .block-icon {
-        width: 36px;
-        height: 36px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        border-radius: var(--cf-radius-md);
-        background: rgba(var(--cf-primary-color-rgb), 0.1);
-        color: var(--cf-text-secondary);
-        font-size: 1.3em;
-        margin-bottom: 2px;
-      }
-      
-      .block-base.layout-vertical .block-name {
-        font-size: var(--cf-font-size-sm);
-        color: var(--cf-text-secondary);
-        font-weight: var(--cf-font-weight-medium);
-        overflow: hidden;
-        text-overflow: ellipsis;
-        white-space: nowrap;
-        width: 100%;
-        line-height: 1.2;
-      }
-      
-      .block-base.layout-vertical .block-value {
-        font-size: var(--cf-font-size-md);
-        font-weight: var(--cf-font-weight-semibold);
-        color: var(--cf-text-primary);
-        overflow: hidden;
-        text-overflow: ellipsis;
-        white-space: nowrap;
-        width: 100%;
-        line-height: 1.2;
-      }
-      
-      /* ===== 3. 紧凑布局（块列表和内容区域默认） ===== */
+      /* ===== 2. 紧凑布局（默认布局） ===== */
       .block-base.layout-compact {
         display: grid;
         grid-template-areas:
@@ -158,6 +110,14 @@ export class BlockBase extends LitElement {
         min-height: 52px;
         width: 100%;
         box-sizing: border-box;
+      }
+      
+      /* 无名称时的紧凑布局 */
+      .block-base.layout-compact.no-name {
+        grid-template-areas: "icon value";
+        grid-template-columns: 36px 1fr;
+        grid-template-rows: 1fr;
+        align-items: center;
       }
       
       /* 填充宽度模式 */
@@ -206,6 +166,12 @@ export class BlockBase extends LitElement {
         line-height: 1.2;
         text-align: left;
         min-width: 0;
+      }
+      
+      /* 无名称时的值显示 */
+      .block-base.layout-compact.no-name .block-value {
+        align-self: center;
+        font-size: var(--cf-font-size-xl);
       }
       
       /* 空状态 */
@@ -269,26 +235,19 @@ export class BlockBase extends LitElement {
     
     const entityId = block.entity || '';
     const hasEntity = entityId && this.hass?.states?.[entityId];
+    const blockName = block.name || '';
     
-    // 关键修改：优先使用块的 name 属性，而不是实体友好名称
-    // 1. 如果块有自定义名称，使用它
-    if (block.name && block.name.trim() !== '' && block.name !== '新块' && block.name !== '实体块') {
-      this._displayName = block.name;
-    } 
-    // 2. 如果块没有名称但有实体，使用实体友好名称
-    else if (hasEntity) {
-      const entity = this.hass.states[entityId];
-      this._displayName = entity.attributes?.friendly_name || entityId.split('.')[1] || entityId;
-    } 
-    // 3. 否则使用默认名称
-    else {
-      this._displayName = block.name || (block.entity ? '实体块' : '新块');
-    }
+    // 简化逻辑：只检查是否有名称
+    this._hasName = blockName && blockName.trim() !== '';
+    
+    // 如果有名称就显示，没有就为空（直接显示状态值）
+    this._displayName = this._hasName ? blockName : '';
     
     console.log('BlockBase: 显示名称计算', {
       blockName: block.name,
       displayName: this._displayName,
-      hasEntity
+      hasEntity,
+      hasName: this._hasName
     });
     
     // 获取状态值（移除单位）
@@ -325,14 +284,18 @@ export class BlockBase extends LitElement {
     const showName = this.showName !== false;
     const showValue = this.showValue !== false;
     
+    // 判断是否有名称
+    const hasName = this._hasName && showName;
+    
     return html`
       <div class="block-base 
                   layout-${layout} 
+                  ${!hasName && layout === 'compact' ? 'no-name' : ''}
                   align-${align} 
                   area-${area}
                   ${fillWidth ? 'fill-width' : ''}
                   ${noHover ? 'no-hover' : ''}">
-        ${this._renderLayout(layout, showName, showValue)}
+        ${this._renderLayout(layout, hasName, showValue)}
       </div>
     `;
   }
@@ -341,8 +304,6 @@ export class BlockBase extends LitElement {
     switch (layout) {
       case 'horizontal':
         return this._renderHorizontal(showName, showValue);
-      case 'vertical':
-        return this._renderVertical(showName, showValue);
       case 'compact':
       default:
         return this._renderCompact(showName, showValue);
@@ -350,6 +311,7 @@ export class BlockBase extends LitElement {
   }
 
   _renderHorizontal(showName, showValue) {
+    // 水平布局：如果有名称显示"名称: 值"，否则只显示"值"
     return html`
       <div class="block-icon">
         <ha-icon .icon=${this._icon}></ha-icon>
@@ -370,7 +332,8 @@ export class BlockBase extends LitElement {
     `;
   }
 
-  _renderVertical(showName, showValue) {
+  _renderCompact(showName, showValue) {
+    // 紧凑布局：如果有名称显示两行，否则值居中显示
     return html`
       <div class="block-icon">
         <ha-icon .icon=${this._icon}></ha-icon>
@@ -378,24 +341,6 @@ export class BlockBase extends LitElement {
       
       ${showName && this._displayName ? html`
         <div class="block-name">${this._displayName}</div>
-      ` : ''}
-      
-      ${showValue ? html`
-        <div class="block-value">
-          ${this._stateValue || html`<span class="empty-state">-</span>`}
-        </div>
-      ` : ''}
-    `;
-  }
-
-  _renderCompact(showName, showValue) {
-    return html`
-      <div class="block-icon">
-        <ha-icon .icon=${this._icon}></ha-icon>
-      </div>
-      
-      ${showName ? html`
-        <div class="block-name">${this._displayName || html`<span class="empty-state">未命名</span>`}</div>
       ` : ''}
       
       ${showValue ? html`

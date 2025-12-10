@@ -1,4 +1,4 @@
-// blocks/block-edit-form.js - 优化自动填充逻辑
+// blocks/block-edit-form.js - 简化编辑逻辑
 import { LitElement, html, css } from 'https://unpkg.com/lit@2.8.0/index.js?module';
 import { designSystem } from '../core/design-system.js';
 import { ENTITY_ICONS } from './block-config.js';
@@ -240,7 +240,7 @@ export class BlockEditForm extends LitElement {
     const isPresetBlock = !!this.block.presetKey;
     const blockName = this._currentBlock.name || '';
     const blockIcon = this._currentBlock.icon || 'mdi:cube-outline';
-    const displayName = blockName || '未命名块';
+    const displayName = blockName || '(无名称，将直接显示状态值)';
     
     return html`
       <div class="edit-form">
@@ -375,7 +375,7 @@ export class BlockEditForm extends LitElement {
     console.log('BlockEditForm: 实体选择', entityId);
     
     // 只更新实体字段
-    const updatedBlock = { 
+    let updatedBlock = { 
       ...this._currentBlock, 
       entity: entityId 
     };
@@ -384,22 +384,16 @@ export class BlockEditForm extends LitElement {
     if (entityId && this.hass?.states?.[entityId]) {
       const entity = this.hass.states[entityId];
       
-      // 始终自动填充名称（覆盖用户已有的输入）
+      // 自动填充名称（总是填充，用户可以修改）
       updatedBlock.name = entity.attributes?.friendly_name || 
                         entityId.split('.')[1]?.replace(/_/g, ' ') || 
                         entityId;
       
-      // 始终自动填充图标（覆盖用户已有的输入）
+      // 自动填充图标
       const domain = entityId.split('.')[0];
       updatedBlock.icon = entity.attributes?.icon || 
                         ENTITY_ICONS[domain] || 
                         'mdi:cube';
-      
-      console.log('BlockEditForm: 自动填充', {
-        entityId,
-        name: updatedBlock.name,
-        icon: updatedBlock.icon
-      });
     } else if (entityId) {
       // 如果是自定义实体ID，设置默认图标
       const domain = entityId.split('.')[0];
@@ -415,14 +409,11 @@ export class BlockEditForm extends LitElement {
       name: updatedBlock.name,
       icon: updatedBlock.icon
     });
-    
-    // 重新渲染
-    this.requestUpdate();
   }
 
   _handleEntityInput(e) {
     const entityId = e.target.value;
-    const updatedBlock = { 
+    let updatedBlock = { 
       ...this._currentBlock, 
       entity: entityId 
     };
@@ -502,39 +493,17 @@ export class BlockEditForm extends LitElement {
   _handleSave() {
     console.log('BlockEditForm: 保存编辑', this._currentBlock);
     
-    // 准备保存的数据
-    const savedBlock = { ...this._currentBlock };
+    // 准备保存的数据 - 直接保存当前状态
+    const savedBlock = {
+      entity: this._currentBlock.entity || '',
+      name: (this._currentBlock.name || '').trim(), // 允许空字符串
+      icon: this._currentBlock.icon || 'mdi:cube-outline',
+      area: this._currentBlock.area || 'content'
+    };
     
-    // 关键逻辑：允许名称为空，直接显示状态值
-    // 如果用户输入了名称，使用它
-    // 如果用户清空了名称，就保存为空字符串
-    const userEnteredName = savedBlock.name || '';
-    const hasEntity = savedBlock.entity && this.hass?.states?.[savedBlock.entity];
-    
-    if (userEnteredName.trim() !== '') {
-      // 使用用户输入的名称（允许用户清空名称）
-      savedBlock.name = userEnteredName.trim();
-    } else if (hasEntity) {
-      // 用户清空了名称，但有实体，名称保持为空（让 BlockBase 显示状态值）
-      savedBlock.name = '';
-    } else {
-      // 既没有用户输入的名称，也没有实体，名称保持为空
-      savedBlock.name = '';
-    }
-    
-    // 如果图标为空，提供默认值
-    if (!savedBlock.icon || savedBlock.icon.trim() === '') {
-      if (hasEntity) {
-        const domain = savedBlock.entity.split('.')[0];
-        savedBlock.icon = ENTITY_ICONS[domain] || 'mdi:cube-outline';
-      } else {
-        savedBlock.icon = 'mdi:cube-outline';
-      }
-    }
-    
-    // 确保区域有值
-    if (!savedBlock.area) {
-      savedBlock.area = this.cardDefinition?.blockType === 'preset' ? 'content' : 'content';
+    // 如果是预设块，保留预设键
+    if (this._currentBlock.presetKey) {
+      savedBlock.presetKey = this._currentBlock.presetKey;
     }
     
     console.log('BlockEditForm: 最终保存的数据', savedBlock);
