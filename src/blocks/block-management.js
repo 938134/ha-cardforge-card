@@ -1,4 +1,4 @@
-// blocks/block-management.js - 修复数据传递（完全使用 Lit 框架）
+// blocks/block-management.js - 紧凑优化版
 import { LitElement, html, css } from 'https://unpkg.com/lit@2.8.0/index.js?module';
 import { designSystem } from '../core/design-system.js';
 import { BlockBase } from './block-base.js';
@@ -24,19 +24,20 @@ export class BlockManagement extends LitElement {
       .block-list {
         display: flex;
         flex-direction: column;
-        gap: 12px;
+        gap: 8px; /* 减少间隙 */
       }
       
       .block-item {
         display: grid;
-        grid-template-columns: 70px 1fr 80px;
+        grid-template-columns: 60px 1fr 70px; /* 更紧凑 */
         align-items: center;
         background: var(--cf-surface);
         border: 1px solid var(--cf-border);
         border-radius: var(--cf-radius-md);
         overflow: hidden;
         transition: all var(--cf-transition-fast);
-        padding: 8px 0;
+        padding: 6px 0; /* 减少内边距 */
+        min-height: 50px; /* 减小高度 */
       }
       
       .block-item:hover {
@@ -48,17 +49,17 @@ export class BlockManagement extends LitElement {
         background: rgba(0, 0, 0, 0.02);
       }
       
-      /* 区域标识 */
+      /* 区域标识 - 更紧凑 */
       .area-indicator {
         display: flex;
         flex-direction: column;
         align-items: center;
         justify-content: center;
-        gap: 4px;
-        padding: 0 8px;
-        border-right: 1px solid var(--cf-border);
+        gap: 2px; /* 减少间隙 */
+        padding: 0 6px; /* 减少内边距 */
         height: 100%;
-        min-height: 60px;
+        min-height: 40px; /* 减小高度 */
+        border-right: 1px solid var(--cf-border);
       }
       
       .preset-block .area-indicator {
@@ -66,12 +67,12 @@ export class BlockManagement extends LitElement {
       }
       
       .area-icon {
-        font-size: 1.2em;
-        margin-bottom: 2px;
+        font-size: 1em; /* 减小图标 */
+        margin-bottom: 1px;
       }
       
       .area-label {
-        font-size: 0.75em;
+        font-size: 0.7em; /* 减小字体 */
         font-weight: 600;
         text-align: center;
         line-height: 1.1;
@@ -81,25 +82,31 @@ export class BlockManagement extends LitElement {
         opacity: 0.7;
       }
       
-      /* 块视图容器 */
+      /* 块视图容器 - 紧凑 */
       .block-view-container {
-        padding: 0 12px;
-        min-height: 60px;
+        padding: 0 8px; /* 减少内边距 */
+        min-height: 40px; /* 减小高度 */
         display: flex;
         align-items: center;
       }
       
-      /* 块操作 */
+      /* 块视图内部 - 使用紧凑布局 */
+      .block-view-container block-base {
+        width: 100%;
+        max-width: 180px;
+      }
+      
+      /* 块操作 - 更小 */
       .block-actions {
         display: flex;
-        gap: 4px;
-        padding: 0 12px;
+        gap: 3px; /* 减少间隙 */
+        padding: 0 8px; /* 减少内边距 */
         justify-content: flex-end;
       }
       
       .block-action {
-        width: 32px;
-        height: 32px;
+        width: 28px; /* 减小尺寸 */
+        height: 28px;
         border-radius: var(--cf-radius-sm);
         display: flex;
         align-items: center;
@@ -109,6 +116,7 @@ export class BlockManagement extends LitElement {
         cursor: pointer;
         color: var(--cf-text-secondary);
         transition: all var(--cf-transition-fast);
+        font-size: 0.8em;
       }
       
       .block-action:hover:not(.disabled) {
@@ -125,7 +133,7 @@ export class BlockManagement extends LitElement {
       /* 添加块按钮 */
       .add-block-btn {
         width: 100%;
-        padding: 12px;
+        padding: 8px 12px; /* 减小内边距 */
         border: 2px dashed var(--cf-border);
         border-radius: var(--cf-radius-md);
         background: transparent;
@@ -134,10 +142,10 @@ export class BlockManagement extends LitElement {
         display: flex;
         align-items: center;
         justify-content: center;
-        gap: 8px;
-        font-size: 0.9em;
+        gap: 6px;
+        font-size: 0.85em;
         font-weight: 500;
-        margin-top: 12px;
+        margin-top: 8px;
         transition: all var(--cf-transition-fast);
       }
       
@@ -155,21 +163,21 @@ export class BlockManagement extends LitElement {
       /* 空状态 */
       .empty-state {
         text-align: center;
-        padding: 32px 20px;
+        padding: 24px 16px; /* 减小内边距 */
         color: var(--cf-text-secondary);
         border: 2px dashed var(--cf-border);
         border-radius: var(--cf-radius-md);
       }
       
       .empty-icon {
-        font-size: 2em;
-        margin-bottom: 12px;
+        font-size: 1.8em; /* 减小图标 */
+        margin-bottom: 8px;
         opacity: 0.5;
       }
       
       /* 编辑表单容器 */
       .edit-form-container {
-        margin-top: 12px;
+        margin-top: 8px;
         border: 1px solid var(--cf-primary-color);
         border-radius: var(--cf-radius-md);
         overflow: hidden;
@@ -177,29 +185,6 @@ export class BlockManagement extends LitElement {
       
       /* 响应式设计 */
       @media (max-width: 768px) {
-        .block-item {
-          grid-template-columns: 60px 1fr 70px;
-          padding: 6px 0;
-        }
-        
-        .area-indicator {
-          padding: 0 6px;
-        }
-        
-        .area-label {
-          font-size: 0.7em;
-        }
-        
-        .block-view-container {
-          padding: 0 8px;
-        }
-        
-        .block-actions {
-          padding: 0 8px;
-        }
-      }
-      
-      @media (max-width: 480px) {
         .block-item {
           grid-template-columns: 50px 1fr 60px;
           padding: 4px 0;
@@ -213,9 +198,59 @@ export class BlockManagement extends LitElement {
           font-size: 0.65em;
         }
         
+        .block-view-container {
+          padding: 0 6px;
+        }
+        
+        .block-view-container block-base {
+          max-width: 160px;
+        }
+        
+        .block-actions {
+          padding: 0 6px;
+        }
+        
         .block-action {
-          width: 28px;
-          height: 28px;
+          width: 24px;
+          height: 24px;
+        }
+      }
+      
+      @media (max-width: 480px) {
+        .block-list {
+          gap: 6px;
+        }
+        
+        .block-item {
+          grid-template-columns: 45px 1fr 50px;
+          padding: 3px 0;
+          min-height: 45px;
+        }
+        
+        .area-indicator {
+          min-height: 35px;
+        }
+        
+        .area-icon {
+          font-size: 0.9em;
+        }
+        
+        .block-view-container {
+          min-height: 35px;
+        }
+        
+        .block-view-container block-base {
+          max-width: 140px;
+        }
+        
+        .block-action {
+          width: 22px;
+          height: 22px;
+        }
+        
+        .add-block-btn {
+          padding: 6px 10px;
+          font-size: 0.8em;
         }
       }
     `
@@ -264,7 +299,7 @@ export class BlockManagement extends LitElement {
     // 权限判断
     const canDelete = blockType === 'custom' && !isPresetBlock;
     
-    // 创建块配置的浅拷贝，确保是纯对象
+    // 创建块配置
     const blockConfig = {
       id: block.id,
       entity: block.entity || '',
@@ -286,12 +321,12 @@ export class BlockManagement extends LitElement {
           </div>
         </div>
         
-        <!-- 块视图 -->
+        <!-- 块视图 - 使用紧凑布局 -->
         <div class="block-view-container">
           <block-base
             .block=${blockConfig}
             .hass=${this.hass}
-            .compact=${true}
+            .blockStyle="compact" /* 强制紧凑布局 */
             .showName=${true}
             .showValue=${true}
           ></block-base>
@@ -361,8 +396,8 @@ export class BlockManagement extends LitElement {
         <div class="empty-icon">
           <ha-icon icon="mdi:cube-outline"></ha-icon>
         </div>
-        <div style="font-weight: 600; margin-bottom: 8px;">${message}</div>
-        <div style="font-size: 0.9em; margin-bottom: 16px;">${description}</div>
+        <div style="font-weight: 600; margin-bottom: 6px; font-size: 0.9em;">${message}</div>
+        <div style="font-size: 0.8em; margin-bottom: 12px;">${description}</div>
         ${this._renderAddButton()}
       </div>
     `;
