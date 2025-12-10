@@ -206,7 +206,7 @@ export class BlockManagement extends LitElement {
       </div>
     `;
   }
-
+ 
 _renderBlockItem(block) {
   const isEditing = this._editingBlockId === block.id;
   const isPresetBlock = block.presetKey;
@@ -229,9 +229,6 @@ _renderBlockItem(block) {
     presetKey: block.presetKey
   };
   
-  // 判断是否有名称
-  const hasName = block.name && block.name.trim() !== '';
-  
   return html`
     <div class="block-item ${isPresetBlock ? 'preset-block' : ''}">
       <!-- 区域标识 -->
@@ -251,7 +248,8 @@ _renderBlockItem(block) {
           .hass=${this.hass}
           block-style="compact"
           fill-width
-          show-name=${hasName}  // 关键修改：根据是否有名称决定是否显示名称
+          show-name=${true}
+          use-entity-name=${false}  <!-- 关键修改：名称为空时不使用实体名称 -->
           show-value=${true}
         ></block-base>
       </div>

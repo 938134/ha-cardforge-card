@@ -71,118 +71,112 @@ export const card = {
   
   blockType: 'custom',
   
-  template: (config, { hass }) => {
-    const blocks = config.blocks || {};
+// 在 template 方法中，只修改以下部分：
+template: (config, { hass }) => {
+  const blocks = config.blocks || {};
+  
+  // 分离不同区域的块
+  const headerBlocks = [];
+  const contentBlocks = [];
+  const footerBlocks = [];
+  
+  Object.entries(blocks).forEach(([id, block]) => {
+    const area = block.area || 'content';
+    const blockData = { id, ...block };
     
-    // 分离不同区域的块
-    const headerBlocks = [];
-    const contentBlocks = [];
-    const footerBlocks = [];
-    
-    Object.entries(blocks).forEach(([id, block]) => {
-      const area = block.area || 'content';
-      const blockData = { id, ...block };
-      
-      if (area === 'header') {
-        headerBlocks.push(blockData);
-      } else if (area === 'footer') {
-        footerBlocks.push(blockData);
-      } else {
-        contentBlocks.push(blockData);
-      }
-    });
-    
-    // 根据布局模式生成内容区域类名
-    const getContentContainerClass = () => {
-      switch (config.contentLayout) {
-        case 'flow': return 'content-flow';
-        case 'stack': return 'content-stack';
-        case 'grid-2': return 'content-grid-2';
-        case 'grid-3': return 'content-grid-3';
-        case 'grid-4': return 'content-grid-4';
-        default: return 'content-flow';
-      }
-    };
-    
-    // 获取内容块样式
-    const contentBlockStyle = config.contentBlockStyle || 'compact';
-    
-    return html`
-      <div class="dashboard-card">
-        <!-- 标题区域 - 强制使用水平布局 -->
-        ${config.showHeader ? html`
-          <div class="dashboard-header align-${config.headerAlign}">
-            <div class="header-content">
-              ${headerBlocks.map(block => {
-                // 判断块是否有名称
-                const hasName = block.name && block.name.trim() !== '';
-                
-                return html`
-                  <block-base 
-                    .block=${block}
-                    .hass=${this.hass}
-                    block-style="horizontal"
-                    area-align="${config.headerAlign}"
-                    fill-width
-                    show-name=${hasName}  // 关键：根据是否有名称决定显示
-                    show-value=${true}
-                  ></block-base>
-                `;
-              })}
-              ${headerBlocks.length === 0 ? html`
-                <div class="empty-area">标题区域 - 可在此添加块</div>
-              ` : ''}
-            </div>
-          </div>
-        ` : ''}
-        
-        <!-- 内容区域 -->
-        <div class="dashboard-content">
-          <div class="content-container ${getContentContainerClass()}">
-            ${contentBlocks.map(block => html`
+    if (area === 'header') {
+      headerBlocks.push(blockData);
+    } else if (area === 'footer') {
+      footerBlocks.push(blockData);
+    } else {
+      contentBlocks.push(blockData);
+    }
+  });
+  
+  // 根据布局模式生成内容区域类名
+  const getContentContainerClass = () => {
+    switch (config.contentLayout) {
+      case 'flow': return 'content-flow';
+      case 'stack': return 'content-stack';
+      case 'grid-2': return 'content-grid-2';
+      case 'grid-3': return 'content-grid-3';
+      case 'grid-4': return 'content-grid-4';
+      default: return 'content-flow';
+    }
+  };
+  
+  // 获取内容块样式
+  const contentBlockStyle = config.contentBlockStyle || 'compact';
+  
+  return html`
+    <div class="dashboard-card">
+      <!-- 标题区域 - 强制使用水平布局 -->
+      ${config.showHeader ? html`
+        <div class="dashboard-header align-${config.headerAlign}">
+          <div class="header-content">
+            ${headerBlocks.map(block => html`
               <block-base 
                 .block=${block}
                 .hass=${hass}
-                block-style="${contentBlockStyle}"
+                block-style="horizontal"
+                area-align="${config.headerAlign}"
+                fill-width
                 show-name=${true}
+                use-entity-name=${false}  <!-- 关键修改：名称为空时不使用实体名称 -->
                 show-value=${true}
               ></block-base>
             `)}
-            ${contentBlocks.length === 0 ? html`
-              <div class="empty-area">内容区域 - 请在此添加块</div>
+            ${headerBlocks.length === 0 ? html`
+              <div class="empty-area">标题区域 - 可在此添加块</div>
             ` : ''}
           </div>
         </div>
-        
-        <!-- 页脚区域 - 强制使用水平布局，状态值允许换行 -->
-        ${config.showFooter ? html`
-          <div class="dashboard-footer align-${config.footerAlign}">
-            <div class="footer-content">
-              ${footerBlocks.map(block => {
-                // 判断块是否有名称
-                const hasName = block.name && block.name.trim() !== '';
-                
-                return html`
-                  <block-base 
-                    .block=${block}
-                    .hass=${this.hass}
-                    block-style="horizontal"
-                    area-align="${config.footerAlign}"
-                    fill-width
-                    show-name=${hasName}  // 关键：根据是否有名称决定显示
-                    show-value=${true}
-                  ></block-base>
-                `;
-              })}
-              ${footerBlocks.length === 0 ? html`
-                <div class="empty-area">页脚区域 - 可在此添加块</div>
-              ` : ''}
-            </div>
-          </div>
-        ` : ''}
+      ` : ''}
+      
+      <!-- 内容区域 -->
+      <div class="dashboard-content">
+        <div class="content-container ${getContentContainerClass()}">
+          ${contentBlocks.map(block => html`
+            <block-base 
+              .block=${block}
+              .hass=${hass}
+              block-style="${contentBlockStyle}"
+              show-name=${true}
+              use-entity-name=${false}  <!-- 关键修改：名称为空时不使用实体名称 -->
+              show-value=${true}
+            ></block-base>
+          `)}
+          ${contentBlocks.length === 0 ? html`
+            <div class="empty-area">内容区域 - 请在此添加块</div>
+          ` : ''}
+        </div>
       </div>
-    `;
-  },
+      
+      <!-- 页脚区域 - 强制使用水平布局，状态值允许换行 -->
+      ${config.showFooter ? html`
+        <div class="dashboard-footer align-${config.footerAlign}">
+          <div class="footer-content">
+            ${footerBlocks.map(block => html`
+              <block-base 
+                .block=${block}
+                .hass=${hass}
+                block-style="horizontal"
+                area-align="${config.footerAlign}"
+                fill-width
+                show-name=${false}  <!-- 页脚通常不显示名称 -->
+                use-entity-name=${false}  <!-- 关键修改：名称为空时不使用实体名称 -->
+                show-value=${true}
+              ></block-base>
+            `)}
+            ${footerBlocks.length === 0 ? html`
+              <div class="empty-area">页脚区域 - 可在此添加块</div>
+            ` : ''}
+          </div>
+        </div>
+      ` : ''}
+    </div>
+  `;
+},
   
   styles: (config) => {
     const customStyles = css`
